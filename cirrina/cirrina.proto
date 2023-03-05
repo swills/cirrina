@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package cirrina;
+option go_package = "mouf.net/project/protos/cirrina";
+
+service VMInfo {
+  rpc AddVM(VM) returns (VmID);
+  rpc GetVM(VmID) returns (VM);
+  rpc GetVMs(VMsQuery) returns (stream VM);
+}
+
+message VM {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message VmID {
+  string value = 1;
+}
+
+message VMsQuery {
+}
