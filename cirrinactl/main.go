@@ -11,16 +11,14 @@ import (
 	"time"
 )
 
-const (
-	defaultName = "default"
-)
-
 var (
 	addr = flag.String("addr", "localhost:50051", "the address to connect to")
-	name = flag.String("name", defaultName, "Name to greet")
 )
 
 func main() {
+	actionPtr := flag.String("action", "", "action to take")
+	idPtr := flag.String("id", "", "ID of VM")
+
 	flag.Parse()
 	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -37,25 +35,43 @@ func main() {
 	// Contact the server and print out its response.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	r, err := c.GetVM(ctx, &pb.VmID{Value: *name})
-	if err != nil {
-		log.Fatalf("could not get VM: %v", err)
-	}
-	log.Printf("Greeting: %s", r.Name)
 
-	t, err := c.GetVMs(ctx, &pb.VMsQuery{})
-	if err != nil {
-		log.Fatalf("could not get VMs: %v", err)
+	if *actionPtr == "" {
+		log.Fatalf("Action not specified")
+		return
 	}
-	log.Printf("Getting VMs")
-	for {
-		VM, err := t.Recv()
-		if err == io.EOF {
-			break
+	if *actionPtr == "getVM" {
+		if *idPtr == "" {
+			log.Fatalf("ID not specified")
+			return
 		}
+		r, err := c.GetVM(ctx, &pb.VmID{Value: *idPtr})
 		if err != nil {
-			log.Fatalf("GetVMs failed: %v", err)
+			log.Fatalf("could not get VM: %v", err)
 		}
-		log.Printf("VM: id: %v name: %v desc: %v cpu: %v mem: %v", VM.Id, VM.Name, VM.Description, VM.Cpu, VM.Mem)
+		if r.Name == "" {
+			log.Fatalf("VM ID %v not found", idPtr)
+		}
+		log.Printf("name: %v id: %v, desc: %v, cpu: %v, mem: %v", r.Name, r.Id, r.Description, r.Cpu, r.Mem)
+		return
 	}
+	if *actionPtr == "getVMs" {
+		log.Printf("Getting VMs")
+		t, err := c.GetVMs(ctx, &pb.VMsQuery{})
+		if err != nil {
+			log.Fatalf("could not get VMs: %v", err)
+		}
+		for {
+			VM, err := t.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Fatalf("GetVMs failed: %v", err)
+			}
+			log.Printf("VM: id: %v name: %v desc: %v cpu: %v mem: %v", VM.Id, VM.Name, VM.Description, VM.Cpu, VM.Mem)
+		}
+		return
+	}
+	log.Fatalf("Action %v unknown", *actionPtr)
 }

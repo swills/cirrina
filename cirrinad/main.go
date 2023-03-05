@@ -18,8 +18,20 @@ type server struct {
 	pb.UnimplementedVMInfoServer
 }
 
-func (s *server) GetVM(_ context.Context, _ *pb.VmID) (*pb.VM, error) {
-	return &pb.VM{}, nil
+func (s *server) GetVM(_ context.Context, v *pb.VmID) (*pb.VM, error) {
+	log.Printf("Getting VM %v", v.Value)
+	var vm pb.VM
+
+	db, err := gorm.Open(sqlite.Open("cirrina.sqlite"), &gorm.Config{})
+	if err != nil {
+		panic("failed to connect database")
+	}
+	err = db.AutoMigrate(&pb.VM{})
+	if err != nil {
+		panic("failed to auto-migrate")
+	}
+	db.Where("id = ?", v.Value).First(&vm)
+	return &vm, nil
 }
 
 func (s *server) GetVMs(_ *pb.VMsQuery, stream pb.VMInfo_GetVMsServer) error {
@@ -27,12 +39,12 @@ func (s *server) GetVMs(_ *pb.VMsQuery, stream pb.VMInfo_GetVMsServer) error {
 	var vms []pb.VM
 
 	db, err := gorm.Open(sqlite.Open("cirrina.sqlite"), &gorm.Config{})
-	err = db.AutoMigrate(&pb.VM{})
-	if err != nil {
-		return err
-	}
 	if err != nil {
 		panic("failed to connect database")
+	}
+	err = db.AutoMigrate(&pb.VM{})
+	if err != nil {
+		panic("failed to auto-migrate")
 	}
 	db.Find(&vms)
 
