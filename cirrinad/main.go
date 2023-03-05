@@ -5,12 +5,14 @@ import (
 	"google.golang.org/grpc"
 	"log"
 	"net"
+	"os"
 
 	pb "cirrina/cirrina"
 )
 
 const (
-	port = ":50051"
+	port       = ":50051"
+	configPath = "/usr/home/swills/.config/weasel/vms/"
 )
 
 type server struct {
@@ -24,9 +26,17 @@ func (s *server) GetVM(_ context.Context, in *pb.VmID) (*pb.VM, error) {
 
 func (s *server) GetVMs(_ *pb.VMsQuery, stream pb.VMInfo_GetVMsServer) error {
 	log.Printf("Got GetVMs query")
-	err := stream.Send(&pb.VM{Name: "some VM"})
+	entries, err := os.ReadDir(configPath)
 	if err != nil {
-		return err
+		log.Fatal(err)
+	}
+
+	for _, e := range entries {
+		vmName := e.Name()[:len(e.Name())-5]
+		err := stream.Send(&pb.VM{Name: vmName})
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
