@@ -1,7 +1,7 @@
 syntax = "proto3";
 
 package cirrina;
-option go_package = "mouf.net/project/protos/cirrina";
+option go_package = "gitlab.mouf.net/swills/cirrina";
 
 service VMInfo {
   rpc AddVM(VM) returns (VmID);
