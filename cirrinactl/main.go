@@ -56,6 +56,6 @@ func main() {
 		if err != nil {
 			log.Fatalf("GetVMs failed: %v", err)
 		}
-		log.Printf("VM: %q", VM.Name)
+		log.Printf("VM: id: %v name: %v desc: %v cpu: %v mem: %v", VM.Id, VM.Name, VM.Description, VM.Cpu, VM.Mem)
 	}
 }

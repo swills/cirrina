@@ -1,39 +1,43 @@
 package main
 
 import (
+	pb "cirrina/cirrina"
 	"context"
 	"google.golang.org/grpc"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 	"log"
 	"net"
-	"os"
-
-	pb "cirrina/cirrina"
 )
 
 const (
-	port       = ":50051"
-	configPath = "/usr/home/swills/.config/weasel/vms/"
+	port = ":50051"
 )
 
 type server struct {
 	pb.UnimplementedVMInfoServer
 }
 
-func (s *server) GetVM(_ context.Context, in *pb.VmID) (*pb.VM, error) {
-	log.Printf("Received: %v", in.GetValue())
+func (s *server) GetVM(_ context.Context, _ *pb.VmID) (*pb.VM, error) {
 	return &pb.VM{}, nil
 }
 
 func (s *server) GetVMs(_ *pb.VMsQuery, stream pb.VMInfo_GetVMsServer) error {
-	log.Printf("Got GetVMs query")
-	entries, err := os.ReadDir(configPath)
-	if err != nil {
-		log.Fatal(err)
-	}
+	log.Printf("Getting VMs")
+	var vms []pb.VM
 
-	for _, e := range entries {
-		vmName := e.Name()[:len(e.Name())-5]
-		err := stream.Send(&pb.VM{Name: vmName})
+	db, err := gorm.Open(sqlite.Open("cirrina.sqlite"), &gorm.Config{})
+	err = db.AutoMigrate(&pb.VM{})
+	if err != nil {
+		return err
+	}
+	if err != nil {
+		panic("failed to connect database")
+	}
+	db.Find(&vms)
+
+	for e := range vms {
+		err := stream.Send(&vms[e])
 		if err != nil {
 			return err
 		}

@@ -13,6 +13,8 @@ message VM {
   string id = 1;
   string name = 2;
   string description = 3;
+  int32 cpu = 4;
+  int32 mem = 5;
 }
 
 message VmID {
