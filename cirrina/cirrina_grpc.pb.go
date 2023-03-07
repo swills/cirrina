@@ -22,6 +22,7 @@ const (
 	VMInfo_AddVM_FullMethodName         = "/cirrina.VMInfo/AddVM"
 	VMInfo_GetVM_FullMethodName         = "/cirrina.VMInfo/GetVM"
 	VMInfo_GetVMs_FullMethodName        = "/cirrina.VMInfo/GetVMs"
+	VMInfo_UpdateVM_FullMethodName      = "/cirrina.VMInfo/UpdateVM"
 	VMInfo_StartVM_FullMethodName       = "/cirrina.VMInfo/StartVM"
 	VMInfo_StopVM_FullMethodName        = "/cirrina.VMInfo/StopVM"
 	VMInfo_RequestStatus_FullMethodName = "/cirrina.VMInfo/RequestStatus"
@@ -35,6 +36,7 @@ type VMInfoClient interface {
 	AddVM(ctx context.Context, in *VM, opts ...grpc.CallOption) (*VmID, error)
 	GetVM(ctx context.Context, in *VmID, opts ...grpc.CallOption) (*VM, error)
 	GetVMs(ctx context.Context, in *VMsQuery, opts ...grpc.CallOption) (VMInfo_GetVMsClient, error)
+	UpdateVM(ctx context.Context, in *VmID, opts ...grpc.CallOption) (*ReqBool, error)
 	StartVM(ctx context.Context, in *VmID, opts ...grpc.CallOption) (*RequestID, error)
 	StopVM(ctx context.Context, in *VmID, opts ...grpc.CallOption) (*RequestID, error)
 	RequestStatus(ctx context.Context, in *RequestID, opts ...grpc.CallOption) (*ReqStatus, error)
@@ -99,6 +101,15 @@ func (x *vMInfoGetVMsClient) Recv() (*VmID, error) {
 	return m, nil
 }
 
+func (c *vMInfoClient) UpdateVM(ctx context.Context, in *VmID, opts ...grpc.CallOption) (*ReqBool, error) {
+	out := new(ReqBool)
+	err := c.cc.Invoke(ctx, VMInfo_UpdateVM_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *vMInfoClient) StartVM(ctx context.Context, in *VmID, opts ...grpc.CallOption) (*RequestID, error) {
 	out := new(RequestID)
 	err := c.cc.Invoke(ctx, VMInfo_StartVM_FullMethodName, in, out, opts...)
@@ -142,6 +153,7 @@ type VMInfoServer interface {
 	AddVM(context.Context, *VM) (*VmID, error)
 	GetVM(context.Context, *VmID) (*VM, error)
 	GetVMs(*VMsQuery, VMInfo_GetVMsServer) error
+	UpdateVM(context.Context, *VmID) (*ReqBool, error)
 	StartVM(context.Context, *VmID) (*RequestID, error)
 	StopVM(context.Context, *VmID) (*RequestID, error)
 	RequestStatus(context.Context, *RequestID) (*ReqStatus, error)
@@ -161,6 +173,9 @@ func (UnimplementedVMInfoServer) GetVM(context.Context, *VmID) (*VM, error) {
 }
 func (UnimplementedVMInfoServer) GetVMs(*VMsQuery, VMInfo_GetVMsServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetVMs not implemented")
+}
+func (UnimplementedVMInfoServer) UpdateVM(context.Context, *VmID) (*ReqBool, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateVM not implemented")
 }
 func (UnimplementedVMInfoServer) StartVM(context.Context, *VmID) (*RequestID, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StartVM not implemented")
@@ -242,6 +257,24 @@ type vMInfoGetVMsServer struct {
 
 func (x *vMInfoGetVMsServer) Send(m *VmID) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func _VMInfo_UpdateVM_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VmID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).UpdateVM(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_UpdateVM_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).UpdateVM(ctx, req.(*VmID))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _VMInfo_StartVM_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -330,6 +363,10 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetVM",
 			Handler:    _VMInfo_GetVM_Handler,
+		},
+		{
+			MethodName: "UpdateVM",
+			Handler:    _VMInfo_UpdateVM_Handler,
 		},
 		{
 			MethodName: "StartVM",
