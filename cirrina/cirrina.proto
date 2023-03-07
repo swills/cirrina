@@ -15,13 +15,20 @@ service VMInfo {
 }
 
 message VmID {
-  string value = 1;
+  uint32 value = 1;
 }
-
 
 message VM {
   string name = 1;
   string description = 2;
+  uint32 cpu = 3;
+  uint32 mem = 4;
+  uint32 max_wait = 5;
+  bool restart = 6;
+  uint32 restart_delay = 7;
+  bool screen = 8;
+  uint32 screen_width = 9;
+  uint32 screen_height = 10;
 }
 
 message VMsQuery {

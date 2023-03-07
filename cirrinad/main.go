@@ -4,7 +4,6 @@ import (
 	pb "cirrina/cirrina"
 	"context"
 	"errors"
-	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -20,16 +19,29 @@ type server struct {
 	pb.UnimplementedVMInfoServer
 }
 
+type VMConfig struct {
+	gorm.Model
+	VMID         uint32
+	Cpu          uint32 `gorm:"default:1;check:cpu BETWEEN 1 and 16"`
+	Mem          uint32 `gorm:"default:128;check:mem>=128"`
+	MaxWait      uint32 `gorm:"default:120"`
+	Restart      bool   `gorm:"default:True"`
+	RestartDelay uint32 `gorm:"default:1"`
+	Screen       bool   `gorm:"default:True"`
+	ScreenWidth  uint32 `gorm:"default:1920;check:screen_width BETWEEN 640 and 1920"`
+	ScreenHeight uint32 `gorm:"default:1080;check:screen_height BETWEEN 480 and 1200"`
+}
+
 type VM struct {
 	gorm.Model
-	ID          string
+	ID          uint32
 	Name        string `gorm:"uniqueIndex"`
 	Description string
-	ConfigID    string
 	Status      string
 	BhyvePid    int32
 	NetDev      string
 	VNCPort     int32
+	Config      VMConfig
 }
 
 func getVMDB() *gorm.DB {
@@ -41,25 +53,31 @@ func getVMDB() *gorm.DB {
 	if err != nil {
 		panic("failed to auto-migrate")
 	}
+	err = db.AutoMigrate(&VMConfig{})
+	if err != nil {
+		panic("failed to auto-migrate")
+	}
 	return db
 }
 
 func (s *server) AddVM(_ context.Context, v *pb.VM) (*pb.VmID, error) {
 	log.Printf("Adding VM %v", v.Name)
-	var vm VM
 
 	db := getVMDB()
-	vm.ID = uuid.NewString()
-	vm.Name = v.Name
-	vm.Status = "STOPPED"
-	vm.Description = v.Description
-	res := db.Create(&vm)
-
-	log.Printf("Added %v", res.RowsAffected)
-	if res.RowsAffected == 1 {
-		return &pb.VmID{Value: vm.ID}, nil
+	vm := VM{
+		Name:        v.Name,
+		Status:      "STOPPED",
+		Description: v.Description,
+		Config: VMConfig{
+			Cpu: v.Cpu,
+			Mem: v.Mem,
+		},
 	}
-	return &pb.VmID{}, errors.New("error Creating VM")
+	res := db.Create(&vm)
+	if res.RowsAffected != 1 {
+		return &pb.VmID{}, errors.New("error Creating VM")
+	}
+	return &pb.VmID{Value: vm.ID}, nil
 }
 
 func (s *server) GetVM(_ context.Context, v *pb.VmID) (*pb.VM, error) {
@@ -69,7 +87,7 @@ func (s *server) GetVM(_ context.Context, v *pb.VmID) (*pb.VM, error) {
 
 	db := getVMDB()
 	db.Where("id = ?", v.Value).First(&vm)
-	if vm.ID != "" {
+	if vm.ID != 0 {
 		pvm.Name = vm.Name
 		pvm.Description = vm.Description
 	}
@@ -100,8 +118,7 @@ func (s *server) GetVMState(_ context.Context, p *pb.VmID) (*pb.VMState, error) 
 	log.Printf("Finding %v", p.Value)
 	vmDB := getVMDB()
 	vmDB.Where(&VM{ID: p.Value}).Limit(1).Find(&v)
-	log.Printf("v: %v", v.ID)
-	if v.ID != "" {
+	if v.ID != 0 {
 		r.Status = v.Status
 	}
 	return &r, nil

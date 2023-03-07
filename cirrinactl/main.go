@@ -17,9 +17,11 @@ var (
 
 func main() {
 	actionPtr := flag.String("action", "", "action to take")
-	idPtr := flag.String("id", "", "ID of VM")
+	idPtr := flag.Uint("id", 0, "ID of VM")
 	namePtr := flag.String("name", "", "Name of VM")
 	descrPtr := flag.String("descr", "", "Description of VM")
+	cpuPtr := flag.Uint("cpus", 1, "Number of CPUs in VM")
+	memPtr := flag.Uint("mem", 128, "Memory in VM (MB)")
 
 	flag.Parse()
 	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -43,11 +45,11 @@ func main() {
 		return
 	}
 	if *actionPtr == "getVM" {
-		if *idPtr == "" {
+		if *idPtr == 0 {
 			log.Fatalf("ID not specified")
 			return
 		}
-		r, err := c.GetVM(ctx, &pb.VmID{Value: *idPtr})
+		r, err := c.GetVM(ctx, &pb.VmID{Value: uint32(*idPtr)})
 		if err != nil {
 			log.Fatalf("could not get VM: %v", err)
 		}
@@ -76,12 +78,12 @@ func main() {
 		return
 	}
 	if *actionPtr == "getVMState" {
-		if *idPtr == "" {
+		if *idPtr == 0 {
 			log.Fatalf("ID not specified")
 			return
 		}
 		log.Print("getting VM state")
-		r, err := c.GetVMState(ctx, &pb.VmID{Value: *idPtr})
+		r, err := c.GetVMState(ctx, &pb.VmID{Value: uint32(*idPtr)})
 		if err != nil {
 			log.Fatalf("could not get state: %v", err)
 		}
@@ -92,7 +94,12 @@ func main() {
 		if *namePtr == "" {
 			log.Fatalf("Name not specified")
 		}
-		r, err := c.AddVM(ctx, &pb.VM{Name: *namePtr, Description: *descrPtr})
+		r, err := c.AddVM(ctx, &pb.VM{
+			Name:        *namePtr,
+			Description: *descrPtr,
+			Cpu:         uint32(*cpuPtr),
+			Mem:         uint32(*memPtr),
+		})
 		if err != nil {
 			log.Fatalf("Failed to create VM")
 		}
