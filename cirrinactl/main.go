@@ -54,7 +54,7 @@ func main() {
 			log.Fatalf("could not get VM: %v", err)
 		}
 		if r.Name == "" {
-			log.Fatalf("VM ID %v not found", idPtr)
+			log.Fatalf("VM ID %v not found", *idPtr)
 		}
 		log.Printf("name: %v desc: %v", r.Name, r.Description)
 		return
