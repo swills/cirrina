@@ -6,20 +6,41 @@ option go_package = "gitlab.mouf.net/swills/cirrina";
 service VMInfo {
   rpc AddVM(VM) returns (VmID);
   rpc GetVM(VmID) returns (VM);
-  rpc GetVMs(VMsQuery) returns (stream VM);
-}
-
-message VM {
-  string id = 1;
-  string name = 2;
-  string description = 3;
-  int32 cpu = 4;
-  int32 mem = 5;
+  rpc GetVMs(VMsQuery) returns (stream VmID);
+  rpc UpdateVM(VmID) returns (ReqBool);
+  rpc StartVM(VmID) returns (RequestID);
+  rpc StopVM(VmID) returns (RequestID);
+  rpc RequestStatus(RequestID) returns (ReqStatus);
+  rpc GetVMState(VmID) returns (VMState);
 }
 
 message VmID {
   string value = 1;
 }
 
+
+message VM {
+  string name = 1;
+  string description = 2;
+}
+
 message VMsQuery {
+}
+
+message RequestID {
+  string value = 1;
+}
+
+message ReqStatus {
+  bool complete = 1;
+  bool success = 2;
+}
+
+message VMState {
+  string status = 1;
+  int32 VncPort = 2;
+}
+
+message ReqBool {
+  bool success = 1;
 }

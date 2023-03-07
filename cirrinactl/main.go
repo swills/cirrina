@@ -18,6 +18,8 @@ var (
 func main() {
 	actionPtr := flag.String("action", "", "action to take")
 	idPtr := flag.String("id", "", "ID of VM")
+	namePtr := flag.String("name", "", "Name of VM")
+	descrPtr := flag.String("descr", "", "Description of VM")
 
 	flag.Parse()
 	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -52,7 +54,7 @@ func main() {
 		if r.Name == "" {
 			log.Fatalf("VM ID %v not found", idPtr)
 		}
-		log.Printf("name: %v id: %v, desc: %v, cpu: %v, mem: %v", r.Name, r.Id, r.Description, r.Cpu, r.Mem)
+		log.Printf("name: %v desc: %v", r.Name, r.Description)
 		return
 	}
 	if *actionPtr == "getVMs" {
@@ -69,8 +71,32 @@ func main() {
 			if err != nil {
 				log.Fatalf("GetVMs failed: %v", err)
 			}
-			log.Printf("VM: id: %v name: %v desc: %v cpu: %v mem: %v", VM.Id, VM.Name, VM.Description, VM.Cpu, VM.Mem)
+			log.Printf("VM: id: %v", VM.Value)
 		}
+		return
+	}
+	if *actionPtr == "getVMState" {
+		if *idPtr == "" {
+			log.Fatalf("ID not specified")
+			return
+		}
+		log.Print("getting VM state")
+		r, err := c.GetVMState(ctx, &pb.VmID{Value: *idPtr})
+		if err != nil {
+			log.Fatalf("could not get state: %v", err)
+		}
+		log.Printf("vm id: %v state: %v vnc port: %v", *idPtr, r.Status, r.VncPort)
+		return
+	}
+	if *actionPtr == "addVM" {
+		if *namePtr == "" {
+			log.Fatalf("Name not specified")
+		}
+		r, err := c.AddVM(ctx, &pb.VM{Name: *namePtr, Description: *descrPtr})
+		if err != nil {
+			log.Fatalf("Failed to create VM")
+		}
+		log.Printf("Created VM %v", r.Value)
 		return
 	}
 	log.Fatalf("Action %v unknown", *actionPtr)
