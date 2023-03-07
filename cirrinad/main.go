@@ -61,8 +61,6 @@ func getVMDB() *gorm.DB {
 }
 
 func (s *server) AddVM(_ context.Context, v *pb.VM) (*pb.VmID, error) {
-	log.Printf("Adding VM %v", v.Name)
-
 	db := getVMDB()
 	vm := VM{
 		Name:        v.Name,
@@ -81,21 +79,32 @@ func (s *server) AddVM(_ context.Context, v *pb.VM) (*pb.VmID, error) {
 }
 
 func (s *server) GetVM(_ context.Context, v *pb.VmID) (*pb.VM, error) {
-	log.Printf("Getting VM %v", v.Value)
 	var vm VM
 	var pvm pb.VM
+	var config VMConfig
 
 	db := getVMDB()
-	db.Where("id = ?", v.Value).First(&vm)
+	db.Where("id = ?", v.Value).Find(&vm)
+	if vm.Name == "" {
+		return &pvm, errors.New("not found")
+	}
+	db.Where("id = ?", v.Value).Find(&config)
 	if vm.ID != 0 {
 		pvm.Name = vm.Name
 		pvm.Description = vm.Description
 	}
+	pvm.Cpu = config.Cpu
+	pvm.Mem = config.Mem
+	pvm.MaxWait = config.MaxWait
+	pvm.Restart = config.Restart
+	pvm.RestartDelay = config.RestartDelay
+	pvm.Screen = config.Screen
+	pvm.ScreenWidth = config.ScreenWidth
+	pvm.ScreenHeight = config.ScreenHeight
 	return &pvm, nil
 }
 
 func (s *server) GetVMs(_ *pb.VMsQuery, stream pb.VMInfo_GetVMsServer) error {
-	log.Printf("Getting VMs")
 	var vms []VM
 	var pvm pb.VmID
 
@@ -115,7 +124,6 @@ func (s *server) GetVMs(_ *pb.VMsQuery, stream pb.VMInfo_GetVMsServer) error {
 func (s *server) GetVMState(_ context.Context, p *pb.VmID) (*pb.VMState, error) {
 	v := VM{}
 	r := pb.VMState{}
-	log.Printf("Finding %v", p.Value)
 	vmDB := getVMDB()
 	vmDB.Where(&VM{ID: p.Value}).Limit(1).Find(&v)
 	if v.ID != 0 {

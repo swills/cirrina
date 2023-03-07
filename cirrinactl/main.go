@@ -56,7 +56,7 @@ func main() {
 		if r.Name == "" {
 			log.Fatalf("VM ID %v not found", *idPtr)
 		}
-		log.Printf("name: %v desc: %v", r.Name, r.Description)
+		log.Printf("name: %v desc: %v cpus: %v", r.Name, r.Description, r.Cpu)
 		return
 	}
 	if *actionPtr == "getVMs" {
