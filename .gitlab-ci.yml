@@ -1,0 +1,14 @@
+cirranad:
+  stage: build
+  tags:
+    - FreeBSD
+  script:
+    - cd cirrinad
+    - go build .
+cirranactl:
+  stage: build
+  tags:
+    - FreeBSD
+  script:
+    - cd cirrinactl
+    - go build .
