@@ -67,6 +67,14 @@ func getVMDB() *gorm.DB {
 	return db
 }
 
+func isOptionPassed(reflect protoreflect.Message, name string) bool {
+	field := reflect.Descriptor().Fields().ByName(protoreflect.Name(name))
+	if reflect.Has(field) {
+		return true
+	}
+	return false
+}
+
 func (s *server) AddVM(_ context.Context, v *pb.VM) (*pb.VMID, error) {
 	db := getVMDB()
 	var evm VM
@@ -114,14 +122,14 @@ func (s *server) GetVM(_ context.Context, v *pb.VMID) (*pb.VM, error) {
 
 func (s *server) GetVMs(_ *pb.VMsQuery, stream pb.VMInfo_GetVMsServer) error {
 	var vms []VM
-	var pvm pb.VMID
+	var pvmid pb.VMID
 
 	db := getVMDB()
 	db.Find(&vms)
 
 	for e := range vms {
-		pvm.Value = vms[e].ID
-		err := stream.Send(&pvm)
+		pvmid.Value = vms[e].ID
+		err := stream.Send(&pvmid)
 		if err != nil {
 			return err
 		}
@@ -130,23 +138,15 @@ func (s *server) GetVMs(_ *pb.VMsQuery, stream pb.VMInfo_GetVMsServer) error {
 }
 
 func (s *server) GetVMState(_ context.Context, p *pb.VMID) (*pb.VMState, error) {
-	v := VM{}
-	r := pb.VMState{}
+	vm := VM{}
+	pvm := pb.VMState{}
 	vmDB := getVMDB()
-	vmDB.Limit(1).Find(&v, &VM{ID: p.Value})
-	if v.ID == "" {
-		return &r, errors.New("not found")
+	vmDB.Limit(1).Find(&vm, &VM{ID: p.Value})
+	if vm.ID == "" {
+		return &pvm, errors.New("not found")
 	}
-	r.Status = v.Status
-	return &r, nil
-}
-
-func isOptionPassed(pref protoreflect.Message, name string) bool {
-	field := pref.Descriptor().Fields().ByName(protoreflect.Name(name))
-	if pref.Has(field) {
-		return true
-	}
-	return false
+	pvm.Status = vm.Status
+	return &pvm, nil
 }
 
 func (s *server) UpdateVM(_ context.Context, rc *pb.VMReConfig) (*pb.ReqBool, error) {
@@ -158,17 +158,17 @@ func (s *server) UpdateVM(_ context.Context, rc *pb.VMReConfig) (*pb.ReqBool, er
 	if vm.ID == "" {
 		return &re, errors.New("not found")
 	}
-	pref := rc.ProtoReflect()
-	if isOptionPassed(pref, "name") {
+	reflect := rc.ProtoReflect()
+	if isOptionPassed(reflect, "name") {
 		vm.Name = *rc.Name
 	}
-	if isOptionPassed(pref, "description") {
+	if isOptionPassed(reflect, "description") {
 		vm.Description = *rc.Description
 	}
-	if isOptionPassed(pref, "cpu") {
+	if isOptionPassed(reflect, "cpu") {
 		vm.VMConfig.Cpu = *rc.Cpu
 	}
-	if isOptionPassed(pref, "mem") {
+	if isOptionPassed(reflect, "mem") {
 		vm.VMConfig.Mem = *rc.Mem
 	}
 	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)

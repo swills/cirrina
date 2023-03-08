@@ -17,8 +17,8 @@ var (
 
 func isFlagPassed(name string) bool {
 	found := false
-	flag.Visit(func(f *flag.Flag) {
-		if f.Name == name {
+	flag.Visit(func(fflag *flag.Flag) {
+		if fflag.Name == name {
 			found = true
 		}
 	})
@@ -30,7 +30,7 @@ func addVM(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *st
 		log.Fatalf("Name not specified")
 		return
 	}
-	r, err := c.AddVM(ctx, &pb.VM{
+	res, err := c.AddVM(ctx, &pb.VM{
 		Name:        *namePtr,
 		Description: *descrPtr,
 		Cpu:         uint32(*cpuPtr),
@@ -40,7 +40,7 @@ func addVM(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *st
 		log.Fatalf("could not create VM: %v", err)
 		return
 	}
-	log.Printf("Created VM %v", r.Value)
+	log.Printf("Created VM %v", res.Value)
 }
 
 func getVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
@@ -48,21 +48,21 @@ func getVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 		log.Fatalf("ID not specified")
 		return
 	}
-	r, err := c.GetVM(ctx, &pb.VMID{Value: *idPtr})
+	res, err := c.GetVM(ctx, &pb.VMID{Value: *idPtr})
 	if err != nil {
 		log.Fatalf("could not get VM: %v", err)
 	}
-	log.Printf("name: %v desc: %v cpus: %v mem: %v", r.Name, r.Description, r.Cpu, r.Mem)
+	log.Printf("name: %v desc: %v cpus: %v mem: %v", res.Name, res.Description, res.Cpu, res.Mem)
 }
 
 func getVMs(c pb.VMInfoClient, ctx context.Context) {
-	t, err := c.GetVMs(ctx, &pb.VMsQuery{})
+	res, err := c.GetVMs(ctx, &pb.VMsQuery{})
 	if err != nil {
 		log.Fatalf("could not get VMs: %v", err)
 		return
 	}
 	for {
-		VM, err := t.Recv()
+		VM, err := res.Recv()
 		if err == io.EOF {
 			break
 		}
@@ -78,12 +78,12 @@ func getVMState(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 		log.Fatalf("ID not specified")
 		return
 	}
-	r, err := c.GetVMState(ctx, &pb.VMID{Value: *idPtr})
+	res, err := c.GetVMState(ctx, &pb.VMID{Value: *idPtr})
 	if err != nil {
 		log.Fatalf("could not get state: %v", err)
 		return
 	}
-	log.Printf("vm id: %v state: %v vnc port: %v", *idPtr, r.Status, r.VncPort)
+	log.Printf("vm id: %v state: %v vnc port: %v", *idPtr, res.Status, res.VncPort)
 }
 
 func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPtr *uint, memPtr *uint, c pb.VMInfoClient, ctx context.Context) {
