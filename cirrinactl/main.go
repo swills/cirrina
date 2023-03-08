@@ -111,10 +111,19 @@ func Reconfig(idPtr *uint, err error, namePtr *string, descrPtr *string, cpuPtr 
 	}
 	if isFlagPassed("cpus") {
 		newCpu := uint32(*cpuPtr)
+		if newCpu < 1 {
+			newCpu = 1
+		}
+		if newCpu > 16 {
+			newCpu = 16
+		}
 		newConfig.Cpu = &newCpu
 	}
 	if isFlagPassed("mem") {
 		newMem := uint32(*memPtr)
+		if newMem < 128 {
+			newMem = 128
+		}
 		newConfig.Mem = &newMem
 	}
 	_, err = c.UpdateVM(ctx, &newConfig)
