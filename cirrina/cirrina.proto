@@ -7,7 +7,7 @@ service VMInfo {
   rpc AddVM(VM) returns (VmID);
   rpc GetVM(VmID) returns (VM);
   rpc GetVMs(VMsQuery) returns (stream VmID);
-  rpc UpdateVM(VmID) returns (ReqBool);
+  rpc UpdateVM(VMReConfig) returns (ReqBool);
   rpc StartVM(VmID) returns (RequestID);
   rpc StopVM(VmID) returns (RequestID);
   rpc RequestStatus(RequestID) returns (ReqStatus);
@@ -46,6 +46,20 @@ message ReqStatus {
 message VMState {
   string status = 1;
   int32 VncPort = 2;
+}
+
+message VMReConfig {
+  uint32 id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional uint32 cpu = 4;
+  optional uint32 mem = 5;
+  optional uint32 max_wait = 6;
+  optional bool restart = 7;
+  optional uint32 restart_delay = 8;
+  optional bool screen = 9;
+  optional uint32 screen_width = 10;
+  optional uint32 screen_height = 11;
 }
 
 message ReqBool {

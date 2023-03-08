@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"log"
@@ -35,7 +36,7 @@ type VMConfig struct {
 type VM struct {
 	gorm.Model
 	ID          uint32
-	Name        string `gorm:"uniqueIndex"`
+	Name        string `gorm:"uniqueIndex;not null"`
 	Description string
 	Status      string
 	BhyvePid    int32
@@ -88,7 +89,7 @@ func (s *server) GetVM(_ context.Context, v *pb.VmID) (*pb.VM, error) {
 	if vm.Name == "" {
 		return &pvm, errors.New("not found")
 	}
-	db.Where("id = ?", v.Value).Find(&config)
+	db.Where("vm_id = ?", v.Value).Find(&config)
 	if vm.ID != 0 {
 		pvm.Name = vm.Name
 		pvm.Description = vm.Description
@@ -126,10 +127,68 @@ func (s *server) GetVMState(_ context.Context, p *pb.VmID) (*pb.VMState, error) 
 	r := pb.VMState{}
 	vmDB := getVMDB()
 	vmDB.Where(&VM{ID: p.Value}).Limit(1).Find(&v)
-	if v.ID != 0 {
-		r.Status = v.Status
+	if v.ID == 0 {
+		return &r, errors.New("not found")
 	}
+	r.Status = v.Status
 	return &r, nil
+}
+
+func isOptionPassed(pref protoreflect.Message, name string) bool {
+	field := pref.Descriptor().Fields().ByName(protoreflect.Name(name))
+	if pref.Has(field) {
+		return true
+	}
+	return false
+}
+
+func (s *server) UpdateVM(_ context.Context, rc *pb.VMReConfig) (*pb.ReqBool, error) {
+	re := pb.ReqBool{}
+	re.Success = false
+	var vm VM
+	var config VMConfig
+	db := getVMDB()
+	db.Where("id = ?", rc.Id).Find(&vm)
+	if vm.Name == "" {
+		return &re, errors.New("not found")
+	}
+	db.Where("vm_id = ?", rc.Id).Find(&config)
+	pref := rc.ProtoReflect()
+	if isOptionPassed(pref, "name") {
+		vm.Name = *rc.Name
+	}
+	if isOptionPassed(pref, "description") {
+		vm.Description = *rc.Description
+	}
+	if isOptionPassed(pref, "cpu") {
+		config.Cpu = *rc.Cpu
+	}
+	if isOptionPassed(pref, "mem") {
+		config.Mem = *rc.Mem
+	}
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Error; err != nil {
+		return &re, errors.New("error updating VM")
+	}
+	if err := tx.Save(&vm).Error; err != nil {
+		tx.Rollback()
+		return &re, errors.New("error updating VM")
+	}
+	if err := tx.Save(&config).Error; err != nil {
+		tx.Rollback()
+		return &re, errors.New("error updating VM")
+	}
+	res := tx.Commit().Error
+	if res != nil {
+		return &re, errors.New("error updating VM")
+	}
+	re.Success = true
+	return &re, nil
 }
 
 func main() {

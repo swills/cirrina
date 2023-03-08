@@ -15,6 +15,16 @@ var (
 	addr = flag.String("addr", "localhost:50051", "the address to connect to")
 )
 
+func isFlagPassed(name string) bool {
+	found := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == name {
+			found = true
+		}
+	})
+	return found
+}
+
 func main() {
 	actionPtr := flag.String("action", "", "action to take")
 	idPtr := flag.Uint("id", 0, "ID of VM")
@@ -22,6 +32,12 @@ func main() {
 	descrPtr := flag.String("descr", "", "Description of VM")
 	cpuPtr := flag.Uint("cpus", 1, "Number of CPUs in VM")
 	memPtr := flag.Uint("mem", 128, "Memory in VM (MB)")
+	//maxWaitPtr := flag.Uint("maxWait", 120, "Max wait time for VM shutdown")
+	//restartPtr := flag.Bool("restart", true, "Automatically restart VM")
+	//restartDelayPtr := flag.Uint("restartDelay", 1, "How long to wait before restarting VM")
+	//screenPtr := flag.Bool("screen", true, "Should the VM have a screen (frame buffer)")
+	//screenWidthPtr := flag.Uint("screenWidth", 1920, "Width of VM screen")
+	//screenHeightPtr := flag.Uint(screenHeight, 1080, "Height of VM screen")
 
 	flag.Parse()
 	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -104,6 +120,40 @@ func main() {
 			log.Fatalf("Failed to create VM")
 		}
 		log.Printf("Created VM %v", r.Value)
+		return
+	}
+	if *actionPtr == "Reconfig" {
+		if *idPtr == 0 {
+			log.Fatalf("ID not specified")
+			return
+		}
+		if err != nil {
+			log.Fatalf("could not get state: %v", err)
+		}
+		newConfig := pb.VMReConfig{
+			Id: uint32(*idPtr),
+		}
+
+		if isFlagPassed("name") {
+			newConfig.Name = namePtr
+		}
+		if isFlagPassed("descr") {
+			newConfig.Description = descrPtr
+		}
+		if isFlagPassed("cpus") {
+			newCpu := uint32(*cpuPtr)
+			newConfig.Cpu = &newCpu
+		}
+		if isFlagPassed("mem") {
+			newMem := uint32(*memPtr)
+			newConfig.Mem = &newMem
+		}
+		_, err = c.UpdateVM(ctx, &newConfig)
+		if err == nil {
+			log.Printf("Success")
+		} else {
+			log.Printf("Fail")
+		}
 		return
 	}
 	log.Fatalf("Action %v unknown", *actionPtr)

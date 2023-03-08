@@ -36,7 +36,7 @@ type VMInfoClient interface {
 	AddVM(ctx context.Context, in *VM, opts ...grpc.CallOption) (*VmID, error)
 	GetVM(ctx context.Context, in *VmID, opts ...grpc.CallOption) (*VM, error)
 	GetVMs(ctx context.Context, in *VMsQuery, opts ...grpc.CallOption) (VMInfo_GetVMsClient, error)
-	UpdateVM(ctx context.Context, in *VmID, opts ...grpc.CallOption) (*ReqBool, error)
+	UpdateVM(ctx context.Context, in *VMReConfig, opts ...grpc.CallOption) (*ReqBool, error)
 	StartVM(ctx context.Context, in *VmID, opts ...grpc.CallOption) (*RequestID, error)
 	StopVM(ctx context.Context, in *VmID, opts ...grpc.CallOption) (*RequestID, error)
 	RequestStatus(ctx context.Context, in *RequestID, opts ...grpc.CallOption) (*ReqStatus, error)
@@ -101,7 +101,7 @@ func (x *vMInfoGetVMsClient) Recv() (*VmID, error) {
 	return m, nil
 }
 
-func (c *vMInfoClient) UpdateVM(ctx context.Context, in *VmID, opts ...grpc.CallOption) (*ReqBool, error) {
+func (c *vMInfoClient) UpdateVM(ctx context.Context, in *VMReConfig, opts ...grpc.CallOption) (*ReqBool, error) {
 	out := new(ReqBool)
 	err := c.cc.Invoke(ctx, VMInfo_UpdateVM_FullMethodName, in, out, opts...)
 	if err != nil {
@@ -153,7 +153,7 @@ type VMInfoServer interface {
 	AddVM(context.Context, *VM) (*VmID, error)
 	GetVM(context.Context, *VmID) (*VM, error)
 	GetVMs(*VMsQuery, VMInfo_GetVMsServer) error
-	UpdateVM(context.Context, *VmID) (*ReqBool, error)
+	UpdateVM(context.Context, *VMReConfig) (*ReqBool, error)
 	StartVM(context.Context, *VmID) (*RequestID, error)
 	StopVM(context.Context, *VmID) (*RequestID, error)
 	RequestStatus(context.Context, *RequestID) (*ReqStatus, error)
@@ -174,7 +174,7 @@ func (UnimplementedVMInfoServer) GetVM(context.Context, *VmID) (*VM, error) {
 func (UnimplementedVMInfoServer) GetVMs(*VMsQuery, VMInfo_GetVMsServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetVMs not implemented")
 }
-func (UnimplementedVMInfoServer) UpdateVM(context.Context, *VmID) (*ReqBool, error) {
+func (UnimplementedVMInfoServer) UpdateVM(context.Context, *VMReConfig) (*ReqBool, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateVM not implemented")
 }
 func (UnimplementedVMInfoServer) StartVM(context.Context, *VmID) (*RequestID, error) {
@@ -260,7 +260,7 @@ func (x *vMInfoGetVMsServer) Send(m *VmID) error {
 }
 
 func _VMInfo_UpdateVM_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(VmID)
+	in := new(VMReConfig)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -272,7 +272,7 @@ func _VMInfo_UpdateVM_Handler(srv interface{}, ctx context.Context, dec func(int
 		FullMethod: VMInfo_UpdateVM_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VMInfoServer).UpdateVM(ctx, req.(*VmID))
+		return srv.(VMInfoServer).UpdateVM(ctx, req.(*VMReConfig))
 	}
 	return interceptor(ctx, in, info, handler)
 }
