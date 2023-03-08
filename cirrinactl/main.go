@@ -156,29 +156,20 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	if *actionPtr == "" {
+	switch *actionPtr {
+	case "":
 		log.Fatalf("Action not specified")
-		return
-	}
-	if *actionPtr == "getVM" {
+	case "getVM":
 		getVM(idPtr, c, ctx)
-		return
-	}
-	if *actionPtr == "getVMs" {
+	case "getVMs":
 		getVMs(c, ctx)
-		return
-	}
-	if *actionPtr == "getVMState" {
+	case "getVMState":
 		getVMState(idPtr, c, ctx)
-		return
-	}
-	if *actionPtr == "addVM" {
+	case "addVM":
 		addVM(namePtr, c, ctx, descrPtr, cpuPtr, memPtr)
-		return
-	}
-	if *actionPtr == "Reconfig" {
+	case "Reconfig":
 		Reconfig(idPtr, err, namePtr, descrPtr, cpuPtr, memPtr, c, ctx)
-		return
+	default:
+		log.Fatalf("Action %v unknown", *actionPtr)
 	}
-	log.Fatalf("Action %v unknown", *actionPtr)
 }
