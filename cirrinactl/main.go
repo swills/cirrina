@@ -37,26 +37,22 @@ func addVM(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *st
 		Mem:         uint32(*memPtr),
 	})
 	if err != nil {
-		log.Fatalf("Failed to create VM")
+		log.Fatalf("could not create VM: %v", err)
 		return
 	}
 	log.Printf("Created VM %v", r.Value)
 }
 
-func getVM(idPtr *uint, c pb.VMInfoClient, ctx context.Context) {
-	if *idPtr == 0 {
+func getVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
+	if *idPtr == "" {
 		log.Fatalf("ID not specified")
 		return
 	}
-	r, err := c.GetVM(ctx, &pb.VmID{Value: uint32(*idPtr)})
+	r, err := c.GetVM(ctx, &pb.VMID{Value: *idPtr})
 	if err != nil {
 		log.Fatalf("could not get VM: %v", err)
 	}
-	if r.Name == "" {
-		log.Fatalf("VM ID %v not found", *idPtr)
-		return
-	}
-	log.Printf("name: %v desc: %v cpus: %v", r.Name, r.Description, r.Cpu)
+	log.Printf("name: %v desc: %v cpus: %v mem: %v", r.Name, r.Description, r.Cpu, r.Mem)
 }
 
 func getVMs(c pb.VMInfoClient, ctx context.Context) {
@@ -77,13 +73,12 @@ func getVMs(c pb.VMInfoClient, ctx context.Context) {
 	}
 }
 
-func getVMState(idPtr *uint, c pb.VMInfoClient, ctx context.Context) {
-	if *idPtr == 0 {
+func getVMState(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
+	if *idPtr == "" {
 		log.Fatalf("ID not specified")
 		return
 	}
-	log.Print("getting VM state")
-	r, err := c.GetVMState(ctx, &pb.VmID{Value: uint32(*idPtr)})
+	r, err := c.GetVMState(ctx, &pb.VMID{Value: *idPtr})
 	if err != nil {
 		log.Fatalf("could not get state: %v", err)
 		return
@@ -91,18 +86,14 @@ func getVMState(idPtr *uint, c pb.VMInfoClient, ctx context.Context) {
 	log.Printf("vm id: %v state: %v vnc port: %v", *idPtr, r.Status, r.VncPort)
 }
 
-func Reconfig(idPtr *uint, err error, namePtr *string, descrPtr *string, cpuPtr *uint, memPtr *uint, c pb.VMInfoClient, ctx context.Context) {
-	if *idPtr == 0 {
+func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPtr *uint, memPtr *uint, c pb.VMInfoClient, ctx context.Context) {
+	if *idPtr == "" {
 		log.Fatalf("ID not specified")
 		return
 	}
-	if err != nil {
-		log.Fatalf("could not get state: %v", err)
-	}
 	newConfig := pb.VMReConfig{
-		Id: uint32(*idPtr),
+		Id: *idPtr,
 	}
-
 	if isFlagPassed("name") {
 		newConfig.Name = namePtr
 	}
@@ -127,16 +118,16 @@ func Reconfig(idPtr *uint, err error, namePtr *string, descrPtr *string, cpuPtr 
 		newConfig.Mem = &newMem
 	}
 	_, err = c.UpdateVM(ctx, &newConfig)
-	if err == nil {
-		log.Printf("Success")
+	if err != nil {
+		log.Fatalf("could not update VM: %v", err)
 		return
 	}
-	log.Printf("Fail")
+	log.Printf("Success")
 }
 
 func main() {
 	actionPtr := flag.String("action", "", "action to take")
-	idPtr := flag.Uint("id", 0, "ID of VM")
+	idPtr := flag.String("id", "", "ID of VM")
 	namePtr := flag.String("name", "", "Name of VM")
 	descrPtr := flag.String("descr", "", "Description of VM")
 	cpuPtr := flag.Uint("cpus", 1, "Number of CPUs in VM")

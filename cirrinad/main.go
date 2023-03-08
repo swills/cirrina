@@ -4,6 +4,7 @@ import (
 	pb "cirrina/cirrina"
 	"context"
 	"errors"
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"gorm.io/driver/sqlite"
@@ -22,7 +23,7 @@ type server struct {
 
 type VMConfig struct {
 	gorm.Model
-	VMID         uint32
+	VMID         string
 	Cpu          uint32 `gorm:"default:1;check:cpu BETWEEN 1 and 16"`
 	Mem          uint32 `gorm:"default:128;check:mem>=128"`
 	MaxWait      uint32 `gorm:"default:120;check:max_wait>=0"`
@@ -35,14 +36,19 @@ type VMConfig struct {
 
 type VM struct {
 	gorm.Model
-	ID          uint32
+	ID          string `gorm:"uniqueIndex;not null"`
 	Name        string `gorm:"uniqueIndex;not null"`
 	Description string
 	Status      string
 	BhyvePid    int32
 	NetDev      string
 	VNCPort     int32
-	Config      VMConfig
+	VMConfig    VMConfig
+}
+
+func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
+	vm.ID = uuid.NewString()
+	return nil
 }
 
 func getVMDB() *gorm.DB {
@@ -61,53 +67,54 @@ func getVMDB() *gorm.DB {
 	return db
 }
 
-func (s *server) AddVM(_ context.Context, v *pb.VM) (*pb.VmID, error) {
+func (s *server) AddVM(_ context.Context, v *pb.VM) (*pb.VMID, error) {
 	db := getVMDB()
+	var evm VM
+	db.Limit(1).Find(&evm, &VM{Name: v.Name})
+	if evm.ID != "" {
+		return &pb.VMID{}, errors.New("already exists")
+	}
 	vm := VM{
 		Name:        v.Name,
 		Status:      "STOPPED",
 		Description: v.Description,
-		Config: VMConfig{
+		VMConfig: VMConfig{
 			Cpu: v.Cpu,
 			Mem: v.Mem,
 		},
 	}
 	res := db.Create(&vm)
-	if res.RowsAffected != 1 {
-		return &pb.VmID{}, errors.New("error Creating VM")
+	if res.Error != nil {
+		return &pb.VMID{}, errors.New("error Creating VM")
 	}
-	return &pb.VmID{Value: vm.ID}, nil
+	return &pb.VMID{Value: vm.ID}, nil
 }
 
-func (s *server) GetVM(_ context.Context, v *pb.VmID) (*pb.VM, error) {
+func (s *server) GetVM(_ context.Context, v *pb.VMID) (*pb.VM, error) {
 	var vm VM
 	var pvm pb.VM
-	var config VMConfig
 
 	db := getVMDB()
-	db.Where("id = ?", v.Value).Find(&vm)
-	if vm.Name == "" {
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: v.Value})
+	if vm.ID == "" {
 		return &pvm, errors.New("not found")
 	}
-	db.Where("vm_id = ?", v.Value).Find(&config)
-	if vm.ID != 0 {
-		pvm.Name = vm.Name
-		pvm.Description = vm.Description
-	}
-	pvm.Cpu = config.Cpu
-	pvm.Mem = config.Mem
-	pvm.MaxWait = config.MaxWait
-	pvm.Restart = config.Restart
-	pvm.RestartDelay = config.RestartDelay
-	pvm.Screen = config.Screen
-	pvm.ScreenWidth = config.ScreenWidth
-	pvm.ScreenHeight = config.ScreenHeight
+	pvm.Name = vm.Name
+	pvm.Description = vm.Description
+	pvm.Cpu = vm.VMConfig.Cpu
+	pvm.Mem = vm.VMConfig.Mem
+	pvm.MaxWait = vm.VMConfig.MaxWait
+	pvm.Restart = vm.VMConfig.Restart
+	pvm.RestartDelay = vm.VMConfig.RestartDelay
+	pvm.Screen = vm.VMConfig.Screen
+	pvm.ScreenWidth = vm.VMConfig.ScreenWidth
+	pvm.ScreenHeight = vm.VMConfig.ScreenHeight
 	return &pvm, nil
 }
 
 func (s *server) GetVMs(_ *pb.VMsQuery, stream pb.VMInfo_GetVMsServer) error {
 	var vms []VM
-	var pvm pb.VmID
+	var pvm pb.VMID
 
 	db := getVMDB()
 	db.Find(&vms)
@@ -122,12 +129,12 @@ func (s *server) GetVMs(_ *pb.VMsQuery, stream pb.VMInfo_GetVMsServer) error {
 	return nil
 }
 
-func (s *server) GetVMState(_ context.Context, p *pb.VmID) (*pb.VMState, error) {
+func (s *server) GetVMState(_ context.Context, p *pb.VMID) (*pb.VMState, error) {
 	v := VM{}
 	r := pb.VMState{}
 	vmDB := getVMDB()
-	vmDB.Where(&VM{ID: p.Value}).Limit(1).Find(&v)
-	if v.ID == 0 {
+	vmDB.Limit(1).Find(&v, &VM{ID: p.Value})
+	if v.ID == "" {
 		return &r, errors.New("not found")
 	}
 	r.Status = v.Status
@@ -146,13 +153,11 @@ func (s *server) UpdateVM(_ context.Context, rc *pb.VMReConfig) (*pb.ReqBool, er
 	re := pb.ReqBool{}
 	re.Success = false
 	var vm VM
-	var config VMConfig
 	db := getVMDB()
-	db.Where("id = ?", rc.Id).Find(&vm)
-	if vm.Name == "" {
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: rc.Id})
+	if vm.ID == "" {
 		return &re, errors.New("not found")
 	}
-	db.Where("vm_id = ?", rc.Id).Find(&config)
 	pref := rc.ProtoReflect()
 	if isOptionPassed(pref, "name") {
 		vm.Name = *rc.Name
@@ -161,30 +166,13 @@ func (s *server) UpdateVM(_ context.Context, rc *pb.VMReConfig) (*pb.ReqBool, er
 		vm.Description = *rc.Description
 	}
 	if isOptionPassed(pref, "cpu") {
-		config.Cpu = *rc.Cpu
+		vm.VMConfig.Cpu = *rc.Cpu
 	}
 	if isOptionPassed(pref, "mem") {
-		config.Mem = *rc.Mem
+		vm.VMConfig.Mem = *rc.Mem
 	}
-	tx := db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-	if err := tx.Error; err != nil {
-		return &re, errors.New("error updating VM")
-	}
-	if err := tx.Save(&vm).Error; err != nil {
-		tx.Rollback()
-		return &re, errors.New("error updating VM")
-	}
-	if err := tx.Save(&config).Error; err != nil {
-		tx.Rollback()
-		return &re, errors.New("error updating VM")
-	}
-	res := tx.Commit().Error
-	if res != nil {
+	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
+	if res.Error != nil {
 		return &re, errors.New("error updating VM")
 	}
 	re.Success = true
