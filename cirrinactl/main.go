@@ -55,6 +55,31 @@ func DeleteVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	log.Printf("Deleted VM %v: reqid: %v", *idPtr, reqId.Value)
 }
 
+func stopVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
+	if *idPtr == "" {
+		log.Fatalf("ID not specified")
+		return
+	}
+	reqId, err := c.StopVM(ctx, &pb.VMID{Value: *idPtr})
+	if err != nil {
+		log.Fatalf("could not stop VM: %v", err)
+	}
+	log.Printf("Started VM %v: reqid: %v", *idPtr, reqId.Value)
+
+}
+
+func startVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
+	if *idPtr == "" {
+		log.Fatalf("ID not specified")
+		return
+	}
+	reqId, err := c.StartVM(ctx, &pb.VMID{Value: *idPtr})
+	if err != nil {
+		log.Fatalf("could not start VM: %v", err)
+	}
+	log.Printf("Started VM %v: reqid: %v", *idPtr, reqId.Value)
+}
+
 func ReqStat(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if *idPtr == "" {
 		log.Fatalf("ID not specified")
@@ -209,6 +234,10 @@ func main() {
 		DeleteVM(idPtr, c, ctx)
 	case "reqStat":
 		ReqStat(idPtr, c, ctx)
+	case "startVM":
+		startVM(idPtr, c, ctx)
+	case "stopVM":
+		stopVM(idPtr, c, ctx)
 	default:
 		log.Fatalf("Action %v unknown", *actionPtr)
 	}

@@ -285,12 +285,102 @@ func deleteVM(reqID string, vmID string) {
 	)
 }
 
+func (s *server) StartVM(_ context.Context, v *pb.VMID) (*pb.RequestID, error) {
+	var newReq Request
+	vm := VM{}
+	newReq.Type = START
+	newReq.VMID = v.Value
+	db := getVMDB()
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: v.Value})
+	if vm.ID == "" {
+		return &pb.RequestID{}, errors.New("VM not found")
+	}
+	db.Create(&newReq)
+	return &pb.RequestID{Value: newReq.ID}, nil
+}
+
+func (s *server) StopVM(_ context.Context, v *pb.VMID) (*pb.RequestID, error) {
+	var newReq Request
+	vm := VM{}
+	newReq.Type = STOP
+	newReq.VMID = v.Value
+	db := getVMDB()
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: v.Value})
+	if vm.ID == "" {
+		return &pb.RequestID{}, errors.New("VM not found")
+	}
+	db.Create(&newReq)
+	return &pb.RequestID{Value: newReq.ID}, nil
+}
+
 func startVM(reqID string, vmID string) {
-	log.Printf("processing start request %v %v", reqID, vmID)
+	vm := VM{ID: vmID}
+	rs := Request{
+		ID: reqID,
+	}
+	db := getVMDB()
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: vmID})
+	if vm.ID == "" || vm.Status != STOPPED {
+		db.Model(&rs).Limit(1).Updates(
+			Request{
+				Successful: false,
+				Complete:   true,
+			},
+		)
+		return
+	}
+	vm.Status = RUNNING
+	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
+	if res.Error != nil {
+		db.Model(&rs).Limit(1).Updates(
+			Request{
+				Successful: false,
+				Complete:   true,
+			},
+		)
+		return
+	}
+	db.Model(&rs).Limit(1).Updates(
+		Request{
+			Successful: true,
+			Complete:   true,
+		},
+	)
 }
 
 func stopVM(reqID string, vmID string) {
-	log.Printf("processing stop request %v %v", reqID, vmID)
+	vm := VM{ID: vmID}
+	rs := Request{
+		ID: reqID,
+	}
+	db := getVMDB()
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: vmID})
+	if vm.ID == "" || vm.Status != RUNNING {
+		db.Model(&rs).Limit(1).Updates(
+			Request{
+				Successful: false,
+				Complete:   true,
+			},
+		)
+		return
+	}
+	vm.Status = STOPPED
+	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
+	if res.Error != nil {
+		db.Model(&rs).Limit(1).Updates(
+			Request{
+				Successful: false,
+				Complete:   true,
+			},
+		)
+		return
+	}
+	db.Model(&rs).Limit(1).Updates(
+		Request{
+			Successful: true,
+			Complete:   true,
+		},
+	)
 }
 
 func (s *server) RequestStatus(_ context.Context, r *pb.RequestID) (*pb.ReqStatus, error) {
