@@ -3,15 +3,23 @@ syntax = "proto3";
 package cirrina;
 option go_package = "gitlab.mouf.net/swills/cirrina";
 
+enum vmStatus {
+  STATUS_STOPPED = 0;
+  STATUS_STARTING = 1;
+  STATUS_RUNNING = 2;
+  STATUS_STOPPING = 3;
+}
+
 service VMInfo {
-  rpc AddVM(VM) returns (VMID);
   rpc GetVM(VMID) returns (VM);
   rpc GetVMs(VMsQuery) returns (stream VMID);
+  rpc RequestStatus(RequestID) returns (ReqStatus);
+  rpc AddVM(VM) returns (VMID);
   rpc UpdateVM(VMReConfig) returns (ReqBool);
   rpc StartVM(VMID) returns (RequestID);
   rpc StopVM(VMID) returns (RequestID);
-  rpc RequestStatus(RequestID) returns (ReqStatus);
   rpc GetVMState(VMID) returns (VMState);
+  rpc DeleteVM(VMID) returns (RequestID);
 }
 
 message VMID {
@@ -44,7 +52,7 @@ message ReqStatus {
 }
 
 message VMState {
-  string status = 1;
+  vmStatus status = 1;
   int32 VncPort = 2;
 }
 

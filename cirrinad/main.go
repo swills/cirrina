@@ -4,6 +4,7 @@ import (
 	pb "cirrina/cirrina"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/reflect/protoreflect"
@@ -11,6 +12,7 @@ import (
 	"gorm.io/gorm"
 	"log"
 	"net"
+	"time"
 )
 
 const (
@@ -20,6 +22,23 @@ const (
 type server struct {
 	pb.UnimplementedVMInfoServer
 }
+
+type reqType string
+
+const (
+	START  reqType = "START"
+	STOP   reqType = "STOP"
+	DELETE reqType = "DELETE"
+)
+
+type statusType string
+
+const (
+	STOPPED  statusType = "STOPPED"
+	STARTING statusType = "STARTING"
+	RUNNING  statusType = "RUNNING"
+	STOPPING statusType = "STOPPING"
+)
 
 type VMConfig struct {
 	gorm.Model
@@ -37,17 +56,31 @@ type VMConfig struct {
 type VM struct {
 	gorm.Model
 	ID          string `gorm:"uniqueIndex;not null"`
-	Name        string `gorm:"uniqueIndex;not null"`
+	Name        string `gorm:"not null"`
 	Description string
-	Status      string
+	Status      statusType `gorm:"type:status_type"`
 	BhyvePid    int32
 	NetDev      string
 	VNCPort     int32
 	VMConfig    VMConfig
 }
 
+type Request struct {
+	gorm.Model
+	ID         string  `gorm:"uniqueIndex;not null"`
+	Successful bool    `gorm:"default:False;check:successful IN (0,1)"`
+	Complete   bool    `gorm:"default:False;check:complete IN (0,1)"`
+	Type       reqType `gorm:"type:req_type"`
+	VMID       string
+}
+
 func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
 	vm.ID = uuid.NewString()
+	return nil
+}
+
+func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {
+	req.ID = uuid.NewString()
 	return nil
 }
 
@@ -58,11 +91,15 @@ func getVMDB() *gorm.DB {
 	}
 	err = db.AutoMigrate(&VM{})
 	if err != nil {
-		panic("failed to auto-migrate")
+		panic("failed to auto-migrate VMs")
 	}
 	err = db.AutoMigrate(&VMConfig{})
 	if err != nil {
-		panic("failed to auto-migrate")
+		panic("failed to auto-migrate Configs")
+	}
+	err = db.AutoMigrate(&Request{})
+	if err != nil {
+		panic("failed to auto-migrate Requests")
 	}
 	return db
 }
@@ -80,7 +117,7 @@ func (s *server) AddVM(_ context.Context, v *pb.VM) (*pb.VMID, error) {
 	var evm VM
 	db.Limit(1).Find(&evm, &VM{Name: v.Name})
 	if evm.ID != "" {
-		return &pb.VMID{}, errors.New("already exists")
+		return &pb.VMID{}, errors.New(fmt.Sprintf("%v already exists", v.Name))
 	}
 	vm := VM{
 		Name:        v.Name,
@@ -145,7 +182,18 @@ func (s *server) GetVMState(_ context.Context, p *pb.VMID) (*pb.VMState, error) 
 	if vm.ID == "" {
 		return &pvm, errors.New("not found")
 	}
-	pvm.Status = vm.Status
+	switch vm.Status {
+	case STOPPED:
+		pvm.Status = pb.VmStatus_STATUS_STOPPED
+	case STARTING:
+		pvm.Status = pb.VmStatus_STATUS_STARTING
+	case RUNNING:
+		pvm.Status = pb.VmStatus_STATUS_RUNNING
+	case STOPPING:
+		pvm.Status = pb.VmStatus_STATUS_STOPPING
+	default:
+		return &pvm, errors.New("internal error: unknown VM state")
+	}
 	return &pvm, nil
 }
 
@@ -179,15 +227,120 @@ func (s *server) UpdateVM(_ context.Context, rc *pb.VMReConfig) (*pb.ReqBool, er
 	return &re, nil
 }
 
-func main() {
+func (s *server) DeleteVM(_ context.Context, v *pb.VMID) (*pb.RequestID, error) {
+	var newReq Request
+	vm := VM{}
+	newReq.Type = DELETE
+	newReq.VMID = v.Value
+	db := getVMDB()
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: v.Value})
+	if vm.ID == "" {
+		return &pb.RequestID{}, errors.New("VM not found")
+	}
+	db.Create(&newReq)
+	return &pb.RequestID{Value: newReq.ID}, nil
+}
+
+func deleteVM(reqID string, vmID string) {
+	vm := VM{ID: vmID}
+	rs := Request{
+		ID: reqID,
+	}
+	db := getVMDB()
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: vmID})
+	if vm.ID == "" || vm.Status != STOPPED {
+		db.Model(&rs).Limit(1).Updates(
+			Request{
+				Successful: false,
+				Complete:   true,
+			},
+		)
+		return
+	}
+	res := db.Delete(&vm.VMConfig)
+	if res.RowsAffected != 1 {
+		db.Model(&rs).Limit(1).Updates(
+			Request{
+				Successful: false,
+				Complete:   true,
+			},
+		)
+		return
+	}
+	res = db.Delete(&vm)
+	if res.RowsAffected != 1 {
+		db.Model(&rs).Limit(1).Updates(
+			Request{
+				Successful: false,
+				Complete:   true,
+			},
+		)
+		return
+	}
+	db.Model(&rs).Limit(1).Updates(
+		Request{
+			Successful: true,
+			Complete:   true,
+		},
+	)
+}
+
+func startVM(reqID string, vmID string) {
+	log.Printf("processing start request %v %v", reqID, vmID)
+}
+
+func stopVM(reqID string, vmID string) {
+	log.Printf("processing stop request %v %v", reqID, vmID)
+}
+
+func (s *server) RequestStatus(_ context.Context, r *pb.RequestID) (*pb.ReqStatus, error) {
+	db := getVMDB()
+	rs := Request{}
+	db.Model(&Request{}).Limit(1).Find(&rs, &Request{ID: r.Value})
+	if rs.ID == "" {
+		return &pb.ReqStatus{}, errors.New("not found")
+	}
+	res := &pb.ReqStatus{
+		Complete: rs.Complete,
+		Success:  rs.Successful,
+	}
+	return res, nil
+}
+
+func rpcServer() {
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
 	pb.RegisterVMInfoServer(s, &server{})
-	log.Printf("Starting gRPC listener on port " + port)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
+	}
+}
+
+func processRequests() {
+	db := getVMDB()
+	for {
+		rs := Request{}
+		db.Where(map[string]interface{}{"Complete": false}).Find(&rs)
+		switch rs.Type {
+		case START:
+			go startVM(rs.ID, rs.VMID)
+		case STOP:
+			go stopVM(rs.ID, rs.VMID)
+		case DELETE:
+			go deleteVM(rs.ID, rs.VMID)
+		}
+
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
+func main() {
+	go rpcServer()
+	go processRequests()
+	for {
+		time.Sleep(1 * time.Second)
 	}
 }

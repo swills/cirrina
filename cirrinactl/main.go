@@ -43,6 +43,31 @@ func addVM(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *st
 	log.Printf("Created VM %v", res.Value)
 }
 
+func DeleteVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
+	if *idPtr == "" {
+		log.Fatalf("ID not specified")
+		return
+	}
+	reqId, err := c.DeleteVM(ctx, &pb.VMID{Value: *idPtr})
+	if err != nil {
+		log.Fatalf("could not delete VM: %v", err)
+	}
+	log.Printf("Deleted VM %v: reqid: %v", *idPtr, reqId.Value)
+}
+
+func ReqStat(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
+	if *idPtr == "" {
+		log.Fatalf("ID not specified")
+		return
+	}
+	res, err := c.RequestStatus(ctx, &pb.RequestID{Value: *idPtr})
+	if err != nil {
+		log.Fatalf("could not get req: %v", err)
+	}
+	log.Printf("complete: %v status: %v", res.Complete, res.Success)
+
+}
+
 func getVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if *idPtr == "" {
 		log.Fatalf("ID not specified")
@@ -83,7 +108,18 @@ func getVMState(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 		log.Fatalf("could not get state: %v", err)
 		return
 	}
-	log.Printf("vm id: %v state: %v vnc port: %v", *idPtr, res.Status, res.VncPort)
+	var vmstate string
+	switch res.Status {
+	case pb.VmStatus_STATUS_STOPPED:
+		vmstate = "stopped"
+	case pb.VmStatus_STATUS_STARTING:
+		vmstate = "starting"
+	case pb.VmStatus_STATUS_RUNNING:
+		vmstate = "running"
+	case pb.VmStatus_STATUS_STOPPING:
+		vmstate = "stopping"
+	}
+	log.Printf("vm id: %v state: %v vnc port: %v", *idPtr, vmstate, res.VncPort)
 }
 
 func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPtr *uint, memPtr *uint, c pb.VMInfoClient, ctx context.Context) {
@@ -167,8 +203,12 @@ func main() {
 		getVMState(idPtr, c, ctx)
 	case "addVM":
 		addVM(namePtr, c, ctx, descrPtr, cpuPtr, memPtr)
-	case "Reconfig":
+	case "reConfig":
 		Reconfig(idPtr, err, namePtr, descrPtr, cpuPtr, memPtr, c, ctx)
+	case "deleteVM":
+		DeleteVM(idPtr, c, ctx)
+	case "reqStat":
+		ReqStat(idPtr, c, ctx)
 	default:
 		log.Fatalf("Action %v unknown", *actionPtr)
 	}
