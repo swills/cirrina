@@ -3,6 +3,7 @@ package main
 import (
 	pb "cirrina/cirrina"
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -59,7 +60,7 @@ type VM struct {
 	Name        string `gorm:"not null"`
 	Description string
 	Status      statusType `gorm:"type:status_type"`
-	BhyvePid    int32
+	BhyvePid    uint32     `gorm:"check:bhyve_pid>=0"`
 	NetDev      string
 	VNCPort     int32
 	VMConfig    VMConfig
@@ -67,10 +68,11 @@ type VM struct {
 
 type Request struct {
 	gorm.Model
-	ID         string  `gorm:"uniqueIndex;not null"`
-	Successful bool    `gorm:"default:False;check:successful IN (0,1)"`
-	Complete   bool    `gorm:"default:False;check:complete IN (0,1)"`
-	Type       reqType `gorm:"type:req_type"`
+	ID         string       `gorm:"uniqueIndex;not null"`
+	StartedAt  sql.NullTime `gorm:"index"`
+	Successful bool         `gorm:"default:False;check:successful IN (0,1)"`
+	Complete   bool         `gorm:"default:False;check:complete IN (0,1)"`
+	Type       reqType      `gorm:"type:req_type"`
 	VMID       string
 }
 
@@ -102,6 +104,26 @@ func getVMDB() *gorm.DB {
 		panic("failed to auto-migrate Requests")
 	}
 	return db
+}
+
+func vmExists(v *pb.VMID) bool {
+	vm := VM{}
+	db := getVMDB()
+	db.Model(&VM{}).Limit(1).Find(&vm, &VM{ID: v.Value})
+	if vm.ID == "" {
+		return false
+	}
+	return true
+}
+
+func pendingReqExists(v *pb.VMID) bool {
+	db := getVMDB()
+	eReq := Request{}
+	db.Where(map[string]interface{}{"vm_id": v.Value, "complete": false}).Find(&eReq)
+	if eReq.ID != "" {
+		return true
+	}
+	return false
 }
 
 func isOptionPassed(reflect protoreflect.Message, name string) bool {
@@ -227,28 +249,73 @@ func (s *server) UpdateVM(_ context.Context, rc *pb.VMReConfig) (*pb.ReqBool, er
 	return &re, nil
 }
 
-func (s *server) DeleteVM(_ context.Context, v *pb.VMID) (*pb.RequestID, error) {
-	var newReq Request
-	vm := VM{}
-	newReq.Type = DELETE
-	newReq.VMID = v.Value
-	db := getVMDB()
-	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: v.Value})
-	if vm.ID == "" {
+func (s *server) StartVM(_ context.Context, v *pb.VMID) (*pb.RequestID, error) {
+	if !vmExists(v) {
 		return &pb.RequestID{}, errors.New("VM not found")
 	}
+	if pendingReqExists(v) {
+		return &pb.RequestID{}, errors.New(fmt.Sprintf("pending request for %v already exists", v.Value))
+	}
+	db := getVMDB()
+	vm := VM{}
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: v.Value})
+	if vm.Status != STOPPED {
+		return &pb.RequestID{}, errors.New("vm must be stopped before starting")
+	}
+	newReq := Request{}
+	newReq.Type = START
+	newReq.VMID = v.Value
 	db.Create(&newReq)
 	return &pb.RequestID{Value: newReq.ID}, nil
 }
 
-func deleteVM(reqID string, vmID string) {
-	vm := VM{ID: vmID}
-	rs := Request{
-		ID: reqID,
+func (s *server) StopVM(_ context.Context, v *pb.VMID) (*pb.RequestID, error) {
+	if !vmExists(v) {
+		return &pb.RequestID{}, errors.New("VM not found")
+	}
+	if pendingReqExists(v) {
+		return &pb.RequestID{}, errors.New(fmt.Sprintf("pending request for %v already exists", v.Value))
 	}
 	db := getVMDB()
-	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: vmID})
-	if vm.ID == "" || vm.Status != STOPPED {
+	vm := VM{}
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: v.Value})
+	if vm.Status != RUNNING {
+		return &pb.RequestID{}, errors.New("vm must be running before stopping")
+	}
+	newReq := Request{}
+	newReq.Type = STOP
+	newReq.VMID = v.Value
+	db.Create(&newReq)
+	return &pb.RequestID{Value: newReq.ID}, nil
+}
+
+func (s *server) DeleteVM(_ context.Context, v *pb.VMID) (*pb.RequestID, error) {
+	if !vmExists(v) {
+		return &pb.RequestID{}, errors.New("VM not found")
+	}
+	if pendingReqExists(v) {
+		return &pb.RequestID{}, errors.New(fmt.Sprintf("pending request for %v already exists", v.Value))
+	}
+	db := getVMDB()
+	vm := VM{}
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: v.Value})
+	if vm.Status != STOPPED {
+		return &pb.RequestID{}, errors.New("vm must be stopped before deleting")
+	}
+	newReq := Request{}
+	newReq.Type = DELETE
+	newReq.VMID = v.Value
+	db.Create(&newReq)
+	return &pb.RequestID{Value: newReq.ID}, nil
+}
+
+func startVM(rs *Request) {
+	time.Sleep(5 * time.Second)
+	vm := VM{ID: rs.VMID}
+	vm.Status = RUNNING
+	db := getVMDB()
+	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
+	if res.Error != nil {
 		db.Model(&rs).Limit(1).Updates(
 			Request{
 				Successful: false,
@@ -257,6 +324,42 @@ func deleteVM(reqID string, vmID string) {
 		)
 		return
 	}
+	db.Model(&rs).Limit(1).Updates(
+		Request{
+			Successful: true,
+			Complete:   true,
+		},
+	)
+}
+
+func stopVM(rs *Request) {
+	time.Sleep(5 * time.Second)
+	vm := VM{ID: rs.VMID}
+	db := getVMDB()
+	vm.Status = STOPPED
+	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
+	if res.Error != nil {
+		db.Model(&rs).Limit(1).Updates(
+			Request{
+				Successful: false,
+				Complete:   true,
+			},
+		)
+		return
+	}
+	db.Model(&rs).Limit(1).Updates(
+		Request{
+			Successful: true,
+			Complete:   true,
+		},
+	)
+}
+
+func deleteVM(rs *Request) {
+	time.Sleep(5 * time.Second)
+	vm := VM{}
+	db := getVMDB()
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: rs.VMID})
 	res := db.Delete(&vm.VMConfig)
 	if res.RowsAffected != 1 {
 		db.Model(&rs).Limit(1).Updates(
@@ -269,104 +372,6 @@ func deleteVM(reqID string, vmID string) {
 	}
 	res = db.Delete(&vm)
 	if res.RowsAffected != 1 {
-		db.Model(&rs).Limit(1).Updates(
-			Request{
-				Successful: false,
-				Complete:   true,
-			},
-		)
-		return
-	}
-	db.Model(&rs).Limit(1).Updates(
-		Request{
-			Successful: true,
-			Complete:   true,
-		},
-	)
-}
-
-func (s *server) StartVM(_ context.Context, v *pb.VMID) (*pb.RequestID, error) {
-	var newReq Request
-	vm := VM{}
-	newReq.Type = START
-	newReq.VMID = v.Value
-	db := getVMDB()
-	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: v.Value})
-	if vm.ID == "" {
-		return &pb.RequestID{}, errors.New("VM not found")
-	}
-	db.Create(&newReq)
-	return &pb.RequestID{Value: newReq.ID}, nil
-}
-
-func (s *server) StopVM(_ context.Context, v *pb.VMID) (*pb.RequestID, error) {
-	var newReq Request
-	vm := VM{}
-	newReq.Type = STOP
-	newReq.VMID = v.Value
-	db := getVMDB()
-	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: v.Value})
-	if vm.ID == "" {
-		return &pb.RequestID{}, errors.New("VM not found")
-	}
-	db.Create(&newReq)
-	return &pb.RequestID{Value: newReq.ID}, nil
-}
-
-func startVM(reqID string, vmID string) {
-	vm := VM{ID: vmID}
-	rs := Request{
-		ID: reqID,
-	}
-	db := getVMDB()
-	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: vmID})
-	if vm.ID == "" || vm.Status != STOPPED {
-		db.Model(&rs).Limit(1).Updates(
-			Request{
-				Successful: false,
-				Complete:   true,
-			},
-		)
-		return
-	}
-	vm.Status = RUNNING
-	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
-	if res.Error != nil {
-		db.Model(&rs).Limit(1).Updates(
-			Request{
-				Successful: false,
-				Complete:   true,
-			},
-		)
-		return
-	}
-	db.Model(&rs).Limit(1).Updates(
-		Request{
-			Successful: true,
-			Complete:   true,
-		},
-	)
-}
-
-func stopVM(reqID string, vmID string) {
-	vm := VM{ID: vmID}
-	rs := Request{
-		ID: reqID,
-	}
-	db := getVMDB()
-	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: vmID})
-	if vm.ID == "" || vm.Status != RUNNING {
-		db.Model(&rs).Limit(1).Updates(
-			Request{
-				Successful: false,
-				Complete:   true,
-			},
-		)
-		return
-	}
-	vm.Status = STOPPED
-	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
-	if res.Error != nil {
 		db.Model(&rs).Limit(1).Updates(
 			Request{
 				Successful: false,
@@ -413,14 +418,20 @@ func processRequests() {
 	db := getVMDB()
 	for {
 		rs := Request{}
-		db.Where(map[string]interface{}{"Complete": false}).Find(&rs)
-		switch rs.Type {
-		case START:
-			go startVM(rs.ID, rs.VMID)
-		case STOP:
-			go stopVM(rs.ID, rs.VMID)
-		case DELETE:
-			go deleteVM(rs.ID, rs.VMID)
+		db.Limit(1).Where("started_at IS NULL").Find(&rs)
+		if rs.ID != "" {
+			rs.StartedAt.Time = time.Now()
+			rs.StartedAt.Valid = true
+			db.Model(&rs).Limit(1).Updates(rs)
+			switch rs.Type {
+			case START:
+				go startVM(&rs)
+			case STOP:
+				go stopVM(&rs)
+			case DELETE:
+				go deleteVM(&rs)
+			}
+
 		}
 
 		time.Sleep(500 * time.Millisecond)
