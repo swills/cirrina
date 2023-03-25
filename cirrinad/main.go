@@ -52,10 +52,6 @@ type VM struct {
 	VMConfig    VMConfig
 }
 
-func (vm *VM) Start() {
-	log.Printf("Starting %v", vm.Name)
-}
-
 func main() {
 	log.Print("Starting")
 	go rpcServer()

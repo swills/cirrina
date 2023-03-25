@@ -16,37 +16,9 @@ func startVM(rs *Request) {
 	vm := VM{ID: rs.VMID}
 	db := getVMDB()
 	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: rs.VMID})
-	vm.Start()
 	dbSetVMStarting(rs.VMID)
-	events := make(chan supervisor.Event)
-	p := supervisor.NewProcess(supervisor.ProcessOptions{
-		Name:                 "/sbin/ping",
-		Args:                 []string{"-c", "9", "localhost"},
-		Dir:                  "/",
-		Id:                   vm.Name,
-		EventNotifier:        events,
-		OutputParser:         supervisor.MakeBytesParser,
-		ErrorParser:          supervisor.MakeBytesParser,
-		MaxSpawns:            -1,
-		MaxSpawnAttempts:     -1,
-		MaxRespawnBackOff:    time.Duration(vm.VMConfig.RestartDelay) * time.Second,
-		MaxSpawnBackOff:      time.Duration(vm.VMConfig.RestartDelay) * time.Second,
-		MaxInterruptAttempts: 1,
-		MaxTerminateAttempts: 1,
-		IdleTimeout:          -1,
-	})
-
-	exit := make(chan bool)
-	vmProcs[rs.VMID] = p
-
-	go vmDaemon(p, events, vm, exit)
-
-	if err := p.Start(); err != nil {
-		panic(fmt.Sprintf("failed to start process: %s", err))
-	}
-	go dbSetReqComplete(rs.ID)
-
-	<-exit
+	vm.Start()
+	dbSetReqComplete(rs.ID)
 
 }
 
@@ -85,7 +57,7 @@ func stopVM(rs *Request) {
 	dbSetVMStopped(rs.VMID)
 }
 
-func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM, exit chan bool) {
+func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 	for {
 		select {
 		case msg := <-p.Stdout():
@@ -107,10 +79,8 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM, exit c
 			}
 		case <-p.DoneNotifier():
 			log.Println("Closing loop we are done...")
-			close(exit)
 			return
 		}
-
 	}
 }
 
@@ -129,4 +99,33 @@ func deleteVM(rs *Request) {
 		return
 	}
 	MarkReqSuccessful(rs)
+}
+
+func (vm *VM) Start() {
+	log.Printf("Starting %v", vm.Name)
+	events := make(chan supervisor.Event)
+	p := supervisor.NewProcess(supervisor.ProcessOptions{
+		Name:                 "/sbin/ping",
+		Args:                 []string{"-c", "9", "localhost"},
+		Dir:                  "/",
+		Id:                   vm.Name,
+		EventNotifier:        events,
+		OutputParser:         supervisor.MakeBytesParser,
+		ErrorParser:          supervisor.MakeBytesParser,
+		MaxSpawns:            -1,
+		MaxSpawnAttempts:     -1,
+		MaxRespawnBackOff:    time.Duration(vm.VMConfig.RestartDelay) * time.Second,
+		MaxSpawnBackOff:      time.Duration(vm.VMConfig.RestartDelay) * time.Second,
+		MaxInterruptAttempts: 1,
+		MaxTerminateAttempts: 1,
+		IdleTimeout:          -1,
+	})
+
+	vmProcs[vm.ID] = p
+
+	go vmDaemon(p, events, *vm)
+
+	if err := p.Start(); err != nil {
+		panic(fmt.Sprintf("failed to start process: %s", err))
+	}
 }
