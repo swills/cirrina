@@ -79,8 +79,8 @@ func (s *server) GetVMs(_ *cirrina.VMsQuery, stream cirrina.VMInfo_GetVMsServer)
 func (s *server) GetVMState(_ context.Context, p *cirrina.VMID) (*cirrina.VMState, error) {
 	vm := VM{}
 	pvm := cirrina.VMState{}
-	vmDB := getVMDB()
-	vmDB.Limit(1).Find(&vm, &VM{ID: p.Value})
+	db := getVMDB()
+	db.Limit(1).Find(&vm, &VM{ID: p.Value})
 	if vm.ID == "" {
 		return &pvm, errors.New("not found")
 	}
