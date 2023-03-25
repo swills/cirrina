@@ -123,3 +123,23 @@ func startReq(rs Request) {
 	rs.StartedAt.Valid = true
 	db.Model(&rs).Limit(1).Updates(rs)
 }
+
+func MarkReqSuccessful(rs *Request) *gorm.DB {
+	db := getVMDB()
+	return db.Model(&rs).Limit(1).Updates(
+		Request{
+			Successful: true,
+			Complete:   true,
+		},
+	)
+}
+
+func MarkReqFailed(rs *Request) *gorm.DB {
+	db := getVMDB()
+	return db.Model(&rs).Limit(1).Updates(
+		Request{
+			Successful: false,
+			Complete:   true,
+		},
+	)
+}

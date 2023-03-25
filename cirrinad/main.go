@@ -18,13 +18,13 @@ const (
 	DELETE reqType = "DELETE"
 )
 
-type statusType string
+type StatusType string
 
 const (
-	STOPPED  statusType = "STOPPED"
-	STARTING statusType = "STARTING"
-	RUNNING  statusType = "RUNNING"
-	STOPPING statusType = "STOPPING"
+	STOPPED  StatusType = "STOPPED"
+	STARTING StatusType = "STARTING"
+	RUNNING  StatusType = "RUNNING"
+	STOPPING StatusType = "STOPPING"
 )
 
 type VMConfig struct {
@@ -45,11 +45,15 @@ type VM struct {
 	ID          string `gorm:"uniqueIndex;not null"`
 	Name        string `gorm:"not null"`
 	Description string
-	Status      statusType `gorm:"type:status_type"`
+	Status      StatusType `gorm:"type:status_type"`
 	BhyvePid    uint32     `gorm:"check:bhyve_pid>=0"`
 	NetDev      string
 	VNCPort     int32
 	VMConfig    VMConfig
+}
+
+func (vm *VM) Start() {
+	log.Printf("Starting %v", vm.Name)
 }
 
 func main() {

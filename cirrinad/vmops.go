@@ -16,6 +16,7 @@ func startVM(rs *Request) {
 	vm := VM{ID: rs.VMID}
 	db := getVMDB()
 	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: rs.VMID})
+	vm.Start()
 	dbSetVMStarting(rs.VMID)
 	events := make(chan supervisor.Event)
 	p := supervisor.NewProcess(supervisor.ProcessOptions{
@@ -70,20 +71,10 @@ func stopVM(rs *Request) {
 	vm.Status = STOPPED
 	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
 	if res.Error != nil {
-		db.Model(&rs).Limit(1).Updates(
-			Request{
-				Successful: false,
-				Complete:   true,
-			},
-		)
+		MarkReqFailed(rs)
 		return
 	}
-	db.Model(&rs).Limit(1).Updates(
-		Request{
-			Successful: true,
-			Complete:   true,
-		},
-	)
+	MarkReqSuccessful(rs)
 	p := vmProcs[rs.VMID]
 	log.Printf("stopping pid %v", p.Pid())
 	dbSetVMStopping(rs.VMID)
@@ -129,28 +120,13 @@ func deleteVM(rs *Request) {
 	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: rs.VMID})
 	res := db.Delete(&vm.VMConfig)
 	if res.RowsAffected != 1 {
-		db.Model(&rs).Limit(1).Updates(
-			Request{
-				Successful: false,
-				Complete:   true,
-			},
-		)
+		MarkReqFailed(rs)
 		return
 	}
 	res = db.Delete(&vm)
 	if res.RowsAffected != 1 {
-		db.Model(&rs).Limit(1).Updates(
-			Request{
-				Successful: false,
-				Complete:   true,
-			},
-		)
+		MarkReqFailed(rs)
 		return
 	}
-	db.Model(&rs).Limit(1).Updates(
-		Request{
-			Successful: true,
-			Complete:   true,
-		},
-	)
+	MarkReqSuccessful(rs)
 }
