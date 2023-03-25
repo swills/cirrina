@@ -4,6 +4,7 @@ import (
 	pb "cirrina/cirrina"
 	"context"
 	"flag"
+	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"io"
@@ -40,7 +41,7 @@ func addVM(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *st
 		log.Fatalf("could not create VM: %v", err)
 		return
 	}
-	log.Printf("Created VM %v", res.Value)
+	fmt.Printf("Created VM %v\n", res.Value)
 }
 
 func DeleteVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
@@ -52,7 +53,7 @@ func DeleteVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if err != nil {
 		log.Fatalf("could not delete VM: %v", err)
 	}
-	log.Printf("Deleted VM %v: reqid: %v", *idPtr, reqId.Value)
+	fmt.Printf("Deleted VM %v: reqid: %v\n", *idPtr, reqId.Value)
 }
 
 func stopVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
@@ -64,7 +65,7 @@ func stopVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if err != nil {
 		log.Fatalf("could not stop VM: %v", err)
 	}
-	log.Printf("Started VM %v: reqid: %v", *idPtr, reqId.Value)
+	fmt.Printf("Stopping VM %v: reqid: %v\n", *idPtr, reqId.Value)
 
 }
 
@@ -77,7 +78,7 @@ func startVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if err != nil {
 		log.Fatalf("could not start VM: %v", err)
 	}
-	log.Printf("Started VM %v: reqid: %v", *idPtr, reqId.Value)
+	fmt.Printf("Started VM %v: reqid: %v\n", *idPtr, reqId.Value)
 }
 
 func ReqStat(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
@@ -89,7 +90,7 @@ func ReqStat(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if err != nil {
 		log.Fatalf("could not get req: %v", err)
 	}
-	log.Printf("complete: %v status: %v", res.Complete, res.Success)
+	fmt.Printf("complete: %v status: %v\n", res.Complete, res.Success)
 
 }
 
@@ -102,7 +103,8 @@ func getVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if err != nil {
 		log.Fatalf("could not get VM: %v", err)
 	}
-	log.Printf("name: %v desc: %v cpus: %v mem: %v", res.Name, res.Description, res.Cpu, res.Mem)
+	fmt.Printf("name: %v desc: %v cpus: %v mem: %v\n",
+		res.Name, res.Description, res.Cpu, res.Mem)
 }
 
 func getVMs(c pb.VMInfoClient, ctx context.Context) {
@@ -119,7 +121,7 @@ func getVMs(c pb.VMInfoClient, ctx context.Context) {
 		if err != nil {
 			log.Fatalf("GetVMs failed: %v", err)
 		}
-		log.Printf("VM: id: %v", VM.Value)
+		fmt.Printf("VM: id: %v\n", VM.Value)
 	}
 }
 
@@ -144,7 +146,7 @@ func getVMState(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	case pb.VmStatus_STATUS_STOPPING:
 		vmstate = "stopping"
 	}
-	log.Printf("vm id: %v state: %v vnc port: %v", *idPtr, vmstate, res.VncPort)
+	fmt.Printf("vm id: %v state: %v vnc port: %v\n", *idPtr, vmstate, res.VncPort)
 }
 
 func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPtr *uint, memPtr *uint, c pb.VMInfoClient, ctx context.Context) {
@@ -183,7 +185,11 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 		log.Fatalf("could not update VM: %v", err)
 		return
 	}
-	log.Printf("Success")
+	fmt.Printf("Success\n")
+}
+
+func printActionHelp() {
+	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM")
 }
 
 func main() {
@@ -220,6 +226,8 @@ func main() {
 	switch *actionPtr {
 	case "":
 		log.Fatalf("Action not specified")
+	case "help":
+		printActionHelp()
 	case "getVM":
 		getVM(idPtr, c, ctx)
 	case "getVMs":
