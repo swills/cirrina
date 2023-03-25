@@ -30,8 +30,8 @@ func startVM(rs *Request) {
 		MaxSpawnAttempts:     -1,
 		MaxRespawnBackOff:    time.Duration(vm.VMConfig.RestartDelay) * time.Second,
 		MaxSpawnBackOff:      time.Duration(vm.VMConfig.RestartDelay) * time.Second,
-		MaxInterruptAttempts: -1,
-		MaxTerminateAttempts: -1,
+		MaxInterruptAttempts: 1,
+		MaxTerminateAttempts: 1,
 		IdleTimeout:          -1,
 	})
 
