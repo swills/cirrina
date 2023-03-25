@@ -5,6 +5,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"log"
+	"time"
 )
 
 func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
@@ -107,4 +108,18 @@ func dbCreateVM(vm VM) error {
 	db := getVMDB()
 	res := db.Create(&vm)
 	return res.Error
+}
+
+func getUnStartedReq() Request {
+	db := getVMDB()
+	rs := Request{}
+	db.Limit(1).Where("started_at IS NULL").Find(&rs)
+	return rs
+}
+
+func startReq(rs Request) {
+	db := getVMDB()
+	rs.StartedAt.Time = time.Now()
+	rs.StartedAt.Valid = true
+	db.Model(&rs).Limit(1).Updates(rs)
 }

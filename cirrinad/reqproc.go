@@ -17,14 +17,10 @@ type Request struct {
 }
 
 func processRequests() {
-	db := getVMDB()
 	for {
-		rs := Request{}
-		db.Limit(1).Where("started_at IS NULL").Find(&rs)
+		rs := getUnStartedReq()
 		if rs.ID != "" {
-			rs.StartedAt.Time = time.Now()
-			rs.StartedAt.Valid = true
-			db.Model(&rs).Limit(1).Updates(rs)
+			startReq(rs)
 			switch rs.Type {
 			case START:
 				go startVM(&rs)
@@ -35,7 +31,6 @@ func processRequests() {
 			}
 
 		}
-
 		time.Sleep(500 * time.Millisecond)
 	}
 }
