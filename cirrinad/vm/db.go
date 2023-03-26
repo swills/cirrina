@@ -58,7 +58,7 @@ func DbVMExists(name string) bool {
 	return false
 }
 
-func DbCreateVM(vm VM) error {
+func DbCreateVM(vm *VM) error {
 	db := GetVMDB()
 	res := db.Create(&vm)
 	return res.Error

@@ -32,7 +32,8 @@ func (s *server) AddVM(_ context.Context, v *cirrina.VM) (*cirrina.VMID, error) 
 			Mem: v.Mem,
 		},
 	}
-	err := vm2.DbCreateVM(vm)
+	err := vm2.DbCreateVM(&vm)
+	log.Printf("Created VM %v", vm.ID)
 	if err != nil {
 		return &cirrina.VMID{}, errors.New("error Creating VM")
 	}
