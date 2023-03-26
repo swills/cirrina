@@ -7,9 +7,9 @@ import (
 
 func processRequests() {
 	for {
-		rs := getUnStartedReq()
+		rs := requests.GetUnStartedReq()
 		if rs.ID != "" {
-			startReq(rs)
+			requests.StartReq(rs)
 			switch rs.Type {
 			case requests.START:
 				go startVM(&rs)

@@ -1,6 +1,8 @@
 package requests
 
 import (
+	"cirrina/cirrina"
+	"cirrina/cirrinad/vm"
 	"database/sql"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -27,4 +29,21 @@ type Request struct {
 func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {
 	req.ID = uuid.NewString()
 	return nil
+}
+
+func PendingReqExists(v *cirrina.VMID) bool {
+	db := vm.GetVMDB()
+	eReq := Request{}
+	db.Where(map[string]interface{}{"vm_id": v.Value, "complete": false}).Find(&eReq)
+	if eReq.ID != "" {
+		return true
+	}
+	return false
+}
+
+func GetReq(requestID string) Request {
+	db := vm.GetVMDB()
+	rs := Request{}
+	db.Model(&Request{}).Limit(1).Find(&rs, &Request{ID: requestID})
+	return rs
 }
