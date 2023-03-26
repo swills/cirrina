@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func DbSetVMRunning(id string, pid int) {
+func setRunning(id string, pid int) {
 	log.Printf("VM %v started, pid: %v", id, pid)
 	vm := VM{ID: id}
 	db := GetVMDB()
@@ -73,7 +73,7 @@ func GetVMDB() *gorm.DB {
 	if err != nil {
 		panic("failed to auto-migrate VMs")
 	}
-	err = db.AutoMigrate(&VMConfig{})
+	err = db.AutoMigrate(&Config{})
 	if err != nil {
 		panic("failed to auto-migrate Configs")
 	}

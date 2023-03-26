@@ -27,7 +27,7 @@ func (s *server) AddVM(_ context.Context, v *cirrina.VM) (*cirrina.VMID, error) 
 		Name:        v.Name,
 		Status:      vm2.STOPPED,
 		Description: v.Description,
-		VMConfig: vm2.VMConfig{
+		VMConfig: vm2.Config{
 			Cpu: v.Cpu,
 			Mem: v.Mem,
 		},
@@ -133,7 +133,7 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMReConfig) (*cirrina.R
 }
 
 func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID, error) {
-	if !vm2.VMExists(v) {
+	if !vm2.Exists(v) {
 		return &cirrina.RequestID{}, errors.New("VM not found")
 	}
 	if requests.PendingReqExists(v) {
@@ -153,7 +153,7 @@ func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID
 }
 
 func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID, error) {
-	if !vm2.VMExists(v) {
+	if !vm2.Exists(v) {
 		return &cirrina.RequestID{}, errors.New("VM not found")
 	}
 	if requests.PendingReqExists(v) {
@@ -173,7 +173,7 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 }
 
 func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID, error) {
-	if !vm2.VMExists(v) {
+	if !vm2.Exists(v) {
 		return &cirrina.RequestID{}, errors.New("VM not found")
 	}
 	if requests.PendingReqExists(v) {

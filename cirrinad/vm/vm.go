@@ -2,6 +2,7 @@ package vm
 
 import (
 	"cirrina/cirrina"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/kontera-technologies/go-supervisor/v2"
@@ -21,7 +22,7 @@ const (
 	STOPPING StatusType = "STOPPING"
 )
 
-type VMConfig struct {
+type Config struct {
 	gorm.Model
 	VMID         string
 	Cpu          uint32 `gorm:"default:1;check:cpu BETWEEN 1 and 16"`
@@ -43,7 +44,7 @@ type VM struct {
 	BhyvePid    uint32     `gorm:"check:bhyve_pid>=0"`
 	NetDev      string
 	VNCPort     int32
-	VMConfig    VMConfig
+	VMConfig    Config
 }
 
 func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
@@ -78,7 +79,7 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 			switch event.Code {
 			case "ProcessStart":
 				go log.Printf("Received event ProcessStart: %s %s\n", event.Code, event.Message)
-				go DbSetVMRunning(vm.ID, p.Pid())
+				go setRunning(vm.ID, p.Pid())
 			case "ProcessDone":
 				exitStatus := parseStopMessage(event.Message)
 				log.Printf("stop message: %v", event.Message)
@@ -96,6 +97,7 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 
 func (vm *VM) Start() {
 	log.Printf("Starting %v", vm.Name)
+	DbSetVMStarting(vm.ID)
 	events := make(chan supervisor.Event)
 	p := supervisor.NewProcess(supervisor.ProcessOptions{
 		Name:                 "/sbin/ping",
@@ -126,13 +128,15 @@ func (vm *VM) Start() {
 func (vm *VM) Stop() {
 	p := vmProcs[vm.ID]
 	log.Printf("stopping pid %v", p.Pid())
+	DbSetVMStopping(vm.ID)
 	err := p.Stop()
 	if err != nil {
 		log.Printf("Failed to stop %v", p.Pid())
 	}
+	DbSetVMStopped(vm.ID)
 }
 
-func VMExists(v *cirrina.VMID) bool {
+func Exists(v *cirrina.VMID) bool {
 	vm := VM{}
 	db := GetVMDB()
 	db.Model(&VM{}).Limit(1).Find(&vm, &VM{ID: v.Value})
@@ -140,4 +144,21 @@ func VMExists(v *cirrina.VMID) bool {
 		return false
 	}
 	return true
+}
+
+func (vm *VM) Delete() (err error) {
+	db := GetVMDB()
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: vm.ID})
+	if vm.ID == "" {
+		return errors.New("vm not found")
+	}
+	res := db.Delete(&vm.VMConfig)
+	if res.RowsAffected != 1 {
+		return errors.New("failed to delete VMConfig")
+	}
+	res = db.Delete(&vm)
+	if res.RowsAffected != 1 {
+		return errors.New("failed to delete VM")
+	}
+	return nil
 }
