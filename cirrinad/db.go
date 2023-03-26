@@ -38,20 +38,6 @@ func getVMDB() *gorm.DB {
 	return db
 }
 
-func dbSetReqComplete(rid string) {
-	log.Printf("Marking req %v done", rid)
-	db := getVMDB()
-	rs := Request{}
-	rs.ID = rid
-
-	db.Model(&rs).Limit(1).Updates(
-		Request{
-			Successful: true,
-			Complete:   true,
-		},
-	)
-}
-
 func dbSetVMStopped(id string) {
 	vm := VM{ID: id}
 	db := getVMDB()

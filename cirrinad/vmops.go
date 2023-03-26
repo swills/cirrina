@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/kontera-technologies/go-supervisor/v2"
-	"gorm.io/gorm"
 	"log"
 	"strconv"
 	"strings"
@@ -11,16 +10,6 @@ import (
 )
 
 var vmProcs = make(map[string]*supervisor.Process)
-
-func startVM(rs *Request) {
-	vm := VM{ID: rs.VMID}
-	db := getVMDB()
-	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: rs.VMID})
-	dbSetVMStarting(rs.VMID)
-	vm.Start()
-	dbSetReqComplete(rs.ID)
-
-}
 
 func parseStopMessage(message string) int {
 	var exitStatus int
@@ -36,24 +25,21 @@ func parseStopMessage(message string) int {
 	return exitStatus
 }
 
+func startVM(rs *Request) {
+	vm := VM{ID: rs.VMID}
+	db := getVMDB()
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: rs.VMID})
+	dbSetVMStarting(rs.VMID)
+	vm.Start()
+	MarkReqSuccessful(rs)
+}
+
 func stopVM(rs *Request) {
 	log.Printf("stopping VM %v", rs.VMID)
 	vm := VM{ID: rs.VMID}
-	db := getVMDB()
-	vm.Status = STOPPED
-	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
-	if res.Error != nil {
-		MarkReqFailed(rs)
-		return
-	}
+	dbSetVMStopping(vm.ID)
+	vm.Stop()
 	MarkReqSuccessful(rs)
-	p := vmProcs[rs.VMID]
-	log.Printf("stopping pid %v", p.Pid())
-	dbSetVMStopping(rs.VMID)
-	err := p.Stop()
-	if err != nil {
-		log.Printf("Failed to stop %v", p.Pid())
-	}
 	dbSetVMStopped(rs.VMID)
 }
 
@@ -127,5 +113,14 @@ func (vm *VM) Start() {
 
 	if err := p.Start(); err != nil {
 		panic(fmt.Sprintf("failed to start process: %s", err))
+	}
+}
+
+func (vm *VM) Stop() {
+	p := vmProcs[vm.ID]
+	log.Printf("stopping pid %v", p.Pid())
+	err := p.Stop()
+	if err != nil {
+		log.Printf("Failed to stop %v", p.Pid())
 	}
 }
