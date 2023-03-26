@@ -135,16 +135,6 @@ func (vm *VM) Stop() {
 	setStopped(vm.ID)
 }
 
-func Exists(vmid string) bool {
-	vm := VM{}
-	db := GetVMDB()
-	db.Model(&VM{}).Limit(1).Find(&vm, &VM{ID: vmid})
-	if vm.ID == "" {
-		return false
-	}
-	return true
-}
-
 func (vm *VM) Delete() (err error) {
 	db := GetVMDB()
 	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: vm.ID})
@@ -162,12 +152,38 @@ func (vm *VM) Delete() (err error) {
 	return nil
 }
 
-func Get(id string) (vm VM, err error) {
-	vm = VM{}
+func (vm *VM) Save() error {
+	db := GetVMDB()
+	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
+	if res.Error != nil {
+		return errors.New("error updating VM")
+	}
+	return nil
+}
+
+func GetByID(id string) (vm VM, err error) {
 	db := GetVMDB()
 	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: id})
 	if vm.ID == "" {
 		return VM{}, errors.New("not Found")
 	}
 	return vm, nil
+}
+
+func GetByName(name string) (vm VM, err error) {
+	db := GetVMDB()
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{Name: name})
+	if vm.ID == "" {
+		return VM{}, errors.New("not Found")
+	}
+	return vm, nil
+}
+
+func GetAll() []VM {
+	var result []VM
+
+	db := GetVMDB()
+	db.Find(&result)
+
+	return result
 }

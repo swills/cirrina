@@ -48,16 +48,6 @@ func setStarting(id string) {
 	}
 }
 
-func DbVMExists(name string) bool {
-	db := GetVMDB()
-	var evm VM
-	db.Limit(1).Find(&evm, &VM{Name: name})
-	if evm.ID != "" {
-		return true
-	}
-	return false
-}
-
 func DbCreateVM(vm *VM) error {
 	db := GetVMDB()
 	res := db.Create(&vm)

@@ -7,7 +7,7 @@ import (
 )
 
 func startVM(rs *requests.Request) {
-	vmInst, err := vm.Get(rs.VMID)
+	vmInst, err := vm.GetByID(rs.VMID)
 	if err != nil {
 		log.Printf("error getting vm %v, %v", rs.VMID, err)
 	}
@@ -18,7 +18,7 @@ func startVM(rs *requests.Request) {
 
 func stopVM(rs *requests.Request) {
 	log.Printf("stopping VM %v", rs.VMID)
-	vmInst, err := vm.Get(rs.VMID)
+	vmInst, err := vm.GetByID(rs.VMID)
 	if err != nil {
 		log.Printf("error getting vm %v, %v", rs.VMID, err)
 	}
@@ -27,7 +27,7 @@ func stopVM(rs *requests.Request) {
 }
 
 func deleteVM(rs *requests.Request) {
-	vmInst, err := vm.Get(rs.VMID)
+	vmInst, err := vm.GetByID(rs.VMID)
 	if err != nil {
 		log.Printf("error getting vm %v, %v", rs.VMID, err)
 	}
