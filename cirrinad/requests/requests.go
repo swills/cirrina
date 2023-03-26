@@ -23,7 +23,7 @@ type Request struct {
 	Successful bool         `gorm:"default:False;check:successful IN (0,1)"`
 	Complete   bool         `gorm:"default:False;check:complete IN (0,1)"`
 	Type       reqType      `gorm:"type:req_type"`
-	VMID       string
+	VmId       string
 }
 
 func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {
@@ -31,10 +31,10 @@ func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {
 	return nil
 }
 
-func PendingReqExists(vmid string) bool {
+func PendingReqExists(vmId string) bool {
 	db := getReqDb()
 	eReq := Request{}
-	db.Where(map[string]interface{}{"vm_id": vmid, "complete": false}).Find(&eReq)
+	db.Where(map[string]interface{}{"vm_id": vmId, "complete": false}).Find(&eReq)
 	if eReq.ID != "" {
 		return true
 	}
@@ -52,7 +52,7 @@ func Create(r reqType, vmId string) (req Request, err error) {
 	db := getReqDb()
 	newReq := Request{
 		Type: r,
-		VMID: vmId,
+		VmId: vmId,
 	}
 	res := db.Create(&newReq)
 	if res.RowsAffected != 1 {

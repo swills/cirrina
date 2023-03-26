@@ -23,7 +23,7 @@ const (
 
 type Config struct {
 	gorm.Model
-	VMID         string
+	VmId         string
 	Cpu          uint32 `gorm:"default:1;check:cpu BETWEEN 1 and 16"`
 	Mem          uint32 `gorm:"default:128;check:mem>=128"`
 	MaxWait      uint32 `gorm:"default:120;check:max_wait>=0"`
@@ -46,7 +46,7 @@ type VM struct {
 	VMConfig    Config
 }
 
-var vmProcs = make(map[string]*supervisor.Process)
+var vmProcesses = make(map[string]*supervisor.Process)
 
 func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
 	vm.ID = uuid.NewString()
@@ -54,7 +54,15 @@ func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
 }
 
 func Create(vm *VM) error {
+	if vm.ID != "" {
+		return errors.New("cannot specify VM Id")
+	}
+	_, err := GetByName(vm.Name)
+	if err == nil {
+		return errors.New("vm with same name already exists")
+	}
 	db := getVmDb()
+	log.Printf("Creating VM %v", vm.Name)
 	res := db.Create(&vm)
 	return res.Error
 }
@@ -76,7 +84,10 @@ func (vm *VM) Delete() (err error) {
 	return nil
 }
 
-func (vm *VM) Start() {
+func (vm *VM) Start() (err error) {
+	if vm.Status != STOPPED {
+		return errors.New("must be stopped first")
+	}
 	log.Printf("Starting VM %v", vm.Name)
 	setStarting(vm.ID)
 	events := make(chan supervisor.Event)
@@ -97,24 +108,30 @@ func (vm *VM) Start() {
 		IdleTimeout:          -1,
 	})
 
-	vmProcs[vm.ID] = p
+	vmProcesses[vm.ID] = p
 
 	go vmDaemon(p, events, *vm)
 
 	if err := p.Start(); err != nil {
 		panic(fmt.Sprintf("failed to start process: %s", err))
 	}
+	return nil
 }
 
-func (vm *VM) Stop() {
-	p := vmProcs[vm.ID]
+func (vm *VM) Stop() (err error) {
+	if vm.Status != RUNNING {
+		return errors.New("must be running first")
+	}
+	p := vmProcesses[vm.ID]
 	log.Printf("stopping pid %v", p.Pid())
 	setStopping(vm.ID)
-	err := p.Stop()
+	err = p.Stop()
 	if err != nil {
 		log.Printf("Failed to stop %v", p.Pid())
+		return errors.New("stop failed")
 	}
 	setStopped(vm.ID)
+	return nil
 }
 
 func (vm *VM) Save() error {

@@ -80,12 +80,12 @@ func (s *server) GetVM(_ context.Context, v *cirrina.VMID) (*cirrina.VM, error) 
 
 func (s *server) GetVMs(_ *cirrina.VMsQuery, stream cirrina.VMInfo_GetVMsServer) error {
 	var vms []vm.VM
-	var pvmid cirrina.VMID
+	var pvmId cirrina.VMID
 
 	vms = vm.GetAll()
 	for e := range vms {
-		pvmid.Value = vms[e].ID
-		err := stream.Send(&pvmid)
+		pvmId.Value = vms[e].ID
+		err := stream.Send(&pvmId)
 		if err != nil {
 			return err
 		}
