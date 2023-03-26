@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cirrina/cirrinad/requests"
 	"fmt"
 	"github.com/kontera-technologies/go-supervisor/v2"
 	"log"
@@ -25,7 +26,7 @@ func parseStopMessage(message string) int {
 	return exitStatus
 }
 
-func startVM(rs *Request) {
+func startVM(rs *requests.Request) {
 	vm := VM{ID: rs.VMID}
 	db := getVMDB()
 	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: rs.VMID})
@@ -34,7 +35,7 @@ func startVM(rs *Request) {
 	MarkReqSuccessful(rs)
 }
 
-func stopVM(rs *Request) {
+func stopVM(rs *requests.Request) {
 	log.Printf("stopping VM %v", rs.VMID)
 	vm := VM{ID: rs.VMID}
 	dbSetVMStopping(vm.ID)
@@ -70,7 +71,7 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 	}
 }
 
-func deleteVM(rs *Request) {
+func deleteVM(rs *requests.Request) {
 	vm := VM{}
 	db := getVMDB()
 	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: rs.VMID})

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cirrina/cirrinad/requests"
 	"time"
 )
 
@@ -10,11 +11,11 @@ func processRequests() {
 		if rs.ID != "" {
 			startReq(rs)
 			switch rs.Type {
-			case START:
+			case requests.START:
 				go startVM(&rs)
-			case STOP:
+			case requests.STOP:
 				go stopVM(&rs)
-			case DELETE:
+			case requests.DELETE:
 				go deleteVM(&rs)
 			}
 

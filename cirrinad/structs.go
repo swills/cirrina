@@ -1,16 +1,7 @@
 package main
 
 import (
-	"database/sql"
 	"gorm.io/gorm"
-)
-
-type reqType string
-
-const (
-	START  reqType = "START"
-	STOP   reqType = "STOP"
-	DELETE reqType = "DELETE"
 )
 
 type StatusType string
@@ -45,14 +36,4 @@ type VM struct {
 	NetDev      string
 	VNCPort     int32
 	VMConfig    VMConfig
-}
-
-type Request struct {
-	gorm.Model
-	ID         string       `gorm:"uniqueIndex;not null"`
-	StartedAt  sql.NullTime `gorm:"index"`
-	Successful bool         `gorm:"default:False;check:successful IN (0,1)"`
-	Complete   bool         `gorm:"default:False;check:complete IN (0,1)"`
-	Type       reqType      `gorm:"type:req_type"`
-	VMID       string
 }

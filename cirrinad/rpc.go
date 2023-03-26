@@ -2,6 +2,7 @@ package main
 
 import (
 	"cirrina/cirrina"
+	"cirrina/cirrinad/requests"
 	"context"
 	"errors"
 	"fmt"
@@ -142,8 +143,8 @@ func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID
 	if vm.Status != STOPPED {
 		return &cirrina.RequestID{}, errors.New("vm must be stopped before starting")
 	}
-	newReq := Request{}
-	newReq.Type = START
+	newReq := requests.Request{}
+	newReq.Type = requests.START
 	newReq.VMID = v.Value
 	db.Create(&newReq)
 	return &cirrina.RequestID{Value: newReq.ID}, nil
@@ -162,8 +163,8 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 	if vm.Status != RUNNING {
 		return &cirrina.RequestID{}, errors.New("vm must be running before stopping")
 	}
-	newReq := Request{}
-	newReq.Type = STOP
+	newReq := requests.Request{}
+	newReq.Type = requests.STOP
 	newReq.VMID = v.Value
 	db.Create(&newReq)
 	return &cirrina.RequestID{Value: newReq.ID}, nil
@@ -182,8 +183,8 @@ func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestI
 	if vm.Status != STOPPED {
 		return &cirrina.RequestID{}, errors.New("vm must be stopped before deleting")
 	}
-	newReq := Request{}
-	newReq.Type = DELETE
+	newReq := requests.Request{}
+	newReq.Type = requests.DELETE
 	newReq.VMID = v.Value
 	db.Create(&newReq)
 	return &cirrina.RequestID{Value: newReq.ID}, nil
@@ -191,8 +192,8 @@ func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestI
 
 func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrina.ReqStatus, error) {
 	db := getVMDB()
-	rs := Request{}
-	db.Model(&Request{}).Limit(1).Find(&rs, &Request{ID: r.Value})
+	rs := requests.Request{}
+	db.Model(&requests.Request{}).Limit(1).Find(&rs, &requests.Request{ID: r.Value})
 	if rs.ID == "" {
 		return &cirrina.ReqStatus{}, errors.New("not found")
 	}
@@ -205,7 +206,7 @@ func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrin
 
 func pendingReqExists(v *cirrina.VMID) bool {
 	db := getVMDB()
-	eReq := Request{}
+	eReq := requests.Request{}
 	db.Where(map[string]interface{}{"vm_id": v.Value, "complete": false}).Find(&eReq)
 	if eReq.ID != "" {
 		return true

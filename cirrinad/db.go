@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cirrina/cirrinad/requests"
 	"github.com/google/uuid"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -10,11 +11,6 @@ import (
 
 func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
 	vm.ID = uuid.NewString()
-	return nil
-}
-
-func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {
-	req.ID = uuid.NewString()
 	return nil
 }
 
@@ -31,7 +27,7 @@ func getVMDB() *gorm.DB {
 	if err != nil {
 		panic("failed to auto-migrate Configs")
 	}
-	err = db.AutoMigrate(&Request{})
+	err = db.AutoMigrate(&requests.Request{})
 	if err != nil {
 		panic("failed to auto-migrate Requests")
 	}
@@ -96,34 +92,34 @@ func dbCreateVM(vm VM) error {
 	return res.Error
 }
 
-func getUnStartedReq() Request {
+func getUnStartedReq() requests.Request {
 	db := getVMDB()
-	rs := Request{}
+	rs := requests.Request{}
 	db.Limit(1).Where("started_at IS NULL").Find(&rs)
 	return rs
 }
 
-func startReq(rs Request) {
+func startReq(rs requests.Request) {
 	db := getVMDB()
 	rs.StartedAt.Time = time.Now()
 	rs.StartedAt.Valid = true
 	db.Model(&rs).Limit(1).Updates(rs)
 }
 
-func MarkReqSuccessful(rs *Request) *gorm.DB {
+func MarkReqSuccessful(rs *requests.Request) *gorm.DB {
 	db := getVMDB()
 	return db.Model(&rs).Limit(1).Updates(
-		Request{
+		requests.Request{
 			Successful: true,
 			Complete:   true,
 		},
 	)
 }
 
-func MarkReqFailed(rs *Request) *gorm.DB {
+func MarkReqFailed(rs *requests.Request) *gorm.DB {
 	db := getVMDB()
 	return db.Model(&rs).Limit(1).Updates(
-		Request{
+		requests.Request{
 			Successful: false,
 			Complete:   true,
 		},
