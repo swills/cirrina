@@ -46,52 +46,34 @@ type VM struct {
 	VMConfig    Config
 }
 
+var vmProcs = make(map[string]*supervisor.Process)
+
 func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
 	vm.ID = uuid.NewString()
 	return nil
 }
 
-var vmProcs = make(map[string]*supervisor.Process)
-
-func parseStopMessage(message string) int {
-	var exitStatus int
-	words := strings.Fields(message)
-	if len(words) < 2 {
-		return -1
-	}
-	exitStatusStr := words[2]
-	exitStatus, err := strconv.Atoi(exitStatusStr)
-	if err != nil {
-		fmt.Printf("%T, %v, %v\n", exitStatus, exitStatus, err)
-	}
-	return exitStatus
+func Create(vm *VM) error {
+	db := getVmDb()
+	res := db.Create(&vm)
+	return res.Error
 }
 
-func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
-	for {
-		select {
-		case msg := <-p.Stdout():
-			log.Printf("Received STDOUT message: %s\n", *msg)
-		case msg := <-p.Stderr():
-			log.Printf("Received STDERR message: %s\n", *msg)
-		case event := <-events:
-			switch event.Code {
-			case "ProcessStart":
-				go log.Printf("Received event ProcessStart: %s %s\n", event.Code, event.Message)
-				go setRunning(vm.ID, p.Pid())
-			case "ProcessDone":
-				exitStatus := parseStopMessage(event.Message)
-				log.Printf("stop message: %v", event.Message)
-				log.Printf("VM %v stopped, exitStatus: %v", vm.ID, exitStatus)
-				go setStopped(vm.ID)
-			default:
-				log.Printf("Received event: %s - %s\n", event.Code, event.Message)
-			}
-		case <-p.DoneNotifier():
-			log.Println("Closing loop we are done...")
-			return
-		}
+func (vm *VM) Delete() (err error) {
+	db := getVmDb()
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: vm.ID})
+	if vm.ID == "" {
+		return errors.New("vm not found")
 	}
+	res := db.Delete(&vm.VMConfig)
+	if res.RowsAffected != 1 {
+		return errors.New("failed to delete VMConfig")
+	}
+	res = db.Delete(&vm)
+	if res.RowsAffected != 1 {
+		return errors.New("failed to delete VM")
+	}
+	return nil
 }
 
 func (vm *VM) Start() {
@@ -135,25 +117,8 @@ func (vm *VM) Stop() {
 	setStopped(vm.ID)
 }
 
-func (vm *VM) Delete() (err error) {
-	db := GetVMDB()
-	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: vm.ID})
-	if vm.ID == "" {
-		return errors.New("vm not found")
-	}
-	res := db.Delete(&vm.VMConfig)
-	if res.RowsAffected != 1 {
-		return errors.New("failed to delete VMConfig")
-	}
-	res = db.Delete(&vm)
-	if res.RowsAffected != 1 {
-		return errors.New("failed to delete VM")
-	}
-	return nil
-}
-
 func (vm *VM) Save() error {
-	db := GetVMDB()
+	db := getVmDb()
 	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
 	if res.Error != nil {
 		return errors.New("error updating VM")
@@ -161,8 +126,17 @@ func (vm *VM) Save() error {
 	return nil
 }
 
+func GetAll() []VM {
+	var result []VM
+
+	db := getVmDb()
+	db.Find(&result)
+
+	return result
+}
+
 func GetByID(id string) (vm VM, err error) {
-	db := GetVMDB()
+	db := getVmDb()
 	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: id})
 	if vm.ID == "" {
 		return VM{}, errors.New("not Found")
@@ -171,7 +145,7 @@ func GetByID(id string) (vm VM, err error) {
 }
 
 func GetByName(name string) (vm VM, err error) {
-	db := GetVMDB()
+	db := getVmDb()
 	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{Name: name})
 	if vm.ID == "" {
 		return VM{}, errors.New("not Found")
@@ -179,11 +153,43 @@ func GetByName(name string) (vm VM, err error) {
 	return vm, nil
 }
 
-func GetAll() []VM {
-	var result []VM
+func parseStopMessage(message string) int {
+	var exitStatus int
+	words := strings.Fields(message)
+	if len(words) < 2 {
+		return -1
+	}
+	exitStatusStr := words[2]
+	exitStatus, err := strconv.Atoi(exitStatusStr)
+	if err != nil {
+		fmt.Printf("%T, %v, %v\n", exitStatus, exitStatus, err)
+	}
+	return exitStatus
+}
 
-	db := GetVMDB()
-	db.Find(&result)
-
-	return result
+func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
+	for {
+		select {
+		case msg := <-p.Stdout():
+			log.Printf("Received STDOUT message: %s\n", *msg)
+		case msg := <-p.Stderr():
+			log.Printf("Received STDERR message: %s\n", *msg)
+		case event := <-events:
+			switch event.Code {
+			case "ProcessStart":
+				go log.Printf("Received event ProcessStart: %s %s\n", event.Code, event.Message)
+				go setRunning(vm.ID, p.Pid())
+			case "ProcessDone":
+				exitStatus := parseStopMessage(event.Message)
+				log.Printf("stop message: %v", event.Message)
+				log.Printf("VM %v stopped, exitStatus: %v", vm.ID, exitStatus)
+				go setStopped(vm.ID)
+			default:
+				log.Printf("Received event: %s - %s\n", event.Code, event.Message)
+			}
+		case <-p.DoneNotifier():
+			log.Println("Closing loop we are done...")
+			return
+		}
+	}
 }

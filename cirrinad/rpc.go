@@ -32,12 +32,30 @@ func (s *server) AddVM(_ context.Context, v *cirrina.VM) (*cirrina.VMID, error) 
 			Mem: v.Mem,
 		},
 	}
-	err = vm.DbCreateVM(&vmInst)
+	err = vm.Create(&vmInst)
 	log.Printf("Created VM %v", vmInst.ID)
 	if err != nil {
 		return &cirrina.VMID{}, errors.New("error Creating VM")
 	}
 	return &cirrina.VMID{Value: vmInst.ID}, nil
+}
+
+func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID, error) {
+	vmInst, err := vm.GetByID(v.Value)
+	if err != nil {
+		return &cirrina.RequestID{}, errors.New("VM not found")
+	}
+	if requests.PendingReqExists(v.Value) {
+		return &cirrina.RequestID{}, errors.New(fmt.Sprintf("pending request for %v already exists", v.Value))
+	}
+	if vmInst.Status != vm.STOPPED {
+		return &cirrina.RequestID{}, errors.New("vm must be stopped before deleting")
+	}
+	newReq, err := requests.Create(requests.DELETE, v.Value)
+	if err != nil {
+		return nil, err
+	}
+	return &cirrina.RequestID{Value: newReq.ID}, nil
 }
 
 func (s *server) GetVM(_ context.Context, v *cirrina.VMID) (*cirrina.VM, error) {
@@ -96,32 +114,16 @@ func (s *server) GetVMState(_ context.Context, p *cirrina.VMID) (*cirrina.VMStat
 	return &pvm, nil
 }
 
-func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMReConfig) (*cirrina.ReqBool, error) {
-	re := cirrina.ReqBool{}
-	re.Success = false
-	vmInst, err := vm.GetByID(rc.Id)
-	if err != nil {
-		log.Printf("error getting vm %v, %v", rc.Id, err)
+func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrina.ReqStatus, error) {
+	rs := requests.Get(r.Value)
+	if rs.ID == "" {
+		return &cirrina.ReqStatus{}, errors.New("not found")
 	}
-	reflect := rc.ProtoReflect()
-	if isOptionPassed(reflect, "name") {
-		vmInst.Name = *rc.Name
+	res := &cirrina.ReqStatus{
+		Complete: rs.Complete,
+		Success:  rs.Successful,
 	}
-	if isOptionPassed(reflect, "description") {
-		vmInst.Description = *rc.Description
-	}
-	if isOptionPassed(reflect, "cpu") {
-		vmInst.VMConfig.Cpu = *rc.Cpu
-	}
-	if isOptionPassed(reflect, "mem") {
-		vmInst.VMConfig.Mem = *rc.Mem
-	}
-	err = vmInst.Save()
-	if err != nil {
-		return &re, errors.New("error updating VM")
-	}
-	re.Success = true
-	return &re, nil
+	return res, nil
 }
 
 func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID, error) {
@@ -168,34 +170,32 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 	return &cirrina.RequestID{Value: newReq.ID}, nil
 }
 
-func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID, error) {
-	vmInst, err := vm.GetByID(v.Value)
+func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMReConfig) (*cirrina.ReqBool, error) {
+	re := cirrina.ReqBool{}
+	re.Success = false
+	vmInst, err := vm.GetByID(rc.Id)
 	if err != nil {
-		return &cirrina.RequestID{}, errors.New("VM not found")
+		log.Printf("error getting vm %v, %v", rc.Id, err)
 	}
-	if requests.PendingReqExists(v.Value) {
-		return &cirrina.RequestID{}, errors.New(fmt.Sprintf("pending request for %v already exists", v.Value))
+	reflect := rc.ProtoReflect()
+	if isOptionPassed(reflect, "name") {
+		vmInst.Name = *rc.Name
 	}
-	if vmInst.Status != vm.STOPPED {
-		return &cirrina.RequestID{}, errors.New("vm must be stopped before deleting")
+	if isOptionPassed(reflect, "description") {
+		vmInst.Description = *rc.Description
 	}
-	newReq, err := requests.Create(requests.DELETE, v.Value)
+	if isOptionPassed(reflect, "cpu") {
+		vmInst.VMConfig.Cpu = *rc.Cpu
+	}
+	if isOptionPassed(reflect, "mem") {
+		vmInst.VMConfig.Mem = *rc.Mem
+	}
+	err = vmInst.Save()
 	if err != nil {
-		return nil, err
+		return &re, errors.New("error updating VM")
 	}
-	return &cirrina.RequestID{Value: newReq.ID}, nil
-}
-
-func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrina.ReqStatus, error) {
-	rs := requests.Get(r.Value)
-	if rs.ID == "" {
-		return &cirrina.ReqStatus{}, errors.New("not found")
-	}
-	res := &cirrina.ReqStatus{
-		Complete: rs.Complete,
-		Success:  rs.Successful,
-	}
-	return res, nil
+	re.Success = true
+	return &re, nil
 }
 
 func isOptionPassed(reflect protoreflect.Message, name string) bool {

@@ -32,7 +32,7 @@ func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {
 }
 
 func PendingReqExists(vmid string) bool {
-	db := getReqDB()
+	db := getReqDb()
 	eReq := Request{}
 	db.Where(map[string]interface{}{"vm_id": vmid, "complete": false}).Find(&eReq)
 	if eReq.ID != "" {
@@ -42,14 +42,14 @@ func PendingReqExists(vmid string) bool {
 }
 
 func Get(requestID string) Request {
-	db := getReqDB()
+	db := getReqDb()
 	rs := Request{}
 	db.Model(&Request{}).Limit(1).Find(&rs, &Request{ID: requestID})
 	return rs
 }
 
 func Create(r reqType, vmId string) (req Request, err error) {
-	db := getReqDB()
+	db := getReqDb()
 	newReq := Request{
 		Type: r,
 		VMID: vmId,
@@ -62,21 +62,21 @@ func Create(r reqType, vmId string) (req Request, err error) {
 }
 
 func GetUnStarted() Request {
-	db := getReqDB()
+	db := getReqDb()
 	rs := Request{}
 	db.Limit(1).Where("started_at IS NULL").Find(&rs)
 	return rs
 }
 
 func Start(rs Request) {
-	db := getReqDB()
+	db := getReqDb()
 	rs.StartedAt.Time = time.Now()
 	rs.StartedAt.Valid = true
 	db.Model(&rs).Limit(1).Updates(rs)
 }
 
 func MarkSuccessful(rs *Request) *gorm.DB {
-	db := getReqDB()
+	db := getReqDb()
 	return db.Model(&rs).Limit(1).Updates(
 		Request{
 			Successful: true,
@@ -86,7 +86,7 @@ func MarkSuccessful(rs *Request) *gorm.DB {
 }
 
 func MarkFailed(rs *Request) *gorm.DB {
-	db := getReqDB()
+	db := getReqDb()
 	return db.Model(&rs).Limit(1).Updates(
 		Request{
 			Successful: false,

@@ -5,7 +5,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func getReqDB() *gorm.DB {
+func getReqDb() *gorm.DB {
 	db, err := gorm.Open(sqlite.Open("cirrina.sqlite"), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")

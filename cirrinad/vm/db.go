@@ -6,55 +6,7 @@ import (
 	"log"
 )
 
-func setRunning(id string, pid int) {
-	log.Printf("VM %v started, pid: %v", id, pid)
-	vm := VM{ID: id}
-	db := GetVMDB()
-	vm.Status = RUNNING
-	vm.BhyvePid = uint32(pid)
-	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
-	if res.Error != nil {
-		panic("Error saving VM start")
-	}
-}
-
-func setStopped(id string) {
-	vm := VM{ID: id}
-	db := GetVMDB()
-	vm.Status = STOPPED
-	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
-	if res.Error != nil {
-		log.Printf("Error saving VM stop")
-	}
-}
-
-func setStopping(id string) {
-	vm := VM{ID: id}
-	db := GetVMDB()
-	vm.Status = STOPPING
-	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
-	if res.Error != nil {
-		log.Printf("Error saving VM stop")
-	}
-}
-
-func setStarting(id string) {
-	vm := VM{ID: id}
-	db := GetVMDB()
-	vm.Status = STARTING
-	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
-	if res.Error != nil {
-		log.Printf("Error saving VM stop")
-	}
-}
-
-func DbCreateVM(vm *VM) error {
-	db := GetVMDB()
-	res := db.Create(&vm)
-	return res.Error
-}
-
-func GetVMDB() *gorm.DB {
+func getVmDb() *gorm.DB {
 	db, err := gorm.Open(sqlite.Open("cirrina.sqlite"), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect database")
@@ -68,4 +20,46 @@ func GetVMDB() *gorm.DB {
 		panic("failed to auto-migrate Configs")
 	}
 	return db
+}
+
+func setRunning(id string, pid int) {
+	log.Printf("VM %v started, pid: %v", id, pid)
+	vm := VM{ID: id}
+	db := getVmDb()
+	vm.Status = RUNNING
+	vm.BhyvePid = uint32(pid)
+	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
+	if res.Error != nil {
+		panic("Error saving VM start")
+	}
+}
+
+func setStarting(id string) {
+	vm := VM{ID: id}
+	db := getVmDb()
+	vm.Status = STARTING
+	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
+	if res.Error != nil {
+		log.Printf("Error saving VM stop")
+	}
+}
+
+func setStopped(id string) {
+	vm := VM{ID: id}
+	db := getVmDb()
+	vm.Status = STOPPED
+	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
+	if res.Error != nil {
+		log.Printf("Error saving VM stop")
+	}
+}
+
+func setStopping(id string) {
+	vm := VM{ID: id}
+	db := getVmDb()
+	vm.Status = STOPPING
+	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
+	if res.Error != nil {
+		log.Printf("Error saving VM stop")
+	}
 }
