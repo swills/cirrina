@@ -18,7 +18,7 @@ func setRunning(id string, pid int) {
 	}
 }
 
-func DbSetVMStopped(id string) {
+func setStopped(id string) {
 	vm := VM{ID: id}
 	db := GetVMDB()
 	vm.Status = STOPPED
@@ -28,7 +28,7 @@ func DbSetVMStopped(id string) {
 	}
 }
 
-func DbSetVMStopping(id string) {
+func setStopping(id string) {
 	vm := VM{ID: id}
 	db := GetVMDB()
 	vm.Status = STOPPING
@@ -38,7 +38,7 @@ func DbSetVMStopping(id string) {
 	}
 }
 
-func DbSetVMStarting(id string) {
+func setStarting(id string) {
 	vm := VM{ID: id}
 	db := GetVMDB()
 	vm.Status = STARTING

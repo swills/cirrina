@@ -10,7 +10,7 @@ const (
 )
 
 func main() {
-	log.Print("Starting")
+	log.Print("Starting daemon")
 	go rpcServer()
 	go processRequests()
 	for {

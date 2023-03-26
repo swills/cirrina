@@ -1,11 +1,11 @@
 package requests
 
 import (
-	"cirrina/cirrina"
-	"cirrina/cirrinad/vm"
 	"database/sql"
+	"errors"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"time"
 )
 
 type reqType string
@@ -31,19 +31,66 @@ func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {
 	return nil
 }
 
-func PendingReqExists(v *cirrina.VMID) bool {
-	db := vm.GetVMDB()
+func PendingReqExists(vmid string) bool {
+	db := getReqDB()
 	eReq := Request{}
-	db.Where(map[string]interface{}{"vm_id": v.Value, "complete": false}).Find(&eReq)
+	db.Where(map[string]interface{}{"vm_id": vmid, "complete": false}).Find(&eReq)
 	if eReq.ID != "" {
 		return true
 	}
 	return false
 }
 
-func GetReq(requestID string) Request {
-	db := vm.GetVMDB()
+func Get(requestID string) Request {
+	db := getReqDB()
 	rs := Request{}
 	db.Model(&Request{}).Limit(1).Find(&rs, &Request{ID: requestID})
 	return rs
+}
+
+func Create(r reqType, vmId string) (req Request, err error) {
+	db := getReqDB()
+	newReq := Request{
+		Type: r,
+		VMID: vmId,
+	}
+	res := db.Create(&newReq)
+	if res.RowsAffected != 1 {
+		return Request{}, errors.New("failed to create request")
+	}
+	return newReq, nil
+}
+
+func GetUnStarted() Request {
+	db := getReqDB()
+	rs := Request{}
+	db.Limit(1).Where("started_at IS NULL").Find(&rs)
+	return rs
+}
+
+func Start(rs Request) {
+	db := getReqDB()
+	rs.StartedAt.Time = time.Now()
+	rs.StartedAt.Valid = true
+	db.Model(&rs).Limit(1).Updates(rs)
+}
+
+func MarkSuccessful(rs *Request) *gorm.DB {
+	db := getReqDB()
+	return db.Model(&rs).Limit(1).Updates(
+		Request{
+			Successful: true,
+			Complete:   true,
+		},
+	)
+}
+
+func MarkFailed(rs *Request) *gorm.DB {
+	db := getReqDB()
+	return db.Model(&rs).Limit(1).Updates(
+		Request{
+			Successful: false,
+			Complete:   true,
+		},
+	)
 }

@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"cirrina/cirrina"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -84,7 +83,7 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 				exitStatus := parseStopMessage(event.Message)
 				log.Printf("stop message: %v", event.Message)
 				log.Printf("VM %v stopped, exitStatus: %v", vm.ID, exitStatus)
-				go DbSetVMStopped(vm.ID)
+				go setStopped(vm.ID)
 			default:
 				log.Printf("Received event: %s - %s\n", event.Code, event.Message)
 			}
@@ -96,8 +95,8 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 }
 
 func (vm *VM) Start() {
-	log.Printf("Starting %v", vm.Name)
-	DbSetVMStarting(vm.ID)
+	log.Printf("Starting VM %v", vm.Name)
+	setStarting(vm.ID)
 	events := make(chan supervisor.Event)
 	p := supervisor.NewProcess(supervisor.ProcessOptions{
 		Name:                 "/sbin/ping",
@@ -128,18 +127,18 @@ func (vm *VM) Start() {
 func (vm *VM) Stop() {
 	p := vmProcs[vm.ID]
 	log.Printf("stopping pid %v", p.Pid())
-	DbSetVMStopping(vm.ID)
+	setStopping(vm.ID)
 	err := p.Stop()
 	if err != nil {
 		log.Printf("Failed to stop %v", p.Pid())
 	}
-	DbSetVMStopped(vm.ID)
+	setStopped(vm.ID)
 }
 
-func Exists(v *cirrina.VMID) bool {
+func Exists(vmid string) bool {
 	vm := VM{}
 	db := GetVMDB()
-	db.Model(&VM{}).Limit(1).Find(&vm, &VM{ID: v.Value})
+	db.Model(&VM{}).Limit(1).Find(&vm, &VM{ID: vmid})
 	if vm.ID == "" {
 		return false
 	}
@@ -161,4 +160,14 @@ func (vm *VM) Delete() (err error) {
 		return errors.New("failed to delete VM")
 	}
 	return nil
+}
+
+func Get(id string) (vm VM, err error) {
+	vm = VM{}
+	db := GetVMDB()
+	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: id})
+	if vm.ID == "" {
+		return VM{}, errors.New("not Found")
+	}
+	return vm, nil
 }
