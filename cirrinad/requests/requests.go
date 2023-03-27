@@ -31,23 +31,6 @@ func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {
 	return nil
 }
 
-func PendingReqExists(vmId string) bool {
-	db := getReqDb()
-	eReq := Request{}
-	db.Where(map[string]interface{}{"vm_id": vmId, "complete": false}).Find(&eReq)
-	if eReq.ID != "" {
-		return true
-	}
-	return false
-}
-
-func Get(requestID string) Request {
-	db := getReqDb()
-	rs := Request{}
-	db.Model(&Request{}).Limit(1).Find(&rs, &Request{ID: requestID})
-	return rs
-}
-
 func Create(r reqType, vmId string) (req Request, err error) {
 	db := getReqDb()
 	newReq := Request{
@@ -61,6 +44,15 @@ func Create(r reqType, vmId string) (req Request, err error) {
 	return newReq, nil
 }
 
+func GetByID(id string) (rs Request, err error) {
+	db := getReqDb()
+	db.Model(&Request{}).Limit(1).Find(&rs, &Request{ID: id})
+	if rs.ID == "" {
+		return rs, errors.New("not found")
+	}
+	return rs, nil
+}
+
 func GetUnStarted() Request {
 	db := getReqDb()
 	rs := Request{}
@@ -68,16 +60,16 @@ func GetUnStarted() Request {
 	return rs
 }
 
-func Start(rs Request) {
+func (req *Request) Start() {
 	db := getReqDb()
-	rs.StartedAt.Time = time.Now()
-	rs.StartedAt.Valid = true
-	db.Model(&rs).Limit(1).Updates(rs)
+	req.StartedAt.Time = time.Now()
+	req.StartedAt.Valid = true
+	db.Model(&req).Limit(1).Updates(req)
 }
 
-func MarkSuccessful(rs *Request) *gorm.DB {
+func (req *Request) Succeeded() {
 	db := getReqDb()
-	return db.Model(&rs).Limit(1).Updates(
+	db.Model(&req).Limit(1).Updates(
 		Request{
 			Successful: true,
 			Complete:   true,
@@ -85,12 +77,22 @@ func MarkSuccessful(rs *Request) *gorm.DB {
 	)
 }
 
-func MarkFailed(rs *Request) *gorm.DB {
+func (req *Request) Failed() {
 	db := getReqDb()
-	return db.Model(&rs).Limit(1).Updates(
+	db.Model(&req).Limit(1).Updates(
 		Request{
 			Successful: false,
 			Complete:   true,
 		},
 	)
+}
+
+func PendingReqExists(vmId string) bool {
+	db := getReqDb()
+	eReq := Request{}
+	db.Where(map[string]interface{}{"vm_id": vmId, "complete": false}).Find(&eReq)
+	if eReq.ID != "" {
+		return true
+	}
+	return false
 }

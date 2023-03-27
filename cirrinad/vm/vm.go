@@ -71,7 +71,7 @@ func (vm *VM) Delete() (err error) {
 	db := getVmDb()
 	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: vm.ID})
 	if vm.ID == "" {
-		return errors.New("vm not found")
+		return errors.New("not found")
 	}
 	res := db.Delete(&vm.VMConfig)
 	if res.RowsAffected != 1 {
@@ -89,6 +89,7 @@ func (vm *VM) Start() (err error) {
 		return errors.New("must be stopped first")
 	}
 	log.Printf("Starting VM %v", vm.Name)
+	log.Printf("vm: %v", vm)
 	setStarting(vm.ID)
 	events := make(chan supervisor.Event)
 	p := supervisor.NewProcess(supervisor.ProcessOptions{
@@ -143,6 +144,10 @@ func (vm *VM) Save() error {
 	return nil
 }
 
+func (vm *VM) String() string {
+	return fmt.Sprintf("name: %s id: %s", vm.Name, vm.ID)
+}
+
 func GetAll() []VM {
 	var result []VM
 
@@ -156,7 +161,7 @@ func GetByID(id string) (vm VM, err error) {
 	db := getVmDb()
 	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: id})
 	if vm.ID == "" {
-		return VM{}, errors.New("not Found")
+		return VM{}, errors.New("not found")
 	}
 	return vm, nil
 }
@@ -165,7 +170,7 @@ func GetByName(name string) (vm VM, err error) {
 	db := getVmDb()
 	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{Name: name})
 	if vm.ID == "" {
-		return VM{}, errors.New("not Found")
+		return VM{}, errors.New("not found")
 	}
 	return vm, nil
 }
