@@ -53,7 +53,7 @@ func DeleteVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if err != nil {
 		log.Fatalf("could not delete VM: %v", err)
 	}
-	fmt.Printf("Deleted VM %v: reqid: %v\n", *idPtr, reqId.Value)
+	fmt.Printf("Deleted request created, reqid: %v\n", reqId.Value)
 }
 
 func stopVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
@@ -65,8 +65,7 @@ func stopVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if err != nil {
 		log.Fatalf("could not stop VM: %v", err)
 	}
-	fmt.Printf("Stopping VM %v: reqid: %v\n", *idPtr, reqId.Value)
-
+	fmt.Printf("Stopping request created, reqid: %v\n", reqId.Value)
 }
 
 func startVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
@@ -78,7 +77,7 @@ func startVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if err != nil {
 		log.Fatalf("could not start VM: %v", err)
 	}
-	fmt.Printf("Started VM %v: reqid: %v\n", *idPtr, reqId.Value)
+	fmt.Printf("Started request created, reqid: %v\n", reqId.Value)
 }
 
 func ReqStat(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
