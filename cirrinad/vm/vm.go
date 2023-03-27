@@ -29,6 +29,7 @@ type Config struct {
 	MaxWait          uint32 `gorm:"default:120;check:max_wait>=0"`
 	Restart          bool   `gorm:"default:True;check:restart IN (0,1)"`
 	RestartDelay     uint32 `gorm:"default:1;check:restart_delay>=0"`
+	Net              bool   `gorm:"default:True;check:screen IN (0,1)"`
 	Screen           bool   `gorm:"default:True;check:screen IN (0,1)"`
 	ScreenWidth      uint32 `gorm:"default:1920;check:screen_width BETWEEN 640 and 1920"`
 	ScreenHeight     uint32 `gorm:"default:1080;check:screen_height BETWEEN 480 and 1200"`
@@ -100,6 +101,7 @@ func (vm *VM) Delete() (err error) {
 
 func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	name = "/usr/local/bin/sudo"
+	slot := 0
 	cpuArg := vm.getCpuArg()
 	memArg := vm.getMemArg()
 	acpiArg := vm.getACPIArg()
@@ -110,12 +112,12 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	msrArg := vm.getMSRArg()
 	utcArg := vm.getUTCArg()
 	romArg := vm.getROMArg()
-	hostBridgeArg := vm.getHostBridgeArg()
-	fbufArg := vm.getVideoArg()
-	tabletArg := vm.getTabletArg()
-	netArg := vm.getNetArg()
-	diskArg := vm.getDiskArg()
-	lpcArg := vm.getLPCArg()
+	hostBridgeArg, slot := vm.getHostBridgeArg(slot)
+	fbufArg, slot := vm.getVideoArg(slot)
+	tabletArg, slot := vm.getTabletArg(slot)
+	netArg, slot := vm.getNetArg(slot)
+	diskArg, slot := vm.getDiskArg(slot)
+	lpcArg, slot := vm.getLPCArg(slot)
 
 	args = append(args, "/usr/bin/protect")
 	args = append(args, "/usr/sbin/bhyve")

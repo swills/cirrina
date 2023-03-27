@@ -21,10 +21,12 @@ func (vm *VM) getCpuArg() []string {
 	return []string{"-c", strconv.Itoa(int(vm.Config.Cpu))}
 }
 
-func (vm *VM) getDiskArg() []string {
+func (vm *VM) getDiskArg(slot int) ([]string, int) {
 	diskType := "nvme"
 	diskPath := "/bhyve/disk/" + vm.Name + ".img"
-	return []string{"-s", "4," + diskType + "," + diskPath}
+	diskArg := []string{"-s", strconv.Itoa(slot) + "," + diskType + "," + diskPath}
+	slot = slot + 1
+	return diskArg, slot
 }
 
 func (vm *VM) getDPOArg() []string {
@@ -52,8 +54,13 @@ func (vm *VM) getHLTArg() []string {
 	return []string{}
 }
 
-func (vm *VM) getHostBridgeArg() []string {
-	return []string{"-s", "0,hostbridge"}
+func (vm *VM) getHostBridgeArg(slot int) ([]string, int) {
+	if !vm.Config.HostBridge {
+		return []string{}, slot
+	}
+	hostBridgeArg := []string{"-s", strconv.Itoa(slot) + ",hostbridge"}
+	slot = slot + 1
+	return hostBridgeArg, slot
 }
 
 func (vm *VM) getMemArg() []string {
@@ -99,22 +106,40 @@ func (vm *VM) getNMDMArg() []string {
 	return []string{}
 }
 
-func (vm *VM) getLPCArg() []string {
-	return []string{"-s", "31,lpc"}
+func (vm *VM) getLPCArg(slot int) ([]string, int) {
+	return []string{"-s", "31,lpc"}, slot
 }
 
-func (vm *VM) getTabletArg() []string {
-	return []string{"-s", "2,xhci,tablet"}
+func (vm *VM) getTabletArg(slot int) ([]string, int) {
+	if !vm.Config.Screen || !vm.Config.Tablet {
+		return []string{}, slot
+	}
+	tabletArg := []string{"-s", strconv.Itoa(slot) + ",xhci,tablet"}
+	slot = slot + 1
+	return tabletArg, slot
 }
 
-func (vm *VM) getVideoArg() []string {
-	return []string{"-s", "1,fbuf,w=1920,h=1080,tcp=0.0.0.0:6900"}
+func (vm *VM) getVideoArg(slot int) ([]string, int) {
+	if !vm.Config.Screen {
+		return []string{}, slot
+	}
+	fbufArg := []string{"-s",
+		strconv.Itoa(slot) + ",fbuf,w=" + strconv.Itoa(int(vm.Config.ScreenWidth)) +
+			",h=" + strconv.Itoa(int(vm.Config.ScreenHeight)) + ",tcp=0.0.0.0:6900",
+	}
+	slot = slot + 1
+	return fbufArg, slot
 }
 
 func (vm *VM) getCOMArg() []string {
 	return []string{}
 }
 
-func (vm *VM) getNetArg() []string {
-	return []string{"-s", "3,virtio-net,tap0,mac=00:a0:98:33:3c:93"}
+func (vm *VM) getNetArg(slot int) ([]string, int) {
+	if !vm.Config.Net {
+		return []string{}, slot
+	}
+	netArg := []string{"-s", strconv.Itoa(slot) + ",virtio-net,tap0,mac=00:a0:98:33:3c:93"}
+	slot = slot + 1
+	return netArg, slot
 }
