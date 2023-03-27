@@ -44,6 +44,7 @@ func setStarting(id string) {
 	}
 }
 
+// this can in some cases get called on already stopped/deleted VMs and that's OK
 func setStopped(id string) {
 	vm := VM{ID: id}
 	db := getVmDb()
@@ -52,6 +53,7 @@ func setStopped(id string) {
 	if res.Error != nil {
 		log.Printf("Error saving VM stop")
 	}
+	delete(vmProcesses, vm.ID)
 }
 
 func setStopping(id string) {

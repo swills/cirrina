@@ -23,15 +23,26 @@ const (
 
 type Config struct {
 	gorm.Model
-	VmId         string
-	Cpu          uint32 `gorm:"default:1;check:cpu BETWEEN 1 and 16"`
-	Mem          uint32 `gorm:"default:128;check:mem>=128"`
-	MaxWait      uint32 `gorm:"default:120;check:max_wait>=0"`
-	Restart      bool   `gorm:"default:True;check:restart IN (0,1)"`
-	RestartDelay uint32 `gorm:"default:1;check:restart_delay>=0"`
-	Screen       bool   `gorm:"default:True;check:screen IN (0,1)"`
-	ScreenWidth  uint32 `gorm:"default:1920;check:screen_width BETWEEN 640 and 1920"`
-	ScreenHeight uint32 `gorm:"default:1080;check:screen_height BETWEEN 480 and 1200"`
+	VmId             string
+	Cpu              uint32 `gorm:"default:1;check:cpu BETWEEN 1 and 16"`
+	Mem              uint32 `gorm:"default:128;check:mem>=128"`
+	MaxWait          uint32 `gorm:"default:120;check:max_wait>=0"`
+	Restart          bool   `gorm:"default:True;check:restart IN (0,1)"`
+	RestartDelay     uint32 `gorm:"default:1;check:restart_delay>=0"`
+	Screen           bool   `gorm:"default:True;check:screen IN (0,1)"`
+	ScreenWidth      uint32 `gorm:"default:1920;check:screen_width BETWEEN 640 and 1920"`
+	ScreenHeight     uint32 `gorm:"default:1080;check:screen_height BETWEEN 480 and 1200"`
+	VNCWait          bool   `gorm:"default:False;check:restart IN(0,1)"`
+	Tablet           bool   `gorm:"default:True;check:restart IN(0,1)"`
+	StoreUEFIVars    bool   `gorm:"default:True;check:restart IN(0,1)"`
+	UTCTime          bool   `gorm:"default:True;check:restart IN(0,1)"`
+	HostBridge       bool   `gorm:"default:True;check:restart IN(0,1)"`
+	ACPITables       bool   `gorm:"default:True;check:restart IN(0,1)"`
+	UseHLT           bool   `gorm:"default:True;check:restart IN(0,1)"`
+	ExitOnPause      bool   `gorm:"default:True;check:restart IN (0,1)"`
+	WireGuestMem     bool   `gorm:"default:True;check:restart IN (0,1)"`
+	DestroyPowerOff  bool   `gorm:"default:True;check:restart IN (0,1)"`
+	IgnoreUnknownMSR bool   `gorm:"default:True;check:restart IN (0,1)"`
 }
 
 type VM struct {
@@ -43,7 +54,7 @@ type VM struct {
 	BhyvePid    uint32     `gorm:"check:bhyve_pid>=0"`
 	NetDev      string
 	VNCPort     int32
-	VMConfig    Config
+	Config      Config
 }
 
 var vmProcesses = make(map[string]*supervisor.Process)
@@ -61,6 +72,9 @@ func Create(vm *VM) error {
 	if err == nil {
 		return errors.New("vm with same name already exists")
 	}
+	if strings.Contains(vm.Name, "/") {
+		return errors.New("illegal character in vm name")
+	}
 	db := getVmDb()
 	log.Printf("Creating VM %v", vm.Name)
 	res := db.Create(&vm)
@@ -69,19 +83,60 @@ func Create(vm *VM) error {
 
 func (vm *VM) Delete() (err error) {
 	db := getVmDb()
-	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: vm.ID})
+	db.Model(&VM{}).Preload("Config").Limit(1).Find(&vm, &VM{ID: vm.ID})
 	if vm.ID == "" {
 		return errors.New("not found")
 	}
-	res := db.Delete(&vm.VMConfig)
+	res := db.Delete(&vm.Config)
 	if res.RowsAffected != 1 {
-		return errors.New("failed to delete VMConfig")
+		return errors.New("failed to delete Config")
 	}
 	res = db.Delete(&vm)
 	if res.RowsAffected != 1 {
 		return errors.New("failed to delete VM")
 	}
 	return nil
+}
+
+func (vm *VM) generateCommandLine() (name string, args []string, err error) {
+	name = "/usr/local/bin/sudo"
+	cpuArg := vm.getCpuArg()
+	memArg := vm.getMemArg()
+	acpiArg := vm.getACPIArg()
+	haltArg := vm.getHLTArg()
+	eopArg := vm.getEOPArg()
+	wireArg := vm.getWireArg()
+	dpoArg := vm.getDPOArg()
+	msrArg := vm.getMSRArg()
+	utcArg := vm.getUTCArg()
+	romArg := vm.getROMArg()
+	hostBridgeArg := vm.getHostBridgeArg()
+	fbufArg := vm.getVideoArg()
+	tabletArg := vm.getTabletArg()
+	netArg := vm.getNetArg()
+	diskArg := vm.getDiskArg()
+	lpcArg := vm.getLPCArg()
+
+	args = append(args, "/usr/bin/protect")
+	args = append(args, "/usr/sbin/bhyve")
+	args = append(args, acpiArg...)
+	args = append(args, haltArg...)
+	args = append(args, eopArg...)
+	args = append(args, wireArg...)
+	args = append(args, dpoArg...)
+	args = append(args, msrArg...)
+	args = append(args, utcArg...)
+	args = append(args, romArg...)
+	args = append(args, cpuArg...)
+	args = append(args, memArg...)
+	args = append(args, hostBridgeArg...)
+	args = append(args, fbufArg...)
+	args = append(args, tabletArg...)
+	args = append(args, netArg...)
+	args = append(args, diskArg...)
+	args = append(args, lpcArg...)
+	args = append(args, vm.Name)
+	return name, args, nil
 }
 
 func (vm *VM) Start() (err error) {
@@ -92,21 +147,29 @@ func (vm *VM) Start() (err error) {
 	log.Printf("vm: %v", vm)
 	setStarting(vm.ID)
 	events := make(chan supervisor.Event)
+
+	cmdName, cmdArgs, err := vm.generateCommandLine()
+	if err != nil {
+		return err
+	}
+	log.Printf("cmd: %v, args: %v", cmdName, cmdArgs)
+
 	p := supervisor.NewProcess(supervisor.ProcessOptions{
-		Name:                 "/sbin/ping",
-		Args:                 []string{"-c", "9", "localhost"},
-		Dir:                  "/",
-		Id:                   vm.Name,
-		EventNotifier:        events,
-		OutputParser:         supervisor.MakeBytesParser,
-		ErrorParser:          supervisor.MakeBytesParser,
-		MaxSpawns:            -1,
-		MaxSpawnAttempts:     -1,
-		MaxRespawnBackOff:    time.Duration(vm.VMConfig.RestartDelay) * time.Second,
-		MaxSpawnBackOff:      time.Duration(vm.VMConfig.RestartDelay) * time.Second,
-		MaxInterruptAttempts: 1,
-		MaxTerminateAttempts: 1,
-		IdleTimeout:          -1,
+		Name:                    cmdName,
+		Args:                    cmdArgs,
+		Dir:                     "/",
+		Id:                      vm.Name,
+		EventNotifier:           events,
+		OutputParser:            supervisor.MakeBytesParser,
+		ErrorParser:             supervisor.MakeBytesParser,
+		MaxSpawns:               -1,
+		MaxSpawnAttempts:        -1,
+		MaxRespawnBackOff:       time.Duration(vm.Config.RestartDelay) * time.Second,
+		MaxSpawnBackOff:         time.Duration(vm.Config.RestartDelay) * time.Second,
+		MaxInterruptAttempts:    1,
+		MaxTerminateAttempts:    1,
+		IdleTimeout:             -1,
+		TerminationGraceTimeout: time.Duration(vm.Config.MaxWait) * time.Second,
 	})
 
 	vmProcesses[vm.ID] = p
@@ -159,7 +222,7 @@ func GetAll() []VM {
 
 func GetByID(id string) (vm VM, err error) {
 	db := getVmDb()
-	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{ID: id})
+	db.Model(&VM{}).Preload("Config").Limit(1).Find(&vm, &VM{ID: id})
 	if vm.ID == "" {
 		return VM{}, errors.New("not found")
 	}
@@ -168,7 +231,7 @@ func GetByID(id string) (vm VM, err error) {
 
 func GetByName(name string) (vm VM, err error) {
 	db := getVmDb()
-	db.Model(&VM{}).Preload("VMConfig").Limit(1).Find(&vm, &VM{Name: name})
+	db.Model(&VM{}).Preload("Config").Limit(1).Find(&vm, &VM{Name: name})
 	if vm.ID == "" {
 		return VM{}, errors.New("not found")
 	}
@@ -193,13 +256,13 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 	for {
 		select {
 		case msg := <-p.Stdout():
-			log.Printf("Received STDOUT message: %s\n", *msg)
+			log.Printf("VM %v Received STDOUT message: %s\n", vm.ID, *msg)
 		case msg := <-p.Stderr():
-			log.Printf("Received STDERR message: %s\n", *msg)
+			log.Printf("VM %v Received STDERR message: %s\n", vm.ID, *msg)
 		case event := <-events:
 			switch event.Code {
 			case "ProcessStart":
-				go log.Printf("Received event ProcessStart: %s %s\n", event.Code, event.Message)
+				go log.Printf("VM %v Received event ProcessStart: %s %s\n", vm.ID, event.Code, event.Message)
 				go setRunning(vm.ID, p.Pid())
 			case "ProcessDone":
 				exitStatus := parseStopMessage(event.Message)
@@ -207,11 +270,32 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 				log.Printf("VM %v stopped, exitStatus: %v", vm.ID, exitStatus)
 				go setStopped(vm.ID)
 			default:
-				log.Printf("Received event: %s - %s\n", event.Code, event.Message)
+				log.Printf("VM %v Received event: %s - %s\n", vm.ID, event.Code, event.Message)
 			}
 		case <-p.DoneNotifier():
-			log.Println("Closing loop we are done...")
+			go setStopped(vm.ID)
+			log.Printf("VM %v closing loop we are done...", vm.ID)
 			return
 		}
 	}
+}
+
+func PrintVMStatus() {
+	runningVMs := len(vmProcesses)
+	log.Printf("vmstatus: running VMs: %v", runningVMs)
+	for vmId := range vmProcesses {
+		log.Printf("running vm: %v", vmId)
+	}
+}
+
+func KillVMs() {
+	for vmId, process := range vmProcesses {
+		log.Printf("killing vm: %v", vmId)
+		_ = process.Stop()
+	}
+
+}
+
+func GetRunningVMs() int {
+	return len(vmProcesses)
 }

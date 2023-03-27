@@ -27,7 +27,7 @@ func (s *server) AddVM(_ context.Context, v *cirrina.VM) (*cirrina.VMID, error) 
 		Name:        v.Name,
 		Status:      vm.STOPPED,
 		Description: v.Description,
-		VMConfig: vm.Config{
+		Config: vm.Config{
 			Cpu: v.Cpu,
 			Mem: v.Mem,
 		},
@@ -67,14 +67,14 @@ func (s *server) GetVM(_ context.Context, v *cirrina.VMID) (*cirrina.VM, error) 
 	}
 	pvm.Name = vmInst.Name
 	pvm.Description = vmInst.Description
-	pvm.Cpu = vmInst.VMConfig.Cpu
-	pvm.Mem = vmInst.VMConfig.Mem
-	pvm.MaxWait = vmInst.VMConfig.MaxWait
-	pvm.Restart = vmInst.VMConfig.Restart
-	pvm.RestartDelay = vmInst.VMConfig.RestartDelay
-	pvm.Screen = vmInst.VMConfig.Screen
-	pvm.ScreenWidth = vmInst.VMConfig.ScreenWidth
-	pvm.ScreenHeight = vmInst.VMConfig.ScreenHeight
+	pvm.Cpu = vmInst.Config.Cpu
+	pvm.Mem = vmInst.Config.Mem
+	pvm.MaxWait = vmInst.Config.MaxWait
+	pvm.Restart = vmInst.Config.Restart
+	pvm.RestartDelay = vmInst.Config.RestartDelay
+	pvm.Screen = vmInst.Config.Screen
+	pvm.ScreenWidth = vmInst.Config.ScreenWidth
+	pvm.ScreenHeight = vmInst.Config.ScreenHeight
 	return &pvm, nil
 }
 
@@ -189,10 +189,10 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMReConfig) (*cirrina.R
 		vmInst.Description = *rc.Description
 	}
 	if isOptionPassed(reflect, "cpu") {
-		vmInst.VMConfig.Cpu = *rc.Cpu
+		vmInst.Config.Cpu = *rc.Cpu
 	}
 	if isOptionPassed(reflect, "mem") {
-		vmInst.VMConfig.Mem = *rc.Mem
+		vmInst.Config.Mem = *rc.Mem
 	}
 	err = vmInst.Save()
 	if err != nil {
