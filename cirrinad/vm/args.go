@@ -143,3 +143,45 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	slot = slot + 1
 	return netArg, slot
 }
+
+func (vm *VM) generateCommandLine() (name string, args []string, err error) {
+	name = "/usr/local/bin/sudo"
+	slot := 0
+	cpuArg := vm.getCpuArg()
+	memArg := vm.getMemArg()
+	acpiArg := vm.getACPIArg()
+	haltArg := vm.getHLTArg()
+	eopArg := vm.getEOPArg()
+	wireArg := vm.getWireArg()
+	dpoArg := vm.getDPOArg()
+	msrArg := vm.getMSRArg()
+	utcArg := vm.getUTCArg()
+	romArg := vm.getROMArg()
+	hostBridgeArg, slot := vm.getHostBridgeArg(slot)
+	fbufArg, slot := vm.getVideoArg(slot)
+	tabletArg, slot := vm.getTabletArg(slot)
+	netArg, slot := vm.getNetArg(slot)
+	diskArg, slot := vm.getDiskArg(slot)
+	lpcArg, slot := vm.getLPCArg(slot)
+
+	args = append(args, "/usr/bin/protect")
+	args = append(args, "/usr/sbin/bhyve")
+	args = append(args, acpiArg...)
+	args = append(args, haltArg...)
+	args = append(args, eopArg...)
+	args = append(args, wireArg...)
+	args = append(args, dpoArg...)
+	args = append(args, msrArg...)
+	args = append(args, utcArg...)
+	args = append(args, romArg...)
+	args = append(args, cpuArg...)
+	args = append(args, memArg...)
+	args = append(args, hostBridgeArg...)
+	args = append(args, fbufArg...)
+	args = append(args, tabletArg...)
+	args = append(args, netArg...)
+	args = append(args, diskArg...)
+	args = append(args, lpcArg...)
+	args = append(args, vm.Name)
+	return name, args, nil
+}
