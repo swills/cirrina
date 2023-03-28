@@ -140,6 +140,9 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 			",h=" + strconv.Itoa(int(vm.Config.ScreenHeight)) +
 			",tcp=" + vncListenIP + ":" + strconv.Itoa(vncListenPort),
 	}
+	if vm.Config.VNCWait {
+		fbufArg[1] = fbufArg[1] + ",wait"
+	}
 	slot = slot + 1
 	return fbufArg, slot
 }
