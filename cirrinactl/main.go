@@ -102,8 +102,45 @@ func getVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if err != nil {
 		log.Fatalf("could not get VM: %v", err)
 	}
-	fmt.Printf("name: %v desc: %v cpus: %v mem: %v vncWait: %v\n",
-		res.Name, res.Description, res.Cpu, res.Mem, res.Vncwait)
+	fmt.Printf(
+		"name: %v "+
+			"desc: %v "+
+			"cpus: %v "+
+			"mem: %v "+
+			"vncWait: %v "+
+			"wire guest mem: %v "+
+			"tablet mode: %v "+
+			"store uefi vars: %v "+
+			"use utc time: %v "+
+			"use host bridge: %v "+
+			"generate acpi tables: %v "+
+			"yield on HLT: %v "+
+			"exit on PAUSE: %v "+
+			"destroy on power off: %v "+
+			"ignore unknown msr: %v "+
+			"Use network %v "+
+			"vnc port: %v "+
+			"mac address: %v"+
+			"\n",
+		res.Name,
+		res.Description,
+		res.Cpu,
+		res.Mem,
+		res.Vncwait,
+		res.Wireguestmem,
+		res.Tablet,
+		res.Storeuefi,
+		res.Utc,
+		res.Hostbridge,
+		res.Acpi,
+		res.Hlt,
+		res.Eop,
+		res.Dpo,
+		res.Ium,
+		res.Net,
+		res.Vncport,
+		res.Mac,
+	)
 }
 
 func getVMs(c pb.VMInfoClient, ctx context.Context) {

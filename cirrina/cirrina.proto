@@ -38,6 +38,19 @@ message VM {
   uint32 screen_width = 9;
   uint32 screen_height = 10;
   bool vncwait = 11;
+  bool wireguestmem = 12;
+  bool tablet = 13;
+  bool storeuefi = 14;
+  bool utc = 15;
+  bool hostbridge = 16;
+  bool acpi = 17;
+  bool hlt = 18;
+  bool eop = 19;
+  bool dpo = 20;
+  bool ium = 21;
+  bool net = 22;
+  string vncport = 23;
+  string mac = 24;
 }
 
 message VMsQuery {

@@ -76,6 +76,20 @@ func (s *server) GetVM(_ context.Context, v *cirrina.VMID) (*cirrina.VM, error) 
 	pvm.ScreenWidth = vmInst.Config.ScreenWidth
 	pvm.ScreenHeight = vmInst.Config.ScreenHeight
 	pvm.Vncwait = vmInst.Config.VNCWait
+	pvm.Vncport = vmInst.Config.VNCPort
+	pvm.Wireguestmem = vmInst.Config.WireGuestMem
+	pvm.Tablet = vmInst.Config.Tablet
+	pvm.Storeuefi = vmInst.Config.StoreUEFIVars
+	pvm.Utc = vmInst.Config.UTCTime
+	pvm.Hostbridge = vmInst.Config.HostBridge
+	pvm.Acpi = vmInst.Config.ACPITables
+	pvm.Hlt = vmInst.Config.UseHLT
+	pvm.Eop = vmInst.Config.ExitOnPause
+	pvm.Dpo = vmInst.Config.DestroyPowerOff
+	pvm.Ium = vmInst.Config.IgnoreUnknownMSR
+	pvm.Net = vmInst.Config.Net
+	pvm.Vncport = vmInst.Config.VNCPort
+	pvm.Mac = vmInst.Config.Mac
 	return &pvm, nil
 }
 
