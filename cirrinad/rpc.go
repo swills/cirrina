@@ -105,10 +105,13 @@ func (s *server) GetVMState(_ context.Context, p *cirrina.VMID) (*cirrina.VMStat
 		pvm.Status = cirrina.VmStatus_STATUS_STOPPED
 	case vm.STARTING:
 		pvm.Status = cirrina.VmStatus_STATUS_STARTING
+		pvm.VncPort = vmInst.VNCPort
 	case vm.RUNNING:
 		pvm.Status = cirrina.VmStatus_STATUS_RUNNING
+		pvm.VncPort = vmInst.VNCPort
 	case vm.STOPPING:
 		pvm.Status = cirrina.VmStatus_STATUS_STOPPING
+		pvm.VncPort = vmInst.VNCPort
 	default:
 		return &pvm, errors.New("unknown VM state")
 	}

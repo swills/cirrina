@@ -131,6 +131,7 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 	vncListenIP := "0.0.0.0"
 	// this is a terrible way to select a port, but oh well
 	vncListenPort := 6900 + len(vmProcesses)
+	vm.setVNCPort(vncListenPort)
 
 	fbufArg := []string{"-s",
 		strconv.Itoa(slot) +

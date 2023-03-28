@@ -56,3 +56,8 @@ func setStopping(id string) {
 		log.Printf("Error saving VM stop")
 	}
 }
+
+func (vm *VM) setVNCPort(port int) {
+	vm.VNCPort = int32(port)
+	_ = vm.Save()
+}
