@@ -239,10 +239,7 @@ func (vm *VM) maybeForceKillVM() {
 	args = append(args, "--vm="+vm.Name)
 	log.Printf("calling bhyvectl: %v", args)
 	cmd := exec.Command("/usr/local/bin/sudo", args...)
-	err = cmd.Run()
-	if err != nil {
-		log.Printf("error from bhyvectl: %v", err)
-	}
+	_ = cmd.Run()
 }
 
 func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {

@@ -6,5 +6,4 @@ func init() {
 	if err != nil {
 		panic("failed to auto-migrate Requests")
 	}
-
 }
