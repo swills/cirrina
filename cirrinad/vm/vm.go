@@ -7,6 +7,8 @@ import (
 	"github.com/kontera-technologies/go-supervisor/v2"
 	"gorm.io/gorm"
 	"log"
+	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -156,6 +158,7 @@ func (vm *VM) Stop() (err error) {
 	}
 	setStopped(vm.ID)
 	delete(vmProcesses, vm.ID)
+	vm.maybeForceKillVM()
 	return nil
 }
 
@@ -213,6 +216,35 @@ func parseStopMessage(message string) int {
 	return exitStatus
 }
 
+func exists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
+func (vm *VM) maybeForceKillVM() {
+	ex, err := exists("/dev/vmm/" + vm.Name)
+	if err != nil {
+		return
+	}
+	if !ex {
+		return
+	}
+	args := []string{"/usr/sbin/bhyvectl", "--destroy"}
+	args = append(args, "--vm="+vm.Name)
+	log.Printf("calling bhyvectl: %v", args)
+	cmd := exec.Command("/usr/local/bin/sudo", args...)
+	err = cmd.Run()
+	if err != nil {
+		log.Printf("error from bhyvectl: %v", err)
+	}
+}
+
 func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 	for {
 		select {
@@ -232,12 +264,14 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 				log.Printf("VM %v stopped, exitStatus: %v", vm.ID, exitStatus)
 				setStopped(vm.ID)
 				delete(vmProcesses, vm.ID)
+				vm.maybeForceKillVM()
 			default:
 				log.Printf("VM %v Received event: %s - %s\n", vm.ID, event.Code, event.Message)
 			}
 		case <-p.DoneNotifier():
 			setStopped(vm.ID)
 			delete(vmProcesses, vm.ID)
+			vm.maybeForceKillVM()
 			log.Printf("VM %v closing loop we are done...", vm.ID)
 			return
 		}
