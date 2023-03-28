@@ -230,13 +230,13 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 				exitStatus := parseStopMessage(event.Message)
 				log.Printf("stop message: %v", event.Message)
 				log.Printf("VM %v stopped, exitStatus: %v", vm.ID, exitStatus)
-				go setStopped(vm.ID)
+				setStopped(vm.ID)
 				delete(vmProcesses, vm.ID)
 			default:
 				log.Printf("VM %v Received event: %s - %s\n", vm.ID, event.Code, event.Message)
 			}
 		case <-p.DoneNotifier():
-			go setStopped(vm.ID)
+			setStopped(vm.ID)
 			delete(vmProcesses, vm.ID)
 			log.Printf("VM %v closing loop we are done...", vm.ID)
 			return

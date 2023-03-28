@@ -10,10 +10,6 @@ func getReqDb() *gorm.DB {
 	if err != nil {
 		panic("failed to connect database")
 	}
-	err = db.AutoMigrate(&Request{})
-	if err != nil {
-		panic("failed to auto-migrate Requests")
-	}
 	return db
 
 }

@@ -11,14 +11,6 @@ func getVmDb() *gorm.DB {
 	if err != nil {
 		panic("failed to connect database")
 	}
-	err = db.AutoMigrate(&VM{})
-	if err != nil {
-		panic("failed to auto-migrate VMs")
-	}
-	err = db.AutoMigrate(&Config{})
-	if err != nil {
-		panic("failed to auto-migrate Configs")
-	}
 	return db
 }
 
