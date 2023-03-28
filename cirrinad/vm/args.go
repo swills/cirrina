@@ -172,9 +172,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	interfaces, _ := net.Interfaces()
 	for _, inter := range interfaces {
 		if strings.Contains(inter.Name, "tap") {
-			if inter.Flags&net.FlagUp != 0 {
-				tapDevs = append(tapDevs, inter.Name)
-			}
+			tapDevs = append(tapDevs, inter.Name)
 		}
 	}
 	for !freeTapDevFound {
@@ -192,6 +190,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	}
 	netArg := []string{"-s", strconv.Itoa(slot) + "," + netType + "," + tapDev + macString}
 	slot = slot + 1
+	vm.netDev = tapDev
 	return netArg, slot
 }
 

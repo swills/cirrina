@@ -60,6 +60,7 @@ type VM struct {
 	NetDev      string
 	VNCPort     int32
 	Config      Config
+	netDev      string
 }
 
 var vmProcesses = make(map[string]*supervisor.Process)
@@ -117,7 +118,8 @@ func (vm *VM) Start() (err error) {
 		return err
 	}
 	log.Printf("cmd: %v, args: %v", cmdName, cmdArgs)
-
+	vm.createTapInt()
+	vm.addTapToBridge()
 	p := supervisor.NewProcess(supervisor.ProcessOptions{
 		Name:                    cmdName,
 		Args:                    cmdArgs,
@@ -241,6 +243,30 @@ func (vm *VM) maybeForceKillVM() {
 	_ = cmd.Run()
 }
 
+func (vm *VM) createTapInt() {
+	log.Printf("creating tap dev %v", vm.netDev)
+	args := []string{"/sbin/ifconfig", vm.netDev, "create"}
+	cmd := exec.Command("/usr/local/bin/sudo", args...)
+	_ = cmd.Run()
+
+}
+
+func (vm *VM) destroyTapInt() {
+	log.Printf("destroying tap dev %v", vm.netDev)
+	args := []string{"/sbin/ifconfig", vm.netDev, "destroy"}
+	cmd := exec.Command("/usr/local/bin/sudo", args...)
+	_ = cmd.Run()
+
+}
+
+func (vm *VM) addTapToBridge() {
+	log.Printf("Adding tap dev %v to bridge", vm.netDev)
+	args := []string{"/sbin/ifconfig", "bridge0", "addm", vm.netDev}
+	cmd := exec.Command("/usr/local/bin/sudo", args...)
+	_ = cmd.Run()
+
+}
+
 func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 	for {
 		select {
@@ -260,6 +286,7 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 				log.Printf("VM %v stopped, exitStatus: %v", vm.ID, exitStatus)
 				setStopped(vm.ID)
 				delete(vmProcesses, vm.ID)
+				vm.destroyTapInt()
 				vm.maybeForceKillVM()
 			default:
 				log.Printf("VM %v Received event: %s - %s\n", vm.ID, event.Code, event.Message)
@@ -268,6 +295,7 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 			setStopped(vm.ID)
 			delete(vmProcesses, vm.ID)
 			vm.maybeForceKillVM()
+			vm.destroyTapInt()
 			log.Printf("VM %v closing loop we are done...", vm.ID)
 			return
 		}
