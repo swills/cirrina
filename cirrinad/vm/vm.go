@@ -134,8 +134,6 @@ func (vm *VM) Start() (err error) {
 		TerminationGraceTimeout: time.Duration(vm.Config.MaxWait) * time.Second,
 	})
 
-	vmProcesses[vm.ID] = p
-
 	go vmDaemon(p, events, *vm)
 
 	if err := p.Start(); err != nil {
@@ -157,6 +155,7 @@ func (vm *VM) Stop() (err error) {
 		return errors.New("stop failed")
 	}
 	setStopped(vm.ID)
+	delete(vmProcesses, vm.ID)
 	return nil
 }
 
@@ -226,16 +225,19 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 			case "ProcessStart":
 				go log.Printf("VM %v Received event ProcessStart: %s %s\n", vm.ID, event.Code, event.Message)
 				go setRunning(vm.ID, p.Pid())
+				vmProcesses[vm.ID] = p
 			case "ProcessDone":
 				exitStatus := parseStopMessage(event.Message)
 				log.Printf("stop message: %v", event.Message)
 				log.Printf("VM %v stopped, exitStatus: %v", vm.ID, exitStatus)
 				go setStopped(vm.ID)
+				delete(vmProcesses, vm.ID)
 			default:
 				log.Printf("VM %v Received event: %s - %s\n", vm.ID, event.Code, event.Message)
 			}
 		case <-p.DoneNotifier():
 			go setStopped(vm.ID)
+			delete(vmProcesses, vm.ID)
 			log.Printf("VM %v closing loop we are done...", vm.ID)
 			return
 		}
@@ -246,7 +248,7 @@ func PrintVMStatus() {
 	runningVMs := len(vmProcesses)
 	log.Printf("vmstatus: running VMs: %v", runningVMs)
 	for vmId := range vmProcesses {
-		log.Printf("running vm: %v", vmId)
+		log.Printf("running vm: %v, pid: %v", vmId, vmProcesses[vmId].Pid())
 	}
 }
 

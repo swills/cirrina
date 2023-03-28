@@ -53,7 +53,6 @@ func setStopped(id string) {
 	if res.Error != nil {
 		log.Printf("Error saving VM stop")
 	}
-	delete(vmProcesses, vm.ID)
 }
 
 func setStopping(id string) {
