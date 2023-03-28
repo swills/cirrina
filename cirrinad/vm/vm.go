@@ -237,7 +237,6 @@ func (vm *VM) maybeForceKillVM() {
 	}
 	args := []string{"/usr/sbin/bhyvectl", "--destroy"}
 	args = append(args, "--vm="+vm.Name)
-	log.Printf("calling bhyvectl: %v", args)
 	cmd := exec.Command("/usr/local/bin/sudo", args...)
 	_ = cmd.Run()
 }
