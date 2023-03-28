@@ -79,9 +79,7 @@ func (vm *VM) getMSRArg() []string {
 }
 
 func (vm *VM) getROMArg() []string {
-	bootRomPath := "/usr/local/share/uefi-firmware/BHYVE_UEFI.fd"
-	uefiVarsPath := "/usr/home/swills/.local/state/weasel/vms/" + vm.Name + "/BHYVE_UEFI_VARS.fd"
-
+	uefiVarsPath := baseVMStatePath + "/" + vm.Name + "/BHYVE_UEFI_VARS.fd"
 	return []string{
 		"-l",
 		"bootrom," + bootRomPath + "," + uefiVarsPath,

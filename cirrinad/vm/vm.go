@@ -50,6 +50,10 @@ type Config struct {
 	IgnoreUnknownMSR bool   `gorm:"default:True;check:restart IN (0,1)"`
 }
 
+var baseVMStatePath = "/usr/home/swills/.local/state/weasel/vms/"
+var bootRomPath = "/usr/local/share/uefi-firmware/BHYVE_UEFI.fd"
+var uefiVarFileTemplate = "/usr/local/share/uefi-firmware/BHYVE_UEFI_VARS.fd"
+
 type VM struct {
 	gorm.Model
 	ID          string `gorm:"uniqueIndex;not null"`
@@ -118,6 +122,7 @@ func (vm *VM) Start() (err error) {
 		return err
 	}
 	log.Printf("cmd: %v, args: %v", cmdName, cmdArgs)
+	vm.createUefiVarsFile()
 	if vm.Config.Net {
 		vm.createTapInt()
 		vm.addTapToBridge()
@@ -243,6 +248,50 @@ func (vm *VM) maybeForceKillVM() {
 	args = append(args, "--vm="+vm.Name)
 	cmd := exec.Command("/usr/local/bin/sudo", args...)
 	_ = cmd.Run()
+}
+
+func copyFile(in, out string) (int64, error) {
+	i, e := os.Open(in)
+	if e != nil {
+		return 0, e
+	}
+	defer func(i *os.File) {
+		_ = i.Close()
+	}(i)
+	o, e := os.Create(out)
+	if e != nil {
+		return 0, e
+	}
+	defer func(o *os.File) {
+		_ = o.Close()
+	}(o)
+	return o.ReadFrom(i)
+}
+
+func (vm *VM) createUefiVarsFile() {
+	uefiVarsFilePath := baseVMStatePath + "/" + vm.Name
+	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
+	uvPathExists, err := exists(uefiVarsFilePath)
+	if err != nil {
+		return
+	}
+	if !uvPathExists {
+		err = os.Mkdir(uefiVarsFilePath, 0755)
+		if err != nil {
+			log.Printf("failed to create uefi vars path: %v", err)
+			return
+		}
+	}
+	uvFileExists, err := exists(uefiVarsFile)
+	if err != nil {
+		return
+	}
+	if !uvFileExists {
+		_, err = copyFile(uefiVarFileTemplate, uefiVarsFile)
+		if err != nil {
+			log.Printf("failed to copy uefiVars template: %v", err)
+		}
+	}
 }
 
 func (vm *VM) createTapInt() {
