@@ -1,6 +1,10 @@
 package vm
 
-import "strconv"
+import (
+	"net"
+	"strconv"
+	"strings"
+)
 
 func (vm *VM) getKeyboardArg() []string {
 	return []string{}
@@ -123,9 +127,17 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 	if !vm.Config.Screen {
 		return []string{}, slot
 	}
+
+	vncListenIP := "0.0.0.0"
+	// this is a terrible way to select a port, but oh well
+	vncListenPort := 6900 + len(vmProcesses)
+
 	fbufArg := []string{"-s",
-		strconv.Itoa(slot) + ",fbuf,w=" + strconv.Itoa(int(vm.Config.ScreenWidth)) +
-			",h=" + strconv.Itoa(int(vm.Config.ScreenHeight)) + ",tcp=0.0.0.0:6900",
+		strconv.Itoa(slot) +
+			",fbuf" +
+			",w=" + strconv.Itoa(int(vm.Config.ScreenWidth)) +
+			",h=" + strconv.Itoa(int(vm.Config.ScreenHeight)) +
+			",tcp=" + vncListenIP + ":" + strconv.Itoa(vncListenPort),
 	}
 	slot = slot + 1
 	return fbufArg, slot
@@ -135,11 +147,46 @@ func (vm *VM) getCOMArg() []string {
 	return []string{}
 }
 
+func contains(elems []string, v string) bool {
+	for _, s := range elems {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
 func (vm *VM) getNetArg(slot int) ([]string, int) {
 	if !vm.Config.Net {
 		return []string{}, slot
 	}
-	netArg := []string{"-s", strconv.Itoa(slot) + ",virtio-net,tap0,mac=00:a0:98:33:3c:93"}
+	netType := "virtio-net"
+	freeTapDevFound := false
+	var tapDevs []string
+	tapDev := ""
+	tapNum := 0
+	interfaces, _ := net.Interfaces()
+	for _, inter := range interfaces {
+		if strings.Contains(inter.Name, "tap") {
+			if inter.Flags&net.FlagUp != 0 {
+				tapDevs = append(tapDevs, inter.Name)
+			}
+		}
+	}
+	for !freeTapDevFound {
+		tapDev = "tap" + strconv.Itoa(tapNum)
+		if !contains(tapDevs, tapDev) {
+			freeTapDevFound = true
+		} else {
+			tapNum = tapNum + 1
+		}
+	}
+	macAddress := vm.Config.Mac
+	macString := ""
+	if macAddress != "AUTO" {
+		macString = ",mac=" + macAddress
+	}
+	netArg := []string{"-s", strconv.Itoa(slot) + "," + netType + "," + tapDev + macString}
 	slot = slot + 1
 	return netArg, slot
 }
