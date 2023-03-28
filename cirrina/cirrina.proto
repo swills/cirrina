@@ -37,6 +37,7 @@ message VM {
   bool screen = 8;
   uint32 screen_width = 9;
   uint32 screen_height = 10;
+  bool vncwait = 11;
 }
 
 message VMsQuery {

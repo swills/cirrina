@@ -102,8 +102,8 @@ func getVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if err != nil {
 		log.Fatalf("could not get VM: %v", err)
 	}
-	fmt.Printf("name: %v desc: %v cpus: %v mem: %v\n",
-		res.Name, res.Description, res.Cpu, res.Mem)
+	fmt.Printf("name: %v desc: %v cpus: %v mem: %v vncWait: %v\n",
+		res.Name, res.Description, res.Cpu, res.Mem, res.Vncwait)
 }
 
 func getVMs(c pb.VMInfoClient, ctx context.Context) {

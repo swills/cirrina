@@ -75,6 +75,7 @@ func (s *server) GetVM(_ context.Context, v *cirrina.VMID) (*cirrina.VM, error) 
 	pvm.Screen = vmInst.Config.Screen
 	pvm.ScreenWidth = vmInst.Config.ScreenWidth
 	pvm.ScreenHeight = vmInst.Config.ScreenHeight
+	pvm.Vncwait = vmInst.Config.VNCWait
 	return &pvm, nil
 }
 
