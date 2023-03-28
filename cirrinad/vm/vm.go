@@ -247,15 +247,20 @@ func (vm *VM) createTapInt() {
 	log.Printf("creating tap dev %v", vm.netDev)
 	args := []string{"/sbin/ifconfig", vm.netDev, "create"}
 	cmd := exec.Command("/usr/local/bin/sudo", args...)
-	_ = cmd.Run()
-
+	err := cmd.Run()
+	if err != nil {
+		log.Printf("failed to create tap: %v", err)
+	}
 }
 
 func (vm *VM) destroyTapInt() {
 	log.Printf("destroying tap dev %v", vm.netDev)
 	args := []string{"/sbin/ifconfig", vm.netDev, "destroy"}
 	cmd := exec.Command("/usr/local/bin/sudo", args...)
-	_ = cmd.Run()
+	err := cmd.Run()
+	if err != nil {
+		log.Printf("failed to destroy tap : %v", err)
+	}
 
 }
 
@@ -263,7 +268,10 @@ func (vm *VM) addTapToBridge() {
 	log.Printf("Adding tap dev %v to bridge", vm.netDev)
 	args := []string{"/sbin/ifconfig", "bridge0", "addm", vm.netDev}
 	cmd := exec.Command("/usr/local/bin/sudo", args...)
-	_ = cmd.Run()
+	err := cmd.Run()
+	if err != nil {
+		log.Printf("failed to add tap to bridge: %v", err)
+	}
 
 }
 
