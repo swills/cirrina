@@ -118,8 +118,10 @@ func (vm *VM) Start() (err error) {
 		return err
 	}
 	log.Printf("cmd: %v, args: %v", cmdName, cmdArgs)
-	vm.createTapInt()
-	vm.addTapToBridge()
+	if vm.Config.Net {
+		vm.createTapInt()
+		vm.addTapToBridge()
+	}
 	p := supervisor.NewProcess(supervisor.ProcessOptions{
 		Name:                    cmdName,
 		Args:                    cmdArgs,
@@ -294,7 +296,9 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 				log.Printf("VM %v stopped, exitStatus: %v", vm.ID, exitStatus)
 				setStopped(vm.ID)
 				delete(vmProcesses, vm.ID)
-				vm.destroyTapInt()
+				if vm.Config.Net {
+					vm.destroyTapInt()
+				}
 				vm.maybeForceKillVM()
 			default:
 				log.Printf("VM %v Received event: %s - %s\n", vm.ID, event.Code, event.Message)
@@ -302,8 +306,10 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 		case <-p.DoneNotifier():
 			setStopped(vm.ID)
 			delete(vmProcesses, vm.ID)
+			if vm.Config.Net {
+				vm.destroyTapInt()
+			}
 			vm.maybeForceKillVM()
-			vm.destroyTapInt()
 			log.Printf("VM %v closing loop we are done...", vm.ID)
 			return
 		}
