@@ -255,7 +255,9 @@ func PrintVMStatus() {
 func KillVMs() {
 	for vmId, process := range vmProcesses {
 		log.Printf("killing vm: %v", vmId)
-		_ = process.Stop()
+		go func(newProcess *supervisor.Process) {
+			_ = newProcess.Stop()
+		}(process)
 	}
 
 }
