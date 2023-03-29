@@ -4,14 +4,33 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"log"
+	"sync"
 )
 
+type singleton struct {
+	vmDb *gorm.DB
+}
+
+var instance *singleton
+
+var once sync.Once
+
 func getVmDb() *gorm.DB {
-	db, err := gorm.Open(sqlite.Open("cirrina.sqlite"), &gorm.Config{})
-	if err != nil {
-		panic("failed to connect database")
-	}
-	return db
+	once.Do(func() {
+		instance = &singleton{}
+		vmDb, err := gorm.Open(sqlite.Open("cirrina.sqlite"), &gorm.Config{})
+		if err != nil {
+			panic("failed to connect database")
+		}
+		sqlDB, err := vmDb.DB()
+		if err != nil {
+			panic("failed to create sqlDB database")
+		}
+		sqlDB.SetMaxIdleConns(1)
+		sqlDB.SetMaxOpenConns(1)
+		instance.vmDb = vmDb
+	})
+	return instance.vmDb
 }
 
 func setRunning(id string, pid int) {
