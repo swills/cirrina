@@ -11,46 +11,47 @@ enum vmStatus {
 }
 
 service VMInfo {
-  rpc GetVM(VMID) returns (VM);
+  rpc AddVM(VMConfig) returns (VMID);
   rpc GetVMs(VMsQuery) returns (stream VMID);
-  rpc RequestStatus(RequestID) returns (ReqStatus);
-  rpc AddVM(VM) returns (VMID);
-  rpc UpdateVM(VMReConfig) returns (ReqBool);
+  rpc GetVMConfig(VMID) returns (VMConfig);
+  rpc GetVMState(VMID) returns (VMState);
+  rpc UpdateVM(VMConfig) returns (ReqBool);
   rpc StartVM(VMID) returns (RequestID);
   rpc StopVM(VMID) returns (RequestID);
-  rpc GetVMState(VMID) returns (VMState);
   rpc DeleteVM(VMID) returns (RequestID);
+  rpc RequestStatus(RequestID) returns (ReqStatus);
 }
 
 message VMID {
   string value = 1;
 }
 
-message VM {
-  string name = 1;
-  string description = 2;
-  uint32 cpu = 3;
-  uint32 mem = 4;
-  uint32 max_wait = 5;
-  bool restart = 6;
-  uint32 restart_delay = 7;
-  bool screen = 8;
-  uint32 screen_width = 9;
-  uint32 screen_height = 10;
-  bool vncwait = 11;
-  bool wireguestmem = 12;
-  bool tablet = 13;
-  bool storeuefi = 14;
-  bool utc = 15;
-  bool hostbridge = 16;
-  bool acpi = 17;
-  bool hlt = 18;
-  bool eop = 19;
-  bool dpo = 20;
-  bool ium = 21;
-  bool net = 22;
-  string vncport = 23;
-  string mac = 24;
+message VMConfig {
+  string id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional uint32 cpu = 4;
+  optional uint32 mem = 5;
+  optional uint32 max_wait = 6;
+  optional bool restart = 7;
+  optional uint32 restart_delay = 8;
+  optional bool screen = 9;
+  optional uint32 screen_width = 10;
+  optional uint32 screen_height = 11;
+  optional bool vncwait = 12;
+  optional bool wireguestmem = 13;
+  optional bool tablet = 14;
+  optional bool storeuefi = 15;
+  optional bool utc = 16;
+  optional bool hostbridge = 17;
+  optional bool acpi = 18;
+  optional bool hlt = 19;
+  optional bool eop = 20;
+  optional bool dpo = 21;
+  optional bool ium = 22;
+  optional bool net = 23;
+  optional string vncport = 24;
+  optional string mac = 25;
 }
 
 message VMsQuery {
@@ -68,21 +69,6 @@ message ReqStatus {
 message VMState {
   vmStatus status = 1;
   int32 VncPort = 2;
-}
-
-message VMReConfig {
-  string id = 1;
-  optional string name = 2;
-  optional string description = 3;
-  optional uint32 cpu = 4;
-  optional uint32 mem = 5;
-  optional uint32 max_wait = 6;
-  optional bool restart = 7;
-  optional uint32 restart_delay = 8;
-  optional bool screen = 9;
-  optional uint32 screen_width = 10;
-  optional uint32 screen_height = 11;
-  optional bool vncwait = 12;
 }
 
 message ReqBool {

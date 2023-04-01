@@ -26,16 +26,16 @@ func isFlagPassed(name string) bool {
 	return found
 }
 
-func addVM(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *string, cpuPtr *uint, memPtr *uint) {
+func addVM(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *string, cpuPtr *uint32, memPtr *uint32) {
 	if *namePtr == "" {
 		log.Fatalf("Name not specified")
 		return
 	}
-	res, err := c.AddVM(ctx, &pb.VM{
-		Name:        *namePtr,
-		Description: *descrPtr,
-		Cpu:         uint32(*cpuPtr),
-		Mem:         uint32(*memPtr),
+	res, err := c.AddVM(ctx, &pb.VMConfig{
+		Name:        namePtr,
+		Description: descrPtr,
+		Cpu:         cpuPtr,
+		Mem:         memPtr,
 	})
 	if err != nil {
 		log.Fatalf("could not create VM: %v", err)
@@ -98,7 +98,7 @@ func getVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 		log.Fatalf("ID not specified")
 		return
 	}
-	res, err := c.GetVM(ctx, &pb.VMID{Value: *idPtr})
+	res, err := c.GetVMConfig(ctx, &pb.VMID{Value: *idPtr})
 	if err != nil {
 		log.Fatalf("could not get VM: %v", err)
 	}
@@ -122,24 +122,24 @@ func getVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 			"vnc port: %v "+
 			"mac address: %v"+
 			"\n",
-		res.Name,
-		res.Description,
-		res.Cpu,
-		res.Mem,
-		res.Vncwait,
-		res.Wireguestmem,
-		res.Tablet,
-		res.Storeuefi,
-		res.Utc,
-		res.Hostbridge,
-		res.Acpi,
-		res.Hlt,
-		res.Eop,
-		res.Dpo,
-		res.Ium,
-		res.Net,
-		res.Vncport,
-		res.Mac,
+		*res.Name,
+		*res.Description,
+		*res.Cpu,
+		*res.Mem,
+		*res.Vncwait,
+		*res.Wireguestmem,
+		*res.Tablet,
+		*res.Storeuefi,
+		*res.Utc,
+		*res.Hostbridge,
+		*res.Acpi,
+		*res.Hlt,
+		*res.Eop,
+		*res.Dpo,
+		*res.Ium,
+		*res.Net,
+		*res.Vncport,
+		*res.Mac,
 	)
 }
 
@@ -190,7 +190,7 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 		log.Fatalf("ID not specified")
 		return
 	}
-	newConfig := pb.VMReConfig{
+	newConfig := pb.VMConfig{
 		Id: *idPtr,
 	}
 	if isFlagPassed("name") {
@@ -234,7 +234,13 @@ func main() {
 	namePtr := flag.String("name", "", "Name of VM")
 	descrPtr := flag.String("descr", "", "Description of VM")
 	cpuPtr := flag.Uint("cpus", 1, "Number of CPUs in VM")
+	cpuVal := *cpuPtr
+	cpu32Val := uint32(cpuVal)
+	cpu32Ptr := &cpu32Val
 	memPtr := flag.Uint("mem", 128, "Memory in VM (MB)")
+	memVal := *memPtr
+	mem32Val := uint32(memVal)
+	mem32Ptr := &mem32Val
 	//maxWaitPtr := flag.Uint("maxWait", 120, "Max wait time for VM shutdown")
 	//restartPtr := flag.Bool("restart", true, "Automatically restart VM")
 	//restartDelayPtr := flag.Uint("restartDelay", 1, "How long to wait before restarting VM")
@@ -271,7 +277,7 @@ func main() {
 	case "getVMState":
 		getVMState(idPtr, c, ctx)
 	case "addVM":
-		addVM(namePtr, c, ctx, descrPtr, cpuPtr, memPtr)
+		addVM(namePtr, c, ctx, descrPtr, cpu32Ptr, mem32Ptr)
 	case "reConfig":
 		Reconfig(idPtr, err, namePtr, descrPtr, cpuPtr, memPtr, c, ctx)
 	case "deleteVM":

@@ -17,19 +17,19 @@ type server struct {
 	cirrina.UnimplementedVMInfoServer
 }
 
-func (s *server) AddVM(_ context.Context, v *cirrina.VM) (*cirrina.VMID, error) {
-	_, err := vm.GetByName(v.Name)
+func (s *server) AddVM(_ context.Context, v *cirrina.VMConfig) (*cirrina.VMID, error) {
+	_, err := vm.GetByName(*v.Name)
 	if err == nil {
 		return &cirrina.VMID{}, errors.New(fmt.Sprintf("%v already exists", v.Name))
 
 	}
 	vmInst := vm.VM{
-		Name:        v.Name,
+		Name:        *v.Name,
 		Status:      vm.STOPPED,
-		Description: v.Description,
+		Description: *v.Description,
 		Config: vm.Config{
-			Cpu: v.Cpu,
-			Mem: v.Mem,
+			Cpu: *v.Cpu,
+			Mem: *v.Mem,
 		},
 	}
 	err = vm.Create(&vmInst)
@@ -58,38 +58,39 @@ func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestI
 	return &cirrina.RequestID{Value: newReq.ID}, nil
 }
 
-func (s *server) GetVM(_ context.Context, v *cirrina.VMID) (*cirrina.VM, error) {
-	var pvm cirrina.VM
+func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMConfig, error) {
+	var pvm cirrina.VMConfig
 	vmInst, err := vm.GetByID(v.Value)
 	if err != nil {
 		log.Printf("error getting vm %v, %v", v.Value, err)
 		return &pvm, err
 	}
-	pvm.Name = vmInst.Name
-	pvm.Description = vmInst.Description
-	pvm.Cpu = vmInst.Config.Cpu
-	pvm.Mem = vmInst.Config.Mem
-	pvm.MaxWait = vmInst.Config.MaxWait
-	pvm.Restart = vmInst.Config.Restart
-	pvm.RestartDelay = vmInst.Config.RestartDelay
-	pvm.Screen = vmInst.Config.Screen
-	pvm.ScreenWidth = vmInst.Config.ScreenWidth
-	pvm.ScreenHeight = vmInst.Config.ScreenHeight
-	pvm.Vncwait = vmInst.Config.VNCWait
-	pvm.Vncport = vmInst.Config.VNCPort
-	pvm.Wireguestmem = vmInst.Config.WireGuestMem
-	pvm.Tablet = vmInst.Config.Tablet
-	pvm.Storeuefi = vmInst.Config.StoreUEFIVars
-	pvm.Utc = vmInst.Config.UTCTime
-	pvm.Hostbridge = vmInst.Config.HostBridge
-	pvm.Acpi = vmInst.Config.ACPITables
-	pvm.Hlt = vmInst.Config.UseHLT
-	pvm.Eop = vmInst.Config.ExitOnPause
-	pvm.Dpo = vmInst.Config.DestroyPowerOff
-	pvm.Ium = vmInst.Config.IgnoreUnknownMSR
-	pvm.Net = vmInst.Config.Net
-	pvm.Vncport = vmInst.Config.VNCPort
-	pvm.Mac = vmInst.Config.Mac
+	pvm.Name = &vmInst.Name
+	log.Printf("getVMconfig: cpus: %T, %v", vmInst.Config.Cpu, vmInst.Config.Cpu)
+	pvm.Description = &vmInst.Description
+	pvm.Cpu = &vmInst.Config.Cpu
+	pvm.Mem = &vmInst.Config.Mem
+	pvm.MaxWait = &vmInst.Config.MaxWait
+	pvm.Restart = &vmInst.Config.Restart
+	pvm.RestartDelay = &vmInst.Config.RestartDelay
+	pvm.Screen = &vmInst.Config.Screen
+	pvm.ScreenWidth = &vmInst.Config.ScreenWidth
+	pvm.ScreenHeight = &vmInst.Config.ScreenHeight
+	pvm.Vncwait = &vmInst.Config.VNCWait
+	pvm.Vncport = &vmInst.Config.VNCPort
+	pvm.Wireguestmem = &vmInst.Config.WireGuestMem
+	pvm.Tablet = &vmInst.Config.Tablet
+	pvm.Storeuefi = &vmInst.Config.StoreUEFIVars
+	pvm.Utc = &vmInst.Config.UTCTime
+	pvm.Hostbridge = &vmInst.Config.HostBridge
+	pvm.Acpi = &vmInst.Config.ACPITables
+	pvm.Hlt = &vmInst.Config.UseHLT
+	pvm.Eop = &vmInst.Config.ExitOnPause
+	pvm.Dpo = &vmInst.Config.DestroyPowerOff
+	pvm.Ium = &vmInst.Config.IgnoreUnknownMSR
+	pvm.Net = &vmInst.Config.Net
+	pvm.Vncport = &vmInst.Config.VNCPort
+	pvm.Mac = &vmInst.Config.Mac
 	return &pvm, nil
 }
 
@@ -191,7 +192,7 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 	return &cirrina.RequestID{Value: newReq.ID}, nil
 }
 
-func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMReConfig) (*cirrina.ReqBool, error) {
+func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.ReqBool, error) {
 	re := cirrina.ReqBool{}
 	re.Success = false
 	vmInst, err := vm.GetByID(rc.Id)
