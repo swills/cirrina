@@ -212,6 +212,13 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMReConfig) (*cirrina.R
 	if isOptionPassed(reflect, "mem") {
 		vmInst.Config.Mem = *rc.Mem
 	}
+	if isOptionPassed(reflect, "vncwait") {
+		if *rc.Vncwait == true {
+			vmInst.Config.VNCWait = true
+		} else {
+			vmInst.Config.VNCWait = false
+		}
+	}
 	err = vmInst.Save()
 	if err != nil {
 		return &re, err

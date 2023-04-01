@@ -82,6 +82,7 @@ message VMReConfig {
   optional bool screen = 9;
   optional uint32 screen_width = 10;
   optional uint32 screen_height = 11;
+  optional bool vncwait = 12;
 }
 
 message ReqBool {

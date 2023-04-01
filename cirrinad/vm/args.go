@@ -7,6 +7,7 @@ import (
 )
 
 func (vm *VM) getKeyboardArg() []string {
+	// TODO -- see old weasel code...
 	return []string{}
 }
 
@@ -18,6 +19,7 @@ func (vm *VM) getACPIArg() []string {
 }
 
 func (vm *VM) getCDArg() []string {
+	// TODO -- see old weasel code... really should use a list...
 	return []string{}
 }
 
@@ -26,6 +28,9 @@ func (vm *VM) getCpuArg() []string {
 }
 
 func (vm *VM) getDiskArg(slot int) ([]string, int) {
+	// TODO check that disk is enabled
+	// TODO check that disk file exists
+	// TODO use disk list, etc.
 	diskType := "nvme"
 	diskPath := "/bhyve/disk/" + vm.Name + ".img"
 	diskArg := []string{"-s", strconv.Itoa(slot) + "," + diskType + "," + diskPath}
@@ -48,6 +53,7 @@ func (vm *VM) getEOPArg() []string {
 }
 
 func (vm *VM) getExtraArg() []string {
+	// TODO just get this from DB
 	return []string{}
 }
 
@@ -80,6 +86,10 @@ func (vm *VM) getMSRArg() []string {
 
 func (vm *VM) getROMArg() []string {
 	uefiVarsPath := baseVMStatePath + "/" + vm.Name + "/BHYVE_UEFI_VARS.fd"
+	// TODO check that storing uefi vars is enabled,
+	//   if so, include vars file path and check it exists, copy it if not
+	//   if not, just include rom path
+	// TODO check that uefiVarsPath exists, if not, copy from template file
 	return []string{
 		"-l",
 		"bootrom," + bootRomPath + "," + uefiVarsPath,
@@ -87,6 +97,7 @@ func (vm *VM) getROMArg() []string {
 }
 
 func (vm *VM) getSoundArg() []string {
+	// TODO -- see old weasel code...
 	return []string{}
 }
 
@@ -105,6 +116,7 @@ func (vm *VM) getWireArg() []string {
 }
 
 func (vm *VM) getNMDMArg() []string {
+	// TODO see old weasel code, mostly just need to rename to function to find free nmdm dev
 	return []string{}
 }
 
@@ -146,6 +158,7 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 }
 
 func (vm *VM) getCOMArg() []string {
+	// TODO -- see old weasel code...
 	return []string{}
 }
 
@@ -159,6 +172,7 @@ func contains(elems []string, v string) bool {
 }
 
 func (vm *VM) getNetArg(slot int) ([]string, int) {
+	// TODO -- see old weasel code... -- mostly just handing other net types
 	if !vm.Config.Net {
 		return []string{}, slot
 	}
@@ -211,6 +225,12 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	netArg, slot := vm.getNetArg(slot)
 	diskArg, slot := vm.getDiskArg(slot)
 	lpcArg, slot := vm.getLPCArg(slot)
+
+	// TODO - add keyboard arg
+	// TODO - add cd arg
+	// TODO - add sound arg
+	// TODO - add com args
+	// TODO - add extra args
 
 	args = append(args, "/usr/bin/protect")
 	args = append(args, "/usr/sbin/bhyve")

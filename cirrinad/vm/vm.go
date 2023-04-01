@@ -127,6 +127,16 @@ func (vm *VM) Start() (err error) {
 		vm.createTapInt()
 		vm.addTapToBridge()
 	}
+	// TODO -- check return code --
+	// EXIT STATUS
+	//     Exit status indicates how the VM was terminated:
+	//
+	//     0       rebooted 				-- definitely restart
+	//     1       powered off				-- don't restart?
+	//     2       halted					-- ??
+	//     3       triple fault				-- ??
+	//     4       exited due to an error	-- ??
+
 	p := supervisor.NewProcess(supervisor.ProcessOptions{
 		Name:                    cmdName,
 		Args:                    cmdArgs,
@@ -346,6 +356,7 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 				setStopped(vm.ID)
 				delete(vmProcesses, vm.ID)
 				if vm.Config.Net {
+					// TODO - handle vmnet and netgraph
 					vm.destroyTapInt()
 				}
 				vm.maybeForceKillVM()
@@ -356,6 +367,7 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 			setStopped(vm.ID)
 			delete(vmProcesses, vm.ID)
 			if vm.Config.Net {
+				// TODO - handle vmnet and netgraph
 				vm.destroyTapInt()
 			}
 			vm.maybeForceKillVM()
