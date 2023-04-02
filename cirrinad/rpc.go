@@ -233,6 +233,9 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 			vmInst.Config.UTCTime = false
 		}
 	}
+	if isOptionPassed(reflect, "max_wait") {
+		vmInst.Config.MaxWait = *rc.MaxWait
+	}
 
 	//	optional bool restart = 7;
 	//	optional bool screen = 9;
@@ -247,7 +250,6 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	//	optional bool ium = 22;
 	//	optional bool net = 23;
 
-	//	optional uint32 max_wait = 6;
 	//	optional uint32 restart_delay = 8;
 	//	optional uint32 screen_width = 10;
 	//	optional uint32 screen_height = 11;
