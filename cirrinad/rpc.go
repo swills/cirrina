@@ -237,17 +237,85 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 		vmInst.Config.MaxWait = *rc.MaxWait
 	}
 
-	//	optional bool restart = 7;
-	//	optional bool screen = 9;
-	//	optional bool wireguestmem = 13;
-	//	optional bool tablet = 14;
-	//	optional bool storeuefi = 15;
+	if isOptionPassed(reflect, "tablet") {
+		if *rc.Tablet == true {
+			vmInst.Config.Tablet = true
+		} else {
+			vmInst.Config.Tablet = false
+		}
+	}
 
-	//	optional bool hostbridge = 17;
-	//	optional bool hlt = 19;
-	//	optional bool eop = 20;
-	//	optional bool dpo = 21;
-	//	optional bool ium = 22;
+	if isOptionPassed(reflect, "storeuefi") {
+		if *rc.Storeuefi == true {
+			vmInst.Config.StoreUEFIVars = true
+		} else {
+			vmInst.Config.StoreUEFIVars = false
+		}
+	}
+
+	if isOptionPassed(reflect, "wireguestmem") {
+		if *rc.Storeuefi == true {
+			vmInst.Config.WireGuestMem = true
+		} else {
+			vmInst.Config.WireGuestMem = false
+		}
+	}
+
+	if isOptionPassed(reflect, "restart") {
+		if *rc.Restart == true {
+			vmInst.Config.Restart = true
+		} else {
+			vmInst.Config.Restart = false
+		}
+	}
+
+	if isOptionPassed(reflect, "screen") {
+		if *rc.Screen == true {
+			vmInst.Config.Screen = true
+		} else {
+			vmInst.Config.Screen = false
+		}
+	}
+
+	if isOptionPassed(reflect, "hlt") {
+		if *rc.Hlt == true {
+			vmInst.Config.UseHLT = true
+		} else {
+			vmInst.Config.UseHLT = false
+		}
+	}
+
+	if isOptionPassed(reflect, "eop") {
+		if *rc.Eop == true {
+			vmInst.Config.ExitOnPause = true
+		} else {
+			vmInst.Config.ExitOnPause = false
+		}
+	}
+
+	if isOptionPassed(reflect, "dpo") {
+		if *rc.Dpo == true {
+			vmInst.Config.DestroyPowerOff = true
+		} else {
+			vmInst.Config.DestroyPowerOff = false
+		}
+	}
+
+	if isOptionPassed(reflect, "ium") {
+		if *rc.Ium == true {
+			vmInst.Config.IgnoreUnknownMSR = true
+		} else {
+			vmInst.Config.IgnoreUnknownMSR = false
+		}
+	}
+	if isOptionPassed(reflect, "hostbridge") {
+		if *rc.Hostbridge == true {
+			vmInst.Config.HostBridge = true
+		} else {
+			vmInst.Config.HostBridge = false
+		}
+	}
+
 	//	optional bool net = 23;
 
 	//	optional uint32 restart_delay = 8;

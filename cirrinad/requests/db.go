@@ -17,7 +17,7 @@ var once sync.Once
 func getReqDb() *gorm.DB {
 	once.Do(func() {
 		instance = &singleton{}
-		reqDb, err := gorm.Open(sqlite.Open("cirrina.sqlite"), &gorm.Config{})
+		reqDb, err := gorm.Open(sqlite.Open("db/cirrina.sqlite"), &gorm.Config{})
 		if err != nil {
 			panic("failed to connect database")
 		}

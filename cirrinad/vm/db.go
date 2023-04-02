@@ -18,7 +18,7 @@ var once sync.Once
 func getVmDb() *gorm.DB {
 	once.Do(func() {
 		instance = &singleton{}
-		vmDb, err := gorm.Open(sqlite.Open("cirrina.sqlite"), &gorm.Config{})
+		vmDb, err := gorm.Open(sqlite.Open("db/cirrina.sqlite"), &gorm.Config{})
 		if err != nil {
 			panic("failed to connect database")
 		}
