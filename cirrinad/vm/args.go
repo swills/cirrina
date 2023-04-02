@@ -12,7 +12,7 @@ func (vm *VM) getKeyboardArg() []string {
 }
 
 func (vm *VM) getACPIArg() []string {
-	if vm.Config.ACPITables {
+	if vm.Config.ACPI {
 		return []string{"-A"}
 	}
 	return []string{}

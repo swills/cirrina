@@ -66,7 +66,6 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 		return &pvm, err
 	}
 	pvm.Name = &vmInst.Name
-	log.Printf("getVMconfig: cpus: %T, %v", vmInst.Config.Cpu, vmInst.Config.Cpu)
 	pvm.Description = &vmInst.Description
 	pvm.Cpu = &vmInst.Config.Cpu
 	pvm.Mem = &vmInst.Config.Mem
@@ -83,7 +82,7 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Storeuefi = &vmInst.Config.StoreUEFIVars
 	pvm.Utc = &vmInst.Config.UTCTime
 	pvm.Hostbridge = &vmInst.Config.HostBridge
-	pvm.Acpi = &vmInst.Config.ACPITables
+	pvm.Acpi = &vmInst.Config.ACPI
 	pvm.Hlt = &vmInst.Config.UseHLT
 	pvm.Eop = &vmInst.Config.ExitOnPause
 	pvm.Dpo = &vmInst.Config.DestroyPowerOff
@@ -220,6 +219,41 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 			vmInst.Config.VNCWait = false
 		}
 	}
+	if isOptionPassed(reflect, "acpi") {
+		if *rc.Acpi == true {
+			vmInst.Config.ACPI = true
+		} else {
+			vmInst.Config.ACPI = false
+		}
+	}
+	if isOptionPassed(reflect, "utc") {
+		if *rc.Utc == true {
+			vmInst.Config.UTCTime = true
+		} else {
+			vmInst.Config.UTCTime = false
+		}
+	}
+
+	//	optional bool restart = 7;
+	//	optional bool screen = 9;
+	//	optional bool wireguestmem = 13;
+	//	optional bool tablet = 14;
+	//	optional bool storeuefi = 15;
+
+	//	optional bool hostbridge = 17;
+	//	optional bool hlt = 19;
+	//	optional bool eop = 20;
+	//	optional bool dpo = 21;
+	//	optional bool ium = 22;
+	//	optional bool net = 23;
+
+	//	optional uint32 max_wait = 6;
+	//	optional uint32 restart_delay = 8;
+	//	optional uint32 screen_width = 10;
+	//	optional uint32 screen_height = 11;
+	//	optional string vncport = 24;
+	//	optional string mac = 25;
+
 	err = vmInst.Save()
 	if err != nil {
 		return &re, err

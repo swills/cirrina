@@ -39,7 +39,7 @@ func setRunning(id string, pid int) {
 	db := getVmDb()
 	vm.Status = RUNNING
 	vm.BhyvePid = uint32(pid)
-	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
+	res := db.Updates(&vm)
 	if res.Error != nil {
 		panic("Error saving VM start")
 	}
@@ -49,7 +49,7 @@ func setStarting(id string) {
 	vm := VM{ID: id}
 	db := getVmDb()
 	vm.Status = STARTING
-	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
+	res := db.Updates(&vm)
 	if res.Error != nil {
 		log.Printf("Error saving VM stop")
 	}
@@ -60,7 +60,7 @@ func setStopped(id string) {
 	vm := VM{ID: id}
 	db := getVmDb()
 	vm.Status = STOPPED
-	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
+	res := db.Updates(&vm)
 	if res.Error != nil {
 		log.Printf("Error saving VM stop")
 	}
@@ -70,7 +70,7 @@ func setStopping(id string) {
 	vm := VM{ID: id}
 	db := getVmDb()
 	vm.Status = STOPPING
-	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
+	res := db.Updates(&vm)
 	if res.Error != nil {
 		log.Printf("Error saving VM stop")
 	}

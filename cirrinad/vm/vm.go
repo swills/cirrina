@@ -23,6 +23,10 @@ const (
 	STOPPING StatusType = "STOPPING"
 )
 
+var baseVMStatePath = "/usr/home/swills/.local/state/weasel/vms/"
+var bootRomPath = "/usr/local/share/uefi-firmware/BHYVE_UEFI.fd"
+var uefiVarFileTemplate = "/usr/local/share/uefi-firmware/BHYVE_UEFI_VARS.fd"
+
 type Config struct {
 	gorm.Model
 	VmId             string
@@ -42,17 +46,13 @@ type Config struct {
 	StoreUEFIVars    bool   `gorm:"default:True;check:restart IN(0,1)"`
 	UTCTime          bool   `gorm:"default:True;check:restart IN(0,1)"`
 	HostBridge       bool   `gorm:"default:True;check:restart IN(0,1)"`
-	ACPITables       bool   `gorm:"default:True;check:restart IN(0,1)"`
+	ACPI             bool   `gorm:"default:True;check:restart IN(0,1)"`
 	UseHLT           bool   `gorm:"default:True;check:restart IN(0,1)"`
 	ExitOnPause      bool   `gorm:"default:True;check:restart IN (0,1)"`
 	WireGuestMem     bool   `gorm:"default:True;check:restart IN (0,1)"`
 	DestroyPowerOff  bool   `gorm:"default:True;check:restart IN (0,1)"`
 	IgnoreUnknownMSR bool   `gorm:"default:True;check:restart IN (0,1)"`
 }
-
-var baseVMStatePath = "/usr/home/swills/.local/state/weasel/vms/"
-var bootRomPath = "/usr/local/share/uefi-firmware/BHYVE_UEFI.fd"
-var uefiVarFileTemplate = "/usr/local/share/uefi-firmware/BHYVE_UEFI_VARS.fd"
 
 type VM struct {
 	gorm.Model
@@ -183,8 +183,47 @@ func (vm *VM) Stop() (err error) {
 
 func (vm *VM) Save() error {
 	db := getVmDb()
-	res := db.Session(&gorm.Session{FullSaveAssociations: true}).Updates(&vm)
+
+	res := db.Model(&vm.Config).
+		Updates(map[string]interface{}{
+			"cpu":                &vm.Config.Cpu,
+			"mem":                &vm.Config.Mem,
+			"max_wait":           &vm.Config.MaxWait,
+			"restart":            &vm.Config.Restart,
+			"restart_delay":      &vm.Config.RestartDelay,
+			"net":                &vm.Config.Net,
+			"mac":                &vm.Config.Mac,
+			"screen":             &vm.Config.Screen,
+			"screen_width":       &vm.Config.ScreenWidth,
+			"screen_height":      &vm.Config.ScreenHeight,
+			"vnc_wait":           &vm.Config.VNCWait,
+			"vnc_port":           &vm.Config.VNCPort,
+			"tablet":             &vm.Config.Tablet,
+			"store_uefi_vars":    &vm.Config.StoreUEFIVars,
+			"utc_time":           &vm.Config.UTCTime,
+			"host_bridge":        &vm.Config.HostBridge,
+			"acpi":               &vm.Config.ACPI,
+			"use_hlt":            &vm.Config.UseHLT,
+			"exit_on_pause":      &vm.Config.ExitOnPause,
+			"wire_guest_mem":     &vm.Config.WireGuestMem,
+			"destroy_power_off":  &vm.Config.DestroyPowerOff,
+			"ignore_unknown_msr": &vm.Config.IgnoreUnknownMSR,
+		},
+		)
+
 	if res.Error != nil {
+		return errors.New("error updating VM")
+	}
+
+	res = db.Select([]string{"name", "description", "vnc_port"}).Model(&vm).
+		Updates(map[string]interface{}{
+			"name":        &vm.Name,
+			"description": &vm.Description,
+			"vnc_port":    &vm.VNCPort,
+		})
+
+	if res.Error != nil {
+		log.Printf("db update error: %v", res.Error)
 		return errors.New("error updating VM")
 	}
 	return nil
