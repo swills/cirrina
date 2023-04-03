@@ -52,6 +52,7 @@ type Config struct {
 	WireGuestMem     bool   `gorm:"default:True;check:wire_guest_mem IN (0,1)"`
 	DestroyPowerOff  bool   `gorm:"default:True;check:destroy_power_off IN (0,1)"`
 	IgnoreUnknownMSR bool   `gorm:"default:True;check:ignore_unknown_msr IN (0,1)"`
+	KbdLayout        string `gorm:"default:default"`
 }
 
 type VM struct {
@@ -203,6 +204,7 @@ func (vm *VM) Save() error {
 			"wire_guest_mem":     &vm.Config.WireGuestMem,
 			"destroy_power_off":  &vm.Config.DestroyPowerOff,
 			"ignore_unknown_msr": &vm.Config.IgnoreUnknownMSR,
+			"kbd_layout":         &vm.Config.KbdLayout,
 		},
 		)
 

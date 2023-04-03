@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"cirrina/cirrina"
 	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/vm"
@@ -11,6 +12,8 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"log"
 	"net"
+	"os"
+	"strings"
 )
 
 type server struct {
@@ -90,6 +93,7 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Net = &vmInst.Config.Net
 	pvm.Vncport = &vmInst.Config.VNCPort
 	pvm.Mac = &vmInst.Config.Mac
+	pvm.Keyboard = &vmInst.Config.KbdLayout
 	return &pvm, nil
 }
 
@@ -189,6 +193,32 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 		return &cirrina.RequestID{}, err
 	}
 	return &cirrina.RequestID{Value: newReq.ID}, nil
+}
+
+func (s *server) GetKeyboardLayouts(_ *cirrina.KbdQuery, stream cirrina.VMInfo_GetKeyboardLayoutsServer) error {
+	var kbdlayoutpath = "/usr/share/bhyve/kbdlayout"
+	var layout cirrina.KbdLayout
+
+	files, err := OSReadDir(kbdlayoutpath)
+	if err != nil {
+		panic(err)
+	}
+	for _, file := range files {
+		layout.Name = file
+		if file == "default" {
+			layout.Description = "default"
+		} else {
+			layout.Description, err = getKbdDescription(kbdlayoutpath + "/" + file)
+			if err != nil {
+				return err
+			}
+		}
+		err = stream.Send(&layout)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.ReqBool, error) {
@@ -338,6 +368,9 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	if isOptionPassed(reflect, "mac") {
 		vmInst.Config.Mac = *rc.Mac
 	}
+	if isOptionPassed(reflect, "keyboard") {
+		vmInst.Config.KbdLayout = *rc.Keyboard
+	}
 
 	err = vmInst.Save()
 	if err != nil {
@@ -353,6 +386,58 @@ func isOptionPassed(reflect protoreflect.Message, name string) bool {
 		return true
 	}
 	return false
+}
+
+func OSReadDir(root string) ([]string, error) {
+	var files []string
+	f, err := os.Open(root)
+	if err != nil {
+		return files, err
+	}
+	fileInfo, err := f.Readdir(-1)
+	_ = f.Close()
+	if err != nil {
+		return files, err
+	}
+
+	for _, file := range fileInfo {
+		files = append(files, file.Name())
+	}
+	return files, nil
+}
+
+func getKbdDescription(path string) (description string, err error) {
+	file, err := os.Open(path)
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer func(file *os.File) {
+		_ = file.Close()
+	}(file)
+	lineNo := 0
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lineNo += 1
+		if lineNo > 2 {
+			continue
+		}
+		if lineNo == 2 {
+			de := strings.Split(scanner.Text(), ":")
+			if len(de) > 1 {
+				desc := strings.TrimSpace(de[1])
+				description = strings.TrimSuffix(desc, ")")
+			} else {
+				description = "unknown"
+			}
+
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println(err)
+	}
+
+	return description, nil
 }
 
 func rpcServer() {

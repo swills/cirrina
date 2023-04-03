@@ -19,15 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	VMInfo_AddVM_FullMethodName         = "/cirrina.VMInfo/AddVM"
-	VMInfo_GetVMs_FullMethodName        = "/cirrina.VMInfo/GetVMs"
-	VMInfo_GetVMConfig_FullMethodName   = "/cirrina.VMInfo/GetVMConfig"
-	VMInfo_GetVMState_FullMethodName    = "/cirrina.VMInfo/GetVMState"
-	VMInfo_UpdateVM_FullMethodName      = "/cirrina.VMInfo/UpdateVM"
-	VMInfo_StartVM_FullMethodName       = "/cirrina.VMInfo/StartVM"
-	VMInfo_StopVM_FullMethodName        = "/cirrina.VMInfo/StopVM"
-	VMInfo_DeleteVM_FullMethodName      = "/cirrina.VMInfo/DeleteVM"
-	VMInfo_RequestStatus_FullMethodName = "/cirrina.VMInfo/RequestStatus"
+	VMInfo_AddVM_FullMethodName              = "/cirrina.VMInfo/AddVM"
+	VMInfo_GetVMs_FullMethodName             = "/cirrina.VMInfo/GetVMs"
+	VMInfo_GetVMConfig_FullMethodName        = "/cirrina.VMInfo/GetVMConfig"
+	VMInfo_GetVMState_FullMethodName         = "/cirrina.VMInfo/GetVMState"
+	VMInfo_UpdateVM_FullMethodName           = "/cirrina.VMInfo/UpdateVM"
+	VMInfo_StartVM_FullMethodName            = "/cirrina.VMInfo/StartVM"
+	VMInfo_StopVM_FullMethodName             = "/cirrina.VMInfo/StopVM"
+	VMInfo_DeleteVM_FullMethodName           = "/cirrina.VMInfo/DeleteVM"
+	VMInfo_RequestStatus_FullMethodName      = "/cirrina.VMInfo/RequestStatus"
+	VMInfo_GetKeyboardLayouts_FullMethodName = "/cirrina.VMInfo/GetKeyboardLayouts"
 )
 
 // VMInfoClient is the client API for VMInfo service.
@@ -43,6 +44,7 @@ type VMInfoClient interface {
 	StopVM(ctx context.Context, in *VMID, opts ...grpc.CallOption) (*RequestID, error)
 	DeleteVM(ctx context.Context, in *VMID, opts ...grpc.CallOption) (*RequestID, error)
 	RequestStatus(ctx context.Context, in *RequestID, opts ...grpc.CallOption) (*ReqStatus, error)
+	GetKeyboardLayouts(ctx context.Context, in *KbdQuery, opts ...grpc.CallOption) (VMInfo_GetKeyboardLayoutsClient, error)
 }
 
 type vMInfoClient struct {
@@ -157,6 +159,38 @@ func (c *vMInfoClient) RequestStatus(ctx context.Context, in *RequestID, opts ..
 	return out, nil
 }
 
+func (c *vMInfoClient) GetKeyboardLayouts(ctx context.Context, in *KbdQuery, opts ...grpc.CallOption) (VMInfo_GetKeyboardLayoutsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[1], VMInfo_GetKeyboardLayouts_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &vMInfoGetKeyboardLayoutsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type VMInfo_GetKeyboardLayoutsClient interface {
+	Recv() (*KbdLayout, error)
+	grpc.ClientStream
+}
+
+type vMInfoGetKeyboardLayoutsClient struct {
+	grpc.ClientStream
+}
+
+func (x *vMInfoGetKeyboardLayoutsClient) Recv() (*KbdLayout, error) {
+	m := new(KbdLayout)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // VMInfoServer is the server API for VMInfo service.
 // All implementations must embed UnimplementedVMInfoServer
 // for forward compatibility
@@ -170,6 +204,7 @@ type VMInfoServer interface {
 	StopVM(context.Context, *VMID) (*RequestID, error)
 	DeleteVM(context.Context, *VMID) (*RequestID, error)
 	RequestStatus(context.Context, *RequestID) (*ReqStatus, error)
+	GetKeyboardLayouts(*KbdQuery, VMInfo_GetKeyboardLayoutsServer) error
 	mustEmbedUnimplementedVMInfoServer()
 }
 
@@ -203,6 +238,9 @@ func (UnimplementedVMInfoServer) DeleteVM(context.Context, *VMID) (*RequestID, e
 }
 func (UnimplementedVMInfoServer) RequestStatus(context.Context, *RequestID) (*ReqStatus, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RequestStatus not implemented")
+}
+func (UnimplementedVMInfoServer) GetKeyboardLayouts(*KbdQuery, VMInfo_GetKeyboardLayoutsServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetKeyboardLayouts not implemented")
 }
 func (UnimplementedVMInfoServer) mustEmbedUnimplementedVMInfoServer() {}
 
@@ -382,6 +420,27 @@ func _VMInfo_RequestStatus_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VMInfo_GetKeyboardLayouts_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(KbdQuery)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(VMInfoServer).GetKeyboardLayouts(m, &vMInfoGetKeyboardLayoutsServer{stream})
+}
+
+type VMInfo_GetKeyboardLayoutsServer interface {
+	Send(*KbdLayout) error
+	grpc.ServerStream
+}
+
+type vMInfoGetKeyboardLayoutsServer struct {
+	grpc.ServerStream
+}
+
+func (x *vMInfoGetKeyboardLayoutsServer) Send(m *KbdLayout) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // VMInfo_ServiceDesc is the grpc.ServiceDesc for VMInfo service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -426,6 +485,11 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "GetVMs",
 			Handler:       _VMInfo_GetVMs_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetKeyboardLayouts",
+			Handler:       _VMInfo_GetKeyboardLayouts_Handler,
 			ServerStreams: true,
 		},
 	},

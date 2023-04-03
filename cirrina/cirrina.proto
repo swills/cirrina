@@ -20,10 +20,16 @@ service VMInfo {
   rpc StopVM(VMID) returns (RequestID);
   rpc DeleteVM(VMID) returns (RequestID);
   rpc RequestStatus(RequestID) returns (ReqStatus);
+  rpc GetKeyboardLayouts(KbdQuery) returns (stream KbdLayout);
 }
 
 message VMID {
   string value = 1;
+}
+
+message KbdLayout {
+  string name = 1;
+  string description = 2;
 }
 
 message VMConfig {
@@ -52,9 +58,13 @@ message VMConfig {
   optional bool net = 23;
   optional string vncport = 24;
   optional string mac = 25;
+  optional string keyboard = 26;
 }
 
 message VMsQuery {
+}
+
+message KbdQuery {
 }
 
 message RequestID {
