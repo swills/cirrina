@@ -315,14 +315,29 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 			vmInst.Config.HostBridge = false
 		}
 	}
+	if isOptionPassed(reflect, "restart_delay") {
+		vmInst.Config.RestartDelay = *rc.RestartDelay
+	}
 
-	//	optional bool net = 23;
-
-	//	optional uint32 restart_delay = 8;
-	//	optional uint32 screen_width = 10;
-	//	optional uint32 screen_height = 11;
-	//	optional string vncport = 24;
-	//	optional string mac = 25;
+	if isOptionPassed(reflect, "net") {
+		if *rc.Net == true {
+			vmInst.Config.Net = true
+		} else {
+			vmInst.Config.Net = false
+		}
+	}
+	if isOptionPassed(reflect, "screen_width") {
+		vmInst.Config.ScreenWidth = *rc.ScreenWidth
+	}
+	if isOptionPassed(reflect, "screen_height") {
+		vmInst.Config.ScreenHeight = *rc.ScreenHeight
+	}
+	if isOptionPassed(reflect, "vncport") {
+		vmInst.Config.VNCPort = *rc.Vncport
+	}
+	if isOptionPassed(reflect, "mac") {
+		vmInst.Config.Mac = *rc.Mac
+	}
 
 	err = vmInst.Save()
 	if err != nil {

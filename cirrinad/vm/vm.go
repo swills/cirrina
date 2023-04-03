@@ -122,11 +122,6 @@ func (vm *VM) Start() (err error) {
 		return err
 	}
 	log.Printf("cmd: %v, args: %v", cmdName, cmdArgs)
-	vm.createUefiVarsFile()
-	if vm.Config.Net {
-		vm.createTapInt()
-		vm.addTapToBridge()
-	}
 	// TODO -- check return code --
 	// EXIT STATUS
 	//     Exit status indicates how the VM was terminated:
@@ -215,7 +210,11 @@ func (vm *VM) Save() error {
 		return errors.New("error updating VM")
 	}
 
-	res = db.Select([]string{"name", "description", "vnc_port"}).Model(&vm).
+	res = db.Select([]string{
+		"name",
+		"description",
+		"vnc_port",
+	}).Model(&vm).
 		Updates(map[string]interface{}{
 			"name":        &vm.Name,
 			"description": &vm.Description,
@@ -386,6 +385,12 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 			switch event.Code {
 			case "ProcessStart":
 				go log.Printf("VM %v Received event ProcessStart: %s %s\n", vm.ID, event.Code, event.Message)
+				vm.createUefiVarsFile()
+				if vm.Config.Net {
+					// TODO - handle vmnet and netgraph
+					vm.createTapInt()
+					vm.addTapToBridge()
+				}
 				go setRunning(vm.ID, p.Pid())
 				vmProcesses[vm.ID] = p
 			case "ProcessDone":
