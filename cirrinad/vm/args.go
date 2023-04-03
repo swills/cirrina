@@ -139,16 +139,23 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 	}
 
 	vncListenIP := "0.0.0.0"
-	// this is a terrible way to select a port, but oh well
-	vncListenPort := 6900 + len(vmProcesses)
-	vm.setVNCPort(vncListenPort)
+	var vncListenPort string
+
+	if vm.Config.VNCPort == "AUTO" {
+		// this is a terrible way to select a port, but oh well
+		vncListenPort = strconv.Itoa(6900 + len(vmProcesses))
+	} else {
+		vncListenPort = vm.Config.VNCPort
+	}
+	vncListenPortTmp, _ := strconv.Atoi(vncListenPort)
+	vm.setVNCPort(vncListenPortTmp)
 
 	fbufArg := []string{"-s",
 		strconv.Itoa(slot) +
 			",fbuf" +
 			",w=" + strconv.Itoa(int(vm.Config.ScreenWidth)) +
 			",h=" + strconv.Itoa(int(vm.Config.ScreenHeight)) +
-			",tcp=" + vncListenIP + ":" + strconv.Itoa(vncListenPort),
+			",tcp=" + vncListenIP + ":" + vncListenPort,
 	}
 	if vm.Config.VNCWait {
 		fbufArg[1] = fbufArg[1] + ",wait"
