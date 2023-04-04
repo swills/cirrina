@@ -1,7 +1,12 @@
 package vm
 
 import (
+	"encoding/json"
+	"errors"
+	"log"
 	"net"
+	"os/exec"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -133,22 +138,109 @@ func (vm *VM) getTabletArg(slot int) ([]string, int) {
 	return tabletArg, slot
 }
 
+func getFreePort(firstVncPort int) (port int, err error) {
+	cmd := exec.Command("netstat", "-an", "--libxo", "json")
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return 0, err
+	}
+	if err := cmd.Start(); err != nil {
+		return 0, err
+	}
+	var result map[string]interface{}
+	if err := json.NewDecoder(stdout).Decode(&result); err != nil {
+		return 0, err
+	}
+	if err := cmd.Wait(); err != nil {
+		return 0, err
+	}
+	statistics, valid := result["statistics"].(map[string]interface{})
+	if !valid {
+		return 0, nil
+	}
+	sockets, valid := statistics["socket"].([]interface{})
+	if !valid {
+		return 0, errors.New("failed parsing netstat output - 1")
+	}
+	localListenPorts := make(map[int]struct{})
+	for _, value := range sockets {
+		socket, valid := value.(map[string]interface{})
+		if !valid {
+			continue
+		}
+		if socket["protocol"] == "tcp4" || socket["protocol"] == "tcp46" || socket["protocol"] == "tcp6" {
+			state, valid := socket["tcp-state"].(string)
+			if !valid {
+				continue
+			}
+			realState := strings.TrimSpace(state)
+			if realState == "LISTEN" {
+				local, valid := socket["local"].(map[string]interface{})
+				if !valid {
+					continue
+				}
+				port, valid := local["port"].(interface{})
+				if !valid {
+					continue
+				}
+				p, valid := port.(string)
+				if !valid {
+					continue
+				}
+				portInt, err := strconv.Atoi(p)
+				if err != nil {
+					return 0, err
+				}
+				if _, exists := localListenPorts[portInt]; !exists {
+					localListenPorts[portInt] = struct{}{}
+				}
+			}
+		}
+	}
+	var uniqueLocalListenPorts []int
+	for l := range localListenPorts {
+		uniqueLocalListenPorts = append(uniqueLocalListenPorts, l)
+	}
+	sort.Slice(uniqueLocalListenPorts, func(i, j int) bool {
+		return uniqueLocalListenPorts[i] < uniqueLocalListenPorts[j]
+	})
+
+	vncPort := firstVncPort
+	for ; vncPort <= 65535; vncPort++ {
+		if !containsInt(uniqueLocalListenPorts, vncPort) {
+			log.Printf("vncPort: %v", vncPort)
+			break
+		}
+	}
+	return vncPort, nil
+}
+
 func (vm *VM) getVideoArg(slot int) ([]string, int) {
 	if !vm.Config.Screen {
 		return []string{}, slot
 	}
 
+	firstVncPort := 6900 // TODO make this an app config item
 	vncListenIP := "0.0.0.0"
+	var vncListenPortInt int
 	var vncListenPort string
+	var err error
 
 	if vm.Config.VNCPort == "AUTO" {
-		// this is a terrible way to select a port, but oh well
-		vncListenPort = strconv.Itoa(6900 + len(vmProcesses))
+		vncListenPortInt, err = getFreePort(firstVncPort)
+		if err != nil {
+			return []string{}, slot
+		}
+		vncListenPort = strconv.Itoa(vncListenPortInt)
+		vm.setVNCPort(vncListenPortInt)
 	} else {
 		vncListenPort = vm.Config.VNCPort
+		vncListenPortInt, err = strconv.Atoi(vncListenPort)
+		if err != nil {
+			return []string{}, slot
+		}
+		vm.setVNCPort(vncListenPortInt)
 	}
-	vncListenPortTmp, _ := strconv.Atoi(vncListenPort)
-	vm.setVNCPort(vncListenPortTmp)
 
 	fbufArg := []string{"-s",
 		strconv.Itoa(slot) +
@@ -169,7 +261,16 @@ func (vm *VM) getCOMArg() []string {
 	return []string{}
 }
 
-func contains(elems []string, v string) bool {
+func containsStr(elems []string, v string) bool {
+	for _, s := range elems {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
+func containsInt(elems []int, v int) bool {
 	for _, s := range elems {
 		if v == s {
 			return true
@@ -196,7 +297,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	}
 	for !freeTapDevFound {
 		tapDev = "tap" + strconv.Itoa(tapNum)
-		if !contains(tapDevs, tapDev) {
+		if !containsStr(tapDevs, tapDev) {
 			freeTapDevFound = true
 		} else {
 			tapNum = tapNum + 1
