@@ -19,7 +19,6 @@ func getVmDb() *gorm.DB {
 	once.Do(func() {
 		instance = &singleton{}
 		vmDb, err := gorm.Open(sqlite.Open("db/cirrina.sqlite"), &gorm.Config{})
-		//vmDb.Session(&gorm.Session{FullSaveAssociations: true})
 		if err != nil {
 			panic("failed to connect database")
 		}
@@ -49,8 +48,7 @@ func setRunning(id string, pid int) {
 func (vm *VM) setStarting() {
 	db := getVmDb()
 	vm.Status = STARTING
-	log.Printf("set starting net_dev: %v", vm.NetDev)
-	res := db.Debug().Updates(&vm)
+	res := db.Updates(&vm)
 	if res.Error != nil {
 		log.Printf("Error saving VM start")
 	}

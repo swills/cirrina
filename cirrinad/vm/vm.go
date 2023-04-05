@@ -59,10 +59,8 @@ func (vm *VM) Delete() (err error) {
 func (vm *VM) Start() (err error) {
 	defer func() {
 		vm.mu.Unlock()
-		log.Printf("released VM lock")
 	}()
 	vm.mu.Lock()
-	log.Printf("got VM Lock")
 	if vm.Status != STOPPED {
 		return errors.New("must be stopped first")
 	}
