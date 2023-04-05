@@ -5,7 +5,6 @@ import (
 	"github.com/kontera-technologies/go-supervisor/v2"
 	"gorm.io/gorm"
 	"log"
-	"strconv"
 	"sync"
 )
 
@@ -48,6 +47,7 @@ type Config struct {
 	DestroyPowerOff  bool   `gorm:"default:True;check:destroy_power_off IN (0,1)"`
 	IgnoreUnknownMSR bool   `gorm:"default:True;check:ignore_unknown_msr IN (0,1)"`
 	KbdLayout        string `gorm:"default:default"`
+	AutoStart        bool   `gorm:"default:False;check:auto_start IN (0,1)"`
 }
 
 type VM struct {
@@ -84,15 +84,26 @@ func init() {
 	if err != nil {
 		panic("failed to auto-migrate Configs")
 	}
-	defer List.Mu.Unlock()
 	List.Mu.Lock()
 	for _, vmInst := range GetAll() {
 		List.VmList[vmInst.ID] = vmInst
 	}
-	log.Printf("loaded %v VMs", strconv.Itoa(len(List.VmList)))
-	PrintVMStatus()
+	List.Mu.Unlock()
+	AutoStartVMs()
 }
 
+func AutoStartVMs() {
+	for _, vmInst := range List.VmList {
+		if vmInst.Config.AutoStart {
+			go func(aVmInst *VM) {
+				err := aVmInst.Start()
+				if err != nil {
+					log.Printf("auto start of %v %v failed: %v", vmInst.ID, vmInst.Name, err)
+				}
+			}(vmInst)
+		}
+	}
+}
 func GetAll() []*VM {
 	var result []*VM
 
@@ -125,6 +136,8 @@ func GetById(Id string) (v *VM, err error) {
 }
 
 func PrintVMStatus() {
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
 	for _, vmInst := range List.VmList {
 		if vmInst.Status != RUNNING {
 			log.Printf("vm: id: %v name: %v cpus: %v state: %v pid: %v", vmInst.ID, vmInst.Name, vmInst.Config.Cpu, vmInst.Status, nil)
@@ -156,7 +169,6 @@ func GetRunningVMs() int {
 func KillVMs() {
 	for _, vmInst := range List.VmList {
 		if vmInst.Status == RUNNING {
-			log.Printf("going to kill %v", vmInst.Name)
 			go func(aVmInst *VM) {
 				err := aVmInst.Stop()
 				if err != nil {
@@ -173,7 +185,6 @@ func GetUsedVncPorts() []int32 {
 	List.Mu.Lock()
 	for _, vmInst := range List.VmList {
 		if vmInst.Status != STOPPED {
-			log.Printf("used vnc port: %v", vmInst.VNCPort)
 			ret = append(ret, vmInst.VNCPort)
 		}
 	}
@@ -196,7 +207,6 @@ func GetUsedNetPorts() []string {
 	List.Mu.Lock()
 	for _, vmInst := range List.VmList {
 		if vmInst.Status != STOPPED {
-			log.Printf("used net port: %v", vmInst.NetDev)
 			ret = append(ret, vmInst.NetDev)
 		}
 	}

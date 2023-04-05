@@ -3,7 +3,6 @@ package vm
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"net"
 	"os/exec"
 	"sort"
@@ -208,7 +207,6 @@ func getFreePort(firstVncPort int) (port int, err error) {
 	vncPort := firstVncPort
 	for ; vncPort <= 65535; vncPort++ {
 		if !containsInt(uniqueLocalListenPorts, vncPort) && !IsVncPortUsed(int32(vncPort)) {
-			log.Printf("vncPort: %v", vncPort)
 			break
 		}
 	}

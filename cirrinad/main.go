@@ -26,7 +26,6 @@ func handleSigInt() {
 		return
 	}
 	sigIntHandlerRunning = true
-	log.Printf("stopping all VMs\n")
 	vm.KillVMs()
 	for {
 		runningVMs := vm.GetRunningVMs()

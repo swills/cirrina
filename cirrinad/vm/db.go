@@ -34,14 +34,13 @@ func getVmDb() *gorm.DB {
 }
 
 func setRunning(id string, pid int) {
-	log.Printf("VM %v started, pid: %v", id, pid)
 	vm := VM{ID: id}
 	db := getVmDb()
 	vm.Status = RUNNING
 	vm.BhyvePid = uint32(pid)
 	res := db.Updates(&vm)
 	if res.Error != nil {
-		panic("Error saving VM start")
+		log.Printf("Error saving VM running")
 	}
 }
 
@@ -49,6 +48,12 @@ func (vm *VM) setStarting() {
 	db := getVmDb()
 	vm.Status = STARTING
 	res := db.Updates(&vm)
+	res = db.Select([]string{
+		"status",
+	}).Model(&vm).
+		Updates(map[string]interface{}{
+			"status": &vm.Status,
+		})
 	if res.Error != nil {
 		log.Printf("Error saving VM start")
 	}
@@ -59,7 +64,21 @@ func setStopped(id string) {
 	vm := VM{ID: id}
 	db := getVmDb()
 	vm.Status = STOPPED
-	res := db.Updates(&vm)
+	vm.NetDev = ""
+	vm.VNCPort = 0
+	vm.BhyvePid = 0
+	res := db.Select([]string{
+		"status",
+		"net_dev",
+		"vnc_port",
+		"bhyve_pid",
+	}).Model(&vm).
+		Updates(map[string]interface{}{
+			"status":    &vm.Status,
+			"net_dev":   &vm.NetDev,
+			"vnc_port":  &vm.VNCPort,
+			"bhyve_pid": &vm.BhyvePid,
+		})
 	if res.Error != nil {
 		log.Printf("Error saving VM stop")
 	}
@@ -69,7 +88,12 @@ func setStopping(id string) {
 	vm := VM{ID: id}
 	db := getVmDb()
 	vm.Status = STOPPING
-	res := db.Updates(&vm)
+	res := db.Select([]string{
+		"status",
+	}).Model(&vm).
+		Updates(map[string]interface{}{
+			"status": &vm.Status,
+		})
 	if res.Error != nil {
 		log.Printf("Error saving VM stop")
 	}

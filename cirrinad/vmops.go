@@ -12,7 +12,6 @@ func startVM(rs *requests.Request) {
 		log.Printf("error getting vm %v, %v", rs.VmId, err)
 		return
 	}
-	log.Printf("startVM: %v", vmInst.Name)
 	err = vmInst.Start()
 	if err != nil {
 		log.Printf("failed to start VM %v: %v", vmInst.ID, err)

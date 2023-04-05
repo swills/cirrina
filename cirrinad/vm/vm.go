@@ -57,15 +57,13 @@ func (vm *VM) Delete() (err error) {
 }
 
 func (vm *VM) Start() (err error) {
+	if vm.Status != STOPPED {
+		return errors.New("must be stopped first")
+	}
 	defer func() {
 		vm.mu.Unlock()
 	}()
 	vm.mu.Lock()
-	if vm.Status != STOPPED {
-		return errors.New("must be stopped first")
-	}
-	log.Printf("Starting VM %v", vm.Name)
-	log.Printf("vm: %v", vm)
 	vm.setStarting()
 	List.VmList[vm.ID].Status = STARTING
 	events := make(chan supervisor.Event)
@@ -78,7 +76,6 @@ func (vm *VM) Start() (err error) {
 	if err != nil {
 		return err
 	}
-	log.Printf("cmd: %v, args: %v", cmdName, cmdArgs)
 	// TODO -- check return code --
 	// EXIT STATUS
 	//
@@ -121,7 +118,6 @@ func (vm *VM) Stop() (err error) {
 	}
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
-	log.Printf("stopping pid %v", vm.proc.Pid())
 	setStopping(vm.ID)
 	err = vm.proc.Stop()
 	if err != nil {
@@ -274,7 +270,6 @@ func (vm *VM) createUefiVarsFile() {
 }
 
 func (vm *VM) createTapInt() {
-	log.Printf("creating tap dev %v", vm.NetDev)
 	args := []string{"/sbin/ifconfig", vm.NetDev, "create"}
 	cmd := exec.Command("/usr/local/bin/sudo", args...)
 	err := cmd.Run()
@@ -284,7 +279,6 @@ func (vm *VM) createTapInt() {
 }
 
 func (vm *VM) destroyTapInt() {
-	log.Printf("destroying tap dev %v", vm.NetDev)
 	args := []string{"/sbin/ifconfig", vm.NetDev, "destroy"}
 	cmd := exec.Command("/usr/local/bin/sudo", args...)
 	err := cmd.Run()
@@ -295,7 +289,6 @@ func (vm *VM) destroyTapInt() {
 }
 
 func (vm *VM) addTapToBridge() {
-	log.Printf("Adding tap dev %v to bridge", vm.NetDev)
 	args := []string{"/sbin/ifconfig", "bridge0", "addm", vm.NetDev}
 	cmd := exec.Command("/usr/local/bin/sudo", args...)
 	err := cmd.Run()
@@ -315,7 +308,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 		case event := <-events:
 			switch event.Code {
 			case "ProcessStart":
-				go log.Printf("VM %v Received event ProcessStart: %s %s\n", vm.ID, event.Code, event.Message)
+				log.Printf("VM %v Received event: %s - %s\n", vm.ID, event.Code, event.Message)
 				vm.createUefiVarsFile()
 				if vm.Config.Net {
 					// TODO - handle vmnet and netgraph
