@@ -11,6 +11,53 @@ import (
 	"strings"
 )
 
+//
+//type pendingThingsType struct {
+//	mu       sync.Mutex
+//	vncPorts []int32
+//	tapPorts []string
+//}
+//
+//var pendingThings = pendingThingsType{
+//	vncPorts: []int32{},
+//	tapPorts: []string{},
+//}
+//
+//func (p *pendingThingsType) addVncPort(vncPort int32) {
+//	pendingThings.mu.Lock()
+//	log.Printf("adding %v to pending list", vncPort)
+//	pendingThings.vncPorts = append(pendingThings.vncPorts, vncPort)
+//	pendingThings.mu.Unlock()
+//}
+//
+//func (p *pendingThingsType) removeVncPort(vncPort int32) {
+//	log.Printf("removing %v from pending list", vncPort)
+//	for i, other := range pendingThings.vncPorts {
+//		if other == vncPort {
+//			pendingThings.vncPorts = append(pendingThings.vncPorts[:i], pendingThings.vncPorts[i+1:]...)
+//		}
+//	}
+//}
+//
+//func (p *pendingThingsType) listVncPorts() {
+//	pendingThings.mu.Lock()
+//	for _, port := range p.vncPorts {
+//		log.Printf("pending VNC port: %v", port)
+//	}
+//	pendingThings.mu.Unlock()
+//}
+//
+//func (p *pendingThingsType) hasVncPort(vncPort int32) bool {
+//	defer pendingThings.mu.Unlock()
+//	pendingThings.mu.Lock()
+//	for _, port := range p.vncPorts {
+//		if port == vncPort {
+//			return true
+//		}
+//	}
+//	return false
+//}
+
 func (vm *VM) getKeyboardArg() []string {
 	// TODO -- see old weasel code...
 	return []string{}
@@ -206,12 +253,16 @@ func getFreePort(firstVncPort int) (port int, err error) {
 	})
 
 	vncPort := firstVncPort
+	//pendingThings.listVncPorts()
 	for ; vncPort <= 65535; vncPort++ {
-		if !containsInt(uniqueLocalListenPorts, vncPort) {
+		//if !containsInt(uniqueLocalListenPorts, vncPort) && !pendingThings.hasVncPort(int32(vncPort)) {
+		//if !containsInt(uniqueLocalListenPorts, vncPort) {
+		if !containsInt(uniqueLocalListenPorts, vncPort) && !IsVncPortUsed(int32(vncPort)) {
 			log.Printf("vncPort: %v", vncPort)
 			break
 		}
 	}
+	//pendingThings.addVncPort(int32(vncPort))
 	return vncPort, nil
 }
 
@@ -297,7 +348,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	}
 	for !freeTapDevFound {
 		tapDev = "tap" + strconv.Itoa(tapNum)
-		if !containsStr(tapDevs, tapDev) {
+		if !containsStr(tapDevs, tapDev) && !IsNetPortUsed(tapDev) {
 			freeTapDevFound = true
 		} else {
 			tapNum = tapNum + 1
@@ -310,7 +361,8 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	}
 	netArg := []string{"-s", strconv.Itoa(slot) + "," + netType + "," + tapDev + macString}
 	slot = slot + 1
-	vm.netDev = tapDev
+	vm.NetDev = tapDev
+	_ = vm.Save()
 	return netArg, slot
 }
 

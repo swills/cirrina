@@ -7,7 +7,7 @@ import (
 )
 
 func startVM(rs *requests.Request) {
-	vmInst, err := vm.GetByID(rs.VmId)
+	vmInst, err := vm.GetById(rs.VmId)
 	if err != nil {
 		log.Printf("error getting vm %v, %v", rs.VmId, err)
 		return
@@ -23,7 +23,7 @@ func startVM(rs *requests.Request) {
 }
 
 func stopVM(rs *requests.Request) {
-	vmInst, err := vm.GetByID(rs.VmId)
+	vmInst, err := vm.GetById(rs.VmId)
 	if err != nil {
 		log.Printf("error getting vm %v, %v", rs.VmId, err)
 		return
@@ -39,12 +39,14 @@ func stopVM(rs *requests.Request) {
 }
 
 func deleteVM(rs *requests.Request) {
-	vmInst, err := vm.GetByID(rs.VmId)
+	vmInst, err := vm.GetById(rs.VmId)
 	if err != nil {
 		log.Printf("error getting vm %v, %v", rs.VmId, err)
 		return
 	}
 	log.Printf("deleting VM %v", rs.VmId)
+	defer vm.List.Mu.Unlock()
+	vm.List.Mu.Lock()
 	err = vmInst.Delete()
 	if err != nil {
 		log.Printf("failed to delete VM %v: %v", vmInst.ID, err)
@@ -52,4 +54,5 @@ func deleteVM(rs *requests.Request) {
 		return
 	}
 	rs.Succeeded()
+	delete(vm.List.VmList, vmInst.ID)
 }

@@ -21,30 +21,23 @@ type server struct {
 }
 
 func (s *server) AddVM(_ context.Context, v *cirrina.VMConfig) (*cirrina.VMID, error) {
-	_, err := vm.GetByName(*v.Name)
-	if err == nil {
+	if _, err := vm.GetByName(*v.Name); err != nil {
 		return &cirrina.VMID{}, errors.New(fmt.Sprintf("%v already exists", v.Name))
 
 	}
-	vmInst := vm.VM{
-		Name:        *v.Name,
-		Status:      vm.STOPPED,
-		Description: *v.Description,
-		Config: vm.Config{
-			Cpu: *v.Cpu,
-			Mem: *v.Mem,
-		},
-	}
-	err = vm.Create(&vmInst)
+	defer vm.List.Mu.Unlock()
+	vm.List.Mu.Lock()
+	vmInst, err := vm.Create(*v.Name, *v.Description, *v.Cpu, *v.Mem)
 	log.Printf("Created VM %v", vmInst.ID)
 	if err != nil {
 		return &cirrina.VMID{}, err
 	}
+	vm.List.VmList[vmInst.ID] = vmInst
 	return &cirrina.VMID{Value: vmInst.ID}, nil
 }
 
 func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID, error) {
-	vmInst, err := vm.GetByID(v.Value)
+	vmInst, err := vm.GetById(v.Value)
 	if err != nil {
 		return &cirrina.RequestID{}, err
 	}
@@ -63,7 +56,7 @@ func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestI
 
 func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMConfig, error) {
 	var pvm cirrina.VMConfig
-	vmInst, err := vm.GetByID(v.Value)
+	vmInst, err := vm.GetById(v.Value)
 	if err != nil {
 		log.Printf("error getting vm %v, %v", v.Value, err)
 		return &pvm, err
@@ -98,7 +91,7 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 }
 
 func (s *server) GetVMs(_ *cirrina.VMsQuery, stream cirrina.VMInfo_GetVMsServer) error {
-	var vms []vm.VM
+	var vms []*vm.VM
 	var pvmId cirrina.VMID
 
 	vms = vm.GetAll()
@@ -113,7 +106,7 @@ func (s *server) GetVMs(_ *cirrina.VMsQuery, stream cirrina.VMInfo_GetVMsServer)
 }
 
 func (s *server) GetVMState(_ context.Context, p *cirrina.VMID) (*cirrina.VMState, error) {
-	vmInst, err := vm.GetByID(p.Value)
+	vmInst, err := vm.GetById(p.Value)
 	pvm := cirrina.VMState{}
 	if err != nil {
 		log.Printf("error getting vm %v, %v", p.Value, err)
@@ -150,14 +143,14 @@ func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrin
 }
 
 func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID, error) {
-	_, err := vm.GetByID(v.Value)
+	_, err := vm.GetById(v.Value)
 	if err != nil {
 		return &cirrina.RequestID{}, err
 	}
 	if requests.PendingReqExists(v.Value) {
 		return &cirrina.RequestID{}, errors.New(fmt.Sprintf("pending request for %v already exists", v.Value))
 	}
-	vmInst, err := vm.GetByID(v.Value)
+	vmInst, err := vm.GetById(v.Value)
 	if err != nil {
 		log.Printf("error getting vm %v, %v", v.Value, err)
 		return &cirrina.RequestID{}, err
@@ -173,14 +166,14 @@ func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID
 }
 
 func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID, error) {
-	_, err := vm.GetByID(v.Value)
+	_, err := vm.GetById(v.Value)
 	if err != nil {
 		return &cirrina.RequestID{}, err
 	}
 	if requests.PendingReqExists(v.Value) {
 		return &cirrina.RequestID{}, errors.New(fmt.Sprintf("pending request for %v already exists", v.Value))
 	}
-	vmInst, err := vm.GetByID(v.Value)
+	vmInst, err := vm.GetById(v.Value)
 	if err != nil {
 		log.Printf("error getting vm %v, %v", v.Value, err)
 		return &cirrina.RequestID{}, err
@@ -224,7 +217,7 @@ func (s *server) GetKeyboardLayouts(_ *cirrina.KbdQuery, stream cirrina.VMInfo_G
 func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.ReqBool, error) {
 	re := cirrina.ReqBool{}
 	re.Success = false
-	vmInst, err := vm.GetByID(rc.Id)
+	vmInst, err := vm.GetById(rc.Id)
 	if err != nil {
 		log.Printf("error getting vm %v, %v", rc.Id, err)
 		return &cirrina.ReqBool{}, err

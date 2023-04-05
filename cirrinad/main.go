@@ -3,10 +3,14 @@ package main
 import (
 	"cirrina/cirrinad/vm"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	//"fmt"
+	"log"
+	//"os/signal"
+	//"syscall"
 	"time"
 )
 
@@ -25,7 +29,7 @@ func handleSigInt() {
 		return
 	}
 	sigIntHandlerRunning = true
-	log.Printf("SIGINT killing VMs\n")
+	log.Printf("stopping all VMs\n")
 	vm.KillVMs()
 	for {
 		runningVMs := vm.GetRunningVMs()

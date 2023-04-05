@@ -1,6 +1,80 @@
 package vm
 
+import (
+	"errors"
+	"github.com/kontera-technologies/go-supervisor/v2"
+	"gorm.io/gorm"
+	"log"
+	"strconv"
+	"sync"
+)
+
+type StatusType string
+
+const (
+	STOPPED  StatusType = "STOPPED"
+	STARTING StatusType = "STARTING"
+	RUNNING  StatusType = "RUNNING"
+	STOPPING StatusType = "STOPPING"
+)
+
+var baseVMStatePath = "/usr/home/swills/.local/state/weasel/vms/"
+var bootRomPath = "/usr/local/share/uefi-firmware/BHYVE_UEFI.fd"
+var uefiVarFileTemplate = "/usr/local/share/uefi-firmware/BHYVE_UEFI_VARS.fd"
+
+type Config struct {
+	gorm.Model
+	VmId             string
+	Cpu              uint32 `gorm:"default:1;check:cpu BETWEEN 1 and 16"`
+	Mem              uint32 `gorm:"default:128;check:mem>=128"`
+	MaxWait          uint32 `gorm:"default:120;check:max_wait>=0"`
+	Restart          bool   `gorm:"default:True;check:restart IN (0,1)"`
+	RestartDelay     uint32 `gorm:"default:1;check:restart_delay>=0"`
+	Net              bool   `gorm:"default:True;check:screen IN (0,1)"`
+	Mac              string `gorm:"default:AUTO"`
+	Screen           bool   `gorm:"default:True;check:screen IN (0,1)"`
+	ScreenWidth      uint32 `gorm:"default:1920;check:screen_width BETWEEN 640 and 1920"`
+	ScreenHeight     uint32 `gorm:"default:1080;check:screen_height BETWEEN 480 and 1200"`
+	VNCWait          bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
+	VNCPort          string `gorm:"default:AUTO"`
+	Tablet           bool   `gorm:"default:True;check:tablet IN(0,1)"`
+	StoreUEFIVars    bool   `gorm:"default:True;check:store_uefi_vars IN(0,1)"`
+	UTCTime          bool   `gorm:"default:True;check:utc_time IN(0,1)"`
+	HostBridge       bool   `gorm:"default:True;check:host_bridge IN(0,1)"`
+	ACPI             bool   `gorm:"default:True;check:acpi IN(0,1)"`
+	UseHLT           bool   `gorm:"default:True;check:use_hlt IN(0,1)"`
+	ExitOnPause      bool   `gorm:"default:True;check:exit_on_pause IN (0,1)"`
+	WireGuestMem     bool   `gorm:"default:True;check:wire_guest_mem IN (0,1)"`
+	DestroyPowerOff  bool   `gorm:"default:True;check:destroy_power_off IN (0,1)"`
+	IgnoreUnknownMSR bool   `gorm:"default:True;check:ignore_unknown_msr IN (0,1)"`
+	KbdLayout        string `gorm:"default:default"`
+}
+
+type VM struct {
+	gorm.Model
+	ID          string `gorm:"uniqueIndex;not null"`
+	Name        string `gorm:"not null"`
+	Description string
+	Status      StatusType `gorm:"type:status_type"`
+	BhyvePid    uint32     `gorm:"check:bhyve_pid>=0"`
+	NetDev      string
+	VNCPort     int32
+	Config      Config
+	proc        *supervisor.Process
+	mu          sync.Mutex
+}
+
+type ListType struct {
+	Mu     sync.Mutex
+	VmList map[string]*VM
+}
+
+var List = ListType{
+	VmList: map[string]*VM{},
+}
+
 func init() {
+
 	db := getVmDb()
 	err := db.AutoMigrate(&VM{})
 	if err != nil {
@@ -10,4 +84,131 @@ func init() {
 	if err != nil {
 		panic("failed to auto-migrate Configs")
 	}
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
+	for _, vmInst := range GetAll() {
+		List.VmList[vmInst.ID] = vmInst
+	}
+	log.Printf("loaded %v VMs", strconv.Itoa(len(List.VmList)))
+	PrintVMStatus()
+}
+
+func GetAll() []*VM {
+	var result []*VM
+
+	db := getVmDb()
+	db.Preload("Config").Find(&result)
+
+	return result
+}
+
+func GetByName(name string) (v *VM, err error) {
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
+	for _, t := range List.VmList {
+		if t.Name == name {
+			return t, nil
+		}
+	}
+	return &VM{}, errors.New("not found")
+}
+
+func GetById(Id string) (v *VM, err error) {
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
+	vmInst, valid := List.VmList[Id]
+	if valid {
+		return vmInst, nil
+	} else {
+		return vmInst, errors.New("not found")
+	}
+}
+
+func PrintVMStatus() {
+	for _, vmInst := range List.VmList {
+		if vmInst.Status != RUNNING {
+			log.Printf("vm: id: %v name: %v cpus: %v state: %v pid: %v", vmInst.ID, vmInst.Name, vmInst.Config.Cpu, vmInst.Status, nil)
+		} else {
+			if vmInst.proc == nil {
+				setStopped(vmInst.ID)
+				List.Mu.Lock()
+				List.VmList[vmInst.ID].Status = STOPPED
+				List.Mu.Unlock()
+				vmInst.maybeForceKillVM()
+				log.Printf("vm: id: %v name: %v cpus: %v state: %v pid: %v", vmInst.ID, vmInst.Name, vmInst.Config.Cpu, vmInst.Status, nil)
+			} else {
+				log.Printf("vm: id: %v name: %v cpus: %v state: %v pid: %v", vmInst.ID, vmInst.Name, vmInst.Config.Cpu, vmInst.Status, vmInst.proc.Pid())
+			}
+		}
+	}
+}
+
+func GetRunningVMs() int {
+	count := 0
+	for _, vmInst := range List.VmList {
+		if vmInst.Status == RUNNING {
+			count += 1
+		}
+	}
+	return count
+}
+
+func KillVMs() {
+	for _, vmInst := range List.VmList {
+		if vmInst.Status == RUNNING {
+			log.Printf("going to kill %v", vmInst.Name)
+			go func(aVmInst *VM) {
+				err := aVmInst.Stop()
+				if err != nil {
+					log.Printf("error stopping VM: %v", err)
+				}
+			}(vmInst)
+		}
+	}
+}
+
+func GetUsedVncPorts() []int32 {
+	var ret []int32
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
+	for _, vmInst := range List.VmList {
+		if vmInst.Status != STOPPED {
+			log.Printf("used vnc port: %v", vmInst.VNCPort)
+			ret = append(ret, vmInst.VNCPort)
+		}
+	}
+	return ret
+}
+
+func IsVncPortUsed(vncPort int32) bool {
+	usedVncPorts := GetUsedVncPorts()
+	for _, port := range usedVncPorts {
+		if port == vncPort {
+			return true
+		}
+	}
+	return false
+}
+
+func GetUsedNetPorts() []string {
+	var ret []string
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
+	for _, vmInst := range List.VmList {
+		if vmInst.Status != STOPPED {
+			log.Printf("used net port: %v", vmInst.NetDev)
+			ret = append(ret, vmInst.NetDev)
+		}
+	}
+	return ret
+}
+
+func IsNetPortUsed(netPort string) bool {
+	usedNetPorts := GetUsedNetPorts()
+	for _, port := range usedNetPorts {
+		if port == netPort {
+			return true
+		}
+	}
+	return false
 }

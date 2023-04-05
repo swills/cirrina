@@ -14,82 +14,29 @@ import (
 	"time"
 )
 
-type StatusType string
-
-const (
-	STOPPED  StatusType = "STOPPED"
-	STARTING StatusType = "STARTING"
-	RUNNING  StatusType = "RUNNING"
-	STOPPING StatusType = "STOPPING"
-)
-
-var baseVMStatePath = "/usr/home/swills/.local/state/weasel/vms/"
-var bootRomPath = "/usr/local/share/uefi-firmware/BHYVE_UEFI.fd"
-var uefiVarFileTemplate = "/usr/local/share/uefi-firmware/BHYVE_UEFI_VARS.fd"
-
-type Config struct {
-	gorm.Model
-	VmId             string
-	Cpu              uint32 `gorm:"default:1;check:cpu BETWEEN 1 and 16"`
-	Mem              uint32 `gorm:"default:128;check:mem>=128"`
-	MaxWait          uint32 `gorm:"default:120;check:max_wait>=0"`
-	Restart          bool   `gorm:"default:True;check:restart IN (0,1)"`
-	RestartDelay     uint32 `gorm:"default:1;check:restart_delay>=0"`
-	Net              bool   `gorm:"default:True;check:screen IN (0,1)"`
-	Mac              string `gorm:"default:AUTO"`
-	Screen           bool   `gorm:"default:True;check:screen IN (0,1)"`
-	ScreenWidth      uint32 `gorm:"default:1920;check:screen_width BETWEEN 640 and 1920"`
-	ScreenHeight     uint32 `gorm:"default:1080;check:screen_height BETWEEN 480 and 1200"`
-	VNCWait          bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
-	VNCPort          string `gorm:"default:AUTO"`
-	Tablet           bool   `gorm:"default:True;check:tablet IN(0,1)"`
-	StoreUEFIVars    bool   `gorm:"default:True;check:store_uefi_vars IN(0,1)"`
-	UTCTime          bool   `gorm:"default:True;check:utc_time IN(0,1)"`
-	HostBridge       bool   `gorm:"default:True;check:host_bridge IN(0,1)"`
-	ACPI             bool   `gorm:"default:True;check:acpi IN(0,1)"`
-	UseHLT           bool   `gorm:"default:True;check:use_hlt IN(0,1)"`
-	ExitOnPause      bool   `gorm:"default:True;check:exit_on_pause IN (0,1)"`
-	WireGuestMem     bool   `gorm:"default:True;check:wire_guest_mem IN (0,1)"`
-	DestroyPowerOff  bool   `gorm:"default:True;check:destroy_power_off IN (0,1)"`
-	IgnoreUnknownMSR bool   `gorm:"default:True;check:ignore_unknown_msr IN (0,1)"`
-	KbdLayout        string `gorm:"default:default"`
-}
-
-type VM struct {
-	gorm.Model
-	ID          string `gorm:"uniqueIndex;not null"`
-	Name        string `gorm:"not null"`
-	Description string
-	Status      StatusType `gorm:"type:status_type"`
-	BhyvePid    uint32     `gorm:"check:bhyve_pid>=0"`
-	NetDev      string
-	VNCPort     int32
-	Config      Config
-	netDev      string
-}
-
-var vmProcesses = make(map[string]*supervisor.Process)
-
 func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
 	vm.ID = uuid.NewString()
 	return nil
 }
 
-func Create(vm *VM) error {
-	if vm.ID != "" {
-		return errors.New("cannot specify VM Id")
+func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, err error) {
+	var vmInst *VM
+	if strings.Contains(name, "/") {
+		return vmInst, errors.New("illegal character in vm name")
 	}
-	_, err := GetByName(vm.Name)
-	if err == nil {
-		return errors.New("vm with same name already exists")
-	}
-	if strings.Contains(vm.Name, "/") {
-		return errors.New("illegal character in vm name")
+	vmInst = &VM{
+		Name:        name,
+		Status:      STOPPED,
+		Description: description,
+		Config: Config{
+			Cpu: cpu,
+			Mem: mem,
+		},
 	}
 	db := getVmDb()
-	log.Printf("Creating VM %v", vm.Name)
-	res := db.Create(&vm)
-	return res.Error
+	log.Printf("Creating VM %v", name)
+	res := db.Create(&vmInst)
+	return vmInst, res.Error
 }
 
 func (vm *VM) Delete() (err error) {
@@ -110,22 +57,32 @@ func (vm *VM) Delete() (err error) {
 }
 
 func (vm *VM) Start() (err error) {
+	defer func() {
+		vm.mu.Unlock()
+		log.Printf("released VM lock")
+	}()
+	vm.mu.Lock()
+	log.Printf("got VM Lock")
 	if vm.Status != STOPPED {
 		return errors.New("must be stopped first")
 	}
 	log.Printf("Starting VM %v", vm.Name)
 	log.Printf("vm: %v", vm)
-	setStarting(vm.ID)
+	vm.setStarting()
+	List.VmList[vm.ID].Status = STARTING
 	events := make(chan supervisor.Event)
 
 	cmdName, cmdArgs, err := vm.generateCommandLine()
+	err = vm.Save()
+	if err != nil {
+		return err
+	}
 	if err != nil {
 		return err
 	}
 	log.Printf("cmd: %v, args: %v", cmdName, cmdArgs)
 	// TODO -- check return code --
 	// EXIT STATUS
-	//     Exit status indicates how the VM was terminated:
 	//
 	//     0       rebooted 				-- definitely restart
 	//     1       powered off				-- don't restart?
@@ -150,8 +107,8 @@ func (vm *VM) Start() (err error) {
 		IdleTimeout:             -1,
 		TerminationGraceTimeout: time.Duration(vm.Config.MaxWait) * time.Second,
 	})
-
-	go vmDaemon(p, events, *vm)
+	List.VmList[vm.ID].proc = p
+	go vmDaemon(events, vm)
 
 	if err := p.Start(); err != nil {
 		panic(fmt.Sprintf("failed to start process: %s", err))
@@ -161,19 +118,18 @@ func (vm *VM) Start() (err error) {
 
 func (vm *VM) Stop() (err error) {
 	if vm.Status != RUNNING {
+		log.Printf("tried to stop VM %v that is not running", vm.Name)
 		return errors.New("must be running first")
 	}
-	p := vmProcesses[vm.ID]
-	log.Printf("stopping pid %v", p.Pid())
+	defer vm.mu.Unlock()
+	vm.mu.Lock()
+	log.Printf("stopping pid %v", vm.proc.Pid())
 	setStopping(vm.ID)
-	err = p.Stop()
+	err = vm.proc.Stop()
 	if err != nil {
-		log.Printf("Failed to stop %v", p.Pid())
+		log.Printf("Failed to stop %v", vm.proc.Pid())
 		return errors.New("stop failed")
 	}
-	setStopped(vm.ID)
-	delete(vmProcesses, vm.ID)
-	vm.maybeForceKillVM()
 	return nil
 }
 
@@ -215,11 +171,13 @@ func (vm *VM) Save() error {
 	res = db.Select([]string{
 		"name",
 		"description",
+		"net_dev",
 		"vnc_port",
 	}).Model(&vm).
 		Updates(map[string]interface{}{
 			"name":        &vm.Name,
 			"description": &vm.Description,
+			"net_dev":     &vm.NetDev,
 			"vnc_port":    &vm.VNCPort,
 		})
 
@@ -232,33 +190,6 @@ func (vm *VM) Save() error {
 
 func (vm *VM) String() string {
 	return fmt.Sprintf("name: %s id: %s", vm.Name, vm.ID)
-}
-
-func GetAll() []VM {
-	var result []VM
-
-	db := getVmDb()
-	db.Find(&result)
-
-	return result
-}
-
-func GetByID(id string) (vm VM, err error) {
-	db := getVmDb()
-	db.Model(&VM{}).Preload("Config").Limit(1).Find(&vm, &VM{ID: id})
-	if vm.ID == "" {
-		return VM{}, errors.New("not found")
-	}
-	return vm, nil
-}
-
-func GetByName(name string) (vm VM, err error) {
-	db := getVmDb()
-	db.Model(&VM{}).Preload("Config").Limit(1).Find(&vm, &VM{Name: name})
-	if vm.ID == "" {
-		return VM{}, errors.New("not found")
-	}
-	return vm, nil
 }
 
 func parseStopMessage(message string) int {
@@ -345,8 +276,8 @@ func (vm *VM) createUefiVarsFile() {
 }
 
 func (vm *VM) createTapInt() {
-	log.Printf("creating tap dev %v", vm.netDev)
-	args := []string{"/sbin/ifconfig", vm.netDev, "create"}
+	log.Printf("creating tap dev %v", vm.NetDev)
+	args := []string{"/sbin/ifconfig", vm.NetDev, "create"}
 	cmd := exec.Command("/usr/local/bin/sudo", args...)
 	err := cmd.Run()
 	if err != nil {
@@ -355,8 +286,8 @@ func (vm *VM) createTapInt() {
 }
 
 func (vm *VM) destroyTapInt() {
-	log.Printf("destroying tap dev %v", vm.netDev)
-	args := []string{"/sbin/ifconfig", vm.netDev, "destroy"}
+	log.Printf("destroying tap dev %v", vm.NetDev)
+	args := []string{"/sbin/ifconfig", vm.NetDev, "destroy"}
 	cmd := exec.Command("/usr/local/bin/sudo", args...)
 	err := cmd.Run()
 	if err != nil {
@@ -366,8 +297,8 @@ func (vm *VM) destroyTapInt() {
 }
 
 func (vm *VM) addTapToBridge() {
-	log.Printf("Adding tap dev %v to bridge", vm.netDev)
-	args := []string{"/sbin/ifconfig", "bridge0", "addm", vm.netDev}
+	log.Printf("Adding tap dev %v to bridge", vm.NetDev)
+	args := []string{"/sbin/ifconfig", "bridge0", "addm", vm.NetDev}
 	cmd := exec.Command("/usr/local/bin/sudo", args...)
 	err := cmd.Run()
 	if err != nil {
@@ -376,12 +307,12 @@ func (vm *VM) addTapToBridge() {
 
 }
 
-func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
+func vmDaemon(events chan supervisor.Event, vm *VM) {
 	for {
 		select {
-		case msg := <-p.Stdout():
+		case msg := <-vm.proc.Stdout():
 			log.Printf("VM %v Received STDOUT message: %s\n", vm.ID, *msg)
-		case msg := <-p.Stderr():
+		case msg := <-vm.proc.Stderr():
 			log.Printf("VM %v Received STDERR message: %s\n", vm.ID, *msg)
 		case event := <-events:
 			switch event.Code {
@@ -393,14 +324,20 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 					vm.createTapInt()
 					vm.addTapToBridge()
 				}
-				go setRunning(vm.ID, p.Pid())
-				vmProcesses[vm.ID] = p
+				go setRunning(vm.ID, vm.proc.Pid())
+				vm.mu.Lock()
+				List.VmList[vm.ID].Status = RUNNING
+				vm.mu.Unlock()
+				//pendingThings.removeVncPort(vm.VNCPort)
 			case "ProcessDone":
 				exitStatus := parseStopMessage(event.Message)
 				log.Printf("stop message: %v", event.Message)
 				log.Printf("VM %v stopped, exitStatus: %v", vm.ID, exitStatus)
 				setStopped(vm.ID)
-				delete(vmProcesses, vm.ID)
+				vm.mu.Lock()
+				List.VmList[vm.ID].Status = STOPPED
+				vm.proc = nil
+				vm.mu.Unlock()
 				if vm.Config.Net {
 					// TODO - handle vmnet and netgraph
 					vm.destroyTapInt()
@@ -409,9 +346,12 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 			default:
 				log.Printf("VM %v Received event: %s - %s\n", vm.ID, event.Code, event.Message)
 			}
-		case <-p.DoneNotifier():
+		case <-vm.proc.DoneNotifier():
 			setStopped(vm.ID)
-			delete(vmProcesses, vm.ID)
+			vm.mu.Lock()
+			List.VmList[vm.ID].Status = STOPPED
+			vm.proc = nil
+			vm.mu.Unlock()
 			if vm.Config.Net {
 				// TODO - handle vmnet and netgraph
 				vm.destroyTapInt()
@@ -421,26 +361,4 @@ func vmDaemon(p *supervisor.Process, events chan supervisor.Event, vm VM) {
 			return
 		}
 	}
-}
-
-func PrintVMStatus() {
-	runningVMs := len(vmProcesses)
-	log.Printf("vmstatus: running VMs: %v", runningVMs)
-	for vmId := range vmProcesses {
-		log.Printf("running vm: %v, pid: %v", vmId, vmProcesses[vmId].Pid())
-	}
-}
-
-func KillVMs() {
-	for vmId, process := range vmProcesses {
-		log.Printf("killing vm: %v", vmId)
-		go func(newProcess *supervisor.Process) {
-			_ = newProcess.Stop()
-		}(process)
-	}
-
-}
-
-func GetRunningVMs() int {
-	return len(vmProcesses)
 }
