@@ -59,6 +59,7 @@ message VMConfig {
   optional string vncport = 24;
   optional string mac = 25;
   optional string keyboard = 26;
+  optional bool autostart = 27;
 }
 
 message VMsQuery {

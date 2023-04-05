@@ -155,6 +155,7 @@ func (vm *VM) Save() error {
 			"destroy_power_off":  &vm.Config.DestroyPowerOff,
 			"ignore_unknown_msr": &vm.Config.IgnoreUnknownMSR,
 			"kbd_layout":         &vm.Config.KbdLayout,
+			"auto_start":         &vm.Config.AutoStart,
 		},
 		)
 

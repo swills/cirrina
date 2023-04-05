@@ -86,6 +86,7 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Vncport = &vmInst.Config.VNCPort
 	pvm.Mac = &vmInst.Config.Mac
 	pvm.Keyboard = &vmInst.Config.KbdLayout
+	pvm.Autostart = &vmInst.Config.AutoStart
 	return &pvm, nil
 }
 
@@ -362,6 +363,14 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	}
 	if isOptionPassed(reflect, "keyboard") {
 		vmInst.Config.KbdLayout = *rc.Keyboard
+	}
+	if isOptionPassed(reflect, "autostart") {
+		if *rc.Autostart == true {
+			vmInst.Config.AutoStart = true
+		} else {
+			vmInst.Config.AutoStart = false
+		}
+
 	}
 
 	err = vmInst.Save()

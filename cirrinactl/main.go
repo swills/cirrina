@@ -120,7 +120,8 @@ func getVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 			"ignore unknown msr: %v "+
 			"Use network %v "+
 			"vnc port: %v "+
-			"mac address: %v"+
+			"mac address: %v "+
+			"auto start: %v"+
 			"\n",
 		*res.Name,
 		*res.Description,
@@ -140,6 +141,7 @@ func getVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 		*res.Net,
 		*res.Vncport,
 		*res.Mac,
+		*res.Autostart,
 	)
 }
 
@@ -185,7 +187,7 @@ func getVMState(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	fmt.Printf("vm id: %v state: %v vnc port: %v\n", *idPtr, vmstate, res.VncPort)
 }
 
-func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPtr *uint, memPtr *uint, c pb.VMInfoClient, ctx context.Context) {
+func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPtr *uint, memPtr *uint, autoStartPtr *bool, c pb.VMInfoClient, ctx context.Context) {
 	if *idPtr == "" {
 		log.Fatalf("ID not specified")
 		return
@@ -216,6 +218,9 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 		}
 		newConfig.Mem = &newMem
 	}
+	if isFlagPassed("autostart") {
+		newConfig.Autostart = autoStartPtr
+	}
 	_, err = c.UpdateVM(ctx, &newConfig)
 	if err != nil {
 		log.Fatalf("could not update VM: %v", err)
@@ -241,6 +246,7 @@ func main() {
 	memVal := *memPtr
 	mem32Val := uint32(memVal)
 	mem32Ptr := &mem32Val
+	autoStartPtr := flag.Bool("autostart", false, "automatically start the VM")
 	//maxWaitPtr := flag.Uint("maxWait", 120, "Max wait time for VM shutdown")
 	//restartPtr := flag.Bool("restart", true, "Automatically restart VM")
 	//restartDelayPtr := flag.Uint("restartDelay", 1, "How long to wait before restarting VM")
@@ -279,7 +285,7 @@ func main() {
 	case "addVM":
 		addVM(namePtr, c, ctx, descrPtr, cpu32Ptr, mem32Ptr)
 	case "reConfig":
-		Reconfig(idPtr, err, namePtr, descrPtr, cpuPtr, memPtr, c, ctx)
+		Reconfig(idPtr, err, namePtr, descrPtr, cpuPtr, memPtr, autoStartPtr, c, ctx)
 	case "deleteVM":
 		DeleteVM(idPtr, c, ctx)
 	case "reqStat":
