@@ -89,7 +89,6 @@ func init() {
 		List.VmList[vmInst.ID] = vmInst
 	}
 	List.Mu.Unlock()
-	AutoStartVMs()
 }
 
 func AutoStartVMs() {

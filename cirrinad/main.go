@@ -69,6 +69,7 @@ func main() {
 	}()
 
 	log.Print("Starting daemon")
+	go vm.AutoStartVMs()
 	go rpcServer()
 	go processRequests()
 	for {

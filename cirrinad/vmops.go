@@ -27,7 +27,6 @@ func stopVM(rs *requests.Request) {
 		log.Printf("error getting vm %v, %v", rs.VmId, err)
 		return
 	}
-	log.Printf("stopping VM %v", rs.VmId)
 	err = vmInst.Stop()
 	if err != nil {
 		log.Printf("failed to stop VM %v: %v", vmInst.ID, err)
