@@ -19,6 +19,7 @@ func getVmDb() *gorm.DB {
 	once.Do(func() {
 		instance = &singleton{}
 		vmDb, err := gorm.Open(sqlite.Open("db/cirrina.sqlite"), &gorm.Config{})
+		vmDb.Preload("Config")
 		if err != nil {
 			panic("failed to connect database")
 		}
@@ -38,7 +39,14 @@ func setRunning(id string, pid int) {
 	db := getVmDb()
 	vm.Status = RUNNING
 	vm.BhyvePid = uint32(pid)
-	res := db.Updates(&vm)
+	res := db.Select([]string{
+		"status",
+		"bhyve_pid",
+	}).Model(&vm).
+		Updates(map[string]interface{}{
+			"status":    &vm.Status,
+			"bhyve_pid": &vm.BhyvePid,
+		})
 	if res.Error != nil {
 		log.Printf("Error saving VM running")
 	}
@@ -47,8 +55,7 @@ func setRunning(id string, pid int) {
 func (vm *VM) setStarting() {
 	db := getVmDb()
 	vm.Status = STARTING
-	res := db.Updates(&vm)
-	res = db.Select([]string{
+	res := db.Select([]string{
 		"status",
 	}).Model(&vm).
 		Updates(map[string]interface{}{

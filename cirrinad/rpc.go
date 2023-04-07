@@ -343,7 +343,7 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	}
 
 	if isOptionPassed(reflect, "net") {
-		if *rc.Net == true {
+		if *rc.Net {
 			vmInst.Config.Net = true
 		} else {
 			vmInst.Config.Net = false

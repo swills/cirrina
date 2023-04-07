@@ -69,6 +69,13 @@ func (vm *VM) Start() (err error) {
 	events := make(chan supervisor.Event)
 
 	cmdName, cmdArgs, err := vm.generateCommandLine()
+	log.Printf("cmd: %v, args: %v", cmdName, cmdArgs)
+	vm.createUefiVarsFile()
+	if vm.Config.Net {
+		// TODO - handle vmnet and netgraph
+		vm.createTapInt()
+		vm.addTapToBridge()
+	}
 	err = vm.Save()
 	if err != nil {
 		return err
@@ -280,6 +287,9 @@ func (vm *VM) createTapInt() {
 }
 
 func (vm *VM) destroyTapInt() {
+	if vm.NetDev == "" {
+		return
+	}
 	args := []string{"/sbin/ifconfig", vm.NetDev, "destroy"}
 	cmd := exec.Command("/usr/local/bin/sudo", args...)
 	err := cmd.Run()
@@ -310,44 +320,38 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			switch event.Code {
 			case "ProcessStart":
 				log.Printf("VM %v Received event: %s - %s\n", vm.ID, event.Code, event.Message)
-				vm.createUefiVarsFile()
-				if vm.Config.Net {
-					// TODO - handle vmnet and netgraph
-					vm.createTapInt()
-					vm.addTapToBridge()
-				}
 				go setRunning(vm.ID, vm.proc.Pid())
 				vm.mu.Lock()
 				List.VmList[vm.ID].Status = RUNNING
 				vm.mu.Unlock()
-				//pendingThings.removeVncPort(vm.VNCPort)
 			case "ProcessDone":
 				exitStatus := parseStopMessage(event.Message)
 				log.Printf("stop message: %v", event.Message)
 				log.Printf("VM %v stopped, exitStatus: %v", vm.ID, exitStatus)
+				// TODO - handle vmnet and netgraph - note has to be before setStopped
+				//   since it uses vm.NetDev (not vm.Config.Net)
+				vm.destroyTapInt()
 				setStopped(vm.ID)
 				vm.mu.Lock()
 				List.VmList[vm.ID].Status = STOPPED
 				vm.proc = nil
 				vm.mu.Unlock()
-				if vm.Config.Net {
-					// TODO - handle vmnet and netgraph
-					vm.destroyTapInt()
-				}
 				vm.maybeForceKillVM()
 			default:
 				log.Printf("VM %v Received event: %s - %s\n", vm.ID, event.Code, event.Message)
 			}
 		case <-vm.proc.DoneNotifier():
+			// TODO - handle vmnet and netgraph - note has to be before setStopped
+			//   since it uses vm.NetDev (not vm.Config.Net)
+			vm.destroyTapInt()
 			setStopped(vm.ID)
 			vm.mu.Lock()
 			List.VmList[vm.ID].Status = STOPPED
+			List.VmList[vm.ID].NetDev = ""
+			List.VmList[vm.ID].VNCPort = 0
+			List.VmList[vm.ID].BhyvePid = 0
 			vm.proc = nil
 			vm.mu.Unlock()
-			if vm.Config.Net {
-				// TODO - handle vmnet and netgraph
-				vm.destroyTapInt()
-			}
 			vm.maybeForceKillVM()
 			log.Printf("VM %v closing loop we are done...", vm.ID)
 			return
