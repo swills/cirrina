@@ -48,6 +48,8 @@ type Config struct {
 	IgnoreUnknownMSR bool   `gorm:"default:True;check:ignore_unknown_msr IN (0,1)"`
 	KbdLayout        string `gorm:"default:default"`
 	AutoStart        bool   `gorm:"default:False;check:auto_start IN (0,1)"`
+	NetType          string `gorm:"default:VIRTIONET;check:net_type IN (\"VIRTIONET\",\"E1000\")"`
+	NetDevType       string `gorm:"default:TAP;check:net_dev_type IN (\"TAP\",\"VMNET\",\"NETGRAPH\")"`
 }
 
 type VM struct {

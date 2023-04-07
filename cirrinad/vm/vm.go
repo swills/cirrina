@@ -163,6 +163,8 @@ func (vm *VM) Save() error {
 			"ignore_unknown_msr": &vm.Config.IgnoreUnknownMSR,
 			"kbd_layout":         &vm.Config.KbdLayout,
 			"auto_start":         &vm.Config.AutoStart,
+			"net_dev_type":       &vm.Config.NetDevType,
+			"net_type":           &vm.Config.NetType,
 		},
 		)
 

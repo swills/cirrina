@@ -3,6 +3,17 @@ syntax = "proto3";
 package cirrina;
 option go_package = "gitlab.mouf.net/swills/cirrina";
 
+enum NetType {
+  VIRTIONET = 0;
+  E1000 = 1;
+}
+
+enum NetDevType {
+  TAP = 0;
+  VMNET = 1;
+  NETGRAPH = 2;
+}
+
 enum vmStatus {
   STATUS_STOPPED = 0;
   STATUS_STARTING = 1;
@@ -60,6 +71,8 @@ message VMConfig {
   optional string mac = 25;
   optional string keyboard = 26;
   optional bool autostart = 27;
+  optional NetDevType netdevtype = 28;
+  optional NetType nettype = 29;
 }
 
 message VMsQuery {

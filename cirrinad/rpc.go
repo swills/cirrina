@@ -87,6 +87,23 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Mac = &vmInst.Config.Mac
 	pvm.Keyboard = &vmInst.Config.KbdLayout
 	pvm.Autostart = &vmInst.Config.AutoStart
+	NetTypeVIRTIONET := cirrina.NetType_VIRTIONET
+	NetTypeE1000 := cirrina.NetType_E1000
+	if vmInst.Config.NetType == "VIRTIONET" {
+		pvm.Nettype = &NetTypeVIRTIONET
+	} else if vmInst.Config.NetType == "E1000" {
+		pvm.Nettype = &NetTypeE1000
+	}
+	NetDevTypeTAP := cirrina.NetDevType_TAP
+	NetDevTypeVMNET := cirrina.NetDevType_VMNET
+	NetDevTypeNETGRAPH := cirrina.NetDevType_NETGRAPH
+	if vmInst.Config.NetDevType == "TAP" {
+		pvm.Netdevtype = &NetDevTypeTAP
+	} else if vmInst.Config.NetDevType == "VMNET" {
+		pvm.Netdevtype = &NetDevTypeVMNET
+	} else if vmInst.Config.NetDevType == "NETGRAPH" {
+		pvm.Netdevtype = &NetDevTypeNETGRAPH
+	}
 	return &pvm, nil
 }
 
@@ -359,6 +376,7 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 		vmInst.Config.VNCPort = *rc.Vncport
 	}
 	if isOptionPassed(reflect, "mac") {
+		// TODO -- validate mac
 		vmInst.Config.Mac = *rc.Mac
 	}
 	if isOptionPassed(reflect, "keyboard") {
@@ -370,7 +388,22 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 		} else {
 			vmInst.Config.AutoStart = false
 		}
-
+	}
+	if isOptionPassed(reflect, "netdevtype") {
+		if *rc.Netdevtype == 0 {
+			vmInst.Config.NetDevType = "TAP"
+		} else if *rc.Netdevtype == 1 {
+			vmInst.Config.NetDevType = "VMNET"
+		} else if *rc.Netdevtype == 2 {
+			vmInst.Config.NetDevType = "NETGRAPH"
+		}
+	}
+	if isOptionPassed(reflect, "nettype") {
+		if *rc.Nettype == 0 {
+			vmInst.Config.NetType = "VIRTIONET"
+		} else if *rc.Nettype == 1 {
+			vmInst.Config.NetType = "E1000"
+		}
 	}
 
 	err = vmInst.Save()
