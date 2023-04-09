@@ -336,7 +336,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 				} else {
 					log.Printf("VM %v %v disabled, cleaning up", vm.ID, vm.Name)
 					_ = vm.proc.Stop()
-					// TODO - handle vmnet and netgraph - note has to be before setStopped
+					// TODO - handle vmnet and netgraph - note has to be done before setStopped
 					//   since it uses vm.NetDev (not vm.Config.Net)
 					vm.destroyTapInt()
 					setStopped(vm.ID)
@@ -349,7 +349,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			}
 		case <-vm.proc.DoneNotifier():
 			log.Printf("VM %v %v done", vm.ID, vm.Name)
-			// TODO - handle vmnet and netgraph - note has to be before setStopped
+			// TODO - handle vmnet and netgraph - note has to be done before setStopped
 			//   since it uses vm.NetDev (not vm.Config.Net)
 			vm.destroyTapInt()
 			setStopped(vm.ID)
