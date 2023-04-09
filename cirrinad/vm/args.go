@@ -292,6 +292,20 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 		log.Printf("unknown net type %v, can't configure", vm.Config.NetType)
 		return []string{}, slot
 	}
+	tapDev := getTapDev()
+	macAddress := vm.Config.Mac
+	macString := ""
+	if macAddress != "AUTO" {
+		macString = ",mac=" + macAddress
+	}
+	netArg := []string{"-s", strconv.Itoa(slot) + "," + netType + "," + tapDev + macString}
+	slot = slot + 1
+	vm.NetDev = tapDev
+	_ = vm.Save()
+	return netArg, slot
+}
+
+func getTapDev() string {
 	freeTapDevFound := false
 	var tapDevs []string
 	tapDev := ""
@@ -310,16 +324,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 			tapNum = tapNum + 1
 		}
 	}
-	macAddress := vm.Config.Mac
-	macString := ""
-	if macAddress != "AUTO" {
-		macString = ",mac=" + macAddress
-	}
-	netArg := []string{"-s", strconv.Itoa(slot) + "," + netType + "," + tapDev + macString}
-	slot = slot + 1
-	vm.NetDev = tapDev
-	_ = vm.Save()
-	return netArg, slot
+	return tapDev
 }
 
 func (vm *VM) generateCommandLine() (name string, args []string, err error) {
