@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../cirrina/.idea/cirrina.iml" filepath="$PROJECT_DIR$/../cirrina/.idea/cirrina.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/cirrina.iml" filepath="$PROJECT_DIR$/.idea/cirrina.iml" />
     </modules>
   </component>
 </project>
