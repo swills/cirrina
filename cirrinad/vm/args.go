@@ -3,6 +3,7 @@ package vm
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net"
 	"os/exec"
 	"sort"
@@ -282,7 +283,15 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	if !vm.Config.Net {
 		return []string{}, slot
 	}
-	netType := "virtio-net"
+	var netType string
+	if vm.Config.NetType == "VIRTIONET" {
+		netType = "virtio-net"
+	} else if vm.Config.NetType == "E1000" {
+		netType = "e1000"
+	} else {
+		log.Printf("unknown net type %v, can't configure", vm.Config.NetType)
+		return []string{}, slot
+	}
 	freeTapDevFound := false
 	var tapDevs []string
 	tapDev := ""
