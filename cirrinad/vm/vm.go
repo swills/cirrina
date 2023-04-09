@@ -80,17 +80,6 @@ func (vm *VM) Start() (err error) {
 	if err != nil {
 		return err
 	}
-	if err != nil {
-		return err
-	}
-	// TODO -- check return code --
-	// EXIT STATUS
-	//
-	//     0       rebooted 				-- definitely restart
-	//     1       powered off				-- don't restart?
-	//     2       halted					-- ??
-	//     3       triple fault				-- ??
-	//     4       exited due to an error	-- ??
 
 	p := supervisor.NewProcess(supervisor.ProcessOptions{
 		Name:                    cmdName,
@@ -102,8 +91,8 @@ func (vm *VM) Start() (err error) {
 		ErrorParser:             supervisor.MakeBytesParser,
 		MaxSpawns:               -1,
 		MaxSpawnAttempts:        -1,
-		MaxRespawnBackOff:       time.Duration(vm.Config.RestartDelay) * time.Second,
-		MaxSpawnBackOff:         time.Duration(vm.Config.RestartDelay) * time.Second,
+		RespawnWait:             time.Duration(vm.Config.RestartDelay) * time.Second,
+		SpawnWait:               time.Duration(vm.Config.RestartDelay) * time.Second,
 		MaxInterruptAttempts:    1,
 		MaxTerminateAttempts:    1,
 		IdleTimeout:             -1,
@@ -330,19 +319,36 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 				exitStatus := parseStopMessage(event.Message)
 				log.Printf("stop message: %v", event.Message)
 				log.Printf("VM %v stopped, exitStatus: %v", vm.ID, exitStatus)
-				// TODO - handle vmnet and netgraph - note has to be before setStopped
-				//   since it uses vm.NetDev (not vm.Config.Net)
-				vm.destroyTapInt()
-				setStopped(vm.ID)
-				vm.mu.Lock()
-				List.VmList[vm.ID].Status = STOPPED
-				vm.proc = nil
-				vm.mu.Unlock()
+				//     0       rebooted
+				//     1       powered off
+				//     2       halted
+				//     3       triple fault
+				//     4       exited due to an error
+				if exitStatus == 0 {
+					// set state to restarting?
+					log.Printf("VM %v %v rebooted, allowing restart", vm.ID, vm.Name)
+				}
+			case "ProcessCrashed":
+				log.Printf("VM %v %v crashed: %v, destroying", vm.ID, vm.Name, event.Message)
 				vm.maybeForceKillVM()
+				if vm.Config.Restart {
+					log.Printf("VM %v %v restart enabled, allowing restart", vm.ID, vm.Name)
+				} else {
+					log.Printf("VM %v %v disabled, cleaning up", vm.ID, vm.Name)
+					_ = vm.proc.Stop()
+					// TODO - handle vmnet and netgraph - note has to be before setStopped
+					//   since it uses vm.NetDev (not vm.Config.Net)
+					vm.destroyTapInt()
+					setStopped(vm.ID)
+					vm.mu.Lock()
+					List.VmList[vm.ID].Status = STOPPED
+					vm.mu.Unlock()
+				}
 			default:
 				log.Printf("VM %v Received event: %s - %s\n", vm.ID, event.Code, event.Message)
 			}
 		case <-vm.proc.DoneNotifier():
+			log.Printf("VM %v %v done", vm.ID, vm.Name)
 			// TODO - handle vmnet and netgraph - note has to be before setStopped
 			//   since it uses vm.NetDev (not vm.Config.Net)
 			vm.destroyTapInt()
@@ -352,7 +358,6 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			List.VmList[vm.ID].NetDev = ""
 			List.VmList[vm.ID].VNCPort = 0
 			List.VmList[vm.ID].BhyvePid = 0
-			vm.proc = nil
 			vm.mu.Unlock()
 			vm.maybeForceKillVM()
 			log.Printf("VM %v closing loop we are done...", vm.ID)
