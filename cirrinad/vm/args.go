@@ -292,15 +292,29 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 		log.Printf("unknown net type %v, can't configure", vm.Config.NetType)
 		return []string{}, slot
 	}
-	tapDev := getTapDev()
+	var netDev string
+	if vm.Config.NetDevType == "TAP" {
+		netDev = getTapDev()
+	} else if vm.Config.NetDevType == "VMNET" {
+		netDev = getVmnetDev()
+	} else if vm.Config.NetDevType == "NETGRAPH" {
+		log.Printf("netgraph not supported yet, can't configure")
+		netDev = "netgraph"
+		vm.NetDev = netDev
+		_ = vm.Save()
+		return []string{}, slot
+	} else {
+		log.Printf("unknown net dev type %v", vm.Config.NetDevType)
+		return []string{}, slot
+	}
 	macAddress := vm.Config.Mac
 	macString := ""
 	if macAddress != "AUTO" {
 		macString = ",mac=" + macAddress
 	}
-	netArg := []string{"-s", strconv.Itoa(slot) + "," + netType + "," + tapDev + macString}
+	netArg := []string{"-s", strconv.Itoa(slot) + "," + netType + "," + netDev + macString}
 	slot = slot + 1
-	vm.NetDev = tapDev
+	vm.NetDev = netDev
 	_ = vm.Save()
 	return netArg, slot
 }
@@ -325,6 +339,28 @@ func getTapDev() string {
 		}
 	}
 	return tapDev
+}
+
+func getVmnetDev() string {
+	freeVmnetDevFound := false
+	var vmnetDevs []string
+	vmnetDev := ""
+	vmnetNum := 0
+	interfaces, _ := net.Interfaces()
+	for _, inter := range interfaces {
+		if strings.Contains(inter.Name, "vmnet") {
+			vmnetDevs = append(vmnetDevs, inter.Name)
+		}
+	}
+	for !freeVmnetDevFound {
+		vmnetDev = "vmnet" + strconv.Itoa(vmnetNum)
+		if !containsStr(vmnetDevs, vmnetDev) && !IsNetPortUsed(vmnetDev) {
+			freeVmnetDevFound = true
+		} else {
+			vmnetNum = vmnetNum + 1
+		}
+	}
+	return vmnetDev
 }
 
 func (vm *VM) generateCommandLine() (name string, args []string, err error) {

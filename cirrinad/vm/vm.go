@@ -72,9 +72,7 @@ func (vm *VM) Start() (err error) {
 	log.Printf("cmd: %v, args: %v", cmdName, cmdArgs)
 	vm.createUefiVarsFile()
 	if vm.Config.Net {
-		// TODO - handle vmnet and netgraph
-		vm.createTapInt()
-		vm.addTapToBridge()
+		vm.netStartup()
 	}
 	err = vm.Save()
 	if err != nil {
@@ -268,36 +266,47 @@ func (vm *VM) createUefiVarsFile() {
 	}
 }
 
-func (vm *VM) createTapInt() {
-	args := []string{"/sbin/ifconfig", vm.NetDev, "create"}
-	cmd := exec.Command("/usr/local/bin/sudo", args...)
-	err := cmd.Run()
-	if err != nil {
-		log.Printf("failed to create tap: %v", err)
+func (vm *VM) netStartup() {
+	if vm.Config.NetDevType == "TAP" || vm.Config.NetDevType == "VMNET" {
+		args := []string{"/sbin/ifconfig", vm.NetDev, "create"}
+		cmd := exec.Command("/usr/local/bin/sudo", args...)
+		err := cmd.Run()
+		if err != nil {
+			log.Printf("failed to create tap: %v", err)
+		}
+	} else if vm.Config.NetDevType == "NETGRAPH" {
+		log.Printf("netgraph not supported yet, set up")
+		return
+	} else {
+		log.Printf("unknown net type, can't set up")
+		return
 	}
 }
 
-func (vm *VM) destroyTapInt() {
+func (vm *VM) netCleanup() {
 	if vm.NetDev == "" {
 		return
 	}
-	args := []string{"/sbin/ifconfig", vm.NetDev, "destroy"}
-	cmd := exec.Command("/usr/local/bin/sudo", args...)
-	err := cmd.Run()
-	if err != nil {
-		log.Printf("failed to destroy tap : %v", err)
+	if strings.HasPrefix(vm.NetDev, "tap") || strings.HasPrefix(vm.NetDev, "vmnet") {
+		args := []string{"/sbin/ifconfig", vm.NetDev, "destroy"}
+		cmd := exec.Command("/usr/local/bin/sudo", args...)
+		err := cmd.Run()
+		if err != nil {
+			log.Printf("failed to destroy network interface : %v", err)
+		}
+		args = []string{"/sbin/ifconfig", "bridge0", "addm", vm.NetDev}
+		cmd = exec.Command("/usr/local/bin/sudo", args...)
+		err = cmd.Run()
+		if err != nil {
+			log.Printf("failed to add tap to bridge: %v", err)
+		}
+	} else if strings.HasPrefix(vm.NetDev, "netgraph") {
+		log.Printf("netgraph not supported yet, can't clean up")
+		return
+	} else {
+		log.Printf("unknown net type, can't clean up")
+		return
 	}
-
-}
-
-func (vm *VM) addTapToBridge() {
-	args := []string{"/sbin/ifconfig", "bridge0", "addm", vm.NetDev}
-	cmd := exec.Command("/usr/local/bin/sudo", args...)
-	err := cmd.Run()
-	if err != nil {
-		log.Printf("failed to add tap to bridge: %v", err)
-	}
-
 }
 
 func vmDaemon(events chan supervisor.Event, vm *VM) {
@@ -338,7 +347,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 					_ = vm.proc.Stop()
 					// TODO - handle vmnet and netgraph - note has to be done before setStopped
 					//   since it uses vm.NetDev (not vm.Config.Net)
-					vm.destroyTapInt()
+					vm.netCleanup()
 					setStopped(vm.ID)
 					vm.mu.Lock()
 					List.VmList[vm.ID].Status = STOPPED
@@ -351,7 +360,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			log.Printf("VM %v %v done", vm.ID, vm.Name)
 			// TODO - handle vmnet and netgraph - note has to be done before setStopped
 			//   since it uses vm.NetDev (not vm.Config.Net)
-			vm.destroyTapInt()
+			vm.netCleanup()
 			setStopped(vm.ID)
 			vm.mu.Lock()
 			List.VmList[vm.ID].Status = STOPPED
