@@ -274,6 +274,12 @@ func (vm *VM) netStartup() {
 		if err != nil {
 			log.Printf("failed to create tap: %v", err)
 		}
+		args = []string{"/sbin/ifconfig", "bridge0", "addm", vm.NetDev}
+		cmd = exec.Command("/usr/local/bin/sudo", args...)
+		err = cmd.Run()
+		if err != nil {
+			log.Printf("failed to add tap to bridge: %v", err)
+		}
 	} else if vm.Config.NetDevType == "NETGRAPH" {
 		log.Printf("netgraph not supported yet, set up")
 		return
@@ -293,12 +299,6 @@ func (vm *VM) netCleanup() {
 		err := cmd.Run()
 		if err != nil {
 			log.Printf("failed to destroy network interface : %v", err)
-		}
-		args = []string{"/sbin/ifconfig", "bridge0", "addm", vm.NetDev}
-		cmd = exec.Command("/usr/local/bin/sudo", args...)
-		err = cmd.Run()
-		if err != nil {
-			log.Printf("failed to add tap to bridge: %v", err)
 		}
 	} else if strings.HasPrefix(vm.NetDev, "netgraph") {
 		log.Printf("netgraph not supported yet, can't clean up")
