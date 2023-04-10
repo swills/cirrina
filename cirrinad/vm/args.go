@@ -1,8 +1,10 @@
 package vm
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"os/exec"
@@ -278,8 +280,206 @@ func containsInt(elems []int, v int) bool {
 	return false
 }
 
+type ngNode struct {
+	nodeName  string
+	nodeType  string
+	nodeId    string
+	nodeHooks int
+}
+
+func ngGetNodes() (ngNodes []ngNode, err error) {
+	cmd := exec.Command("/usr/local/bin/sudo", "/usr/sbin/ngctl", "list")
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		text := scanner.Text()
+		textFields := strings.Fields(text)
+		if len(textFields) != 9 {
+			continue
+		}
+		if !strings.HasPrefix(textFields[0], "Name:") {
+			continue
+		}
+		aNodeName := textFields[1]
+		if !strings.HasPrefix(textFields[2], "Type:") {
+			continue
+		}
+		aNodeType := textFields[3]
+		if !strings.HasPrefix(textFields[4], "ID:") {
+			continue
+		}
+		aNodeId := textFields[5]
+		if !strings.HasPrefix(textFields[7], "hooks:") {
+			continue
+		}
+		aNodeHooks, _ := strconv.Atoi(textFields[8])
+		ngNodes = append(ngNodes, ngNode{
+			nodeName:  aNodeName,
+			nodeType:  aNodeType,
+			nodeId:    aNodeId,
+			nodeHooks: aNodeHooks,
+		})
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println(err)
+	}
+
+	return ngNodes, nil
+}
+
+func ngGetBridges() (bridges []string, err error) {
+	netgraphNodes, err := ngGetNodes()
+	if err != nil {
+		return nil, err
+	}
+	// loop and check for type = bridge, add to list and return list
+	for _, node := range netgraphNodes {
+		if node.nodeType == "bridge" {
+			bridges = append(bridges, node.nodeName)
+		}
+	}
+	return bridges, nil
+}
+
+func ngAllocateBridge(bridgeNames []string) (bridgeName string) {
+	bnetNum := 0
+	bridgeFound := false
+	for !bridgeFound {
+		bridgeName = "bnet" + strconv.Itoa(bnetNum)
+		if containsStr(bridgeNames, bridgeName) {
+			bnetNum += 1
+		} else {
+			bridgeFound = true
+		}
+	}
+	return bridgeName
+}
+
+type ngBridge struct {
+	localHook string
+	peerName  string
+	peerType  string
+	peerId    string
+	peerHook  string
+}
+
+func ngShowBridge(bridge string) (peers []ngBridge, err error) {
+	cmd := exec.Command("/usr/local/bin/sudo", "/usr/sbin/ngctl", "show",
+		bridge+":")
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+	scanner := bufio.NewScanner(stdout)
+	lineNo := 0
+	for scanner.Scan() {
+		text := scanner.Text()
+		lineNo += 1
+		if lineNo < 4 {
+			continue
+		}
+		textFields := strings.Fields(text)
+		if len(textFields) != 5 {
+			continue
+		}
+		aBridge := ngBridge{
+			localHook: textFields[0],
+			peerName:  textFields[1],
+			peerType:  textFields[2],
+			peerId:    textFields[3],
+			peerHook:  textFields[4],
+		}
+		peers = append(peers, aBridge)
+	}
+
+	return peers, nil
+}
+
+func ngBridgeUplink(peers []ngBridge) (link string) {
+	var upperLink string
+	var lowerLink string
+
+	for _, peer := range peers {
+		if peer.peerHook == "upper" {
+			upperLink = peer.peerName
+		}
+		if peer.peerHook == "lower" {
+			lowerLink = peer.peerName
+		}
+	}
+	if upperLink != "" && upperLink == lowerLink {
+		return upperLink
+	}
+	return ""
+}
+
+func ngBridgeNextPeer(peers []ngBridge) (link string) {
+	found := false
+	linkNum := 0
+	linkName := ""
+	var hooks []string
+
+	for _, peer := range peers {
+		hooks = append(hooks, peer.localHook)
+	}
+
+	for !found {
+		linkName = "link" + strconv.Itoa(linkNum)
+		if containsStr(hooks, linkName) {
+			linkNum += 1
+		} else {
+			found = true
+		}
+	}
+	return linkName
+}
+
+func ngGetDev(link string) (bridge string, peer string, err error) {
+	defaultPeerLink := "link2"
+	var bridgeNet string
+	var nextLink string
+
+	bridgeList, err := ngGetBridges()
+	if err != nil {
+		return bridge, peer, err
+	}
+
+	if link != "" {
+		for _, bridge := range bridgeList {
+			bridgePeers, err := ngShowBridge(bridge)
+			if err != nil {
+				return "", "", err
+			}
+			peerLink := ngBridgeUplink(bridgePeers)
+			if peerLink == link {
+				bridgeNet = bridge
+				nextLink = ngBridgeNextPeer(bridgePeers)
+			}
+		}
+		if bridgeNet == "" {
+			bridgeNet = ngAllocateBridge(bridgeList)
+			// TODO - ?
+			nextLink = defaultPeerLink
+		}
+	} else {
+		// TODO - pick peer automatically?
+		return bridge, peer, err
+	}
+	return bridgeNet, nextLink, nil
+
+}
+
 func (vm *VM) getNetArg(slot int) ([]string, int) {
-	// TODO -- see old weasel code... -- mostly just handing other net types
 	if !vm.Config.Net {
 		return []string{}, slot
 	}
@@ -293,16 +493,21 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 		return []string{}, slot
 	}
 	var netDev string
+	var netDevArg string
 	if vm.Config.NetDevType == "TAP" {
 		netDev = getTapDev()
+		netDevArg = netDev
 	} else if vm.Config.NetDevType == "VMNET" {
 		netDev = getVmnetDev()
+		netDevArg = netDev
 	} else if vm.Config.NetDevType == "NETGRAPH" {
-		log.Printf("netgraph not supported yet, can't configure")
-		netDev = "netgraph"
-		vm.NetDev = netDev
-		_ = vm.Save()
-		return []string{}, slot
+		ngNetDev, ngPeerHook, err := ngGetDev("em0")
+		if err != nil {
+			log.Printf("ngGetDev error: %v", err)
+			return []string{}, slot
+		}
+		netDev = ngNetDev
+		netDevArg = "netgraph,path=" + ngNetDev + ":,peerhook=" + ngPeerHook + ",socket=" + vm.Name
 	} else {
 		log.Printf("unknown net dev type %v", vm.Config.NetDevType)
 		return []string{}, slot
@@ -312,7 +517,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	if macAddress != "AUTO" {
 		macString = ",mac=" + macAddress
 	}
-	netArg := []string{"-s", strconv.Itoa(slot) + "," + netType + "," + netDev + macString}
+	netArg := []string{"-s", strconv.Itoa(slot) + "," + netType + "," + netDevArg + macString}
 	slot = slot + 1
 	vm.NetDev = netDev
 	_ = vm.Save()

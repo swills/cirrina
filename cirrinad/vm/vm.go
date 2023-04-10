@@ -266,6 +266,58 @@ func (vm *VM) createUefiVarsFile() {
 	}
 }
 
+func ngCreateBridge(netDev string, bridgePeer string) (err error) {
+	if netDev == "" {
+		return errors.New("netDev can't be empty")
+	}
+	if bridgePeer == "" {
+		return errors.New("bridgePeer can't be empty")
+	}
+	cmd := exec.Command("/usr/local/bin/sudo", "/usr/sbin/ngctl", "mkpeer",
+		bridgePeer+":", "bridge", "lower", "link0")
+	err = cmd.Run()
+	if err != nil {
+		log.Printf("ngctl mkpeer err: %v", err)
+		return err
+	}
+	cmd = exec.Command("/usr/local/bin/sudo", "/usr/sbin/ngctl", "name",
+		bridgePeer+":lower", netDev)
+	err = cmd.Run()
+	if err != nil {
+		log.Printf("ngctl name err: %v", err)
+		return err
+	}
+	useUplink := true
+	var upper string
+	if useUplink {
+		upper = "uplink"
+	} else {
+		upper = "link"
+	}
+	cmd = exec.Command("/usr/local/bin/sudo", "/usr/sbin/ngctl", "connect",
+		bridgePeer+":", netDev+":", "upper", upper+"1")
+	err = cmd.Run()
+	if err != nil {
+		log.Printf("ngctl connect err: %v", err)
+		return err
+	}
+	cmd = exec.Command("/usr/local/bin/sudo", "/usr/sbin/ngctl", "msg",
+		bridgePeer+":", "setpromisc", "1")
+	err = cmd.Run()
+	if err != nil {
+		log.Printf("ngctl msg err: %v", err)
+		return err
+	}
+	cmd = exec.Command("/usr/local/bin/sudo", "/usr/sbin/ngctl", "msg",
+		bridgePeer+":", "setautosrc", "0")
+	err = cmd.Run()
+	if err != nil {
+		log.Printf("ngctl msg err: %v", err)
+		return err
+	}
+	return nil
+}
+
 func (vm *VM) netStartup() {
 	if vm.Config.NetDevType == "TAP" || vm.Config.NetDevType == "VMNET" {
 		args := []string{"/sbin/ifconfig", vm.NetDev, "create"}
@@ -281,8 +333,17 @@ func (vm *VM) netStartup() {
 			log.Printf("failed to add tap to bridge: %v", err)
 		}
 	} else if vm.Config.NetDevType == "NETGRAPH" {
-		log.Printf("netgraph not supported yet, set up")
-		return
+		bridgeList, err := ngGetBridges()
+		if err != nil {
+			log.Print("error getting bridge list: %v", err)
+			return
+		}
+		if !containsStr(bridgeList, vm.NetDev) {
+			err := ngCreateBridge(vm.NetDev, "em0")
+			if err != nil {
+				log.Printf("ngCreateBridge err: %v", err)
+			}
+		}
 	} else {
 		log.Printf("unknown net type, can't set up")
 		return
@@ -301,7 +362,7 @@ func (vm *VM) netCleanup() {
 			log.Printf("failed to destroy network interface : %v", err)
 		}
 	} else if strings.HasPrefix(vm.NetDev, "netgraph") {
-		log.Printf("netgraph not supported yet, can't clean up")
+		// TODO - nothing to do for now, later this will need to check and destroy the netgraph bridge
 		return
 	} else {
 		log.Printf("unknown net type, can't clean up")
