@@ -21,7 +21,7 @@ type server struct {
 }
 
 func (s *server) AddVM(_ context.Context, v *cirrina.VMConfig) (*cirrina.VMID, error) {
-	if _, err := vm.GetByName(*v.Name); err != nil {
+	if _, err := vm.GetByName(*v.Name); err == nil {
 		return &cirrina.VMID{}, errors.New(fmt.Sprintf("%v already exists", v.Name))
 
 	}
