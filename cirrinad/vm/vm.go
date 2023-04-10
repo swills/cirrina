@@ -361,7 +361,7 @@ func (vm *VM) netCleanup() {
 		if err != nil {
 			log.Printf("failed to destroy network interface : %v", err)
 		}
-	} else if strings.HasPrefix(vm.NetDev, "netgraph") {
+	} else if strings.HasPrefix(vm.NetDev, "bnet") {
 		// TODO - nothing to do for now, later this will need to check and destroy the netgraph bridge
 		return
 	} else {
