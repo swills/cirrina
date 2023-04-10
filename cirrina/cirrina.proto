@@ -73,6 +73,9 @@ message VMConfig {
   optional bool autostart = 27;
   optional NetDevType netdevtype = 28;
   optional NetType nettype = 29;
+  optional bool sound = 30;
+  optional string sound_in = 31;
+  optional string sound_out = 32;
 }
 
 message VMsQuery {

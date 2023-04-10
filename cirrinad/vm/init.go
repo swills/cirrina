@@ -50,6 +50,9 @@ type Config struct {
 	AutoStart        bool   `gorm:"default:False;check:auto_start IN (0,1)"`
 	NetType          string `gorm:"default:VIRTIONET;check:net_type IN (\"VIRTIONET\",\"E1000\")"`
 	NetDevType       string `gorm:"default:TAP;check:net_dev_type IN (\"TAP\",\"VMNET\",\"NETGRAPH\")"`
+	Sound            bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
+	SoundIn          string `gorm:"default:/dev/dsp0"`
+	SoundOut         string `gorm:"default:/dev/dsp0"`
 }
 
 type VM struct {

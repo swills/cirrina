@@ -87,6 +87,9 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Mac = &vmInst.Config.Mac
 	pvm.Keyboard = &vmInst.Config.KbdLayout
 	pvm.Autostart = &vmInst.Config.AutoStart
+	pvm.Sound = &vmInst.Config.Sound
+	pvm.SoundIn = &vmInst.Config.SoundIn
+	pvm.SoundOut = &vmInst.Config.SoundOut
 	NetTypeVIRTIONET := cirrina.NetType_VIRTIONET
 	NetTypeE1000 := cirrina.NetType_E1000
 	if vmInst.Config.NetType == "VIRTIONET" {
@@ -404,6 +407,19 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 		} else if *rc.Nettype == 1 {
 			vmInst.Config.NetType = "E1000"
 		}
+	}
+	if isOptionPassed(reflect, "sound") {
+		if *rc.Sound {
+			vmInst.Config.Sound = true
+		} else {
+			vmInst.Config.Sound = false
+		}
+	}
+	if isOptionPassed(reflect, "sound_in") {
+		vmInst.Config.SoundIn = *rc.SoundIn
+	}
+	if isOptionPassed(reflect, "sound_out") {
+		vmInst.Config.SoundOut = *rc.SoundOut
 	}
 
 	err = vmInst.Save()

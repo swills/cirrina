@@ -152,6 +152,9 @@ func (vm *VM) Save() error {
 			"auto_start":         &vm.Config.AutoStart,
 			"net_dev_type":       &vm.Config.NetDevType,
 			"net_type":           &vm.Config.NetType,
+			"sound":              &vm.Config.Sound,
+			"sound_in":           &vm.Config.SoundIn,
+			"sound_out":          &vm.Config.SoundOut,
 		},
 		)
 

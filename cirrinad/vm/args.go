@@ -103,9 +103,36 @@ func (vm *VM) getROMArg() []string {
 	}
 }
 
-func (vm *VM) getSoundArg() []string {
-	// TODO -- see old weasel code...
-	return []string{}
+func (vm *VM) getSoundArg(slot int) ([]string, int) {
+	if !vm.Config.Sound {
+		return []string{}, slot
+	}
+	var soundArg []string
+	var soundString string
+	inPathExists, err := exists(vm.Config.SoundIn)
+	if err != nil {
+		log.Printf("sound in check error: %v", err)
+	}
+	outPathExists, err := exists(vm.Config.SoundIn)
+	if err != nil {
+		log.Printf("sound out check error: %v", err)
+	}
+	if inPathExists || outPathExists {
+		soundString = ",hda"
+		if outPathExists {
+			soundString = soundString + ",play=" + vm.Config.SoundOut
+		} else {
+			log.Printf("sound out path doesn't exist: %v", err)
+		}
+		if inPathExists {
+			soundString = soundString + ",rec=" + vm.Config.SoundIn
+		} else {
+			log.Printf("sound in path doesn't exist: %v", err)
+		}
+	}
+	soundArg = []string{"-s", strconv.Itoa(slot) + soundString}
+	slot = slot + 1
+	return soundArg, slot
 }
 
 func (vm *VM) getUTCArg() []string {
@@ -586,11 +613,11 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	tabletArg, slot := vm.getTabletArg(slot)
 	netArg, slot := vm.getNetArg(slot)
 	diskArg, slot := vm.getDiskArg(slot)
+	soundArg, slot := vm.getSoundArg(slot)
 	lpcArg, slot := vm.getLPCArg(slot)
 
 	// TODO - add keyboard arg
 	// TODO - add cd arg
-	// TODO - add sound arg
 	// TODO - add com args
 	// TODO - add extra args
 
@@ -611,6 +638,7 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	args = append(args, tabletArg...)
 	args = append(args, netArg...)
 	args = append(args, diskArg...)
+	args = append(args, soundArg...)
 	args = append(args, lpcArg...)
 	args = append(args, vm.Name)
 	return name, args, nil
