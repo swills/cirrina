@@ -53,6 +53,14 @@ type Config struct {
 	Sound            bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
 	SoundIn          string `gorm:"default:/dev/dsp0"`
 	SoundOut         string `gorm:"default:/dev/dsp0"`
+	Com1             bool   `gorm:"default:True;check:vnc_wait IN(0,1)"`
+	Com1Dev          string `gorm:"default:AUTO"`
+	Com2             bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
+	Com2Dev          string `gorm:"default:AUTO"`
+	Com3             bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
+	Com3Dev          string `gorm:"default:AUTO"`
+	Com4             bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
+	Com4Dev          string `gorm:"default:AUTO"`
 }
 
 type VM struct {

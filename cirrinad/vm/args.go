@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"os/exec"
 	"sort"
 	"strconv"
@@ -595,9 +596,66 @@ func getVmnetDev() string {
 	return vmnetDev
 }
 
+func getNmdmNum(offset int) (nmdm string, err error) {
+	// dear god this is so ugly please kill it
+	var nmdmDevs []string
+	var nmdmDev string
+	devList, err := os.ReadDir("/dev/")
+	if err != nil {
+		return "", err
+	}
+	for _, dev := range devList {
+		devName := dev.Name()
+		if strings.HasPrefix(devName, "nmdm") {
+			a := strings.TrimLeft(devName, "nmdm")
+			b := strings.TrimRight(a, "A")
+			c := strings.TrimRight(b, "B")
+			if !containsStr(nmdmDevs, c) {
+				nmdmDevs = append(nmdmDevs, c)
+			}
+		}
+	}
+	sort.Strings(nmdmDevs)
+	log.Printf("getNmdmNum nmdmDevs: %v", nmdmDevs)
+	if len(nmdmDevs) == 0 {
+		nmdmDev = "/dev/nmdm" + strconv.Itoa(offset) + "A"
+	} else {
+		d := nmdmDevs[len(nmdmDevs)-1]
+		e, err := strconv.Atoi(d)
+		if err != nil {
+			return "", err
+		}
+		f := e + 1 + offset
+		nmdmDev = "/dev/nmdm" + strconv.Itoa(f) + "A"
+	}
+	return nmdmDev, nil
+}
+
+func getCom(comDev string, nmdmOffset int, num int) (int, []string, string) {
+	var err error
+	nmdm := ""
+	var comArg []string
+	if comDev == "AUTO" {
+		nmdm, err = getNmdmNum(nmdmOffset)
+		if err != nil {
+			return nmdmOffset + 1, comArg, ""
+		}
+		nmdmOffset = nmdmOffset + 1
+	} else {
+		nmdm = comDev
+	}
+	comArg = append(comArg, "-l", "com"+strconv.Itoa(num)+","+nmdm)
+	return nmdmOffset, comArg, nmdm
+}
+
 func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	name = "/usr/local/bin/sudo"
 	slot := 0
+	nmdmOffset := 0
+	var com1Arg []string
+	var com2Arg []string
+	var com3Arg []string
+	var com4Arg []string
 	cpuArg := vm.getCpuArg()
 	memArg := vm.getMemArg()
 	acpiArg := vm.getACPIArg()
@@ -614,6 +672,22 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	netArg, slot := vm.getNetArg(slot)
 	diskArg, slot := vm.getDiskArg(slot)
 	soundArg, slot := vm.getSoundArg(slot)
+	if vm.Config.Com1 {
+		nmdmOffset, com1Arg, _ = getCom(vm.Config.Com1Dev, nmdmOffset, 1)
+		log.Printf("getting com1")
+	}
+	if vm.Config.Com2 {
+		nmdmOffset, com2Arg, _ = getCom(vm.Config.Com1Dev, nmdmOffset, 2)
+		log.Printf("getting com2")
+	}
+	if vm.Config.Com3 {
+		nmdmOffset, com3Arg, _ = getCom(vm.Config.Com1Dev, nmdmOffset, 3)
+		log.Printf("getting com3")
+	}
+	if vm.Config.Com4 {
+		nmdmOffset, com4Arg, _ = getCom(vm.Config.Com1Dev, nmdmOffset, 4)
+		log.Printf("getting com4")
+	}
 	lpcArg, slot := vm.getLPCArg(slot)
 
 	// TODO - add keyboard arg
@@ -640,6 +714,22 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	args = append(args, diskArg...)
 	args = append(args, soundArg...)
 	args = append(args, lpcArg...)
+	if len(com1Arg) != 0 {
+		log.Printf("com1Arg: %T \"%v\" %q", com1Arg, com1Arg, com1Arg)
+		args = append(args, com1Arg...)
+	}
+	if len(com2Arg) != 0 {
+		log.Printf("com2Arg: %T \"%v\" %q", com2Arg, com2Arg, com2Arg)
+		args = append(args, com2Arg...)
+	}
+	if len(com3Arg) != 0 {
+		log.Printf("com3Arg: %T \"%v\" %q", com3Arg, com3Arg, com3Arg)
+		args = append(args, com3Arg...)
+	}
+	if len(com4Arg) != 0 {
+		log.Printf("com4Arg: %T \"%v\" %q", com4Arg, com4Arg, com4Arg)
+		args = append(args, com4Arg...)
+	}
 	args = append(args, vm.Name)
 	return name, args, nil
 }

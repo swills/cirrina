@@ -155,6 +155,14 @@ func (vm *VM) Save() error {
 			"sound":              &vm.Config.Sound,
 			"sound_in":           &vm.Config.SoundIn,
 			"sound_out":          &vm.Config.SoundOut,
+			"com1":               &vm.Config.Com1,
+			"com1_dev":           &vm.Config.Com1Dev,
+			"com2":               &vm.Config.Com2,
+			"com2_dev":           &vm.Config.Com2Dev,
+			"com3":               &vm.Config.Com3,
+			"com3_dev":           &vm.Config.Com3Dev,
+			"com4":               &vm.Config.Com4,
+			"com4_dev":           &vm.Config.Com4Dev,
 		},
 		)
 
@@ -338,7 +346,7 @@ func (vm *VM) netStartup() {
 	} else if vm.Config.NetDevType == "NETGRAPH" {
 		bridgeList, err := ngGetBridges()
 		if err != nil {
-			log.Print("error getting bridge list: %v", err)
+			log.Printf("error getting bridge list: %v", err)
 			return
 		}
 		if !containsStr(bridgeList, vm.NetDev) {

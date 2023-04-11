@@ -76,6 +76,14 @@ message VMConfig {
   optional bool sound = 30;
   optional string sound_in = 31;
   optional string sound_out = 32;
+  optional bool com1 = 33;
+  optional string com1dev = 34;
+  optional bool com2 = 35;
+  optional string com2dev = 36;
+  optional bool com3 = 37;
+  optional string com3dev = 38;
+  optional bool com4 = 39;
+  optional string com4dev = 40;
 }
 
 message VMsQuery {

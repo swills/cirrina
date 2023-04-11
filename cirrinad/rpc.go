@@ -90,6 +90,14 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Sound = &vmInst.Config.Sound
 	pvm.SoundIn = &vmInst.Config.SoundIn
 	pvm.SoundOut = &vmInst.Config.SoundOut
+	pvm.Com1 = &vmInst.Config.Com1
+	pvm.Com1Dev = &vmInst.Config.Com1Dev
+	pvm.Com2 = &vmInst.Config.Com2
+	pvm.Com2Dev = &vmInst.Config.Com2Dev
+	pvm.Com3 = &vmInst.Config.Com3
+	pvm.Com3Dev = &vmInst.Config.Com3Dev
+	pvm.Com4 = &vmInst.Config.Com4
+	pvm.Com4Dev = &vmInst.Config.Com4Dev
 	NetTypeVIRTIONET := cirrina.NetType_VIRTIONET
 	NetTypeE1000 := cirrina.NetType_E1000
 	if vmInst.Config.NetType == "VIRTIONET" {
@@ -420,6 +428,47 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	}
 	if isOptionPassed(reflect, "sound_out") {
 		vmInst.Config.SoundOut = *rc.SoundOut
+	}
+	if isOptionPassed(reflect, "com1") {
+		if *rc.Com1 {
+			vmInst.Config.Com1 = true
+		} else {
+			vmInst.Config.Com1 = false
+		}
+	}
+	if isOptionPassed(reflect, "com1dev") {
+		vmInst.Config.Com1Dev = *rc.Com1Dev
+	}
+	if isOptionPassed(reflect, "com2") {
+		if *rc.Com2 {
+			vmInst.Config.Com2 = true
+		} else {
+			vmInst.Config.Com2 = false
+		}
+	}
+	if isOptionPassed(reflect, "com2dev") {
+		vmInst.Config.Com2Dev = *rc.Com2Dev
+	}
+	if isOptionPassed(reflect, "com3") {
+		if *rc.Com3 {
+			vmInst.Config.Com3 = true
+		} else {
+			vmInst.Config.Com3 = false
+		}
+	}
+	if isOptionPassed(reflect, "com3dev") {
+		vmInst.Config.Com3Dev = *rc.Com3Dev
+	}
+
+	if isOptionPassed(reflect, "com4") {
+		if *rc.Com4 {
+			vmInst.Config.Com4 = true
+		} else {
+			vmInst.Config.Com4 = false
+		}
+	}
+	if isOptionPassed(reflect, "com4dev") {
+		vmInst.Config.Com4Dev = *rc.Com4Dev
 	}
 
 	err = vmInst.Save()
