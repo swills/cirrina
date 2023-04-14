@@ -253,6 +253,7 @@ func copyFile(in, out string) (int64, error) {
 }
 
 func (vm *VM) createUefiVarsFile() {
+	// TODO make baseVMStatePath a config item
 	uefiVarsFilePath := baseVMStatePath + "/" + vm.Name
 	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
 	uvPathExists, err := exists(uefiVarsFilePath)
@@ -418,8 +419,6 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 				} else {
 					log.Printf("VM %v %v disabled, cleaning up", vm.ID, vm.Name)
 					_ = vm.proc.Stop()
-					// TODO - handle vmnet and netgraph - note has to be done before setStopped
-					//   since it uses vm.NetDev (not vm.Config.Net)
 					vm.netCleanup()
 					setStopped(vm.ID)
 					vm.mu.Lock()
@@ -431,8 +430,6 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			}
 		case <-vm.proc.DoneNotifier():
 			log.Printf("VM %v %v done", vm.ID, vm.Name)
-			// TODO - handle vmnet and netgraph - note has to be done before setStopped
-			//   since it uses vm.NetDev (not vm.Config.Net)
 			vm.netCleanup()
 			setStopped(vm.ID)
 			vm.mu.Lock()

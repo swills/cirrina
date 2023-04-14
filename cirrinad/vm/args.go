@@ -94,15 +94,23 @@ func (vm *VM) getMSRArg() []string {
 }
 
 func (vm *VM) getROMArg() []string {
-	uefiVarsPath := baseVMStatePath + "/" + vm.Name + "/BHYVE_UEFI_VARS.fd"
-	// TODO check that storing uefi vars is enabled,
-	//   if so, include vars file path and check it exists, copy it if not
-	//   if not, just include rom path
-	// TODO check that uefiVarsPath exists, if not, copy from template file
-	return []string{
-		"-l",
-		"bootrom," + bootRomPath + "," + uefiVarsPath,
+	var romArg []string
+
+	if vm.Config.StoreUEFIVars {
+		// TODO make baseVMStatePath a config item
+		uefiVarsPath := baseVMStatePath + "/" + vm.Name + "/BHYVE_UEFI_VARS.fd"
+		romArg = []string{
+			"-l",
+			"bootrom," + bootRomPath + "," + uefiVarsPath,
+		}
+	} else {
+		romArg = []string{
+			"-l",
+			"bootrom," + bootRomPath,
+		}
 	}
+
+	return romArg
 }
 
 func (vm *VM) getSoundArg(slot int) ([]string, int) {
@@ -148,11 +156,6 @@ func (vm *VM) getWireArg() []string {
 	if vm.Config.WireGuestMem {
 		return []string{"-S"}
 	}
-	return []string{}
-}
-
-func (vm *VM) getNMDMArg() []string {
-	// TODO see old weasel code, mostly just need to rename to function to find free nmdm dev
 	return []string{}
 }
 
@@ -284,11 +287,6 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 	}
 	slot = slot + 1
 	return fbufArg, slot
-}
-
-func (vm *VM) getCOMArg() []string {
-	// TODO -- see old weasel code...
-	return []string{}
 }
 
 func containsStr(elems []string, v string) bool {
@@ -675,19 +673,15 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	soundArg, slot := vm.getSoundArg(slot)
 	if vm.Config.Com1 {
 		nmdmOffset, com1Arg, _ = getCom(vm.Config.Com1Dev, nmdmOffset, 1)
-		log.Printf("getting com1")
 	}
 	if vm.Config.Com2 {
 		nmdmOffset, com2Arg, _ = getCom(vm.Config.Com1Dev, nmdmOffset, 2)
-		log.Printf("getting com2")
 	}
 	if vm.Config.Com3 {
 		nmdmOffset, com3Arg, _ = getCom(vm.Config.Com1Dev, nmdmOffset, 3)
-		log.Printf("getting com3")
 	}
 	if vm.Config.Com4 {
 		nmdmOffset, com4Arg, _ = getCom(vm.Config.Com1Dev, nmdmOffset, 4)
-		log.Printf("getting com4")
 	}
 	lpcArg, slot := vm.getLPCArg(slot)
 
@@ -718,19 +712,15 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	args = append(args, soundArg...)
 	args = append(args, lpcArg...)
 	if len(com1Arg) != 0 {
-		log.Printf("com1Arg: %T \"%v\" %q", com1Arg, com1Arg, com1Arg)
 		args = append(args, com1Arg...)
 	}
 	if len(com2Arg) != 0 {
-		log.Printf("com2Arg: %T \"%v\" %q", com2Arg, com2Arg, com2Arg)
 		args = append(args, com2Arg...)
 	}
 	if len(com3Arg) != 0 {
-		log.Printf("com3Arg: %T \"%v\" %q", com3Arg, com3Arg, com3Arg)
 		args = append(args, com3Arg...)
 	}
 	if len(com4Arg) != 0 {
-		log.Printf("com4Arg: %T \"%v\" %q", com4Arg, com4Arg, com4Arg)
 		args = append(args, com4Arg...)
 	}
 	args = append(args, extraArgs...)
