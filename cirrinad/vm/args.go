@@ -615,7 +615,6 @@ func getNmdmNum(offset int) (nmdm string, err error) {
 		}
 	}
 	sort.Strings(nmdmDevs)
-	log.Printf("getNmdmNum nmdmDevs: %v", nmdmDevs)
 	if len(nmdmDevs) == 0 {
 		nmdmDev = "/dev/nmdm" + strconv.Itoa(offset) + "A"
 	} else {
