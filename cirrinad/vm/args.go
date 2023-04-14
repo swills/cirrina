@@ -15,7 +15,9 @@ import (
 )
 
 func (vm *VM) getKeyboardArg() []string {
-	// TODO -- see old weasel code...
+	if vm.Config.Screen && vm.Config.KbdLayout != "default" {
+		return []string{"-K", vm.Config.KbdLayout}
+	}
 	return []string{}
 }
 
@@ -690,9 +692,8 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	}
 	lpcArg, slot := vm.getLPCArg(slot)
 
-	// TODO - add keyboard arg
+	kbdArg := vm.getKeyboardArg()
 	// TODO - add cd arg
-	// TODO - add com args
 	// TODO - add extra args
 
 	args = append(args, "/usr/bin/protect")
@@ -709,6 +710,7 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	args = append(args, memArg...)
 	args = append(args, hostBridgeArg...)
 	args = append(args, fbufArg...)
+	args = append(args, kbdArg...)
 	args = append(args, tabletArg...)
 	args = append(args, netArg...)
 	args = append(args, diskArg...)
