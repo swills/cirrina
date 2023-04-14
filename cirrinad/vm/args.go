@@ -63,8 +63,7 @@ func (vm *VM) getEOPArg() []string {
 }
 
 func (vm *VM) getExtraArg() []string {
-	// TODO just get this from DB
-	return []string{}
+	return strings.Fields(vm.Config.ExtraArgs)
 }
 
 func (vm *VM) getHLTArg() []string {
@@ -693,8 +692,10 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	lpcArg, slot := vm.getLPCArg(slot)
 
 	kbdArg := vm.getKeyboardArg()
+
+	extraArgs := vm.getExtraArg()
+
 	// TODO - add cd arg
-	// TODO - add extra args
 
 	args = append(args, "/usr/bin/protect")
 	args = append(args, "/usr/sbin/bhyve")
@@ -732,6 +733,7 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 		log.Printf("com4Arg: %T \"%v\" %q", com4Arg, com4Arg, com4Arg)
 		args = append(args, com4Arg...)
 	}
+	args = append(args, extraArgs...)
 	args = append(args, vm.Name)
 	return name, args, nil
 }

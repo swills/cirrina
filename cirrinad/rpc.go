@@ -115,6 +115,9 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	} else if vmInst.Config.NetDevType == "NETGRAPH" {
 		pvm.Netdevtype = &NetDevTypeNETGRAPH
 	}
+	if vmInst.Config.ExtraArgs != "" {
+		pvm.ExtraArgs = &vmInst.Config.ExtraArgs
+	}
 	return &pvm, nil
 }
 
@@ -469,6 +472,9 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	}
 	if isOptionPassed(reflect, "com4dev") {
 		vmInst.Config.Com4Dev = *rc.Com4Dev
+	}
+	if isOptionPassed(reflect, "extra_args") {
+		vmInst.Config.ExtraArgs = *rc.ExtraArgs
 	}
 
 	err = vmInst.Save()

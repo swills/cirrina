@@ -163,6 +163,7 @@ func (vm *VM) Save() error {
 			"com3_dev":           &vm.Config.Com3Dev,
 			"com4":               &vm.Config.Com4,
 			"com4_dev":           &vm.Config.Com4Dev,
+			"extra_args":         &vm.Config.ExtraArgs,
 		},
 		)
 

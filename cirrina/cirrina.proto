@@ -84,6 +84,7 @@ message VMConfig {
   optional string com3dev = 38;
   optional bool com4 = 39;
   optional string com4dev = 40;
+  optional string extra_args = 41;
 }
 
 message VMsQuery {
