@@ -62,6 +62,7 @@ type Config struct {
 	Com4             bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
 	Com4Dev          string `gorm:"default:AUTO"`
 	ExtraArgs        string
+	ISOs             string
 }
 
 type VM struct {

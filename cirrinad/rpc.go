@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"cirrina/cirrina"
+	"cirrina/cirrinad/iso"
 	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/vm"
 	"context"
@@ -483,6 +484,99 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	}
 	re.Success = true
 	return &re, nil
+}
+
+func (s *server) GetISOs(_ *cirrina.ISOsQuery, stream cirrina.VMInfo_GetISOsServer) error {
+	var isos []*iso.ISO
+	var ISOId cirrina.ISOID
+	isos = iso.GetAll()
+	for e := range isos {
+		ISOId.Value = isos[e].ID
+		err := stream.Send(&ISOId)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+
+}
+
+func (s *server) AddISO(_ context.Context, i *cirrina.ISOInfo) (*cirrina.ISOID, error) {
+	//if _, err := iso.GetByName(*isoInfo.Name); err == nil {
+	//	return &cirrina.ISOID{}, errors.New(fmt.Sprintf("%v already exists", v.Name))
+	//
+	//}
+	//defer vm.List.Mu.Unlock()
+	//vm.List.Mu.Lock()
+	isoInst, err := iso.Create(*i.Name, *i.Description, *i.Path)
+	if err != nil {
+		return &cirrina.ISOID{}, err
+	}
+	//iso.List.VmList[vmInst.ID] = vmInst
+	return &cirrina.ISOID{Value: isoInst.ID}, nil
+}
+
+func (s *server) GetISOInfo(_ context.Context, i *cirrina.ISOID) (*cirrina.ISOInfo, error) {
+	var ic cirrina.ISOInfo
+	if i.Value != "" {
+		isoInst, err := iso.GetById(i.Value)
+		if err != nil {
+			log.Printf("error getting iso %v, %v", i.Value, err)
+			return &ic, err
+		}
+		ic.Name = &isoInst.Name
+		ic.Description = &isoInst.Description
+	}
+	return &ic, nil
+}
+
+func (s *server) SetVmISOs(_ context.Context, sr *cirrina.SetISOReq) (*cirrina.ReqBool, error) {
+	var isosConfigVal string
+	count := 0
+	re := cirrina.ReqBool{}
+	re.Success = false
+	for _, isoid := range sr.Isoid {
+		if count > 0 {
+			isosConfigVal += ","
+		}
+		isosConfigVal += isoid
+		count += 1
+	}
+	vmInst, err := vm.GetById(sr.Id)
+	if err != nil {
+		log.Printf("error getting vm %v, %v", sr.Id, err)
+		return &re, err
+	}
+	vmInst.Config.ISOs = isosConfigVal
+	err = vmInst.Save()
+	if err != nil {
+		return &re, err
+	}
+	re.Success = true
+	return &re, nil
+}
+
+func (s *server) GetVmISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVmISOsServer) error {
+	vmInst, err := vm.GetById(v.Value)
+	if err != nil {
+		log.Printf("error getting vm %v, %v", v.Value, err)
+		return err
+	}
+
+	isos, err := vmInst.GetISOs()
+	if err != nil {
+		return err
+	}
+	var isoId cirrina.ISOID
+
+	for _, e := range isos {
+		isoId.Value = e.ID
+		err := stream.Send(&isoId)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func isOptionPassed(reflect protoreflect.Message, name string) bool {

@@ -44,6 +44,23 @@ func addVM(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *st
 	fmt.Printf("Created VM %v\n", res.Value)
 }
 
+func addISO(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *string, pathPtr *string) {
+	if *namePtr == "" {
+		log.Fatalf("Name not specified")
+		return
+	}
+	res, err := c.AddISO(ctx, &pb.ISOInfo{
+		Name:        namePtr,
+		Description: descrPtr,
+		Path:        pathPtr,
+	})
+	if err != nil {
+		log.Fatalf("could not create ISO: %v", err)
+		return
+	}
+	fmt.Printf("Created ISO %v\n", res.Value)
+}
+
 func DeleteVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if *idPtr == "" {
 		log.Fatalf("ID not specified")
@@ -230,14 +247,14 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 }
 
 func printActionHelp() {
-	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM")
+	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, addISO")
 }
 
 func main() {
 	actionPtr := flag.String("action", "", "action to take")
 	idPtr := flag.String("id", "", "ID of VM")
-	namePtr := flag.String("name", "", "Name of VM")
-	descrPtr := flag.String("descr", "", "Description of VM")
+	namePtr := flag.String("name", "", "Name of VM/ISO")
+	descrPtr := flag.String("descr", "", "Description of VM/ISO")
 	cpuPtr := flag.Uint("cpus", 1, "Number of CPUs in VM")
 	cpuVal := *cpuPtr
 	cpu32Val := uint32(cpuVal)
@@ -253,6 +270,7 @@ func main() {
 	//screenPtr := flag.Bool("screen", true, "Should the VM have a screen (frame buffer)")
 	//screenWidthPtr := flag.Uint("screenWidth", 1920, "Width of VM screen")
 	//screenHeightPtr := flag.Uint(screenHeight, 1080, "Height of VM screen")
+	pathPtr := flag.String("path", "", "path of ISO")
 
 	flag.Parse()
 	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -284,6 +302,8 @@ func main() {
 		getVMState(idPtr, c, ctx)
 	case "addVM":
 		addVM(namePtr, c, ctx, descrPtr, cpu32Ptr, mem32Ptr)
+	case "addISO":
+		addISO(namePtr, c, ctx, descrPtr, pathPtr)
 	case "reConfig":
 		Reconfig(idPtr, err, namePtr, descrPtr, cpuPtr, memPtr, autoStartPtr, c, ctx)
 	case "deleteVM":

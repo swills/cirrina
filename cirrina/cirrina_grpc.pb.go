@@ -29,6 +29,11 @@ const (
 	VMInfo_DeleteVM_FullMethodName           = "/cirrina.VMInfo/DeleteVM"
 	VMInfo_RequestStatus_FullMethodName      = "/cirrina.VMInfo/RequestStatus"
 	VMInfo_GetKeyboardLayouts_FullMethodName = "/cirrina.VMInfo/GetKeyboardLayouts"
+	VMInfo_GetISOs_FullMethodName            = "/cirrina.VMInfo/GetISOs"
+	VMInfo_GetISOInfo_FullMethodName         = "/cirrina.VMInfo/GetISOInfo"
+	VMInfo_AddISO_FullMethodName             = "/cirrina.VMInfo/AddISO"
+	VMInfo_SetVmISOs_FullMethodName          = "/cirrina.VMInfo/SetVmISOs"
+	VMInfo_GetVmISOs_FullMethodName          = "/cirrina.VMInfo/GetVmISOs"
 )
 
 // VMInfoClient is the client API for VMInfo service.
@@ -45,6 +50,11 @@ type VMInfoClient interface {
 	DeleteVM(ctx context.Context, in *VMID, opts ...grpc.CallOption) (*RequestID, error)
 	RequestStatus(ctx context.Context, in *RequestID, opts ...grpc.CallOption) (*ReqStatus, error)
 	GetKeyboardLayouts(ctx context.Context, in *KbdQuery, opts ...grpc.CallOption) (VMInfo_GetKeyboardLayoutsClient, error)
+	GetISOs(ctx context.Context, in *ISOsQuery, opts ...grpc.CallOption) (VMInfo_GetISOsClient, error)
+	GetISOInfo(ctx context.Context, in *ISOID, opts ...grpc.CallOption) (*ISOInfo, error)
+	AddISO(ctx context.Context, in *ISOInfo, opts ...grpc.CallOption) (*ISOID, error)
+	SetVmISOs(ctx context.Context, in *SetISOReq, opts ...grpc.CallOption) (*ReqBool, error)
+	GetVmISOs(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmISOsClient, error)
 }
 
 type vMInfoClient struct {
@@ -191,6 +201,97 @@ func (x *vMInfoGetKeyboardLayoutsClient) Recv() (*KbdLayout, error) {
 	return m, nil
 }
 
+func (c *vMInfoClient) GetISOs(ctx context.Context, in *ISOsQuery, opts ...grpc.CallOption) (VMInfo_GetISOsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[2], VMInfo_GetISOs_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &vMInfoGetISOsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type VMInfo_GetISOsClient interface {
+	Recv() (*ISOID, error)
+	grpc.ClientStream
+}
+
+type vMInfoGetISOsClient struct {
+	grpc.ClientStream
+}
+
+func (x *vMInfoGetISOsClient) Recv() (*ISOID, error) {
+	m := new(ISOID)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *vMInfoClient) GetISOInfo(ctx context.Context, in *ISOID, opts ...grpc.CallOption) (*ISOInfo, error) {
+	out := new(ISOInfo)
+	err := c.cc.Invoke(ctx, VMInfo_GetISOInfo_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vMInfoClient) AddISO(ctx context.Context, in *ISOInfo, opts ...grpc.CallOption) (*ISOID, error) {
+	out := new(ISOID)
+	err := c.cc.Invoke(ctx, VMInfo_AddISO_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vMInfoClient) SetVmISOs(ctx context.Context, in *SetISOReq, opts ...grpc.CallOption) (*ReqBool, error) {
+	out := new(ReqBool)
+	err := c.cc.Invoke(ctx, VMInfo_SetVmISOs_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vMInfoClient) GetVmISOs(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmISOsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[3], VMInfo_GetVmISOs_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &vMInfoGetVmISOsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type VMInfo_GetVmISOsClient interface {
+	Recv() (*ISOID, error)
+	grpc.ClientStream
+}
+
+type vMInfoGetVmISOsClient struct {
+	grpc.ClientStream
+}
+
+func (x *vMInfoGetVmISOsClient) Recv() (*ISOID, error) {
+	m := new(ISOID)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // VMInfoServer is the server API for VMInfo service.
 // All implementations must embed UnimplementedVMInfoServer
 // for forward compatibility
@@ -205,6 +306,11 @@ type VMInfoServer interface {
 	DeleteVM(context.Context, *VMID) (*RequestID, error)
 	RequestStatus(context.Context, *RequestID) (*ReqStatus, error)
 	GetKeyboardLayouts(*KbdQuery, VMInfo_GetKeyboardLayoutsServer) error
+	GetISOs(*ISOsQuery, VMInfo_GetISOsServer) error
+	GetISOInfo(context.Context, *ISOID) (*ISOInfo, error)
+	AddISO(context.Context, *ISOInfo) (*ISOID, error)
+	SetVmISOs(context.Context, *SetISOReq) (*ReqBool, error)
+	GetVmISOs(*VMID, VMInfo_GetVmISOsServer) error
 	mustEmbedUnimplementedVMInfoServer()
 }
 
@@ -241,6 +347,21 @@ func (UnimplementedVMInfoServer) RequestStatus(context.Context, *RequestID) (*Re
 }
 func (UnimplementedVMInfoServer) GetKeyboardLayouts(*KbdQuery, VMInfo_GetKeyboardLayoutsServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetKeyboardLayouts not implemented")
+}
+func (UnimplementedVMInfoServer) GetISOs(*ISOsQuery, VMInfo_GetISOsServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetISOs not implemented")
+}
+func (UnimplementedVMInfoServer) GetISOInfo(context.Context, *ISOID) (*ISOInfo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetISOInfo not implemented")
+}
+func (UnimplementedVMInfoServer) AddISO(context.Context, *ISOInfo) (*ISOID, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddISO not implemented")
+}
+func (UnimplementedVMInfoServer) SetVmISOs(context.Context, *SetISOReq) (*ReqBool, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetVmISOs not implemented")
+}
+func (UnimplementedVMInfoServer) GetVmISOs(*VMID, VMInfo_GetVmISOsServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetVmISOs not implemented")
 }
 func (UnimplementedVMInfoServer) mustEmbedUnimplementedVMInfoServer() {}
 
@@ -441,6 +562,102 @@ func (x *vMInfoGetKeyboardLayoutsServer) Send(m *KbdLayout) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _VMInfo_GetISOs_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ISOsQuery)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(VMInfoServer).GetISOs(m, &vMInfoGetISOsServer{stream})
+}
+
+type VMInfo_GetISOsServer interface {
+	Send(*ISOID) error
+	grpc.ServerStream
+}
+
+type vMInfoGetISOsServer struct {
+	grpc.ServerStream
+}
+
+func (x *vMInfoGetISOsServer) Send(m *ISOID) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _VMInfo_GetISOInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ISOID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).GetISOInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_GetISOInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).GetISOInfo(ctx, req.(*ISOID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VMInfo_AddISO_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ISOInfo)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).AddISO(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_AddISO_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).AddISO(ctx, req.(*ISOInfo))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VMInfo_SetVmISOs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetISOReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).SetVmISOs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_SetVmISOs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).SetVmISOs(ctx, req.(*SetISOReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VMInfo_GetVmISOs_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(VMID)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(VMInfoServer).GetVmISOs(m, &vMInfoGetVmISOsServer{stream})
+}
+
+type VMInfo_GetVmISOsServer interface {
+	Send(*ISOID) error
+	grpc.ServerStream
+}
+
+type vMInfoGetVmISOsServer struct {
+	grpc.ServerStream
+}
+
+func (x *vMInfoGetVmISOsServer) Send(m *ISOID) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // VMInfo_ServiceDesc is the grpc.ServiceDesc for VMInfo service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -480,6 +697,18 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "RequestStatus",
 			Handler:    _VMInfo_RequestStatus_Handler,
 		},
+		{
+			MethodName: "GetISOInfo",
+			Handler:    _VMInfo_GetISOInfo_Handler,
+		},
+		{
+			MethodName: "AddISO",
+			Handler:    _VMInfo_AddISO_Handler,
+		},
+		{
+			MethodName: "SetVmISOs",
+			Handler:    _VMInfo_SetVmISOs_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
@@ -490,6 +719,16 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "GetKeyboardLayouts",
 			Handler:       _VMInfo_GetKeyboardLayouts_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetISOs",
+			Handler:       _VMInfo_GetISOs_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetVmISOs",
+			Handler:       _VMInfo_GetVmISOs_Handler,
 			ServerStreams: true,
 		},
 	},

@@ -32,15 +32,35 @@ service VMInfo {
   rpc DeleteVM(VMID) returns (RequestID);
   rpc RequestStatus(RequestID) returns (ReqStatus);
   rpc GetKeyboardLayouts(KbdQuery) returns (stream KbdLayout);
+  rpc GetISOs(ISOsQuery) returns (stream ISOID);
+  rpc GetISOInfo(ISOID) returns (ISOInfo);
+  rpc AddISO(ISOInfo) returns (ISOID);
+  rpc SetVmISOs(SetISOReq) returns (ReqBool);
+  rpc GetVmISOs(VMID) returns (stream ISOID);
 }
 
 message VMID {
   string value = 1;
 }
 
+message ISOID {
+  string value = 1;
+}
+
+message SetISOReq {
+  string id = 1;
+  repeated string isoid = 2;
+}
+
 message KbdLayout {
   string name = 1;
   string description = 2;
+}
+
+message ISOInfo {
+  optional string name = 1;
+  optional string description = 2;
+  optional string path = 3;
 }
 
 message VMConfig {
@@ -88,6 +108,9 @@ message VMConfig {
 }
 
 message VMsQuery {
+}
+
+message ISOsQuery {
 }
 
 message KbdQuery {

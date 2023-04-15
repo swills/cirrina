@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"cirrina/cirrinad/iso"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -164,6 +165,7 @@ func (vm *VM) Save() error {
 			"com4":               &vm.Config.Com4,
 			"com4_dev":           &vm.Config.Com4Dev,
 			"extra_args":         &vm.Config.ExtraArgs,
+			"is_os":              &vm.Config.ISOs,
 		},
 		)
 
@@ -443,4 +445,20 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			return
 		}
 	}
+}
+
+func (vm *VM) GetISOs() ([]iso.ISO, error) {
+	var isos []iso.ISO
+	for _, cv := range strings.Split(vm.Config.ISOs, ",") {
+		if cv == "" {
+			continue
+		}
+		aISO, err := iso.GetById(cv)
+		if err == nil {
+			isos = append(isos, *aISO)
+		} else {
+			log.Printf("bad iso %v for vm %v", cv, vm.ID)
+		}
+	}
+	return isos, nil
 }

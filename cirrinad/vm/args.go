@@ -2,6 +2,7 @@ package vm
 
 import (
 	"bufio"
+	"cirrina/cirrinad/iso"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -28,9 +29,29 @@ func (vm *VM) getACPIArg() []string {
 	return []string{}
 }
 
-func (vm *VM) getCDArg() []string {
-	// TODO -- see old weasel code... really should use a list...
-	return []string{}
+func (vm *VM) getCDArg(slot int) ([]string, int) {
+	var cdString []string
+	maxSataDevs := 32 - slot - 1
+	devCount := 0
+
+	isoList := strings.Split(vm.Config.ISOs, ",")
+	for _, isoItem := range isoList {
+		if isoItem == "" {
+			continue
+		}
+		thisIso, err := iso.GetById(isoItem)
+		if err != nil {
+			log.Printf("error getting ISO %v: %v", isoItem, err)
+			return []string{}, slot
+		}
+		if devCount <= maxSataDevs {
+			thisCd := []string{"-s", strconv.Itoa(slot) + ":0,ahci,cd:" + thisIso.Path}
+			cdString = append(cdString, thisCd...)
+			devCount = devCount + 1
+			slot = slot + 1
+		}
+	}
+	return cdString, slot
 }
 
 func (vm *VM) getCpuArg() []string {
@@ -654,6 +675,7 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	var com2Arg []string
 	var com3Arg []string
 	var com4Arg []string
+	var cdArg []string
 	cpuArg := vm.getCpuArg()
 	memArg := vm.getMemArg()
 	acpiArg := vm.getACPIArg()
@@ -669,6 +691,7 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	tabletArg, slot := vm.getTabletArg(slot)
 	netArg, slot := vm.getNetArg(slot)
 	diskArg, slot := vm.getDiskArg(slot)
+	cdArg, slot = vm.getCDArg(slot)
 	soundArg, slot := vm.getSoundArg(slot)
 	if vm.Config.Com1 {
 		nmdmOffset, com1Arg, _ = getCom(vm.Config.Com1Dev, nmdmOffset, 1)
@@ -688,10 +711,9 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 
 	extraArgs := vm.getExtraArg()
 
-	// TODO - add cd arg
-
 	args = append(args, "/usr/bin/protect")
 	args = append(args, "/usr/sbin/bhyve")
+	args = append(args, kbdArg...)
 	args = append(args, acpiArg...)
 	args = append(args, haltArg...)
 	args = append(args, eopArg...)
@@ -703,8 +725,8 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	args = append(args, cpuArg...)
 	args = append(args, memArg...)
 	args = append(args, hostBridgeArg...)
+	args = append(args, cdArg...)
 	args = append(args, fbufArg...)
-	args = append(args, kbdArg...)
 	args = append(args, tabletArg...)
 	args = append(args, netArg...)
 	args = append(args, diskArg...)
