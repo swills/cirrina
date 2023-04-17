@@ -195,6 +195,12 @@ func (vm *VM) getTabletArg(slot int) ([]string, int) {
 
 func getFreePort(firstVncPort int) (port int, err error) {
 	cmd := exec.Command("netstat", "-an", "--libxo", "json")
+	defer func(cmd *exec.Cmd) {
+		err := cmd.Wait()
+		if err != nil {
+			log.Printf("netstat err: %v", err)
+		}
+	}(cmd)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return 0, err
@@ -337,6 +343,12 @@ type ngNode struct {
 
 func ngGetNodes() (ngNodes []ngNode, err error) {
 	cmd := exec.Command("/usr/local/bin/sudo", "/usr/sbin/ngctl", "list")
+	defer func(cmd *exec.Cmd) {
+		err := cmd.Wait()
+		if err != nil {
+			log.Printf("ngctl err: %v", err)
+		}
+	}(cmd)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
@@ -421,6 +433,12 @@ type ngBridge struct {
 func ngShowBridge(bridge string) (peers []ngBridge, err error) {
 	cmd := exec.Command("/usr/local/bin/sudo", "/usr/sbin/ngctl", "show",
 		bridge+":")
+	defer func(cmd *exec.Cmd) {
+		err := cmd.Wait()
+		if err != nil {
+			log.Printf("ngctl show err: %v", err)
+		}
+	}(cmd)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err

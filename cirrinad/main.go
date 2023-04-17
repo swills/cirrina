@@ -52,6 +52,8 @@ func sigHandler(signal os.Signal) {
 		go handleSigInt()
 	case syscall.SIGTERM:
 		handleSigTerm()
+	case syscall.SIGCHLD:
+		log.Printf("got SIGCHLD")
 	default:
 		fmt.Println("Ignoring signal ", signal)
 	}
