@@ -462,3 +462,19 @@ func (vm *VM) GetISOs() ([]iso.ISO, error) {
 	}
 	return isos, nil
 }
+
+func (vm *VM) DeleteUEFIState() error {
+	// TODO make baseVMStatePath a config item
+	uefiVarsFilePath := baseVMStatePath + "/" + vm.Name
+	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
+	uvFileExists, err := exists(uefiVarsFile)
+	if err != nil {
+		return nil
+	}
+	if uvFileExists {
+		if err := os.Remove(uefiVarsFile); err != nil {
+			return err
+		}
+	}
+	return nil
+}

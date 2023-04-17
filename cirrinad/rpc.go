@@ -639,6 +639,22 @@ func getKbdDescription(path string) (description string, err error) {
 	return description, nil
 }
 
+func (s *server) ClearUEFIState(_ context.Context, v *cirrina.VMID) (*cirrina.ReqBool, error) {
+	re := cirrina.ReqBool{}
+	re.Success = false
+	vmInst, err := vm.GetById(v.Value)
+	if err != nil {
+		log.Printf("error getting vm %v, %v", v.Value, err)
+		return &re, err
+	}
+	err = vmInst.DeleteUEFIState()
+	if err != nil {
+		return &re, err
+	}
+	re.Success = true
+	return &re, nil
+}
+
 func rpcServer() {
 	lis, err := net.Listen("tcp", port)
 	if err != nil {

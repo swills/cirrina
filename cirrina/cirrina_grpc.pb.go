@@ -27,6 +27,7 @@ const (
 	VMInfo_StartVM_FullMethodName            = "/cirrina.VMInfo/StartVM"
 	VMInfo_StopVM_FullMethodName             = "/cirrina.VMInfo/StopVM"
 	VMInfo_DeleteVM_FullMethodName           = "/cirrina.VMInfo/DeleteVM"
+	VMInfo_ClearUEFIState_FullMethodName     = "/cirrina.VMInfo/ClearUEFIState"
 	VMInfo_RequestStatus_FullMethodName      = "/cirrina.VMInfo/RequestStatus"
 	VMInfo_GetKeyboardLayouts_FullMethodName = "/cirrina.VMInfo/GetKeyboardLayouts"
 	VMInfo_GetISOs_FullMethodName            = "/cirrina.VMInfo/GetISOs"
@@ -48,6 +49,7 @@ type VMInfoClient interface {
 	StartVM(ctx context.Context, in *VMID, opts ...grpc.CallOption) (*RequestID, error)
 	StopVM(ctx context.Context, in *VMID, opts ...grpc.CallOption) (*RequestID, error)
 	DeleteVM(ctx context.Context, in *VMID, opts ...grpc.CallOption) (*RequestID, error)
+	ClearUEFIState(ctx context.Context, in *VMID, opts ...grpc.CallOption) (*ReqBool, error)
 	RequestStatus(ctx context.Context, in *RequestID, opts ...grpc.CallOption) (*ReqStatus, error)
 	GetKeyboardLayouts(ctx context.Context, in *KbdQuery, opts ...grpc.CallOption) (VMInfo_GetKeyboardLayoutsClient, error)
 	GetISOs(ctx context.Context, in *ISOsQuery, opts ...grpc.CallOption) (VMInfo_GetISOsClient, error)
@@ -154,6 +156,15 @@ func (c *vMInfoClient) StopVM(ctx context.Context, in *VMID, opts ...grpc.CallOp
 func (c *vMInfoClient) DeleteVM(ctx context.Context, in *VMID, opts ...grpc.CallOption) (*RequestID, error) {
 	out := new(RequestID)
 	err := c.cc.Invoke(ctx, VMInfo_DeleteVM_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vMInfoClient) ClearUEFIState(ctx context.Context, in *VMID, opts ...grpc.CallOption) (*ReqBool, error) {
+	out := new(ReqBool)
+	err := c.cc.Invoke(ctx, VMInfo_ClearUEFIState_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -304,6 +315,7 @@ type VMInfoServer interface {
 	StartVM(context.Context, *VMID) (*RequestID, error)
 	StopVM(context.Context, *VMID) (*RequestID, error)
 	DeleteVM(context.Context, *VMID) (*RequestID, error)
+	ClearUEFIState(context.Context, *VMID) (*ReqBool, error)
 	RequestStatus(context.Context, *RequestID) (*ReqStatus, error)
 	GetKeyboardLayouts(*KbdQuery, VMInfo_GetKeyboardLayoutsServer) error
 	GetISOs(*ISOsQuery, VMInfo_GetISOsServer) error
@@ -341,6 +353,9 @@ func (UnimplementedVMInfoServer) StopVM(context.Context, *VMID) (*RequestID, err
 }
 func (UnimplementedVMInfoServer) DeleteVM(context.Context, *VMID) (*RequestID, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteVM not implemented")
+}
+func (UnimplementedVMInfoServer) ClearUEFIState(context.Context, *VMID) (*ReqBool, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ClearUEFIState not implemented")
 }
 func (UnimplementedVMInfoServer) RequestStatus(context.Context, *RequestID) (*ReqStatus, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RequestStatus not implemented")
@@ -523,6 +538,24 @@ func _VMInfo_DeleteVM_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VMInfo_ClearUEFIState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VMID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).ClearUEFIState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_ClearUEFIState_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).ClearUEFIState(ctx, req.(*VMID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _VMInfo_RequestStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RequestID)
 	if err := dec(in); err != nil {
@@ -692,6 +725,10 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteVM",
 			Handler:    _VMInfo_DeleteVM_Handler,
+		},
+		{
+			MethodName: "ClearUEFIState",
+			Handler:    _VMInfo_ClearUEFIState_Handler,
 		},
 		{
 			MethodName: "RequestStatus",

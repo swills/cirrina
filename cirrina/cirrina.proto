@@ -30,6 +30,7 @@ service VMInfo {
   rpc StartVM(VMID) returns (RequestID);
   rpc StopVM(VMID) returns (RequestID);
   rpc DeleteVM(VMID) returns (RequestID);
+  rpc ClearUEFIState(VMID) returns (ReqBool);
   rpc RequestStatus(RequestID) returns (ReqStatus);
   rpc GetKeyboardLayouts(KbdQuery) returns (stream KbdLayout);
   rpc GetISOs(ISOsQuery) returns (stream ISOID);

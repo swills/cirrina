@@ -28,14 +28,6 @@ func GetAll() []*ISO {
 }
 
 func GetById(id string) (result *ISO, err error) {
-	//defer List.Mu.Unlock()
-	//List.Mu.Lock()
-	//vmInst, valid := List.VmList[Id]
-	//if valid {
-	//	return vmInst, nil
-	//} else {
-	//	return vmInst, errors.New("not found")
-	//}
 	db := getIsoDb()
 	db.First(&result, "id = ?", id)
 	return result, nil
