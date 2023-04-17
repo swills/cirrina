@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 
 	"log"
@@ -18,7 +19,21 @@ const (
 var sigIntHandlerRunning = false
 
 func handleSigInfo() {
+	var mem runtime.MemStats
 	vm.PrintVMStatus()
+	runtime.ReadMemStats(&mem)
+	log.Printf("mem.Alloc: %v", mem.Alloc)
+	log.Printf("mem.TotalAlloc: %v", mem.TotalAlloc)
+	log.Printf("mem.HeapAlloc: %v", mem.HeapAlloc)
+	log.Printf("mem.NumGC: %v", mem.NumGC)
+	log.Printf("mem.Sys: %v", mem.Sys)
+	runtime.GC()
+	runtime.ReadMemStats(&mem)
+	log.Printf("mem.Alloc: %v", mem.Alloc)
+	log.Printf("mem.TotalAlloc: %v", mem.TotalAlloc)
+	log.Printf("mem.HeapAlloc: %v", mem.HeapAlloc)
+	log.Printf("mem.NumGC: %v", mem.NumGC)
+	log.Printf("mem.Sys: %v", mem.Sys)
 }
 
 func handleSigInt() {
