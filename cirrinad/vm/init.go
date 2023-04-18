@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"cirrina/cirrinad/config"
 	"errors"
 	"github.com/kontera-technologies/go-supervisor/v2"
 	"gorm.io/gorm"
@@ -17,9 +18,9 @@ const (
 	STOPPING StatusType = "STOPPING"
 )
 
-var baseVMStatePath = "/usr/home/swills/.local/state/weasel/vms/"
-var bootRomPath = "/usr/local/share/uefi-firmware/BHYVE_UEFI.fd"
-var uefiVarFileTemplate = "/usr/local/share/uefi-firmware/BHYVE_UEFI_VARS.fd"
+var baseVMStatePath = config.Config.Disk.VM.Path.State
+var bootRomPath = config.Config.Rom.Path
+var uefiVarFileTemplate = config.Config.Rom.Vars.Template
 
 type Config struct {
 	gorm.Model

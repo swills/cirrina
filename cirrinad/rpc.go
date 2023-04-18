@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"cirrina/cirrina"
+	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/iso"
 	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/vm"
@@ -14,6 +15,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -656,7 +658,8 @@ func (s *server) ClearUEFIState(_ context.Context, v *cirrina.VMID) (*cirrina.Re
 }
 
 func rpcServer() {
-	lis, err := net.Listen("tcp", port)
+	listenAddress := config.Config.Network.Grpc.Ip + ":" + strconv.Itoa(int(config.Config.Network.Grpc.Port))
+	lis, err := net.Listen("tcp", listenAddress)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

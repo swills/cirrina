@@ -1,0 +1,22 @@
+disk:
+  vm:
+    path:
+      image: /some/path
+      state: /some/other/path
+      iso: /yet/another/path
+
+vnc:
+  ip: 0.0.0.0
+  port: 6900
+
+rom:
+  path: /usr/local/share/uefi-firmware/BHYVE_UEFI.fd
+  vars:
+    template: /usr/local/share/uefi-firmware/BHYVE_UEFI_VARS.fd
+
+network:
+  grpc:
+    ip: 0.0.0.0
+    port: 50051
+  interface: em0
+  bridge: bridge0

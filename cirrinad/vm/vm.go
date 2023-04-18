@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/iso"
 	"errors"
 	"fmt"
@@ -255,7 +256,6 @@ func copyFile(in, out string) (int64, error) {
 }
 
 func (vm *VM) createUefiVarsFile() {
-	// TODO make baseVMStatePath a config item
 	uefiVarsFilePath := baseVMStatePath + "/" + vm.Name
 	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
 	uvPathExists, err := exists(uefiVarsFilePath)
@@ -341,7 +341,7 @@ func (vm *VM) netStartup() {
 		if err != nil {
 			log.Printf("failed to create tap: %v", err)
 		}
-		args = []string{"/sbin/ifconfig", "bridge0", "addm", vm.NetDev}
+		args = []string{"/sbin/ifconfig", config.Config.Network.Bridge, "addm", vm.NetDev}
 		cmd = exec.Command("/usr/local/bin/sudo", args...)
 		err = cmd.Run()
 		if err != nil {
@@ -354,7 +354,7 @@ func (vm *VM) netStartup() {
 			return
 		}
 		if !containsStr(bridgeList, vm.NetDev) {
-			err := ngCreateBridge(vm.NetDev, "em0")
+			err := ngCreateBridge(vm.NetDev, config.Config.Network.Interface)
 			if err != nil {
 				log.Printf("ngCreateBridge err: %v", err)
 			}
@@ -464,7 +464,6 @@ func (vm *VM) GetISOs() ([]iso.ISO, error) {
 }
 
 func (vm *VM) DeleteUEFIState() error {
-	// TODO make baseVMStatePath a config item
 	uefiVarsFilePath := baseVMStatePath + "/" + vm.Name
 	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
 	uvFileExists, err := exists(uefiVarsFile)

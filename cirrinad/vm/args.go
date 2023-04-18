@@ -2,6 +2,7 @@ package vm
 
 import (
 	"bufio"
+	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/iso"
 	"encoding/json"
 	"errors"
@@ -63,7 +64,7 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 	// TODO check that disk file exists
 	// TODO use disk list, etc.
 	diskType := "nvme"
-	diskPath := "/bhyve/disk/" + vm.Name + ".img"
+	diskPath := config.Config.Disk.VM.Path.Image + "/" + vm.Name + ".img"
 	diskArg := []string{"-s", strconv.Itoa(slot) + "," + diskType + "," + diskPath}
 	slot = slot + 1
 	return diskArg, slot
@@ -118,7 +119,6 @@ func (vm *VM) getROMArg() []string {
 	var romArg []string
 
 	if vm.Config.StoreUEFIVars {
-		// TODO make baseVMStatePath a config item
 		uefiVarsPath := baseVMStatePath + "/" + vm.Name + "/BHYVE_UEFI_VARS.fd"
 		romArg = []string{
 			"-l",
@@ -195,12 +195,6 @@ func (vm *VM) getTabletArg(slot int) ([]string, int) {
 
 func getFreePort(firstVncPort int) (port int, err error) {
 	cmd := exec.Command("netstat", "-an", "--libxo", "json")
-	defer func(cmd *exec.Cmd) {
-		err := cmd.Wait()
-		if err != nil {
-			log.Printf("netstat err: %v", err)
-		}
-	}(cmd)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return 0, err
@@ -280,14 +274,14 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 		return []string{}, slot
 	}
 
-	firstVncPort := 6900 // TODO make this an app config item
-	vncListenIP := "0.0.0.0"
+	firstVncPort := config.Config.Vnc.Port
+	vncListenIP := config.Config.Vnc.Ip
 	var vncListenPortInt int
 	var vncListenPort string
 	var err error
 
 	if vm.Config.VNCPort == "AUTO" {
-		vncListenPortInt, err = getFreePort(firstVncPort)
+		vncListenPortInt, err = getFreePort(int(firstVncPort))
 		if err != nil {
 			return []string{}, slot
 		}
@@ -567,7 +561,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 		netDev = getVmnetDev()
 		netDevArg = netDev
 	} else if vm.Config.NetDevType == "NETGRAPH" {
-		ngNetDev, ngPeerHook, err := ngGetDev("em0")
+		ngNetDev, ngPeerHook, err := ngGetDev(config.Config.Network.Interface)
 		if err != nil {
 			log.Printf("ngGetDev error: %v", err)
 			return []string{}, slot

@@ -12,10 +12,6 @@ import (
 	"time"
 )
 
-const (
-	port = ":50051"
-)
-
 var sigIntHandlerRunning = false
 
 func handleSigInfo() {
