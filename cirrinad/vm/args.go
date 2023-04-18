@@ -336,7 +336,7 @@ type ngNode struct {
 }
 
 func ngGetNodes() (ngNodes []ngNode, err error) {
-	cmd := exec.Command("/usr/local/bin/sudo", "/usr/sbin/ngctl", "list")
+	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "list")
 	defer func(cmd *exec.Cmd) {
 		err := cmd.Wait()
 		if err != nil {
@@ -425,7 +425,7 @@ type ngBridge struct {
 }
 
 func ngShowBridge(bridge string) (peers []ngBridge, err error) {
-	cmd := exec.Command("/usr/local/bin/sudo", "/usr/sbin/ngctl", "show",
+	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "show",
 		bridge+":")
 	defer func(cmd *exec.Cmd) {
 		err := cmd.Wait()
@@ -680,7 +680,7 @@ func getCom(comDev string, nmdmOffset int, num int) (int, []string, string) {
 }
 
 func (vm *VM) generateCommandLine() (name string, args []string, err error) {
-	name = "/usr/local/bin/sudo"
+	name = config.Config.Sys.Sudo
 	slot := 0
 	nmdmOffset := 0
 	var com1Arg []string

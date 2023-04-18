@@ -1,3 +1,6 @@
+sys:
+  sudo: /usr/local/bin/sudo
+
 disk:
   vm:
     path:

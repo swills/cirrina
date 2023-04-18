@@ -233,7 +233,7 @@ func (vm *VM) maybeForceKillVM() {
 	}
 	args := []string{"/usr/sbin/bhyvectl", "--destroy"}
 	args = append(args, "--vm="+vm.Name)
-	cmd := exec.Command("/usr/local/bin/sudo", args...)
+	cmd := exec.Command(config.Config.Sys.Sudo, args...)
 	_ = cmd.Run()
 }
 
@@ -288,14 +288,14 @@ func ngCreateBridge(netDev string, bridgePeer string) (err error) {
 	if bridgePeer == "" {
 		return errors.New("bridgePeer can't be empty")
 	}
-	cmd := exec.Command("/usr/local/bin/sudo", "/usr/sbin/ngctl", "mkpeer",
+	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "mkpeer",
 		bridgePeer+":", "bridge", "lower", "link0")
 	err = cmd.Run()
 	if err != nil {
 		log.Printf("ngctl mkpeer err: %v", err)
 		return err
 	}
-	cmd = exec.Command("/usr/local/bin/sudo", "/usr/sbin/ngctl", "name",
+	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "name",
 		bridgePeer+":lower", netDev)
 	err = cmd.Run()
 	if err != nil {
@@ -309,21 +309,21 @@ func ngCreateBridge(netDev string, bridgePeer string) (err error) {
 	} else {
 		upper = "link"
 	}
-	cmd = exec.Command("/usr/local/bin/sudo", "/usr/sbin/ngctl", "connect",
+	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "connect",
 		bridgePeer+":", netDev+":", "upper", upper+"1")
 	err = cmd.Run()
 	if err != nil {
 		log.Printf("ngctl connect err: %v", err)
 		return err
 	}
-	cmd = exec.Command("/usr/local/bin/sudo", "/usr/sbin/ngctl", "msg",
+	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
 		bridgePeer+":", "setpromisc", "1")
 	err = cmd.Run()
 	if err != nil {
 		log.Printf("ngctl msg err: %v", err)
 		return err
 	}
-	cmd = exec.Command("/usr/local/bin/sudo", "/usr/sbin/ngctl", "msg",
+	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
 		bridgePeer+":", "setautosrc", "0")
 	err = cmd.Run()
 	if err != nil {
@@ -336,13 +336,13 @@ func ngCreateBridge(netDev string, bridgePeer string) (err error) {
 func (vm *VM) netStartup() {
 	if vm.Config.NetDevType == "TAP" || vm.Config.NetDevType == "VMNET" {
 		args := []string{"/sbin/ifconfig", vm.NetDev, "create"}
-		cmd := exec.Command("/usr/local/bin/sudo", args...)
+		cmd := exec.Command(config.Config.Sys.Sudo, args...)
 		err := cmd.Run()
 		if err != nil {
 			log.Printf("failed to create tap: %v", err)
 		}
 		args = []string{"/sbin/ifconfig", config.Config.Network.Bridge, "addm", vm.NetDev}
-		cmd = exec.Command("/usr/local/bin/sudo", args...)
+		cmd = exec.Command(config.Config.Sys.Sudo, args...)
 		err = cmd.Run()
 		if err != nil {
 			log.Printf("failed to add tap to bridge: %v", err)
@@ -371,7 +371,7 @@ func (vm *VM) netCleanup() {
 	}
 	if strings.HasPrefix(vm.NetDev, "tap") || strings.HasPrefix(vm.NetDev, "vmnet") {
 		args := []string{"/sbin/ifconfig", vm.NetDev, "destroy"}
-		cmd := exec.Command("/usr/local/bin/sudo", args...)
+		cmd := exec.Command(config.Config.Sys.Sudo, args...)
 		err := cmd.Run()
 		if err != nil {
 			log.Printf("failed to destroy network interface : %v", err)
