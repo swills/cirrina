@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"cirrina/cirrinad/config"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"log"
@@ -18,7 +19,7 @@ var once sync.Once
 func getVmDb() *gorm.DB {
 	once.Do(func() {
 		instance = &singleton{}
-		vmDb, err := gorm.Open(sqlite.Open("db/cirrina.sqlite"), &gorm.Config{})
+		vmDb, err := gorm.Open(sqlite.Open(config.Config.DB.Path), &gorm.Config{})
 		vmDb.Preload("Config")
 		if err != nil {
 			panic("failed to connect database")

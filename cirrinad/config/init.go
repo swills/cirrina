@@ -12,6 +12,9 @@ var Config = struct {
 	Sys struct {
 		Sudo string
 	}
+	DB struct {
+		Path string
+	}
 	Disk struct {
 		VM struct {
 			Path struct {

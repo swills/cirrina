@@ -1,6 +1,7 @@
 package iso
 
 import (
+	"cirrina/cirrinad/config"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"sync"
@@ -17,7 +18,7 @@ var once sync.Once
 func getIsoDb() *gorm.DB {
 	once.Do(func() {
 		instance = &singleton{}
-		isoDb, err := gorm.Open(sqlite.Open("db/cirrina.sqlite"), &gorm.Config{})
+		isoDb, err := gorm.Open(sqlite.Open(config.Config.DB.Path), &gorm.Config{})
 		if err != nil {
 			panic("failed to connect database")
 		}

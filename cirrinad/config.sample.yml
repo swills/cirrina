@@ -1,6 +1,9 @@
 sys:
   sudo: /usr/local/bin/sudo
 
+db:
+  path: /a/path/to/db/cirrina.sqlite
+
 disk:
   vm:
     path:
