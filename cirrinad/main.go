@@ -1,8 +1,10 @@
 package main
 
 import (
+	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/vm"
 	"fmt"
+	"golang.org/x/exp/slog"
 	"os"
 	"os/signal"
 	"runtime"
@@ -46,6 +48,7 @@ func handleSigInt() {
 		log.Printf("waiting on %v running VM(s)", runningVMs)
 		time.Sleep(time.Second)
 	}
+	log.Printf("Exiting normally")
 	os.Exit(0)
 }
 
@@ -80,7 +83,13 @@ func main() {
 			sigHandler(s)
 		}
 	}()
-
+	logFile, err := os.OpenFile(config.Config.Log.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Printf("failed to open log file: %v", err)
+		return
+	}
+	logger := slog.New(slog.NewTextHandler(logFile))
+	slog.SetDefault(logger)
 	log.Print("Starting daemon")
 	go vm.AutoStartVMs()
 	go rpcServer()

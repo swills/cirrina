@@ -11,7 +11,6 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -71,7 +70,7 @@ func (vm *VM) Start() (err error) {
 	events := make(chan supervisor.Event)
 
 	cmdName, cmdArgs, err := vm.generateCommandLine()
-	log.Printf("cmd: %v, args: %v", cmdName, cmdArgs)
+	vm.log.Info("start", "cmd", cmdName, "args", cmdArgs)
 	vm.createUefiVarsFile()
 	if vm.Config.Net {
 		vm.netStartup()
@@ -196,20 +195,6 @@ func (vm *VM) Save() error {
 
 func (vm *VM) String() string {
 	return fmt.Sprintf("name: %s id: %s", vm.Name, vm.ID)
-}
-
-func parseStopMessage(message string) int {
-	var exitStatus int
-	words := strings.Fields(message)
-	if len(words) < 2 {
-		return -1
-	}
-	exitStatusStr := words[2]
-	exitStatus, err := strconv.Atoi(exitStatusStr)
-	if err != nil {
-		fmt.Printf("%T, %v, %v\n", exitStatus, exitStatus, err)
-	}
-	return exitStatus
 }
 
 func exists(path string) (bool, error) {
@@ -389,49 +374,27 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 	for {
 		select {
 		case msg := <-vm.proc.Stdout():
-			log.Printf("VM %v Received STDOUT message: %s\n", vm.ID, *msg)
+			vm.log.Info("output", "stdout", *msg)
 		case msg := <-vm.proc.Stderr():
-			log.Printf("VM %v Received STDERR message: %s\n", vm.ID, *msg)
+			vm.log.Info("output", "stderr", *msg)
 		case event := <-events:
 			switch event.Code {
 			case "ProcessStart":
-				log.Printf("VM %v Received event: %s - %s\n", vm.ID, event.Code, event.Message)
+				vm.log.Info("event", "code", event.Code, "message", event.Message)
 				go setRunning(vm.ID, vm.proc.Pid())
 				vm.mu.Lock()
 				List.VmList[vm.ID].Status = RUNNING
 				vm.mu.Unlock()
 			case "ProcessDone":
-				exitStatus := parseStopMessage(event.Message)
-				log.Printf("stop message: %v", event.Message)
-				log.Printf("VM %v stopped, exitStatus: %v", vm.ID, exitStatus)
-				//     0       rebooted
-				//     1       powered off
-				//     2       halted
-				//     3       triple fault
-				//     4       exited due to an error
-				if exitStatus == 0 {
-					// set state to restarting?
-					log.Printf("VM %v %v rebooted, allowing restart", vm.ID, vm.Name)
-				}
+				vm.log.Info("event", "code", event.Code, "message", event.Message)
 			case "ProcessCrashed":
-				log.Printf("VM %v %v crashed: %v, destroying", vm.ID, vm.Name, event.Message)
+				vm.log.Info("exited, destroying")
 				vm.maybeForceKillVM()
-				if vm.Config.Restart {
-					log.Printf("VM %v %v restart enabled, allowing restart", vm.ID, vm.Name)
-				} else {
-					log.Printf("VM %v %v disabled, cleaning up", vm.ID, vm.Name)
-					_ = vm.proc.Stop()
-					vm.netCleanup()
-					setStopped(vm.ID)
-					vm.mu.Lock()
-					List.VmList[vm.ID].Status = STOPPED
-					vm.mu.Unlock()
-				}
 			default:
-				log.Printf("VM %v Received event: %s - %s\n", vm.ID, event.Code, event.Message)
+				vm.log.Info("event", "code", event.Code, "message", event.Message)
 			}
 		case <-vm.proc.DoneNotifier():
-			log.Printf("VM %v %v done", vm.ID, vm.Name)
+			vm.log.Info("stopped")
 			vm.netCleanup()
 			setStopped(vm.ID)
 			vm.mu.Lock()
@@ -441,7 +404,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			List.VmList[vm.ID].BhyvePid = 0
 			vm.mu.Unlock()
 			vm.maybeForceKillVM()
-			log.Printf("VM %v closing loop we are done...", vm.ID)
+			vm.log.Info("closing loop we are done")
 			return
 		}
 	}

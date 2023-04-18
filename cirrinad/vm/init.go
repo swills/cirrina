@@ -4,8 +4,10 @@ import (
 	"cirrina/cirrinad/config"
 	"errors"
 	"github.com/kontera-technologies/go-supervisor/v2"
+	"golang.org/x/exp/slog"
 	"gorm.io/gorm"
 	"log"
+	"os"
 	"sync"
 )
 
@@ -78,6 +80,7 @@ type VM struct {
 	Config      Config
 	proc        *supervisor.Process
 	mu          sync.Mutex
+	log         slog.Logger
 }
 
 type ListType struct {
@@ -100,8 +103,16 @@ func init() {
 	if err != nil {
 		panic("failed to auto-migrate Configs")
 	}
+
 	List.Mu.Lock()
 	for _, vmInst := range GetAll() {
+		vmLogFilePath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name + "/log"
+		vmLogFile, err := os.OpenFile(vmLogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Printf("failed to open VM log file: %v", err)
+		}
+		vmLogger := slog.New(slog.NewTextHandler(vmLogFile))
+		vmInst.log = *vmLogger
 		List.VmList[vmInst.ID] = vmInst
 	}
 	List.Mu.Unlock()

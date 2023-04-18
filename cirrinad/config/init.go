@@ -24,6 +24,10 @@ var Config = struct {
 			}
 		}
 	}
+	Log struct {
+		Path string
+	}
+
 	Network struct {
 		Grpc struct {
 			Ip   string `default:"0.0.0.0"`

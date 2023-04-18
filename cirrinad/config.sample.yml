@@ -1,6 +1,9 @@
 sys:
   sudo: /usr/local/bin/sudo
 
+log:
+  path: /whatever/path/to/log/cirrinad.log
+
 db:
   path: /a/path/to/db/cirrina.sqlite
 
