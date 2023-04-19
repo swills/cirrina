@@ -38,6 +38,11 @@ service VMInfo {
   rpc AddISO(ISOInfo) returns (ISOID);
   rpc SetVmISOs(SetISOReq) returns (ReqBool);
   rpc GetVmISOs(VMID) returns (stream ISOID);
+  rpc GetDisks(DisksQuery) returns (stream DiskId);
+  rpc GetDiskInfo(DiskId) returns (DiskInfo);
+  rpc AddDisk(DiskInfo) returns (DiskId);
+  rpc SetVmDisks(SetDiskReq) returns (ReqBool);
+  rpc GetVmDisks(VMID) returns (stream DiskId);
 }
 
 message VMID {
@@ -48,9 +53,18 @@ message ISOID {
   string value = 1;
 }
 
+message DiskId {
+  string value = 1;
+}
+
 message SetISOReq {
   string id = 1;
   repeated string isoid = 2;
+}
+
+message SetDiskReq {
+  string id = 1;
+  repeated string diskid = 2;
 }
 
 message KbdLayout {
@@ -59,6 +73,12 @@ message KbdLayout {
 }
 
 message ISOInfo {
+  optional string name = 1;
+  optional string description = 2;
+  optional string path = 3;
+}
+
+message DiskInfo {
   optional string name = 1;
   optional string description = 2;
   optional string path = 3;
@@ -115,6 +135,9 @@ message ISOsQuery {
 }
 
 message KbdQuery {
+}
+
+message DisksQuery {
 }
 
 message RequestID {

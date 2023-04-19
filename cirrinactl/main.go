@@ -61,6 +61,24 @@ func addISO(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *s
 	fmt.Printf("Created ISO %v\n", res.Value)
 }
 
+func addDisk(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *string, pathPtr *string) {
+	if *namePtr == "" {
+		log.Fatalf("Name not specified")
+		return
+	}
+	res, err := c.AddDisk(ctx, &pb.DiskInfo{
+		Name:        namePtr,
+		Description: descrPtr,
+		Path:        pathPtr,
+	})
+	if err != nil {
+		log.Fatalf("could not create Disk: %v", err)
+		return
+	}
+	fmt.Printf("Created Disk %v\n", res.Value)
+
+}
+
 func DeleteVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if *idPtr == "" {
 		log.Fatalf("ID not specified")
@@ -247,14 +265,14 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 }
 
 func printActionHelp() {
-	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, addISO")
+	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, addISO, addDisk")
 }
 
 func main() {
 	actionPtr := flag.String("action", "", "action to take")
 	idPtr := flag.String("id", "", "ID of VM")
-	namePtr := flag.String("name", "", "Name of VM/ISO")
-	descrPtr := flag.String("descr", "", "Description of VM/ISO")
+	namePtr := flag.String("name", "", "Name of VM/ISO/Disk")
+	descrPtr := flag.String("descr", "", "Description of VM/ISO/Disk")
 	cpuPtr := flag.Uint("cpus", 1, "Number of CPUs in VM")
 	cpuVal := *cpuPtr
 	cpu32Val := uint32(cpuVal)
@@ -304,6 +322,8 @@ func main() {
 		addVM(namePtr, c, ctx, descrPtr, cpu32Ptr, mem32Ptr)
 	case "addISO":
 		addISO(namePtr, c, ctx, descrPtr, pathPtr)
+	case "addDisk":
+		addDisk(namePtr, c, ctx, descrPtr, pathPtr)
 	case "reConfig":
 		Reconfig(idPtr, err, namePtr, descrPtr, cpuPtr, memPtr, autoStartPtr, c, ctx)
 	case "deleteVM":

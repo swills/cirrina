@@ -3,6 +3,7 @@ package vm
 import (
 	"bufio"
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
 	"encoding/json"
 	"errors"
@@ -60,14 +61,51 @@ func (vm *VM) getCpuArg() []string {
 }
 
 func (vm *VM) getDiskArg(slot int) ([]string, int) {
-	// TODO check that disk is enabled
+	originalSlot := slot
 	// TODO check that disk file exists
-	// TODO use disk list, etc.
-	diskType := "nvme"
-	diskPath := config.Config.Disk.VM.Path.Image + "/" + vm.Name + ".img"
-	diskArg := []string{"-s", strconv.Itoa(slot) + "," + diskType + "," + diskPath}
-	slot = slot + 1
-	return diskArg, slot
+	// TODO deal with multiple controller types
+	// TODO don't use one PCI slot per disk device, attach multiple disks to each controller
+
+	//diskType := "nvme"
+	//diskPath := config.Config.Disk.VM.Path.Image + "/" + vm.Name + ".img"
+	//diskArg := []string{"-s", strconv.Itoa(slot) + "," + diskType + "," + diskPath}
+	//slot = slot + 1
+	//return diskArg, slot
+	//
+
+	var diskString []string
+	maxSataDevs := 32 - slot - 1
+	devCount := 0
+
+	diskList := strings.Split(vm.Config.Disks, ",")
+	for _, diskItem := range diskList {
+		if diskItem == "" {
+			continue
+		}
+		thisDisk, err := disk.GetById(diskItem)
+		if err != nil {
+			log.Printf("error getting Disk %v: %v", diskItem, err)
+			return []string{}, originalSlot
+		}
+		if devCount <= maxSataDevs {
+			//thisHd := []string{"-s", strconv.Itoa(slot) + ":0,ahci,hd:" + thisDisk.Path}
+			thisDiskExists, err := exists(thisDisk.Path)
+			if err != nil {
+				log.Printf("error getting disk path: %v", err)
+				return []string{}, originalSlot
+			}
+			if !thisDiskExists {
+				log.Printf("disk path %v doesn't exist", thisDisk.Path)
+				return []string{}, originalSlot
+			}
+			thisHd := []string{"-s", strconv.Itoa(slot) + ",nvme," + thisDisk.Path}
+			diskString = append(diskString, thisHd...)
+			devCount = devCount + 1
+			slot = slot + 1
+		}
+	}
+	return diskString, slot
+
 }
 
 func (vm *VM) getDPOArg() []string {

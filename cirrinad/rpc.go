@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"cirrina/cirrina"
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
 	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/vm"
@@ -503,6 +504,20 @@ func (s *server) GetISOs(_ *cirrina.ISOsQuery, stream cirrina.VMInfo_GetISOsServ
 
 }
 
+func (s *server) GetDisks(_ *cirrina.DisksQuery, stream cirrina.VMInfo_GetDisksServer) error {
+	var disks []*disk.Disk
+	var DiskId cirrina.DiskId
+	disks = disk.GetAll()
+	for e := range disks {
+		DiskId.Value = disks[e].ID
+		err := stream.Send(&DiskId)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *server) AddISO(_ context.Context, i *cirrina.ISOInfo) (*cirrina.ISOID, error) {
 	//if _, err := iso.GetByName(*isoInfo.Name); err == nil {
 	//	return &cirrina.ISOID{}, errors.New(fmt.Sprintf("%v already exists", v.Name))
@@ -518,17 +533,43 @@ func (s *server) AddISO(_ context.Context, i *cirrina.ISOInfo) (*cirrina.ISOID, 
 	return &cirrina.ISOID{Value: isoInst.ID}, nil
 }
 
+func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskId, error) {
+	diskInst, err := disk.Create(*i.Name, *i.Description, *i.Path)
+	if err != nil {
+		return &cirrina.DiskId{}, err
+	}
+	return &cirrina.DiskId{Value: diskInst.ID}, nil
+
+}
+
 func (s *server) GetISOInfo(_ context.Context, i *cirrina.ISOID) (*cirrina.ISOInfo, error) {
 	var ic cirrina.ISOInfo
-	if i.Value != "" {
-		isoInst, err := iso.GetById(i.Value)
-		if err != nil {
-			log.Printf("error getting iso %v, %v", i.Value, err)
-			return &ic, err
-		}
-		ic.Name = &isoInst.Name
-		ic.Description = &isoInst.Description
+	log.Printf("GetISOInfo: %v", i.Value)
+	if i.Value == "" {
+		return &ic, nil
 	}
+	isoInst, err := iso.GetById(i.Value)
+	if err != nil {
+		log.Printf("error getting iso %v, %v", i.Value, err)
+		return &ic, err
+	}
+	ic.Name = &isoInst.Name
+	ic.Description = &isoInst.Description
+	return &ic, nil
+}
+
+func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.DiskInfo, error) {
+	var ic cirrina.DiskInfo
+	log.Printf("GetDiskInfo called: %v", i.Value)
+	if i.Value == "" {
+		return &ic, nil
+	}
+	diskInst, err := disk.GetById(i.Value)
+	if err != nil {
+		log.Printf("error getting disk %v, %v", i.Value, err)
+	}
+	ic.Name = &diskInst.Name
+	ic.Description = &diskInst.Description
 	return &ic, nil
 }
 
@@ -541,6 +582,7 @@ func (s *server) SetVmISOs(_ context.Context, sr *cirrina.SetISOReq) (*cirrina.R
 		if count > 0 {
 			isosConfigVal += ","
 		}
+		// TODO check that ISO exists
 		isosConfigVal += isoid
 		count += 1
 	}
@@ -558,8 +600,26 @@ func (s *server) SetVmISOs(_ context.Context, sr *cirrina.SetISOReq) (*cirrina.R
 	return &re, nil
 }
 
+func (s *server) SetVmDisks(_ context.Context, sr *cirrina.SetDiskReq) (*cirrina.ReqBool, error) {
+	re := cirrina.ReqBool{}
+	re.Success = false
+	log.Printf("SetVmDisks: vm id: %v, disk: %v", sr.Id, sr.Diskid)
+	vmInst, err := vm.GetById(sr.Id)
+	if err != nil {
+		log.Printf("error getting vm %v, %v", sr.Id, err)
+		return &re, err
+	}
+	err = vmInst.AttachDisk(sr.Diskid)
+	if err != nil {
+		return &re, err
+	}
+	re.Success = true
+	return &re, nil
+}
+
 func (s *server) GetVmISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVmISOsServer) error {
 	vmInst, err := vm.GetById(v.Value)
+	log.Printf("GetVmISOs: VM ID: %v, vm isos: %v", v.Value, vmInst.Config.ISOs)
 	if err != nil {
 		log.Printf("error getting vm %v, %v", v.Value, err)
 		return err
@@ -574,6 +634,31 @@ func (s *server) GetVmISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVmISOsServe
 	for _, e := range isos {
 		isoId.Value = e.ID
 		err := stream.Send(&isoId)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *server) GetVmDisks(v *cirrina.VMID, stream cirrina.VMInfo_GetVmDisksServer) error {
+	log.Printf("GetVMDisks called")
+	vmInst, err := vm.GetById(v.Value)
+	log.Printf("GetVMDisks: VM ID: %v, vm disks: %v", v.Value, vmInst.Config.Disks)
+	if err != nil {
+		log.Printf("error getting vm %v, %v", v.Value, err)
+		return err
+	}
+
+	disks, err := vmInst.GetDisks()
+	if err != nil {
+		return err
+	}
+	var diskId cirrina.DiskId
+
+	for _, e := range disks {
+		diskId.Value = e.ID
+		err := stream.Send(&diskId)
 		if err != nil {
 			return err
 		}

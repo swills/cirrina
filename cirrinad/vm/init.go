@@ -66,6 +66,7 @@ type Config struct {
 	Com4Dev          string `gorm:"default:AUTO"`
 	ExtraArgs        string
 	ISOs             string
+	Disks            string
 }
 
 type VM struct {
@@ -114,6 +115,7 @@ func init() {
 		vmLogger := slog.New(slog.NewTextHandler(vmLogFile))
 		vmInst.log = *vmLogger
 		List.VmList[vmInst.ID] = vmInst
+		log.Printf("vm: init: id: %v, isos: %v, disks: %v", vmInst.ID, vmInst.Config.ISOs, vmInst.Config.Disks)
 	}
 	List.Mu.Unlock()
 }

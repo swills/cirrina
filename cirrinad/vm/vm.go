@@ -2,6 +2,7 @@ package vm
 
 import (
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
 	"errors"
 	"fmt"
@@ -166,6 +167,7 @@ func (vm *VM) Save() error {
 			"com4_dev":           &vm.Config.Com4Dev,
 			"extra_args":         &vm.Config.ExtraArgs,
 			"is_os":              &vm.Config.ISOs,
+			"disks":              &vm.Config.Disks,
 		},
 		)
 
@@ -412,6 +414,8 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 
 func (vm *VM) GetISOs() ([]iso.ISO, error) {
 	var isos []iso.ISO
+	log.Printf("GetISOs: VM Id: %v", vm.ID)
+	log.Printf("GetISOs: ISOs: %v", vm.Config.ISOs)
 	for _, cv := range strings.Split(vm.Config.ISOs, ",") {
 		if cv == "" {
 			continue
@@ -426,6 +430,22 @@ func (vm *VM) GetISOs() ([]iso.ISO, error) {
 	return isos, nil
 }
 
+func (vm *VM) GetDisks() ([]disk.Disk, error) {
+	var disks []disk.Disk
+	for _, cv := range strings.Split(vm.Config.Disks, ",") {
+		if cv == "" {
+			continue
+		}
+		aDisk, err := disk.GetById(cv)
+		if err == nil {
+			disks = append(disks, *aDisk)
+		} else {
+			log.Printf("bad disk %v for vm %v", cv, vm.ID)
+		}
+	}
+	return disks, nil
+}
+
 func (vm *VM) DeleteUEFIState() error {
 	uefiVarsFilePath := baseVMStatePath + "/" + vm.Name
 	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
@@ -437,6 +457,71 @@ func (vm *VM) DeleteUEFIState() error {
 		if err := os.Remove(uefiVarsFile); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (vm *VM) AttachDisk(diskids []string) error {
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
+	if vm.Status != STOPPED {
+		return errors.New("VM must be stopped before adding disk(s)")
+	}
+
+	occurred := map[string]bool{}
+	result := []string{}
+
+	for _, aDisk := range diskids {
+		log.Printf("checking disk %v exists", aDisk)
+
+		if occurred[aDisk] != true {
+			occurred[aDisk] = true
+			result = append(result, aDisk)
+		} else {
+			log.Printf("duplicate disk id")
+			return errors.New("disk may only be added once")
+		}
+
+		_, err := disk.GetById(aDisk)
+		if err != nil {
+			return err
+		}
+
+		log.Printf("checking if %v is attached to another VM", aDisk)
+		allVms := GetAll()
+		for _, aVm := range allVms {
+			vmDisks, err := aVm.GetDisks()
+			if err != nil {
+				return err
+			}
+			if aVm.ID == vm.ID {
+				// skip if it's attached to this VM, we replace the full list
+				// TODO check that we don't attach the same disk twice
+				continue
+			}
+			for _, aVmDisk := range vmDisks {
+				if aDisk == aVmDisk.ID {
+					log.Printf("disk %v is already attached to VM %v", aDisk, aVm.ID)
+					return errors.New("disk already attached")
+				}
+			}
+		}
+	}
+
+	var disksConfigVal string
+	count := 0
+	for _, diskId := range diskids {
+		if count > 0 {
+			disksConfigVal += ","
+		}
+		disksConfigVal += diskId
+		count += 1
+	}
+	vm.Config.Disks = disksConfigVal
+	err := vm.Save()
+	if err != nil {
+		log.Printf("error saving VM: %v", err)
+		return err
 	}
 	return nil
 }

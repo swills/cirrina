@@ -35,6 +35,11 @@ const (
 	VMInfo_AddISO_FullMethodName             = "/cirrina.VMInfo/AddISO"
 	VMInfo_SetVmISOs_FullMethodName          = "/cirrina.VMInfo/SetVmISOs"
 	VMInfo_GetVmISOs_FullMethodName          = "/cirrina.VMInfo/GetVmISOs"
+	VMInfo_GetDisks_FullMethodName           = "/cirrina.VMInfo/GetDisks"
+	VMInfo_GetDiskInfo_FullMethodName        = "/cirrina.VMInfo/GetDiskInfo"
+	VMInfo_AddDisk_FullMethodName            = "/cirrina.VMInfo/AddDisk"
+	VMInfo_SetVmDisks_FullMethodName         = "/cirrina.VMInfo/SetVmDisks"
+	VMInfo_GetVmDisks_FullMethodName         = "/cirrina.VMInfo/GetVmDisks"
 )
 
 // VMInfoClient is the client API for VMInfo service.
@@ -57,6 +62,11 @@ type VMInfoClient interface {
 	AddISO(ctx context.Context, in *ISOInfo, opts ...grpc.CallOption) (*ISOID, error)
 	SetVmISOs(ctx context.Context, in *SetISOReq, opts ...grpc.CallOption) (*ReqBool, error)
 	GetVmISOs(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmISOsClient, error)
+	GetDisks(ctx context.Context, in *DisksQuery, opts ...grpc.CallOption) (VMInfo_GetDisksClient, error)
+	GetDiskInfo(ctx context.Context, in *DiskId, opts ...grpc.CallOption) (*DiskInfo, error)
+	AddDisk(ctx context.Context, in *DiskInfo, opts ...grpc.CallOption) (*DiskId, error)
+	SetVmDisks(ctx context.Context, in *SetDiskReq, opts ...grpc.CallOption) (*ReqBool, error)
+	GetVmDisks(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmDisksClient, error)
 }
 
 type vMInfoClient struct {
@@ -303,6 +313,97 @@ func (x *vMInfoGetVmISOsClient) Recv() (*ISOID, error) {
 	return m, nil
 }
 
+func (c *vMInfoClient) GetDisks(ctx context.Context, in *DisksQuery, opts ...grpc.CallOption) (VMInfo_GetDisksClient, error) {
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[4], VMInfo_GetDisks_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &vMInfoGetDisksClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type VMInfo_GetDisksClient interface {
+	Recv() (*DiskId, error)
+	grpc.ClientStream
+}
+
+type vMInfoGetDisksClient struct {
+	grpc.ClientStream
+}
+
+func (x *vMInfoGetDisksClient) Recv() (*DiskId, error) {
+	m := new(DiskId)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *vMInfoClient) GetDiskInfo(ctx context.Context, in *DiskId, opts ...grpc.CallOption) (*DiskInfo, error) {
+	out := new(DiskInfo)
+	err := c.cc.Invoke(ctx, VMInfo_GetDiskInfo_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vMInfoClient) AddDisk(ctx context.Context, in *DiskInfo, opts ...grpc.CallOption) (*DiskId, error) {
+	out := new(DiskId)
+	err := c.cc.Invoke(ctx, VMInfo_AddDisk_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vMInfoClient) SetVmDisks(ctx context.Context, in *SetDiskReq, opts ...grpc.CallOption) (*ReqBool, error) {
+	out := new(ReqBool)
+	err := c.cc.Invoke(ctx, VMInfo_SetVmDisks_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vMInfoClient) GetVmDisks(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmDisksClient, error) {
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[5], VMInfo_GetVmDisks_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &vMInfoGetVmDisksClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type VMInfo_GetVmDisksClient interface {
+	Recv() (*DiskId, error)
+	grpc.ClientStream
+}
+
+type vMInfoGetVmDisksClient struct {
+	grpc.ClientStream
+}
+
+func (x *vMInfoGetVmDisksClient) Recv() (*DiskId, error) {
+	m := new(DiskId)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // VMInfoServer is the server API for VMInfo service.
 // All implementations must embed UnimplementedVMInfoServer
 // for forward compatibility
@@ -323,6 +424,11 @@ type VMInfoServer interface {
 	AddISO(context.Context, *ISOInfo) (*ISOID, error)
 	SetVmISOs(context.Context, *SetISOReq) (*ReqBool, error)
 	GetVmISOs(*VMID, VMInfo_GetVmISOsServer) error
+	GetDisks(*DisksQuery, VMInfo_GetDisksServer) error
+	GetDiskInfo(context.Context, *DiskId) (*DiskInfo, error)
+	AddDisk(context.Context, *DiskInfo) (*DiskId, error)
+	SetVmDisks(context.Context, *SetDiskReq) (*ReqBool, error)
+	GetVmDisks(*VMID, VMInfo_GetVmDisksServer) error
 	mustEmbedUnimplementedVMInfoServer()
 }
 
@@ -377,6 +483,21 @@ func (UnimplementedVMInfoServer) SetVmISOs(context.Context, *SetISOReq) (*ReqBoo
 }
 func (UnimplementedVMInfoServer) GetVmISOs(*VMID, VMInfo_GetVmISOsServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetVmISOs not implemented")
+}
+func (UnimplementedVMInfoServer) GetDisks(*DisksQuery, VMInfo_GetDisksServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetDisks not implemented")
+}
+func (UnimplementedVMInfoServer) GetDiskInfo(context.Context, *DiskId) (*DiskInfo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDiskInfo not implemented")
+}
+func (UnimplementedVMInfoServer) AddDisk(context.Context, *DiskInfo) (*DiskId, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddDisk not implemented")
+}
+func (UnimplementedVMInfoServer) SetVmDisks(context.Context, *SetDiskReq) (*ReqBool, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetVmDisks not implemented")
+}
+func (UnimplementedVMInfoServer) GetVmDisks(*VMID, VMInfo_GetVmDisksServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetVmDisks not implemented")
 }
 func (UnimplementedVMInfoServer) mustEmbedUnimplementedVMInfoServer() {}
 
@@ -691,6 +812,102 @@ func (x *vMInfoGetVmISOsServer) Send(m *ISOID) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _VMInfo_GetDisks_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(DisksQuery)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(VMInfoServer).GetDisks(m, &vMInfoGetDisksServer{stream})
+}
+
+type VMInfo_GetDisksServer interface {
+	Send(*DiskId) error
+	grpc.ServerStream
+}
+
+type vMInfoGetDisksServer struct {
+	grpc.ServerStream
+}
+
+func (x *vMInfoGetDisksServer) Send(m *DiskId) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _VMInfo_GetDiskInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DiskId)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).GetDiskInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_GetDiskInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).GetDiskInfo(ctx, req.(*DiskId))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VMInfo_AddDisk_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DiskInfo)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).AddDisk(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_AddDisk_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).AddDisk(ctx, req.(*DiskInfo))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VMInfo_SetVmDisks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetDiskReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).SetVmDisks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_SetVmDisks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).SetVmDisks(ctx, req.(*SetDiskReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VMInfo_GetVmDisks_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(VMID)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(VMInfoServer).GetVmDisks(m, &vMInfoGetVmDisksServer{stream})
+}
+
+type VMInfo_GetVmDisksServer interface {
+	Send(*DiskId) error
+	grpc.ServerStream
+}
+
+type vMInfoGetVmDisksServer struct {
+	grpc.ServerStream
+}
+
+func (x *vMInfoGetVmDisksServer) Send(m *DiskId) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // VMInfo_ServiceDesc is the grpc.ServiceDesc for VMInfo service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -746,6 +963,18 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "SetVmISOs",
 			Handler:    _VMInfo_SetVmISOs_Handler,
 		},
+		{
+			MethodName: "GetDiskInfo",
+			Handler:    _VMInfo_GetDiskInfo_Handler,
+		},
+		{
+			MethodName: "AddDisk",
+			Handler:    _VMInfo_AddDisk_Handler,
+		},
+		{
+			MethodName: "SetVmDisks",
+			Handler:    _VMInfo_SetVmDisks_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
@@ -766,6 +995,16 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "GetVmISOs",
 			Handler:       _VMInfo_GetVmISOs_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetDisks",
+			Handler:       _VMInfo_GetDisks_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetVmDisks",
+			Handler:       _VMInfo_GetVmDisks_Handler,
 			ServerStreams: true,
 		},
 	},
