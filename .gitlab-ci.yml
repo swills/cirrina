@@ -4,7 +4,7 @@ cirranad:
   tags:
     - FreeBSD
   script:
-    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mouf.net/swills/go-supervisor.git ../go-supervisor
+    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mouf.net/swills/go-supervisor.git go-supervisor
     - cd cirrinad
     - go build .
 

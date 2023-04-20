@@ -13,7 +13,7 @@ require (
 	gorm.io/gorm v1.24.6
 )
 
-replace github.com/kontera-technologies/go-supervisor/v2 => ../go-supervisor
+replace github.com/kontera-technologies/go-supervisor/v2 => ./go-supervisor
 
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
