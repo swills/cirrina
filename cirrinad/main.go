@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"syscall"
 
-	"log"
 	"time"
 )
 
@@ -20,18 +19,22 @@ func handleSigInfo() {
 	var mem runtime.MemStats
 	vm.PrintVMStatus()
 	runtime.ReadMemStats(&mem)
-	log.Printf("mem.Alloc: %v", mem.Alloc)
-	log.Printf("mem.TotalAlloc: %v", mem.TotalAlloc)
-	log.Printf("mem.HeapAlloc: %v", mem.HeapAlloc)
-	log.Printf("mem.NumGC: %v", mem.NumGC)
-	log.Printf("mem.Sys: %v", mem.Sys)
+	slog.Debug("MemStats",
+		"mem.Alloc", mem.Alloc,
+		"mem.TotalAlloc", mem.TotalAlloc,
+		"mem.HeapAlloc", mem.HeapAlloc,
+		"mem.NumGC", mem.NumGC,
+		"mem.Sys", mem.Sys,
+	)
 	runtime.GC()
 	runtime.ReadMemStats(&mem)
-	log.Printf("mem.Alloc: %v", mem.Alloc)
-	log.Printf("mem.TotalAlloc: %v", mem.TotalAlloc)
-	log.Printf("mem.HeapAlloc: %v", mem.HeapAlloc)
-	log.Printf("mem.NumGC: %v", mem.NumGC)
-	log.Printf("mem.Sys: %v", mem.Sys)
+	slog.Debug("MemStats",
+		"mem.Alloc", mem.Alloc,
+		"mem.TotalAlloc", mem.TotalAlloc,
+		"mem.HeapAlloc", mem.HeapAlloc,
+		"mem.NumGC", mem.NumGC,
+		"mem.Sys", mem.Sys,
+	)
 }
 
 func handleSigInt() {
@@ -45,10 +48,10 @@ func handleSigInt() {
 		if runningVMs == 0 {
 			break
 		}
-		log.Printf("waiting on %v running VM(s)", runningVMs)
+		slog.Info("waiting on running VM(s)", "count", runningVMs)
 		time.Sleep(time.Second)
 	}
-	log.Printf("Exiting normally")
+	slog.Info("Exiting normally")
 	os.Exit(0)
 }
 
@@ -58,7 +61,7 @@ func handleSigTerm() {
 }
 
 func sigHandler(signal os.Signal) {
-	log.Printf("handling signal %v", signal)
+	slog.Debug("got signal", "signal", signal)
 	switch signal {
 	case syscall.SIGINFO:
 		go handleSigInfo()
@@ -66,10 +69,8 @@ func sigHandler(signal os.Signal) {
 		go handleSigInt()
 	case syscall.SIGTERM:
 		handleSigTerm()
-	case syscall.SIGCHLD:
-		log.Printf("got SIGCHLD")
 	default:
-		fmt.Println("Ignoring signal ", signal)
+		slog.Info("Ignoring signal", "signal", signal)
 	}
 }
 
@@ -85,12 +86,24 @@ func main() {
 	}()
 	logFile, err := os.OpenFile(config.Config.Log.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Printf("failed to open log file: %v", err)
+		slog.Error("failed to open log file: %v", err)
 		return
 	}
-	logger := slog.New(slog.NewTextHandler(logFile))
+	var programLevel = new(slog.LevelVar) // Info by default
+	logger := slog.New(slog.HandlerOptions{Level: programLevel}.NewTextHandler(logFile))
 	slog.SetDefault(logger)
-	log.Print("Starting daemon")
+	slog.Info("Starting Daemon")
+
+	if config.Config.Log.Level == "info" {
+		slog.Info("log level set to info")
+		programLevel.Set(slog.LevelInfo)
+	} else if config.Config.Log.Level == "debug" {
+		slog.Info("log level set to debug")
+		programLevel.Set(slog.LevelDebug)
+	} else {
+		programLevel.Set(slog.LevelInfo)
+		slog.Info("log level not set or un-parseable, setting to info")
+	}
 	go vm.AutoStartVMs()
 	go rpcServer()
 	go processRequests()

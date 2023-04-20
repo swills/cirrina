@@ -6,7 +6,6 @@ import (
 	"github.com/kontera-technologies/go-supervisor/v2"
 	"golang.org/x/exp/slog"
 	"gorm.io/gorm"
-	"log"
 	"os"
 	"sync"
 )
@@ -110,12 +109,26 @@ func init() {
 		vmLogFilePath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name + "/log"
 		vmLogFile, err := os.OpenFile(vmLogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			log.Printf("failed to open VM log file: %v", err)
+			slog.Error("failed to open VM log file", "err", err)
 		}
-		vmLogger := slog.New(slog.NewTextHandler(vmLogFile))
+		var programLevel = new(slog.LevelVar) // Info by default
+		vmLogger := slog.New(slog.HandlerOptions{Level: programLevel}.NewTextHandler(vmLogFile))
+
 		vmInst.log = *vmLogger
+
+		if config.Config.Log.Level == "info" {
+			vmInst.log.Info("log level set to info")
+			programLevel.Set(slog.LevelInfo)
+		} else if config.Config.Log.Level == "debug" {
+			vmInst.log.Info("log level set to debug")
+			programLevel.Set(slog.LevelDebug)
+		} else {
+			programLevel.Set(slog.LevelInfo)
+			vmInst.log.Info("log level not set or un-parseable, setting to info")
+		}
+
 		List.VmList[vmInst.ID] = vmInst
-		log.Printf("vm: init: id: %v, isos: %v, disks: %v", vmInst.ID, vmInst.Config.ISOs, vmInst.Config.Disks)
+		vmInst.log.Debug("vm init", "id", vmInst.ID, "isos", vmInst.Config.ISOs, "disks", vmInst.Config.Disks)
 	}
 	List.Mu.Unlock()
 }
@@ -126,7 +139,7 @@ func AutoStartVMs() {
 			go func(aVmInst *VM) {
 				err := aVmInst.Start()
 				if err != nil {
-					log.Printf("auto start of %v %v failed: %v", vmInst.ID, vmInst.Name, err)
+					slog.Error("auto start failed", "vm", vmInst.ID, "name", vmInst.Name, "err", err)
 				}
 			}(vmInst)
 		}
@@ -168,7 +181,13 @@ func PrintVMStatus() {
 	List.Mu.Lock()
 	for _, vmInst := range List.VmList {
 		if vmInst.Status != RUNNING {
-			log.Printf("vm: id: %v name: %v cpus: %v state: %v pid: %v", vmInst.ID, vmInst.Name, vmInst.Config.Cpu, vmInst.Status, nil)
+			slog.Info("vm",
+				"id", vmInst.ID,
+				"name", vmInst.Name,
+				"cpus", vmInst.Config.Cpu,
+				"state", vmInst.Status,
+				"pid", nil,
+			)
 		} else {
 			if vmInst.proc == nil {
 				setStopped(vmInst.ID)
@@ -176,9 +195,21 @@ func PrintVMStatus() {
 				List.VmList[vmInst.ID].Status = STOPPED
 				List.Mu.Unlock()
 				vmInst.maybeForceKillVM()
-				log.Printf("vm: id: %v name: %v cpus: %v state: %v pid: %v", vmInst.ID, vmInst.Name, vmInst.Config.Cpu, vmInst.Status, nil)
+				slog.Info("vm",
+					"id", vmInst.ID,
+					"name", vmInst.Name,
+					"cpus", vmInst.Config.Cpu,
+					"state", vmInst.Status,
+					"pid", nil,
+				)
 			} else {
-				log.Printf("vm: id: %v name: %v cpus: %v state: %v pid: %v", vmInst.ID, vmInst.Name, vmInst.Config.Cpu, vmInst.Status, vmInst.proc.Pid())
+				slog.Info("vm",
+					"id", vmInst.ID,
+					"name", vmInst.Name,
+					"cpus", vmInst.Config.Cpu,
+					"state", vmInst.Status,
+					"pid", vmInst.proc.Pid(),
+				)
 			}
 		}
 	}
@@ -200,7 +231,7 @@ func KillVMs() {
 			go func(aVmInst *VM) {
 				err := aVmInst.Stop()
 				if err != nil {
-					log.Printf("error stopping VM: %v", err)
+					slog.Error("error stopping VM", "err", err)
 				}
 			}(vmInst)
 		}

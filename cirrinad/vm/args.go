@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
+	"golang.org/x/exp/slog"
 	"net"
 	"os"
 	"os/exec"
@@ -43,7 +43,7 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 		}
 		thisIso, err := iso.GetById(isoItem)
 		if err != nil {
-			log.Printf("error getting ISO %v: %v", isoItem, err)
+			slog.Error("error getting ISO", "isoItem", isoItem, "err", err)
 			return []string{}, slot
 		}
 		if devCount <= maxSataDevs {
@@ -84,18 +84,18 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 		}
 		thisDisk, err := disk.GetById(diskItem)
 		if err != nil {
-			log.Printf("error getting Disk %v: %v", diskItem, err)
+			slog.Error("error getting Disk", "diskItem", diskItem, "err", err)
 			return []string{}, originalSlot
 		}
 		if devCount <= maxSataDevs {
 			//thisHd := []string{"-s", strconv.Itoa(slot) + ":0,ahci,hd:" + thisDisk.Path}
 			thisDiskExists, err := exists(thisDisk.Path)
 			if err != nil {
-				log.Printf("error getting disk path: %v", err)
+				slog.Error("error getting disk path", "path", thisDisk.Path, "err", err)
 				return []string{}, originalSlot
 			}
 			if !thisDiskExists {
-				log.Printf("disk path %v doesn't exist", thisDisk.Path)
+				slog.Debug("disk path does not exist", "path", thisDisk.Path, "err", err)
 				return []string{}, originalSlot
 			}
 			thisHd := []string{"-s", strconv.Itoa(slot) + ",nvme," + thisDisk.Path}
@@ -180,23 +180,23 @@ func (vm *VM) getSoundArg(slot int) ([]string, int) {
 	var soundString string
 	inPathExists, err := exists(vm.Config.SoundIn)
 	if err != nil {
-		log.Printf("sound in check error: %v", err)
+		slog.Error("sound input check error", "err", err)
 	}
 	outPathExists, err := exists(vm.Config.SoundIn)
 	if err != nil {
-		log.Printf("sound out check error: %v", err)
+		slog.Error("sound output check error", "err", err)
 	}
 	if inPathExists || outPathExists {
 		soundString = ",hda"
 		if outPathExists {
 			soundString = soundString + ",play=" + vm.Config.SoundOut
 		} else {
-			log.Printf("sound out path doesn't exist: %v", err)
+			slog.Debug("sound output path does not exist", "path", vm.Config.SoundOut)
 		}
 		if inPathExists {
 			soundString = soundString + ",rec=" + vm.Config.SoundIn
 		} else {
-			log.Printf("sound in path doesn't exist: %v", err)
+			slog.Debug("sound input path does not exist", "path", vm.Config.SoundIn)
 		}
 	}
 	soundArg = []string{"-s", strconv.Itoa(slot) + soundString}
@@ -378,7 +378,7 @@ func ngGetNodes() (ngNodes []ngNode, err error) {
 	defer func(cmd *exec.Cmd) {
 		err := cmd.Wait()
 		if err != nil {
-			log.Printf("ngctl err: %v", err)
+			slog.Error("ngctl error", "err", err)
 		}
 	}(cmd)
 	stdout, err := cmd.StdoutPipe()
@@ -468,7 +468,7 @@ func ngShowBridge(bridge string) (peers []ngBridge, err error) {
 	defer func(cmd *exec.Cmd) {
 		err := cmd.Wait()
 		if err != nil {
-			log.Printf("ngctl show err: %v", err)
+			slog.Error("ngctl show error", "err", err)
 		}
 	}(cmd)
 	stdout, err := cmd.StdoutPipe()
@@ -587,7 +587,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	} else if vm.Config.NetType == "E1000" {
 		netType = "e1000"
 	} else {
-		log.Printf("unknown net type %v, can't configure", vm.Config.NetType)
+		slog.Debug("unknown net type, cannot configure", "netType", vm.Config.NetType)
 		return []string{}, slot
 	}
 	var netDev string
@@ -601,13 +601,13 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	} else if vm.Config.NetDevType == "NETGRAPH" {
 		ngNetDev, ngPeerHook, err := ngGetDev(config.Config.Network.Interface)
 		if err != nil {
-			log.Printf("ngGetDev error: %v", err)
+			slog.Error("ngGetDev error", "err", err)
 			return []string{}, slot
 		}
 		netDev = ngNetDev
 		netDevArg = "netgraph,path=" + ngNetDev + ":,peerhook=" + ngPeerHook + ",socket=" + vm.Name
 	} else {
-		log.Printf("unknown net dev type %v", vm.Config.NetDevType)
+		slog.Debug("unknown net dev type", "netDevType", vm.Config.NetDevType)
 		return []string{}, slot
 	}
 	macAddress := vm.Config.Mac
@@ -686,6 +686,7 @@ func getNmdmNum(offset int) (nmdm string, err error) {
 		}
 	}
 	sort.Strings(nmdmDevs)
+	slog.Debug("getNmdmNum", "nmdmDevs", nmdmDevs)
 	if len(nmdmDevs) == 0 {
 		nmdmDev = "/dev/nmdm" + strconv.Itoa(offset) + "A"
 	} else {
@@ -783,15 +784,19 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	args = append(args, soundArg...)
 	args = append(args, lpcArg...)
 	if len(com1Arg) != 0 {
+		slog.Debug("com1Arg", "com1Arg", com1Arg)
 		args = append(args, com1Arg...)
 	}
 	if len(com2Arg) != 0 {
+		slog.Debug("com2Arg", "com2Arg", com2Arg)
 		args = append(args, com2Arg...)
 	}
 	if len(com3Arg) != 0 {
+		slog.Debug("com3Arg", "com3Arg", com3Arg)
 		args = append(args, com3Arg...)
 	}
 	if len(com4Arg) != 0 {
+		slog.Debug("com4Arg", "com4Arg", com4Arg)
 		args = append(args, com4Arg...)
 	}
 	args = append(args, extraArgs...)

@@ -3,7 +3,7 @@ package config
 import (
 	"flag"
 	"github.com/jinzhu/configor"
-	"log"
+	"golang.org/x/exp/slog"
 )
 
 var configFile = flag.String("config", "config.yml", "Config File")
@@ -25,7 +25,8 @@ var Config = struct {
 		}
 	}
 	Log struct {
-		Path string
+		Path  string
+		Level string
 	}
 
 	Network struct {
@@ -52,7 +53,7 @@ func init() {
 	flag.Parse()
 	err := configor.Load(&Config, *configFile)
 	if err != nil {
-		log.Fatalf("Config loading failed: %v", err)
+		slog.Error("config loading failed", "err", err)
 		return
 	}
 }

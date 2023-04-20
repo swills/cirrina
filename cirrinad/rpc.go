@@ -11,9 +11,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"golang.org/x/exp/slog"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"log"
 	"net"
 	"os"
 	"strconv"
@@ -32,6 +32,7 @@ func (s *server) AddVM(_ context.Context, v *cirrina.VMConfig) (*cirrina.VMID, e
 	defer vm.List.Mu.Unlock()
 	vm.List.Mu.Lock()
 	vmInst, err := vm.Create(*v.Name, *v.Description, *v.Cpu, *v.Mem)
+	slog.Debug("Created VM", "vm", vmInst.ID)
 	if err != nil {
 		return &cirrina.VMID{}, err
 	}
@@ -61,7 +62,7 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	var pvm cirrina.VMConfig
 	vmInst, err := vm.GetById(v.Value)
 	if err != nil {
-		log.Printf("error getting vm %v, %v", v.Value, err)
+		slog.Debug("error getting vm", "vm", v.Value, "err", err)
 		return &pvm, err
 	}
 	pvm.Name = &vmInst.Name
@@ -144,7 +145,7 @@ func (s *server) GetVMState(_ context.Context, p *cirrina.VMID) (*cirrina.VMStat
 	vmInst, err := vm.GetById(p.Value)
 	pvm := cirrina.VMState{}
 	if err != nil {
-		log.Printf("error getting vm %v, %v", p.Value, err)
+		slog.Debug("error getting vm", "vm", p.Value, "err", err)
 		return &pvm, err
 	}
 	switch vmInst.Status {
@@ -187,7 +188,7 @@ func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID
 	}
 	vmInst, err := vm.GetById(v.Value)
 	if err != nil {
-		log.Printf("error getting vm %v, %v", v.Value, err)
+		slog.Debug("error getting vm", "vm", v.Value, "err", err)
 		return &cirrina.RequestID{}, err
 	}
 	if vmInst.Status != vm.STOPPED {
@@ -210,7 +211,7 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 	}
 	vmInst, err := vm.GetById(v.Value)
 	if err != nil {
-		log.Printf("error getting vm %v, %v", v.Value, err)
+		slog.Error("error getting vm", "vm", v.Value, "err", err)
 		return &cirrina.RequestID{}, err
 	}
 	if vmInst.Status != vm.RUNNING {
@@ -254,7 +255,7 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	re.Success = false
 	vmInst, err := vm.GetById(rc.Id)
 	if err != nil {
-		log.Printf("error getting vm %v, %v", rc.Id, err)
+		slog.Debug("error getting vm", "vm", rc.Id, "err", err)
 		return &cirrina.ReqBool{}, err
 	}
 	reflect := rc.ProtoReflect()
@@ -544,13 +545,13 @@ func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskI
 
 func (s *server) GetISOInfo(_ context.Context, i *cirrina.ISOID) (*cirrina.ISOInfo, error) {
 	var ic cirrina.ISOInfo
-	log.Printf("GetISOInfo: %v", i.Value)
+	slog.Debug("GetISOInfo", "iso", i.Value)
 	if i.Value == "" {
 		return &ic, nil
 	}
 	isoInst, err := iso.GetById(i.Value)
 	if err != nil {
-		log.Printf("error getting iso %v, %v", i.Value, err)
+		slog.Debug("error getting iso", "iso", i.Value, "err", err)
 		return &ic, err
 	}
 	ic.Name = &isoInst.Name
@@ -560,13 +561,13 @@ func (s *server) GetISOInfo(_ context.Context, i *cirrina.ISOID) (*cirrina.ISOIn
 
 func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.DiskInfo, error) {
 	var ic cirrina.DiskInfo
-	log.Printf("GetDiskInfo called: %v", i.Value)
+	slog.Debug("GetDiskInfo", "disk", i.Value)
 	if i.Value == "" {
 		return &ic, nil
 	}
 	diskInst, err := disk.GetById(i.Value)
 	if err != nil {
-		log.Printf("error getting disk %v, %v", i.Value, err)
+		slog.Error("error getting disk", "disk", i.Value, "err", err)
 	}
 	ic.Name = &diskInst.Name
 	ic.Description = &diskInst.Description
@@ -588,7 +589,7 @@ func (s *server) SetVmISOs(_ context.Context, sr *cirrina.SetISOReq) (*cirrina.R
 	}
 	vmInst, err := vm.GetById(sr.Id)
 	if err != nil {
-		log.Printf("error getting vm %v, %v", sr.Id, err)
+		slog.Error("error getting vm", "vm", sr.Id, "err", err)
 		return &re, err
 	}
 	vmInst.Config.ISOs = isosConfigVal
@@ -603,10 +604,10 @@ func (s *server) SetVmISOs(_ context.Context, sr *cirrina.SetISOReq) (*cirrina.R
 func (s *server) SetVmDisks(_ context.Context, sr *cirrina.SetDiskReq) (*cirrina.ReqBool, error) {
 	re := cirrina.ReqBool{}
 	re.Success = false
-	log.Printf("SetVmDisks: vm id: %v, disk: %v", sr.Id, sr.Diskid)
+	slog.Debug("SetVmDisks", "vm", sr.Id, "disk", sr.Diskid)
 	vmInst, err := vm.GetById(sr.Id)
 	if err != nil {
-		log.Printf("error getting vm %v, %v", sr.Id, err)
+		slog.Error("error getting vm", "vm", sr.Id, "err", err)
 		return &re, err
 	}
 	err = vmInst.AttachDisk(sr.Diskid)
@@ -619,9 +620,9 @@ func (s *server) SetVmDisks(_ context.Context, sr *cirrina.SetDiskReq) (*cirrina
 
 func (s *server) GetVmISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVmISOsServer) error {
 	vmInst, err := vm.GetById(v.Value)
-	log.Printf("GetVmISOs: VM ID: %v, vm isos: %v", v.Value, vmInst.Config.ISOs)
+	slog.Debug("GetVmISOs", "vm", v.Value, "isos", vmInst.Config.ISOs)
 	if err != nil {
-		log.Printf("error getting vm %v, %v", v.Value, err)
+		slog.Error("error getting vm", "vm", v.Value, "err", err)
 		return err
 	}
 
@@ -642,11 +643,11 @@ func (s *server) GetVmISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVmISOsServe
 }
 
 func (s *server) GetVmDisks(v *cirrina.VMID, stream cirrina.VMInfo_GetVmDisksServer) error {
-	log.Printf("GetVMDisks called")
+	slog.Debug("GetVMDisks called")
 	vmInst, err := vm.GetById(v.Value)
-	log.Printf("GetVMDisks: VM ID: %v, vm disks: %v", v.Value, vmInst.Config.Disks)
+	slog.Debug("GetVMDisks", "vm", v.Value, "disks", vmInst.Config.Disks)
 	if err != nil {
-		log.Printf("error getting vm %v, %v", v.Value, err)
+		slog.Error("error getting vm", "vm", v.Value, "err", err)
 		return err
 	}
 
@@ -731,7 +732,7 @@ func (s *server) ClearUEFIState(_ context.Context, v *cirrina.VMID) (*cirrina.Re
 	re.Success = false
 	vmInst, err := vm.GetById(v.Value)
 	if err != nil {
-		log.Printf("error getting vm %v, %v", v.Value, err)
+		slog.Error("error getting vm", "vm", v.Value, "err", err)
 		return &re, err
 	}
 	err = vmInst.DeleteUEFIState()
@@ -746,11 +747,11 @@ func rpcServer() {
 	listenAddress := config.Config.Network.Grpc.Ip + ":" + strconv.Itoa(int(config.Config.Network.Grpc.Port))
 	lis, err := net.Listen("tcp", listenAddress)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		slog.Error("failed to listen for rpc", "listenAddress", listenAddress, "err", err)
 	}
 	s := grpc.NewServer()
 	cirrina.RegisterVMInfoServer(s, &server{})
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		slog.Error("failed to serve rpc", "err", err)
 	}
 }

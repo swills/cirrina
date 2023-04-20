@@ -2,9 +2,9 @@ package vm
 
 import (
 	"cirrina/cirrinad/config"
+	"golang.org/x/exp/slog"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"log"
 	"sync"
 )
 
@@ -49,7 +49,7 @@ func setRunning(id string, pid int) {
 			"bhyve_pid": &vm.BhyvePid,
 		})
 	if res.Error != nil {
-		log.Printf("Error saving VM running")
+		slog.Error("error saving VM running", "err", res.Error)
 	}
 }
 
@@ -63,7 +63,7 @@ func (vm *VM) setStarting() {
 			"status": &vm.Status,
 		})
 	if res.Error != nil {
-		log.Printf("Error saving VM start")
+		slog.Error("error saving VM start", "err", res.Error)
 	}
 }
 
@@ -88,7 +88,7 @@ func setStopped(id string) {
 			"bhyve_pid": &vm.BhyvePid,
 		})
 	if res.Error != nil {
-		log.Printf("Error saving VM stop")
+		slog.Error("error saving VM stopped", "err", res.Error)
 	}
 }
 
@@ -103,7 +103,7 @@ func setStopping(id string) {
 			"status": &vm.Status,
 		})
 	if res.Error != nil {
-		log.Printf("Error saving VM stop")
+		slog.Error("error saving VM stopping", "err", res.Error)
 	}
 }
 

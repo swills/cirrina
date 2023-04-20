@@ -3,18 +3,18 @@ package main
 import (
 	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/vm"
-	"log"
+	"golang.org/x/exp/slog"
 )
 
 func startVM(rs *requests.Request) {
 	vmInst, err := vm.GetById(rs.VmId)
 	if err != nil {
-		log.Printf("error getting vm %v, %v", rs.VmId, err)
+		slog.Error("error getting vm", "vm", rs.VmId, "err", err)
 		return
 	}
 	err = vmInst.Start()
 	if err != nil {
-		log.Printf("failed to start VM %v: %v", vmInst.ID, err)
+		slog.Error("failed to start VM", "vm", vmInst.ID, "err", err)
 		rs.Failed()
 		return
 	}
@@ -24,12 +24,13 @@ func startVM(rs *requests.Request) {
 func stopVM(rs *requests.Request) {
 	vmInst, err := vm.GetById(rs.VmId)
 	if err != nil {
-		log.Printf("error getting vm %v, %v", rs.VmId, err)
+		slog.Error("error getting vm", "vm", rs.VmId, "err", err)
 		return
 	}
+	slog.Debug("stopping VM", "vm", rs.VmId)
 	err = vmInst.Stop()
 	if err != nil {
-		log.Printf("failed to stop VM %v: %v", vmInst.ID, err)
+		slog.Error("failed to stop VM", "vm", vmInst.ID, "err", err)
 		rs.Failed()
 		return
 	}
@@ -39,15 +40,15 @@ func stopVM(rs *requests.Request) {
 func deleteVM(rs *requests.Request) {
 	vmInst, err := vm.GetById(rs.VmId)
 	if err != nil {
-		log.Printf("error getting vm %v, %v", rs.VmId, err)
+		slog.Error("error getting vm", "vm", rs.VmId, "err", err)
 		return
 	}
-	log.Printf("deleting VM %v", rs.VmId)
+	slog.Debug("deleting VM", "id", rs.VmId)
 	defer vm.List.Mu.Unlock()
 	vm.List.Mu.Lock()
 	err = vmInst.Delete()
 	if err != nil {
-		log.Printf("failed to delete VM %v: %v", vmInst.ID, err)
+		slog.Error("failed to delete VM", "vm", vmInst.ID, "err", err)
 		rs.Failed()
 		return
 	}

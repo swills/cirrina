@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/kontera-technologies/go-supervisor/v2"
+	"golang.org/x/exp/slog"
 	"gorm.io/gorm"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -36,7 +36,7 @@ func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, er
 		},
 	}
 	db := getVmDb()
-	log.Printf("Creating VM %v", name)
+	slog.Debug("Creating VM", "vm", name)
 	res := db.Create(&vmInst)
 	return vmInst, res.Error
 }
@@ -109,7 +109,7 @@ func (vm *VM) Start() (err error) {
 
 func (vm *VM) Stop() (err error) {
 	if vm.Status != RUNNING {
-		log.Printf("tried to stop VM %v that is not running", vm.Name)
+		slog.Error("tried to stop VM that is not running", "vm", vm.Name)
 		return errors.New("must be running first")
 	}
 	defer vm.mu.Unlock()
@@ -117,7 +117,7 @@ func (vm *VM) Stop() (err error) {
 	setStopping(vm.ID)
 	err = vm.proc.Stop()
 	if err != nil {
-		log.Printf("Failed to stop %v", vm.proc.Pid())
+		slog.Error("Failed to stop VM", "vm", vm.Name, "pid", vm.proc.Pid())
 		return errors.New("stop failed")
 	}
 	return nil
@@ -189,7 +189,7 @@ func (vm *VM) Save() error {
 		})
 
 	if res.Error != nil {
-		log.Printf("db update error: %v", res.Error)
+		slog.Error("db update error", "err", res.Error)
 		return errors.New("error updating VM")
 	}
 	return nil
@@ -252,7 +252,7 @@ func (vm *VM) createUefiVarsFile() {
 	if !uvPathExists {
 		err = os.Mkdir(uefiVarsFilePath, 0755)
 		if err != nil {
-			log.Printf("failed to create uefi vars path: %v", err)
+			slog.Error("failed to create uefi vars path", "err", err)
 			return
 		}
 	}
@@ -263,7 +263,7 @@ func (vm *VM) createUefiVarsFile() {
 	if !uvFileExists {
 		_, err = copyFile(uefiVarFileTemplate, uefiVarsFile)
 		if err != nil {
-			log.Printf("failed to copy uefiVars template: %v", err)
+			slog.Error("failed to copy uefiVars template", "err", err)
 		}
 	}
 }
@@ -279,14 +279,14 @@ func ngCreateBridge(netDev string, bridgePeer string) (err error) {
 		bridgePeer+":", "bridge", "lower", "link0")
 	err = cmd.Run()
 	if err != nil {
-		log.Printf("ngctl mkpeer err: %v", err)
+		slog.Error("ngctl mkpeer error", "err", err)
 		return err
 	}
 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "name",
 		bridgePeer+":lower", netDev)
 	err = cmd.Run()
 	if err != nil {
-		log.Printf("ngctl name err: %v", err)
+		slog.Error("ngctl name err", "err", err)
 		return err
 	}
 	useUplink := true
@@ -300,21 +300,21 @@ func ngCreateBridge(netDev string, bridgePeer string) (err error) {
 		bridgePeer+":", netDev+":", "upper", upper+"1")
 	err = cmd.Run()
 	if err != nil {
-		log.Printf("ngctl connect err: %v", err)
+		slog.Error("ngctl connect error", "err", err)
 		return err
 	}
 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
 		bridgePeer+":", "setpromisc", "1")
 	err = cmd.Run()
 	if err != nil {
-		log.Printf("ngctl msg err: %v", err)
+		slog.Error("ngctl msg error", "err", err)
 		return err
 	}
 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
 		bridgePeer+":", "setautosrc", "0")
 	err = cmd.Run()
 	if err != nil {
-		log.Printf("ngctl msg err: %v", err)
+		slog.Error("ngctl msg error", "err", err)
 		return err
 	}
 	return nil
@@ -326,28 +326,28 @@ func (vm *VM) netStartup() {
 		cmd := exec.Command(config.Config.Sys.Sudo, args...)
 		err := cmd.Run()
 		if err != nil {
-			log.Printf("failed to create tap: %v", err)
+			slog.Error("failed to create tap", "err", err)
 		}
 		args = []string{"/sbin/ifconfig", config.Config.Network.Bridge, "addm", vm.NetDev}
 		cmd = exec.Command(config.Config.Sys.Sudo, args...)
 		err = cmd.Run()
 		if err != nil {
-			log.Printf("failed to add tap to bridge: %v", err)
+			slog.Error("failed to add tap to bridge", "err", err)
 		}
 	} else if vm.Config.NetDevType == "NETGRAPH" {
 		bridgeList, err := ngGetBridges()
 		if err != nil {
-			log.Printf("error getting bridge list: %v", err)
+			slog.Error("error getting bridge list", "err", err)
 			return
 		}
 		if !containsStr(bridgeList, vm.NetDev) {
 			err := ngCreateBridge(vm.NetDev, config.Config.Network.Interface)
 			if err != nil {
-				log.Printf("ngCreateBridge err: %v", err)
+				slog.Error("ngCreateBridge err", "err", err)
 			}
 		}
 	} else {
-		log.Printf("unknown net type, can't set up")
+		slog.Debug("unknown net type, can't set up")
 		return
 	}
 }
@@ -361,13 +361,13 @@ func (vm *VM) netCleanup() {
 		cmd := exec.Command(config.Config.Sys.Sudo, args...)
 		err := cmd.Run()
 		if err != nil {
-			log.Printf("failed to destroy network interface : %v", err)
+			slog.Error("failed to destroy network interface", "err", err)
 		}
 	} else if strings.HasPrefix(vm.NetDev, "bnet") {
 		// TODO - nothing to do for now, later this will need to check and destroy the netgraph bridge
 		return
 	} else {
-		log.Printf("unknown net type, can't clean up")
+		slog.Debug("unknown net type, can't clean up")
 		return
 	}
 }
@@ -414,8 +414,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 
 func (vm *VM) GetISOs() ([]iso.ISO, error) {
 	var isos []iso.ISO
-	log.Printf("GetISOs: VM Id: %v", vm.ID)
-	log.Printf("GetISOs: ISOs: %v", vm.Config.ISOs)
+	slog.Debug("GetISOs", "vm", vm.ID, "ISOs", vm.Config.ISOs)
 	for _, cv := range strings.Split(vm.Config.ISOs, ",") {
 		if cv == "" {
 			continue
@@ -424,7 +423,7 @@ func (vm *VM) GetISOs() ([]iso.ISO, error) {
 		if err == nil {
 			isos = append(isos, *aISO)
 		} else {
-			log.Printf("bad iso %v for vm %v", cv, vm.ID)
+			slog.Error("bad iso", "iso", cv, "vm", vm.ID)
 		}
 	}
 	return isos, nil
@@ -440,7 +439,7 @@ func (vm *VM) GetDisks() ([]disk.Disk, error) {
 		if err == nil {
 			disks = append(disks, *aDisk)
 		} else {
-			log.Printf("bad disk %v for vm %v", cv, vm.ID)
+			slog.Error("bad disk", "disk", cv, "vm", vm.ID)
 		}
 	}
 	return disks, nil
@@ -469,16 +468,16 @@ func (vm *VM) AttachDisk(diskids []string) error {
 	}
 
 	occurred := map[string]bool{}
-	result := []string{}
+	var result []string
 
 	for _, aDisk := range diskids {
-		log.Printf("checking disk %v exists", aDisk)
+		slog.Debug("checking disk exists", "disk", aDisk)
 
 		if occurred[aDisk] != true {
 			occurred[aDisk] = true
 			result = append(result, aDisk)
 		} else {
-			log.Printf("duplicate disk id")
+			slog.Error("duplicate disk id", "disk", aDisk)
 			return errors.New("disk may only be added once")
 		}
 
@@ -487,7 +486,7 @@ func (vm *VM) AttachDisk(diskids []string) error {
 			return err
 		}
 
-		log.Printf("checking if %v is attached to another VM", aDisk)
+		slog.Debug("checking if disk is attached to another VM", "disk", aDisk)
 		allVms := GetAll()
 		for _, aVm := range allVms {
 			vmDisks, err := aVm.GetDisks()
@@ -501,7 +500,7 @@ func (vm *VM) AttachDisk(diskids []string) error {
 			}
 			for _, aVmDisk := range vmDisks {
 				if aDisk == aVmDisk.ID {
-					log.Printf("disk %v is already attached to VM %v", aDisk, aVm.ID)
+					slog.Error("disk is already attached to VM", "disk", aDisk, "vm", aVm.ID)
 					return errors.New("disk already attached")
 				}
 			}
@@ -520,7 +519,7 @@ func (vm *VM) AttachDisk(diskids []string) error {
 	vm.Config.Disks = disksConfigVal
 	err := vm.Save()
 	if err != nil {
-		log.Printf("error saving VM: %v", err)
+		slog.Error("error saving VM", "err", err)
 		return err
 	}
 	return nil
