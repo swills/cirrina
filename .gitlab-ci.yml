@@ -1,3 +1,4 @@
+
 cirranad:
   stage: build
   tags:
@@ -6,6 +7,7 @@ cirranad:
     - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mouf.net/swills/go-supervisor.git ../go-supervisor
     - cd cirrinad
     - go build .
+
 cirranactl:
   stage: build
   tags:
