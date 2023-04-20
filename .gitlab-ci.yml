@@ -15,4 +15,3 @@ cirranactl:
   script:
     - cd cirrinactl
     - go build .
-
