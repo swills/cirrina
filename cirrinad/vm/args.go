@@ -5,6 +5,7 @@ import (
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
+	"cirrina/cirrinad/util"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -89,7 +90,7 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 		}
 		if devCount <= maxSataDevs {
 			//thisHd := []string{"-s", strconv.Itoa(slot) + ":0,ahci,hd:" + thisDisk.Path}
-			thisDiskExists, err := exists(thisDisk.Path)
+			thisDiskExists, err := util.PathExists(thisDisk.Path)
 			if err != nil {
 				slog.Error("error getting disk path", "path", thisDisk.Path, "err", err)
 				return []string{}, originalSlot
@@ -178,11 +179,11 @@ func (vm *VM) getSoundArg(slot int) ([]string, int) {
 	}
 	var soundArg []string
 	var soundString string
-	inPathExists, err := exists(vm.Config.SoundIn)
+	inPathExists, err := util.PathExists(vm.Config.SoundIn)
 	if err != nil {
 		slog.Error("sound input check error", "err", err)
 	}
-	outPathExists, err := exists(vm.Config.SoundIn)
+	outPathExists, err := util.PathExists(vm.Config.SoundIn)
 	if err != nil {
 		slog.Error("sound output check error", "err", err)
 	}

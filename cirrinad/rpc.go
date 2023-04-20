@@ -535,12 +535,16 @@ func (s *server) AddISO(_ context.Context, i *cirrina.ISOInfo) (*cirrina.ISOID, 
 }
 
 func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskId, error) {
-	diskInst, err := disk.Create(*i.Name, *i.Description, *i.Path)
+
+	diskInst, err := disk.Create(*i.Name, *i.Description, *i.Size)
 	if err != nil {
 		return &cirrina.DiskId{}, err
 	}
-	return &cirrina.DiskId{Value: diskInst.ID}, nil
-
+	if diskInst != nil && diskInst.ID != "" {
+		return &cirrina.DiskId{Value: diskInst.ID}, nil
+	} else {
+		return &cirrina.DiskId{}, errors.New("unknown error creating disk")
+	}
 }
 
 func (s *server) GetISOInfo(_ context.Context, i *cirrina.ISOID) (*cirrina.ISOInfo, error) {

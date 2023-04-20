@@ -8,7 +8,7 @@ import (
 type Disk struct {
 	gorm.Model
 	ID          string `gorm:"uniqueIndex;not null"`
-	Name        string `gorm:"not null"`
+	Name        string `gorm:"uniqueIndex;not null"`
 	Description string
 	Path        string `gorm:"not null"`
 }

@@ -81,7 +81,7 @@ message ISOInfo {
 message DiskInfo {
   optional string name = 1;
   optional string description = 2;
-  optional string path = 3;
+  optional string size = 3;
 }
 
 message VMConfig {

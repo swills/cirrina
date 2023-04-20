@@ -14,6 +14,8 @@ disk:
       image: /some/path
       state: /some/other/path
       iso: /yet/another/path
+  default:
+    size: 1G
 
 vnc:
   ip: 0.0.0.0

@@ -4,6 +4,7 @@ import (
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
+	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -199,19 +200,8 @@ func (vm *VM) String() string {
 	return fmt.Sprintf("name: %s id: %s", vm.Name, vm.ID)
 }
 
-func exists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
-}
-
 func (vm *VM) maybeForceKillVM() {
-	ex, err := exists("/dev/vmm/" + vm.Name)
+	ex, err := util.PathExists("/dev/vmm/" + vm.Name)
 	if err != nil {
 		return
 	}
@@ -245,7 +235,7 @@ func copyFile(in, out string) (int64, error) {
 func (vm *VM) createUefiVarsFile() {
 	uefiVarsFilePath := baseVMStatePath + "/" + vm.Name
 	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
-	uvPathExists, err := exists(uefiVarsFilePath)
+	uvPathExists, err := util.PathExists(uefiVarsFilePath)
 	if err != nil {
 		return
 	}
@@ -256,7 +246,7 @@ func (vm *VM) createUefiVarsFile() {
 			return
 		}
 	}
-	uvFileExists, err := exists(uefiVarsFile)
+	uvFileExists, err := util.PathExists(uefiVarsFile)
 	if err != nil {
 		return
 	}
@@ -448,7 +438,7 @@ func (vm *VM) GetDisks() ([]disk.Disk, error) {
 func (vm *VM) DeleteUEFIState() error {
 	uefiVarsFilePath := baseVMStatePath + "/" + vm.Name
 	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
-	uvFileExists, err := exists(uefiVarsFile)
+	uvFileExists, err := util.PathExists(uefiVarsFile)
 	if err != nil {
 		return nil
 	}

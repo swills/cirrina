@@ -61,7 +61,7 @@ func addISO(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *s
 	fmt.Printf("Created ISO %v\n", res.Value)
 }
 
-func addDisk(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *string, pathPtr *string) {
+func addDisk(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *string, sizePtr *string) {
 	if *namePtr == "" {
 		log.Fatalf("Name not specified")
 		return
@@ -69,7 +69,7 @@ func addDisk(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *
 	res, err := c.AddDisk(ctx, &pb.DiskInfo{
 		Name:        namePtr,
 		Description: descrPtr,
-		Path:        pathPtr,
+		Size:        sizePtr,
 	})
 	if err != nil {
 		log.Fatalf("could not create Disk: %v", err)
@@ -273,6 +273,7 @@ func main() {
 	idPtr := flag.String("id", "", "ID of VM")
 	namePtr := flag.String("name", "", "Name of VM/ISO/Disk")
 	descrPtr := flag.String("descr", "", "Description of VM/ISO/Disk")
+	sizePtr := flag.String("size", "", "Size of Disk")
 	cpuPtr := flag.Uint("cpus", 1, "Number of CPUs in VM")
 	cpuVal := *cpuPtr
 	cpu32Val := uint32(cpuVal)
@@ -323,7 +324,7 @@ func main() {
 	case "addISO":
 		addISO(namePtr, c, ctx, descrPtr, pathPtr)
 	case "addDisk":
-		addDisk(namePtr, c, ctx, descrPtr, pathPtr)
+		addDisk(namePtr, c, ctx, descrPtr, sizePtr)
 	case "reConfig":
 		Reconfig(idPtr, err, namePtr, descrPtr, cpuPtr, memPtr, autoStartPtr, c, ctx)
 	case "deleteVM":

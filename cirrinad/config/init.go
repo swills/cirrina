@@ -23,12 +23,14 @@ var Config = struct {
 				Iso   string
 			}
 		}
+		Default struct {
+			Size string
+		}
 	}
 	Log struct {
 		Path  string
 		Level string
 	}
-
 	Network struct {
 		Grpc struct {
 			Ip   string `default:"0.0.0.0"`
