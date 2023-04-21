@@ -41,6 +41,7 @@ service VMInfo {
   rpc GetDisks(DisksQuery) returns (stream DiskId);
   rpc GetDiskInfo(DiskId) returns (DiskInfo);
   rpc AddDisk(DiskInfo) returns (DiskId);
+  rpc RemoveDisk(DiskId) returns (ReqBool);
   rpc SetVmDisks(SetDiskReq) returns (ReqBool);
   rpc GetVmDisks(VMID) returns (stream DiskId);
 }
