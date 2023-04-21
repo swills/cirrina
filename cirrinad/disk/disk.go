@@ -38,6 +38,12 @@ func parseDiskSize(size string) (sizeBytes uint64, err error) {
 	} else if strings.HasSuffix(size, "T") {
 		t = strings.TrimSuffix(size, "T")
 		m = 1024 * 1024 * 1024 * 1024
+	} else if strings.HasSuffix(size, "b") {
+		t = strings.TrimSuffix(size, "b")
+		m = 1024 * 1024 * 1024 * 1024
+	} else if strings.HasSuffix(size, "B") {
+		t = size
+		m = 1
 	} else {
 		t = size
 		m = 1
