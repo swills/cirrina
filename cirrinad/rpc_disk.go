@@ -3,6 +3,7 @@ package main
 import (
 	"cirrina/cirrina"
 	"cirrina/cirrinad/disk"
+	"cirrina/cirrinad/vm"
 	"context"
 	"errors"
 	"golang.org/x/exp/slog"
@@ -48,4 +49,38 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 	ic.Name = &diskInst.Name
 	ic.Description = &diskInst.Description
 	return &ic, nil
+}
+
+func (s *server) RemoveDisk(_ context.Context, i *cirrina.DiskId) (*cirrina.ReqBool, error) {
+	slog.Debug("deleting disk", "diskid", i.Value)
+	re := cirrina.ReqBool{}
+	re.Success = false
+
+	if i.Value == "" {
+		return &re, errors.New("disk id must be specified")
+	}
+
+	// check that disk is not in use by a VM
+	allVMs := vm.GetAll()
+	for _, thisVm := range allVMs {
+		slog.Debug("vm checks", "vm", thisVm)
+		thisVmDisks, err := thisVm.GetDisks()
+		if err != nil {
+			return &re, err
+		}
+		for _, vmDisk := range thisVmDisks {
+			if vmDisk.ID == i.Value {
+				return &re, errors.New("disk in use by VM")
+			}
+		}
+	}
+
+	res := disk.Delete(i.Value)
+	if res != nil {
+		slog.Error("error deleting disk", "res", res)
+		return &re, errors.New("error deleting disk")
+	}
+
+	re.Success = true
+	return &re, nil
 }

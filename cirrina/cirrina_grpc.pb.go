@@ -38,6 +38,7 @@ const (
 	VMInfo_GetDisks_FullMethodName           = "/cirrina.VMInfo/GetDisks"
 	VMInfo_GetDiskInfo_FullMethodName        = "/cirrina.VMInfo/GetDiskInfo"
 	VMInfo_AddDisk_FullMethodName            = "/cirrina.VMInfo/AddDisk"
+	VMInfo_RemoveDisk_FullMethodName         = "/cirrina.VMInfo/RemoveDisk"
 	VMInfo_SetVmDisks_FullMethodName         = "/cirrina.VMInfo/SetVmDisks"
 	VMInfo_GetVmDisks_FullMethodName         = "/cirrina.VMInfo/GetVmDisks"
 )
@@ -65,6 +66,7 @@ type VMInfoClient interface {
 	GetDisks(ctx context.Context, in *DisksQuery, opts ...grpc.CallOption) (VMInfo_GetDisksClient, error)
 	GetDiskInfo(ctx context.Context, in *DiskId, opts ...grpc.CallOption) (*DiskInfo, error)
 	AddDisk(ctx context.Context, in *DiskInfo, opts ...grpc.CallOption) (*DiskId, error)
+	RemoveDisk(ctx context.Context, in *DiskId, opts ...grpc.CallOption) (*ReqBool, error)
 	SetVmDisks(ctx context.Context, in *SetDiskReq, opts ...grpc.CallOption) (*ReqBool, error)
 	GetVmDisks(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmDisksClient, error)
 }
@@ -363,6 +365,15 @@ func (c *vMInfoClient) AddDisk(ctx context.Context, in *DiskInfo, opts ...grpc.C
 	return out, nil
 }
 
+func (c *vMInfoClient) RemoveDisk(ctx context.Context, in *DiskId, opts ...grpc.CallOption) (*ReqBool, error) {
+	out := new(ReqBool)
+	err := c.cc.Invoke(ctx, VMInfo_RemoveDisk_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *vMInfoClient) SetVmDisks(ctx context.Context, in *SetDiskReq, opts ...grpc.CallOption) (*ReqBool, error) {
 	out := new(ReqBool)
 	err := c.cc.Invoke(ctx, VMInfo_SetVmDisks_FullMethodName, in, out, opts...)
@@ -427,6 +438,7 @@ type VMInfoServer interface {
 	GetDisks(*DisksQuery, VMInfo_GetDisksServer) error
 	GetDiskInfo(context.Context, *DiskId) (*DiskInfo, error)
 	AddDisk(context.Context, *DiskInfo) (*DiskId, error)
+	RemoveDisk(context.Context, *DiskId) (*ReqBool, error)
 	SetVmDisks(context.Context, *SetDiskReq) (*ReqBool, error)
 	GetVmDisks(*VMID, VMInfo_GetVmDisksServer) error
 	mustEmbedUnimplementedVMInfoServer()
@@ -492,6 +504,9 @@ func (UnimplementedVMInfoServer) GetDiskInfo(context.Context, *DiskId) (*DiskInf
 }
 func (UnimplementedVMInfoServer) AddDisk(context.Context, *DiskInfo) (*DiskId, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddDisk not implemented")
+}
+func (UnimplementedVMInfoServer) RemoveDisk(context.Context, *DiskId) (*ReqBool, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveDisk not implemented")
 }
 func (UnimplementedVMInfoServer) SetVmDisks(context.Context, *SetDiskReq) (*ReqBool, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetVmDisks not implemented")
@@ -869,6 +884,24 @@ func _VMInfo_AddDisk_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VMInfo_RemoveDisk_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DiskId)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).RemoveDisk(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_RemoveDisk_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).RemoveDisk(ctx, req.(*DiskId))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _VMInfo_SetVmDisks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetDiskReq)
 	if err := dec(in); err != nil {
@@ -970,6 +1003,10 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddDisk",
 			Handler:    _VMInfo_AddDisk_Handler,
+		},
+		{
+			MethodName: "RemoveDisk",
+			Handler:    _VMInfo_RemoveDisk_Handler,
 		},
 		{
 			MethodName: "SetVmDisks",

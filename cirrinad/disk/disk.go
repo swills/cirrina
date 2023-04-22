@@ -4,6 +4,7 @@ import (
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
 	"errors"
+	"fmt"
 	"golang.org/x/exp/slog"
 	"os/exec"
 	"strconv"
@@ -131,4 +132,23 @@ func GetByName(name string) (d *Disk, err error) {
 	db := getDiskDb()
 	db.Limit(1).Find(&d, "name = ?", name+".img")
 	return d, nil
+}
+
+func Delete(id string) (err error) {
+	if id == "" {
+		return errors.New("unable to delete, disk id empty")
+	}
+	db := getDiskDb()
+	dDisk, err := GetById(id)
+	if err != nil {
+		errorText := fmt.Sprintf("disk %v not found", id)
+		return errors.New(errorText)
+	}
+	res := db.Limit(1).Delete(&dDisk)
+	if res.RowsAffected == 1 {
+		return nil
+	} else {
+		errText := fmt.Sprintf("disk delete error, rows affected %v", res.RowsAffected)
+		return errors.New(errText)
+	}
 }
