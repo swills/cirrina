@@ -116,6 +116,9 @@ func (vm *VM) Stop() (err error) {
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	setStopping(vm.ID)
+	if vm.proc == nil {
+		return nil
+	}
 	err = vm.proc.Stop()
 	if err != nil {
 		slog.Error("Failed to stop VM", "vm", vm.Name, "pid", vm.proc.Pid())

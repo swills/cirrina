@@ -63,7 +63,6 @@ func (vm *VM) getCpuArg() []string {
 
 func (vm *VM) getDiskArg(slot int) ([]string, int) {
 	originalSlot := slot
-	// TODO check that disk file exists
 	// TODO deal with multiple controller types
 	// TODO don't use one PCI slot per disk device, attach multiple disks to each controller
 
@@ -83,30 +82,44 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 		if diskItem == "" {
 			continue
 		}
+		slog.Debug("adding disk", "disk", diskItem)
 		thisDisk, err := disk.GetById(diskItem)
 		if err != nil {
 			slog.Error("error getting Disk", "diskItem", diskItem, "err", err)
 			return []string{}, originalSlot
 		}
-		if devCount <= maxSataDevs {
-			//thisHd := []string{"-s", strconv.Itoa(slot) + ":0,ahci,hd:" + thisDisk.Path}
-			thisDiskExists, err := util.PathExists(thisDisk.Path)
-			if err != nil {
-				slog.Error("error getting disk path", "path", thisDisk.Path, "err", err)
-				return []string{}, originalSlot
-			}
-			if !thisDiskExists {
-				slog.Debug("disk path does not exist", "path", thisDisk.Path, "err", err)
-				return []string{}, originalSlot
-			}
+		thisDiskExists, err := util.PathExists(thisDisk.Path)
+		if err != nil {
+			slog.Error("error getting disk path", "path", thisDisk.Path, "err", err)
+			return []string{}, originalSlot
+		}
+		if !thisDiskExists {
+			slog.Debug("disk path does not exist", "path", thisDisk.Path, "err", err)
+			return []string{}, originalSlot
+		}
+		if thisDisk.Type == "NVME" {
 			thisHd := []string{"-s", strconv.Itoa(slot) + ",nvme," + thisDisk.Path}
 			diskString = append(diskString, thisHd...)
 			devCount = devCount + 1
 			slot = slot + 1
+		} else if thisDisk.Type == "AHCI-HD" {
+			if devCount <= maxSataDevs {
+				thisHd := []string{"-s", strconv.Itoa(slot) + ",ahci-hd," + thisDisk.Path}
+				diskString = append(diskString, thisHd...)
+				devCount = devCount + 1
+				slot = slot + 1
+			}
+		} else if thisDisk.Type == "VIRTIO-BLK" {
+			thisHd := []string{"-s", strconv.Itoa(slot) + ",virtio-blk," + thisDisk.Path}
+			diskString = append(diskString, thisHd...)
+			devCount = devCount + 1
+			slot = slot + 1
+		} else {
+			slog.Error("unknown disk type", "type", thisDisk.Type)
+			return []string{}, originalSlot
 		}
 	}
 	return diskString, slot
-
 }
 
 func (vm *VM) getDPOArg() []string {

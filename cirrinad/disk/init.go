@@ -11,6 +11,7 @@ type Disk struct {
 	Name        string `gorm:"uniqueIndex;not null"`
 	Description string
 	Path        string `gorm:"not null"`
+	Type        string `gorm:"default:NVME;check:type IN (\"NVME\",\"AHCI-HD\",\"VIRTIO-BLK\")"`
 }
 
 func (d *Disk) BeforeCreate(_ *gorm.DB) (err error) {

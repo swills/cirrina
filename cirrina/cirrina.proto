@@ -8,6 +8,12 @@ enum NetType {
   E1000 = 1;
 }
 
+enum DiskType {
+  NVME = 0;
+  AHCIHD = 1;
+  VIRTIOBLK = 2;
+}
+
 enum NetDevType {
   TAP = 0;
   VMNET = 1;
@@ -83,6 +89,7 @@ message DiskInfo {
   optional string name = 1;
   optional string description = 2;
   optional string size = 3;
+  optional DiskType disk_type = 4;
 }
 
 message VMConfig {
