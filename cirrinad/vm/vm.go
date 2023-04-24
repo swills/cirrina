@@ -454,6 +454,7 @@ func (vm *VM) DeleteUEFIState() error {
 }
 
 func (vm *VM) AttachDisk(diskids []string) error {
+	ac := 0
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
 	if vm.Status != STOPPED {
@@ -487,8 +488,12 @@ func (vm *VM) AttachDisk(diskids []string) error {
 				return err
 			}
 			if aVm.ID == vm.ID {
-				// skip if it's attached to this VM, we replace the full list
-				// TODO check that we don't attach the same disk twice
+				if ac > 0 {
+					slog.Error("disk attached twice", "disk", aDisk, "vm", aVm.ID)
+					return errors.New("disk attached twice")
+
+				}
+				ac += 1
 				continue
 			}
 			for _, aVmDisk := range vmDisks {
