@@ -41,6 +41,10 @@ const (
 	VMInfo_RemoveDisk_FullMethodName         = "/cirrina.VMInfo/RemoveDisk"
 	VMInfo_SetVmDisks_FullMethodName         = "/cirrina.VMInfo/SetVmDisks"
 	VMInfo_GetVmDisks_FullMethodName         = "/cirrina.VMInfo/GetVmDisks"
+	VMInfo_GetSwitches_FullMethodName        = "/cirrina.VMInfo/GetSwitches"
+	VMInfo_GetSwitchInfo_FullMethodName      = "/cirrina.VMInfo/GetSwitchInfo"
+	VMInfo_AddSwitch_FullMethodName          = "/cirrina.VMInfo/AddSwitch"
+	VMInfo_RemoveSwitch_FullMethodName       = "/cirrina.VMInfo/RemoveSwitch"
 )
 
 // VMInfoClient is the client API for VMInfo service.
@@ -69,6 +73,10 @@ type VMInfoClient interface {
 	RemoveDisk(ctx context.Context, in *DiskId, opts ...grpc.CallOption) (*ReqBool, error)
 	SetVmDisks(ctx context.Context, in *SetDiskReq, opts ...grpc.CallOption) (*ReqBool, error)
 	GetVmDisks(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmDisksClient, error)
+	GetSwitches(ctx context.Context, in *SwitchesQuery, opts ...grpc.CallOption) (VMInfo_GetSwitchesClient, error)
+	GetSwitchInfo(ctx context.Context, in *SwitchId, opts ...grpc.CallOption) (*SwitchInfo, error)
+	AddSwitch(ctx context.Context, in *SwitchInfo, opts ...grpc.CallOption) (*SwitchId, error)
+	RemoveSwitch(ctx context.Context, in *SwitchId, opts ...grpc.CallOption) (*ReqBool, error)
 }
 
 type vMInfoClient struct {
@@ -415,6 +423,65 @@ func (x *vMInfoGetVmDisksClient) Recv() (*DiskId, error) {
 	return m, nil
 }
 
+func (c *vMInfoClient) GetSwitches(ctx context.Context, in *SwitchesQuery, opts ...grpc.CallOption) (VMInfo_GetSwitchesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[6], VMInfo_GetSwitches_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &vMInfoGetSwitchesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type VMInfo_GetSwitchesClient interface {
+	Recv() (*SwitchId, error)
+	grpc.ClientStream
+}
+
+type vMInfoGetSwitchesClient struct {
+	grpc.ClientStream
+}
+
+func (x *vMInfoGetSwitchesClient) Recv() (*SwitchId, error) {
+	m := new(SwitchId)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *vMInfoClient) GetSwitchInfo(ctx context.Context, in *SwitchId, opts ...grpc.CallOption) (*SwitchInfo, error) {
+	out := new(SwitchInfo)
+	err := c.cc.Invoke(ctx, VMInfo_GetSwitchInfo_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vMInfoClient) AddSwitch(ctx context.Context, in *SwitchInfo, opts ...grpc.CallOption) (*SwitchId, error) {
+	out := new(SwitchId)
+	err := c.cc.Invoke(ctx, VMInfo_AddSwitch_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vMInfoClient) RemoveSwitch(ctx context.Context, in *SwitchId, opts ...grpc.CallOption) (*ReqBool, error) {
+	out := new(ReqBool)
+	err := c.cc.Invoke(ctx, VMInfo_RemoveSwitch_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // VMInfoServer is the server API for VMInfo service.
 // All implementations must embed UnimplementedVMInfoServer
 // for forward compatibility
@@ -441,6 +508,10 @@ type VMInfoServer interface {
 	RemoveDisk(context.Context, *DiskId) (*ReqBool, error)
 	SetVmDisks(context.Context, *SetDiskReq) (*ReqBool, error)
 	GetVmDisks(*VMID, VMInfo_GetVmDisksServer) error
+	GetSwitches(*SwitchesQuery, VMInfo_GetSwitchesServer) error
+	GetSwitchInfo(context.Context, *SwitchId) (*SwitchInfo, error)
+	AddSwitch(context.Context, *SwitchInfo) (*SwitchId, error)
+	RemoveSwitch(context.Context, *SwitchId) (*ReqBool, error)
 	mustEmbedUnimplementedVMInfoServer()
 }
 
@@ -513,6 +584,18 @@ func (UnimplementedVMInfoServer) SetVmDisks(context.Context, *SetDiskReq) (*ReqB
 }
 func (UnimplementedVMInfoServer) GetVmDisks(*VMID, VMInfo_GetVmDisksServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetVmDisks not implemented")
+}
+func (UnimplementedVMInfoServer) GetSwitches(*SwitchesQuery, VMInfo_GetSwitchesServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetSwitches not implemented")
+}
+func (UnimplementedVMInfoServer) GetSwitchInfo(context.Context, *SwitchId) (*SwitchInfo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSwitchInfo not implemented")
+}
+func (UnimplementedVMInfoServer) AddSwitch(context.Context, *SwitchInfo) (*SwitchId, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddSwitch not implemented")
+}
+func (UnimplementedVMInfoServer) RemoveSwitch(context.Context, *SwitchId) (*ReqBool, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveSwitch not implemented")
 }
 func (UnimplementedVMInfoServer) mustEmbedUnimplementedVMInfoServer() {}
 
@@ -941,6 +1024,81 @@ func (x *vMInfoGetVmDisksServer) Send(m *DiskId) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _VMInfo_GetSwitches_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(SwitchesQuery)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(VMInfoServer).GetSwitches(m, &vMInfoGetSwitchesServer{stream})
+}
+
+type VMInfo_GetSwitchesServer interface {
+	Send(*SwitchId) error
+	grpc.ServerStream
+}
+
+type vMInfoGetSwitchesServer struct {
+	grpc.ServerStream
+}
+
+func (x *vMInfoGetSwitchesServer) Send(m *SwitchId) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _VMInfo_GetSwitchInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SwitchId)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).GetSwitchInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_GetSwitchInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).GetSwitchInfo(ctx, req.(*SwitchId))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VMInfo_AddSwitch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SwitchInfo)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).AddSwitch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_AddSwitch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).AddSwitch(ctx, req.(*SwitchInfo))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VMInfo_RemoveSwitch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SwitchId)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).RemoveSwitch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_RemoveSwitch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).RemoveSwitch(ctx, req.(*SwitchId))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // VMInfo_ServiceDesc is the grpc.ServiceDesc for VMInfo service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1012,6 +1170,18 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "SetVmDisks",
 			Handler:    _VMInfo_SetVmDisks_Handler,
 		},
+		{
+			MethodName: "GetSwitchInfo",
+			Handler:    _VMInfo_GetSwitchInfo_Handler,
+		},
+		{
+			MethodName: "AddSwitch",
+			Handler:    _VMInfo_AddSwitch_Handler,
+		},
+		{
+			MethodName: "RemoveSwitch",
+			Handler:    _VMInfo_RemoveSwitch_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
@@ -1042,6 +1212,11 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "GetVmDisks",
 			Handler:       _VMInfo_GetVmDisks_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetSwitches",
+			Handler:       _VMInfo_GetSwitches_Handler,
 			ServerStreams: true,
 		},
 	},

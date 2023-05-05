@@ -11,6 +11,7 @@ This probably won't work for you:
   * `/sbin/ifconfig`
   * `/usr/sbin/bhyvectl`
   * `/usr/sbin/ngctl`
+  * `/usr/bin/truncate`
 * `doas` may work instead of `sudo` if you change the `priv_command_prefix` setting, but it is untested.
 * You have to have a bridge interface created and setup, something like this in `rc.conf`:
   ```
@@ -46,6 +47,7 @@ This probably won't work for you:
     * Create disk from existing image (clone) or other disk image.
   * Networking
     * Add net device list
+    * Support vxlan and vale switches
     * Implement picking tap mode bridge device
     * Implement picking netgraph bridge peer device
     * Add virtual network management

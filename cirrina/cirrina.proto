@@ -14,6 +14,11 @@ enum DiskType {
   VIRTIOBLK = 2;
 }
 
+enum SwitchType {
+  IF = 0;
+  NG = 1;
+}
+
 enum NetDevType {
   TAP = 0;
   VMNET = 1;
@@ -50,6 +55,12 @@ service VMInfo {
   rpc RemoveDisk(DiskId) returns (ReqBool);
   rpc SetVmDisks(SetDiskReq) returns (ReqBool);
   rpc GetVmDisks(VMID) returns (stream DiskId);
+
+  rpc GetSwitches(SwitchesQuery) returns (stream SwitchId);
+  rpc GetSwitchInfo(SwitchId) returns (SwitchInfo);
+  rpc AddSwitch(SwitchInfo) returns (SwitchId);
+  rpc RemoveSwitch(SwitchId) returns (ReqBool);
+
 }
 
 message VMID {
@@ -63,6 +74,11 @@ message ISOID {
 message DiskId {
   string value = 1;
 }
+
+message SwitchId {
+  string value = 1;
+}
+
 
 message SetISOReq {
   string id = 1;
@@ -90,6 +106,12 @@ message DiskInfo {
   optional string description = 2;
   optional string size = 3;
   optional DiskType disk_type = 4;
+}
+
+message SwitchInfo {
+  optional string name = 1;
+  optional string description = 2;
+  optional SwitchType switch_type = 3;
 }
 
 message VMConfig {
@@ -146,6 +168,9 @@ message KbdQuery {
 }
 
 message DisksQuery {
+}
+
+message SwitchesQuery {
 }
 
 message RequestID {

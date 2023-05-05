@@ -61,6 +61,40 @@ func addISO(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *s
 	fmt.Printf("Created ISO %v\n", res.Value)
 }
 
+func addSwitch(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *string, switchTypePtr *string) {
+	var thisSwitchType pb.SwitchType
+	if *namePtr == "" {
+		log.Fatalf("Name not specified")
+		return
+	}
+	if *switchTypePtr == "" {
+		log.Fatalf("Switch type not specified")
+		return
+	}
+	if *switchTypePtr == "IF" {
+		thisSwitchType = pb.SwitchType_IF
+	} else if *switchTypePtr == "NG" {
+		thisSwitchType = pb.SwitchType_NG
+	} else {
+		log.Fatalf("Switch type must be either \"IF\" or \"NG\"")
+		return
+	}
+
+	log.Printf("Creating switch %v type %v", *namePtr, *switchTypePtr)
+
+	var thisSwitchInfo pb.SwitchInfo
+	thisSwitchInfo.Name = namePtr
+	thisSwitchInfo.Description = descrPtr
+	thisSwitchInfo.SwitchType = &thisSwitchType
+
+	res, err := c.AddSwitch(ctx, &thisSwitchInfo)
+	if err != nil {
+		log.Fatalf("could not create switch: %v", err)
+		return
+	}
+	fmt.Printf("Create switch %v\n", res.Value)
+}
+
 func addDisk(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *string, sizePtr *string) {
 	if *namePtr == "" {
 		log.Fatalf("Name not specified")
@@ -265,7 +299,7 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 }
 
 func printActionHelp() {
-	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, addISO, addDisk")
+	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, addISO, addDisk, addSwitch")
 }
 
 func main() {
@@ -274,6 +308,7 @@ func main() {
 	namePtr := flag.String("name", "", "Name of VM/ISO/Disk")
 	descrPtr := flag.String("descr", "", "Description of VM/ISO/Disk")
 	sizePtr := flag.String("size", "", "Size of Disk")
+	switchTypePtr := flag.String("switchType", "IF", "Type of switch (IF or NG)")
 	cpuPtr := flag.Uint("cpus", 1, "Number of CPUs in VM")
 	cpuVal := *cpuPtr
 	cpu32Val := uint32(cpuVal)
@@ -325,6 +360,8 @@ func main() {
 		addISO(namePtr, c, ctx, descrPtr, pathPtr)
 	case "addDisk":
 		addDisk(namePtr, c, ctx, descrPtr, sizePtr)
+	case "addSwitch":
+		addSwitch(namePtr, c, ctx, descrPtr, switchTypePtr)
 	case "reConfig":
 		Reconfig(idPtr, err, namePtr, descrPtr, cpuPtr, memPtr, autoStartPtr, c, ctx)
 	case "deleteVM":

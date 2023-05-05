@@ -31,7 +31,7 @@ type Config struct {
 	MaxWait          uint32 `gorm:"default:120;check:max_wait>=0"`
 	Restart          bool   `gorm:"default:True;check:restart IN (0,1)"`
 	RestartDelay     uint32 `gorm:"default:1;check:restart_delay>=0"`
-	Net              bool   `gorm:"default:True;check:screen IN (0,1)"`
+	Net              bool   `gorm:"default:True;check:screen IN (0,1)"` // TODO remove
 	Mac              string `gorm:"default:AUTO"`
 	Screen           bool   `gorm:"default:True;check:screen IN (0,1)"`
 	ScreenWidth      uint32 `gorm:"default:1920;check:screen_width BETWEEN 640 and 1920"`
@@ -50,8 +50,8 @@ type Config struct {
 	IgnoreUnknownMSR bool   `gorm:"default:True;check:ignore_unknown_msr IN (0,1)"`
 	KbdLayout        string `gorm:"default:default"`
 	AutoStart        bool   `gorm:"default:False;check:auto_start IN (0,1)"`
-	NetType          string `gorm:"default:VIRTIONET;check:net_type IN (\"VIRTIONET\",\"E1000\")"`
-	NetDevType       string `gorm:"default:TAP;check:net_dev_type IN (\"TAP\",\"VMNET\",\"NETGRAPH\")"`
+	NetType          string `gorm:"default:VIRTIONET;check:net_type IN (\"VIRTIONET\",\"E1000\")"`      // TODO remove
+	NetDevType       string `gorm:"default:TAP;check:net_dev_type IN (\"TAP\",\"VMNET\",\"NETGRAPH\")"` // TODO remove
 	Sound            bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
 	SoundIn          string `gorm:"default:/dev/dsp0"`
 	SoundOut         string `gorm:"default:/dev/dsp0"`
