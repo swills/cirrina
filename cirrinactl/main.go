@@ -61,6 +61,46 @@ func addISO(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *s
 	fmt.Printf("Created ISO %v\n", res.Value)
 }
 
+func addVmNic(name *string, c pb.VMInfoClient, ctx context.Context, descrptr *string, nettypeptr *string, netdevtypeptr *string, macPtr *string) {
+	var thisVmNic pb.VmNicInfo
+	var thisNetType pb.NetType
+	var thisNetDevType pb.NetDevType
+
+	thisVmNic.Name = name
+	thisVmNic.Description = descrptr
+	thisVmNic.Mac = macPtr
+
+	if *nettypeptr == "VIRTIONET" {
+		thisNetType = pb.NetType_VIRTIONET
+	} else if *nettypeptr == "E1000" {
+		thisNetType = pb.NetType_E1000
+	} else {
+		log.Fatalf("Net type must be either \"VIRTIONET\" or \"E1000\"")
+		return
+	}
+	if *netdevtypeptr == "TAP" {
+		thisNetDevType = pb.NetDevType_TAP
+	} else if *nettypeptr == "VMNET" {
+		thisNetDevType = pb.NetDevType_VMNET
+	} else if *nettypeptr == "NETGRAPH" {
+		thisNetDevType = pb.NetDevType_NETGRAPH
+	} else {
+		log.Fatalf("Net dev type must be either \"TAP\" or \"VMNET\" or \"NETGRAPH\"")
+		return
+	}
+
+	thisVmNic.Nettype = &thisNetType
+	thisVmNic.Netdevtype = &thisNetDevType
+
+	res, err := c.AddVmNic(ctx, &thisVmNic)
+	if err != nil {
+		log.Fatalf("could not create nic: %v", err)
+		return
+	}
+	fmt.Printf("Created vmnic %v\n", res.Value)
+
+}
+
 func addSwitch(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *string, switchTypePtr *string) {
 	var thisSwitchType pb.SwitchType
 	if *namePtr == "" {
@@ -92,7 +132,7 @@ func addSwitch(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr
 		log.Fatalf("could not create switch: %v", err)
 		return
 	}
-	fmt.Printf("Create switch %v\n", res.Value)
+	fmt.Printf("Created switch %v\n", res.Value)
 }
 
 func addDisk(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *string, sizePtr *string) {
@@ -160,6 +200,78 @@ func ReqStat(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	}
 	fmt.Printf("complete: %v status: %v\n", res.Complete, res.Success)
 
+}
+
+func getSwitch(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
+	if *idPtr == "" {
+		log.Fatalf("ID not specified")
+		return
+	}
+	res, err := c.GetSwitchInfo(ctx, &pb.SwitchId{Value: *idPtr})
+	if err != nil {
+		log.Fatalf("could not get VM: %v", err)
+	}
+	fmt.Printf(
+		"name: %v "+
+			"description: %v "+
+			"type: %v "+
+			"\n",
+		*res.Name,
+		*res.Description,
+		*res.SwitchType,
+	)
+
+}
+
+func getVmNic(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
+	var netTypeString string
+	var netDevTypeString string
+	var descriptionStr string
+
+	if *idPtr == "" {
+		log.Fatalf("ID not specified")
+		return
+	}
+	res, err := c.GetVmNicInfo(ctx, &pb.VmNicId{Value: *idPtr})
+	if err != nil {
+		log.Fatalf("could not get VM: %v", err)
+	}
+
+	if res.Description != nil {
+		descriptionStr = *res.Description
+	}
+
+	if *res.Nettype == pb.NetType_VIRTIONET {
+		netTypeString = "VirtioNet"
+	} else if *res.Nettype == pb.NetType_E1000 {
+		netTypeString = "E1000"
+	}
+
+	if *res.Netdevtype == pb.NetDevType_TAP {
+		netDevTypeString = "TAP"
+	} else if *res.Netdevtype == pb.NetDevType_VMNET {
+		netDevTypeString = "VMNet"
+	} else if *res.Netdevtype == pb.NetDevType_NETGRAPH {
+		netDevTypeString = "Netgraph"
+	}
+
+	fmt.Printf(
+		"name: %v "+
+			"desc: %v "+
+			"Mac: %v "+
+			"Net_type: %v "+
+			"Net_dev_type: %v "+
+			"vm_id: %v "+
+			"switch_id: %v "+
+			"\n",
+		*res.Name,
+		descriptionStr,
+		*res.Mac,
+		netTypeString,
+		netDevTypeString,
+		*res.Vmid,
+		*res.Switchid,
+	)
 }
 
 func getVM(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
@@ -232,6 +344,42 @@ func getVMs(c pb.VMInfoClient, ctx context.Context) {
 	}
 }
 
+func getVmNics(c pb.VMInfoClient, ctx context.Context) {
+	res, err := c.GetVmNicsAll(ctx, &pb.VmNicsQuery{})
+	if err != nil {
+		log.Fatalf("could not get VmNics: %v", err)
+		return
+	}
+	for {
+		VMNicId, err := res.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("GetVmNiss failed: %v", err)
+		}
+		fmt.Printf("VmNic: id: %v\n", VMNicId.Value)
+	}
+}
+
+func getSwitches(c pb.VMInfoClient, ctx context.Context) {
+	res, err := c.GetSwitches(ctx, &pb.SwitchesQuery{})
+	if err != nil {
+		log.Fatalf("could not get Switches: %v", err)
+		return
+	}
+	for {
+		VmSwitch, err := res.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("GetSwitches failed: %v", err)
+		}
+		fmt.Printf("Switch: id: %v\n", VmSwitch.Value)
+	}
+}
+
 func getVMState(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if *idPtr == "" {
 		log.Fatalf("ID not specified")
@@ -299,7 +447,8 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 }
 
 func printActionHelp() {
-	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, addISO, addDisk, addSwitch")
+	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, "+
+		"addISO, addDisk, addSwitch, addVmNic", "getSwitches", "getVmNics", "getSwitch", "getVmNic")
 }
 
 func main() {
@@ -318,6 +467,9 @@ func main() {
 	mem32Val := uint32(memVal)
 	mem32Ptr := &mem32Val
 	autoStartPtr := flag.Bool("autostart", false, "automatically start the VM")
+	netTypePtr := flag.String("netType", "VIRTIONET", "Type of net (VIRTIONET or E1000")
+	netDevTypePtr := flag.String("netDevType", "TAP", "type of net dev (TAP, VMNET or NETGRAPH")
+	macPtr := flag.String("mac", "AUTO", "Mac address of NIC (or AUTO)")
 	//maxWaitPtr := flag.Uint("maxWait", 120, "Max wait time for VM shutdown")
 	//restartPtr := flag.Bool("restart", true, "Automatically restart VM")
 	//restartDelayPtr := flag.Uint("restartDelay", 1, "How long to wait before restarting VM")
@@ -350,8 +502,16 @@ func main() {
 		printActionHelp()
 	case "getVM":
 		getVM(idPtr, c, ctx)
+	case "getSwitch":
+		getSwitch(idPtr, c, ctx)
+	case "getVmNic":
+		getVmNic(idPtr, c, ctx)
 	case "getVMs":
 		getVMs(c, ctx)
+	case "getSwitches":
+		getSwitches(c, ctx)
+	case "getVmNics":
+		getVmNics(c, ctx)
 	case "getVMState":
 		getVMState(idPtr, c, ctx)
 	case "addVM":
@@ -362,6 +522,8 @@ func main() {
 		addDisk(namePtr, c, ctx, descrPtr, sizePtr)
 	case "addSwitch":
 		addSwitch(namePtr, c, ctx, descrPtr, switchTypePtr)
+	case "addVmNic":
+		addVmNic(namePtr, c, ctx, descrPtr, netTypePtr, netDevTypePtr, macPtr)
 	case "reConfig":
 		Reconfig(idPtr, err, namePtr, descrPtr, cpuPtr, memPtr, autoStartPtr, c, ctx)
 	case "deleteVM":

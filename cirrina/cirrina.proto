@@ -32,37 +32,6 @@ enum vmStatus {
   STATUS_STOPPING = 3;
 }
 
-service VMInfo {
-  rpc AddVM(VMConfig) returns (VMID);
-  rpc GetVMs(VMsQuery) returns (stream VMID);
-  rpc GetVMConfig(VMID) returns (VMConfig);
-  rpc GetVMState(VMID) returns (VMState);
-  rpc UpdateVM(VMConfig) returns (ReqBool);
-  rpc StartVM(VMID) returns (RequestID);
-  rpc StopVM(VMID) returns (RequestID);
-  rpc DeleteVM(VMID) returns (RequestID);
-  rpc ClearUEFIState(VMID) returns (ReqBool);
-  rpc RequestStatus(RequestID) returns (ReqStatus);
-  rpc GetKeyboardLayouts(KbdQuery) returns (stream KbdLayout);
-  rpc GetISOs(ISOsQuery) returns (stream ISOID);
-  rpc GetISOInfo(ISOID) returns (ISOInfo);
-  rpc AddISO(ISOInfo) returns (ISOID);
-  rpc SetVmISOs(SetISOReq) returns (ReqBool);
-  rpc GetVmISOs(VMID) returns (stream ISOID);
-  rpc GetDisks(DisksQuery) returns (stream DiskId);
-  rpc GetDiskInfo(DiskId) returns (DiskInfo);
-  rpc AddDisk(DiskInfo) returns (DiskId);
-  rpc RemoveDisk(DiskId) returns (ReqBool);
-  rpc SetVmDisks(SetDiskReq) returns (ReqBool);
-  rpc GetVmDisks(VMID) returns (stream DiskId);
-
-  rpc GetSwitches(SwitchesQuery) returns (stream SwitchId);
-  rpc GetSwitchInfo(SwitchId) returns (SwitchInfo);
-  rpc AddSwitch(SwitchInfo) returns (SwitchId);
-  rpc RemoveSwitch(SwitchId) returns (ReqBool);
-
-}
-
 message VMID {
   string value = 1;
 }
@@ -79,6 +48,9 @@ message SwitchId {
   string value = 1;
 }
 
+message VmNicId {
+  string value = 1;
+}
 
 message SetISOReq {
   string id = 1;
@@ -88,6 +60,16 @@ message SetISOReq {
 message SetDiskReq {
   string id = 1;
   repeated string diskid = 2;
+}
+
+message SetVmNicVmsReq {
+  string id = 1;
+  repeated VMID vmid = 2;
+}
+
+message SetVmNicSwitchReq {
+  string id = 1;
+  repeated SwitchId switchid = 2;
 }
 
 message KbdLayout {
@@ -112,6 +94,17 @@ message SwitchInfo {
   optional string name = 1;
   optional string description = 2;
   optional SwitchType switch_type = 3;
+  optional string uplink = 4;
+}
+
+message VmNicInfo {
+  optional string name = 1;
+  optional string description = 2;
+  optional string mac = 3;
+  optional NetDevType netdevtype = 4;
+  optional NetType nettype = 5;
+  optional string vmid = 6;
+  optional string switchid = 7;
 }
 
 message VMConfig {
@@ -173,6 +166,9 @@ message DisksQuery {
 message SwitchesQuery {
 }
 
+message VmNicsQuery {
+}
+
 message RequestID {
   string value = 1;
 }
@@ -189,4 +185,45 @@ message VMState {
 
 message ReqBool {
   bool success = 1;
+}
+
+service VMInfo {
+  rpc AddVM(VMConfig) returns (VMID);
+  rpc GetVMs(VMsQuery) returns (stream VMID);
+  rpc GetVMConfig(VMID) returns (VMConfig);
+  rpc GetVMState(VMID) returns (VMState);
+  rpc UpdateVM(VMConfig) returns (ReqBool);
+  rpc StartVM(VMID) returns (RequestID);
+  rpc StopVM(VMID) returns (RequestID);
+  rpc DeleteVM(VMID) returns (RequestID);
+
+  rpc ClearUEFIState(VMID) returns (ReqBool);
+  rpc RequestStatus(RequestID) returns (ReqStatus);
+  rpc GetKeyboardLayouts(KbdQuery) returns (stream KbdLayout);
+
+  rpc GetISOs(ISOsQuery) returns (stream ISOID);
+  rpc GetISOInfo(ISOID) returns (ISOInfo);
+  rpc AddISO(ISOInfo) returns (ISOID);
+  rpc SetVmISOs(SetISOReq) returns (ReqBool);
+  rpc GetVmISOs(VMID) returns (stream ISOID);
+
+  rpc GetDisks(DisksQuery) returns (stream DiskId);
+  rpc GetDiskInfo(DiskId) returns (DiskInfo);
+  rpc AddDisk(DiskInfo) returns (DiskId);
+  rpc RemoveDisk(DiskId) returns (ReqBool);
+  rpc SetVmDisks(SetDiskReq) returns (ReqBool);
+  rpc GetVmDisks(VMID) returns (stream DiskId);
+
+  rpc GetSwitches(SwitchesQuery) returns (stream SwitchId);
+  rpc GetSwitchInfo(SwitchId) returns (SwitchInfo);
+  rpc AddSwitch(SwitchInfo) returns (SwitchId);
+  rpc RemoveSwitch(SwitchId) returns (ReqBool);
+
+  rpc GetVmNicsAll(VmNicsQuery) returns (stream VmNicId);
+  rpc GetVmNics(VMID) returns (stream VmNicId);
+  rpc GetVmNicInfo(VmNicId) returns (VmNicInfo);
+  rpc AddVmNic(VmNicInfo) returns (VmNicId);
+  rpc SetVmNicVm(SetVmNicVmsReq) returns (VmNicId);
+  rpc SetVmNicSwitch(SetVmNicSwitchReq) returns (ReqBool);
+
 }

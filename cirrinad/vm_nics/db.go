@@ -15,7 +15,7 @@ var instance *singleton
 
 var once sync.Once
 
-func getSwitchDb() *gorm.DB {
+func getVmNicDb() *gorm.DB {
 	once.Do(func() {
 		instance = &singleton{}
 		vmNicDb, err := gorm.Open(sqlite.Open(config.Config.DB.Path), &gorm.Config{})

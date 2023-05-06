@@ -15,7 +15,7 @@ func GetById(id string) (s *Switch, err error) {
 
 func GetByName(name string) (s *Switch, err error) {
 	db := getSwitchDb()
-	db.Limit(1).Find(&s, "name = ?", name+".img")
+	db.Limit(1).Find(&s, "name = ?", name)
 	return s, nil
 }
 
@@ -54,7 +54,6 @@ func Create(name string, description string, switchType string) (_switch *Switch
 	db := getSwitchDb()
 	res := db.Create(&switchInst)
 	return switchInst, res.Error
-
 }
 
 func Delete(id string) (err error) {
