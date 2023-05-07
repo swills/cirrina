@@ -36,8 +36,6 @@ var Config = struct {
 			Ip   string `default:"0.0.0.0"`
 			Port uint   `default:"50051"`
 		}
-		Interface string
-		Bridge    string
 	}
 	Rom struct {
 		Path string

@@ -330,8 +330,12 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 			}
 			netDevArg = thisNic.NetDev
 		} else if thisNic.NetDevType == "NETGRAPH" {
-			ngNetDev, ngPeerHook, err := _switch.NgGetDev(config.Config.Network.Interface)
-			thisNic.NetDev = ngNetDev
+			thisNicSwitch, err := _switch.GetById(thisNic.SwitchId)
+			if err != nil {
+				slog.Error("switch lookup error", "nicid", thisNic.ID, "switchid", thisNic.SwitchId)
+			}
+			ngNetDev, ngPeerHook, err := _switch.NgGetDev(thisNicSwitch.Uplink)
+			thisNic.NetDev = ngNetDev + "," + ngPeerHook
 			if err != nil {
 				slog.Error("NgGetDev error", "err", err)
 				return []string{}, slot
@@ -341,6 +345,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 				slog.Error("failed to save net dev", "nic", thisNic.ID, "netdev", thisNic.NetDev)
 				return []string{}, slot
 			}
+			slog.Debug("netgraph args selection", "ngNetDev", ngNetDev, "ngPeerHook", ngPeerHook)
 			netDevArg = "netgraph,path=" + ngNetDev + ":,peerhook=" + ngPeerHook + ",socket=" + vm.Name
 		} else {
 			slog.Debug("unknown net dev type", "netDevType", thisNic.NetDevType)

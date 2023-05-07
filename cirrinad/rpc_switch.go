@@ -6,7 +6,6 @@ import (
 	"cirrina/cirrinad/util"
 	"errors"
 	"golang.org/x/exp/slog"
-	"strings"
 )
 import "context"
 
@@ -36,16 +35,7 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 		if util.ContainsStr(allIfBridges, switchInst.Name) {
 			slog.Debug("bridge already exists, skipping", "bridge", switchInst.Name)
 		} else {
-			var members []string
-			memberList := strings.Split(switchInst.Uplink, ",")
-			for _, member := range memberList {
-				if member == "" {
-					continue
-				}
-				members = append(members, member)
-			}
-
-			err := _switch.CreateIfBridgeWithMembers(switchInst.Name, members)
+			err := _switch.BuildIfBridge(switchInst)
 			if err != nil {
 				slog.Error("error creating if bridge", "err", err)
 				// already created in db, so ignore system state and proceed on...

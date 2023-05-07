@@ -4,6 +4,7 @@ import (
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
+	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm_nics"
 	"errors"
@@ -275,14 +276,43 @@ func (vm *VM) netStartup() {
 				slog.Error("failed to create tap", "err", err)
 			}
 			// Add interface to bridge
-			args = []string{"/sbin/ifconfig", config.Config.Network.Bridge, "addm", vmNic.NetDev}
-			cmd = exec.Command(config.Config.Sys.Sudo, args...)
-			err = cmd.Run()
-			if err != nil {
-				slog.Error("failed to add tap to bridge", "err", err)
+			if vmNic.SwitchId != "" {
+				thisSwitch, err := _switch.GetById(vmNic.SwitchId)
+				if err != nil {
+					slog.Error("bad switch id",
+						"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchId)
+				}
+				if thisSwitch.Type == "IF" {
+					err := _switch.BridgeIfAddMember(thisSwitch.Name, vmNic.NetDev)
+					if err != nil {
+						slog.Error("failed to add nic to switch",
+							"nicname", vmNic.Name,
+							"nicid", vmNic.ID,
+							"switchid", vmNic.SwitchId,
+							"err", err,
+						)
+					}
+				} else {
+					slog.Error("bridge/interface type mismatch",
+						"nicname", vmNic.Name,
+						"nicid", vmNic.ID,
+						"switchid", vmNic.SwitchId,
+					)
+				}
 			}
 		} else if vmNic.NetDevType == "NETGRAPH" {
-			// Nothing to do for netgraph, it creates nodes automatically
+			thisSwitch, err := _switch.GetById(vmNic.SwitchId)
+			if err != nil {
+				slog.Error("bad switch id",
+					"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchId)
+			}
+			if thisSwitch.Type != "NG" {
+				slog.Error("bridge/interface type mismatch",
+					"nicname", vmNic.Name,
+					"nicid", vmNic.ID,
+					"switchid", vmNic.SwitchId,
+				)
+			}
 		} else {
 			slog.Debug("unknown net type, can't set up")
 			return

@@ -91,16 +91,7 @@ func CreateBridges() {
 			if util.ContainsStr(allIfBridges, bridge.Name) {
 				slog.Debug("bridge already exists, skipping", "bridge", bridge.Name)
 			} else {
-				var members []string
-				memberList := strings.Split(bridge.Uplink, ",")
-				for _, member := range memberList {
-					if member == "" {
-						continue
-					}
-					members = append(members, member)
-				}
-
-				err := CreateIfBridgeWithMembers(bridge.Name, members)
+				err := BuildIfBridge(bridge)
 				if err != nil {
 					slog.Error("error creating if bridge", "err", err)
 					return
@@ -145,4 +136,18 @@ func DestroyBridges() {
 			slog.Debug("unknown bridge type", "name", bridge.Name, "type", bridge.Type)
 		}
 	}
+}
+
+func BuildIfBridge(switchInst *Switch) error {
+	var members []string
+	memberList := strings.Split(switchInst.Uplink, ",")
+	for _, member := range memberList {
+		if member == "" {
+			continue
+		}
+		members = append(members, member)
+	}
+
+	err := CreateIfBridgeWithMembers(switchInst.Name, members)
+	return err
 }
