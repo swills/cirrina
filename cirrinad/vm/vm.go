@@ -373,15 +373,15 @@ func (vm *VM) netCleanup() {
 				slog.Error("failed to destroy network interface", "err", err)
 			}
 
-			vmNic.NetDev = ""
-			err = vmNic.Save()
-			if err != nil {
-				slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
-			}
 		} else if vmNic.NetDevType == "NETGRAPH" {
 			// nothing to do for netgraph
 		} else {
 			slog.Error("unknown net type, can't clean up")
+		}
+		vmNic.NetDev = ""
+		err = vmNic.Save()
+		if err != nil {
+			slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
 		}
 	}
 
