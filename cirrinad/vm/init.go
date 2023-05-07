@@ -235,26 +235,16 @@ func KillVMs() {
 	}
 }
 
-func GetUsedVncPorts() []int32 {
-	var ret []int32
+func GetUsedVncPorts() []int {
+	var ret []int
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
 	for _, vmInst := range List.VmList {
 		if vmInst.Status != STOPPED {
-			ret = append(ret, vmInst.VNCPort)
+			ret = append(ret, int(vmInst.VNCPort))
 		}
 	}
 	return ret
-}
-
-func IsVncPortUsed(vncPort int32) bool {
-	usedVncPorts := GetUsedVncPorts()
-	for _, port := range usedVncPorts {
-		if port == vncPort {
-			return true
-		}
-	}
-	return false
 }
 
 func GetUsedNetPorts() []string {

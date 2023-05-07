@@ -1,7 +1,13 @@
 package util
 
 import (
+	"encoding/json"
+	"errors"
 	"os"
+	"os/exec"
+	"sort"
+	"strconv"
+	"strings"
 )
 
 func PathExists(path string) (bool, error) {
@@ -49,4 +55,80 @@ func ContainsInt(elems []int, v int) bool {
 		}
 	}
 	return false
+}
+
+func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (port int, err error) {
+	cmd := exec.Command("netstat", "-an", "--libxo", "json")
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return 0, err
+	}
+	if err := cmd.Start(); err != nil {
+		return 0, err
+	}
+	var result map[string]interface{}
+	if err := json.NewDecoder(stdout).Decode(&result); err != nil {
+		return 0, err
+	}
+	if err := cmd.Wait(); err != nil {
+		return 0, err
+	}
+	statistics, valid := result["statistics"].(map[string]interface{})
+	if !valid {
+		return 0, nil
+	}
+	sockets, valid := statistics["socket"].([]interface{})
+	if !valid {
+		return 0, errors.New("failed parsing netstat output - 1")
+	}
+	localListenPorts := make(map[int]struct{})
+	for _, value := range sockets {
+		socket, valid := value.(map[string]interface{})
+		if !valid {
+			continue
+		}
+		if socket["protocol"] == "tcp4" || socket["protocol"] == "tcp46" || socket["protocol"] == "tcp6" {
+			state, valid := socket["tcp-state"].(string)
+			if !valid {
+				continue
+			}
+			realState := strings.TrimSpace(state)
+			if realState == "LISTEN" {
+				local, valid := socket["local"].(map[string]interface{})
+				if !valid {
+					continue
+				}
+				port, valid := local["port"].(interface{})
+				if !valid {
+					continue
+				}
+				p, valid := port.(string)
+				if !valid {
+					continue
+				}
+				portInt, err := strconv.Atoi(p)
+				if err != nil {
+					return 0, err
+				}
+				if _, exists := localListenPorts[portInt]; !exists {
+					localListenPorts[portInt] = struct{}{}
+				}
+			}
+		}
+	}
+	var uniqueLocalListenPorts []int
+	for l := range localListenPorts {
+		uniqueLocalListenPorts = append(uniqueLocalListenPorts, l)
+	}
+	sort.Slice(uniqueLocalListenPorts, func(i, j int) bool {
+		return uniqueLocalListenPorts[i] < uniqueLocalListenPorts[j]
+	})
+
+	vncPort := firstVncPort
+	for ; vncPort <= 65535; vncPort++ {
+		if !ContainsInt(uniqueLocalListenPorts, vncPort) && !ContainsInt(usedVncPorts, vncPort) {
+			break
+		}
+	}
+	return vncPort, nil
 }
