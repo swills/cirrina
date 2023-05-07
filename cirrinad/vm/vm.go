@@ -5,6 +5,7 @@ import (
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
 	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vm_nics"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -74,9 +75,7 @@ func (vm *VM) Start() (err error) {
 	cmdName, cmdArgs, err := vm.generateCommandLine()
 	vm.log.Info("start", "cmd", cmdName, "args", cmdArgs)
 	vm.createUefiVarsFile()
-	if vm.Config.Net {
-		vm.netStartup()
-	}
+	vm.netStartup()
 	err = vm.Save()
 	if err != nil {
 		return err
@@ -137,7 +136,6 @@ func (vm *VM) Save() error {
 			"max_wait":           &vm.Config.MaxWait,
 			"restart":            &vm.Config.Restart,
 			"restart_delay":      &vm.Config.RestartDelay,
-			"net":                &vm.Config.Net,
 			"mac":                &vm.Config.Mac,
 			"screen":             &vm.Config.Screen,
 			"screen_width":       &vm.Config.ScreenWidth,
@@ -156,8 +154,6 @@ func (vm *VM) Save() error {
 			"ignore_unknown_msr": &vm.Config.IgnoreUnknownMSR,
 			"kbd_layout":         &vm.Config.KbdLayout,
 			"auto_start":         &vm.Config.AutoStart,
-			"net_dev_type":       &vm.Config.NetDevType,
-			"net_type":           &vm.Config.NetType,
 			"sound":              &vm.Config.Sound,
 			"sound_in":           &vm.Config.SoundIn,
 			"sound_out":          &vm.Config.SoundOut,
@@ -172,6 +168,7 @@ func (vm *VM) Save() error {
 			"extra_args":         &vm.Config.ExtraArgs,
 			"is_os":              &vm.Config.ISOs,
 			"disks":              &vm.Config.Disks,
+			"nics":               &vm.Config.Nics,
 		},
 		)
 
@@ -188,7 +185,6 @@ func (vm *VM) Save() error {
 		Updates(map[string]interface{}{
 			"name":        &vm.Name,
 			"description": &vm.Description,
-			"net_dev":     &vm.NetDev,
 			"vnc_port":    &vm.VNCPort,
 		})
 
@@ -314,55 +310,82 @@ func ngCreateBridge(netDev string, bridgePeer string) (err error) {
 }
 
 func (vm *VM) netStartup() {
-	if vm.Config.NetDevType == "TAP" || vm.Config.NetDevType == "VMNET" {
-		args := []string{"/sbin/ifconfig", vm.NetDev, "create"}
-		cmd := exec.Command(config.Config.Sys.Sudo, args...)
-		err := cmd.Run()
-		if err != nil {
-			slog.Error("failed to create tap", "err", err)
-		}
-		args = []string{"/sbin/ifconfig", config.Config.Network.Bridge, "addm", vm.NetDev}
-		cmd = exec.Command(config.Config.Sys.Sudo, args...)
-		err = cmd.Run()
-		if err != nil {
-			slog.Error("failed to add tap to bridge", "err", err)
-		}
-	} else if vm.Config.NetDevType == "NETGRAPH" {
-		bridgeList, err := ngGetBridges()
-		if err != nil {
-			slog.Error("error getting bridge list", "err", err)
-			return
-		}
-		if !containsStr(bridgeList, vm.NetDev) {
-			err := ngCreateBridge(vm.NetDev, config.Config.Network.Interface)
-			if err != nil {
-				slog.Error("ngCreateBridge err", "err", err)
-			}
-		}
-	} else {
-		slog.Debug("unknown net type, can't set up")
+	vmNicsList, err := vm.GetNics()
+
+	if err != nil {
+		slog.Error("netStartup failed to get nics", "err", err)
 		return
 	}
+
+	for _, vmNic := range vmNicsList {
+		if vmNic.NetDevType == "TAP" || vmNic.NetDevType == "VMNET" {
+			// Create interface
+			args := []string{"/sbin/ifconfig", vmNic.NetDev, "create"}
+			cmd := exec.Command(config.Config.Sys.Sudo, args...)
+			err := cmd.Run()
+			if err != nil {
+				slog.Error("failed to create tap", "err", err)
+			}
+			// Add interface to bridge
+			args = []string{"/sbin/ifconfig", config.Config.Network.Bridge, "addm", vmNic.NetDev}
+			cmd = exec.Command(config.Config.Sys.Sudo, args...)
+			err = cmd.Run()
+			if err != nil {
+				slog.Error("failed to add tap to bridge", "err", err)
+			}
+		} else if vmNic.NetDevType == "NETGRAPH" {
+			bridgeList, err := ngGetBridges()
+			if err != nil {
+				slog.Error("error getting bridge list", "err", err)
+				return
+			}
+			if !containsStr(bridgeList, vmNic.NetDev) {
+				err := ngCreateBridge(vmNic.NetDev, config.Config.Network.Interface)
+				if err != nil {
+					slog.Error("ngCreateBridge err", "err", err)
+				}
+			}
+		} else {
+			slog.Debug("unknown net type, can't set up")
+			return
+		}
+
+	}
+
+	// TODO create bridges (switches) on startup
 }
 
 func (vm *VM) netCleanup() {
-	if vm.NetDev == "" {
+
+	vmNicsList, err := vm.GetNics()
+
+	if err != nil {
+		slog.Error("netStartup failed to get nics", "err", err)
 		return
 	}
-	if strings.HasPrefix(vm.NetDev, "tap") || strings.HasPrefix(vm.NetDev, "vmnet") {
-		args := []string{"/sbin/ifconfig", vm.NetDev, "destroy"}
-		cmd := exec.Command(config.Config.Sys.Sudo, args...)
-		err := cmd.Run()
-		if err != nil {
-			slog.Error("failed to destroy network interface", "err", err)
+
+	for _, vmNic := range vmNicsList {
+		if vmNic.NetDevType == "TAP" || vmNic.NetDevType == "VMNET" {
+			args := []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"}
+			cmd := exec.Command(config.Config.Sys.Sudo, args...)
+			err := cmd.Run()
+			if err != nil {
+				slog.Error("failed to destroy network interface", "err", err)
+			}
+
+			vmNic.NetDev = ""
+			err = vmNic.Save()
+			if err != nil {
+				slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+			}
+		} else if vmNic.NetDevType == "NETGRAPH" {
+			// nothing to do for netgraph
+		} else {
+			slog.Error("unknown net type, can't clean up")
 		}
-	} else if strings.HasPrefix(vm.NetDev, "bnet") {
-		// TODO - nothing to do for now, later this will need to check and destroy the netgraph bridge
-		return
-	} else {
-		slog.Debug("unknown net type, can't clean up")
-		return
 	}
+
+	// TODO destroy bridges (switches) on shutdown
 }
 
 func vmDaemon(events chan supervisor.Event, vm *VM) {
@@ -394,7 +417,6 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			setStopped(vm.ID)
 			vm.mu.Lock()
 			List.VmList[vm.ID].Status = STOPPED
-			List.VmList[vm.ID].NetDev = ""
 			List.VmList[vm.ID].VNCPort = 0
 			List.VmList[vm.ID].BhyvePid = 0
 			vm.mu.Unlock()
@@ -420,6 +442,22 @@ func (vm *VM) GetISOs() ([]iso.ISO, error) {
 		}
 	}
 	return isos, nil
+}
+
+func (vm *VM) GetNics() ([]vm_nics.VmNic, error) {
+	var nics []vm_nics.VmNic
+	for _, cv := range strings.Split(vm.Config.Nics, ",") {
+		if cv == "" {
+			continue
+		}
+		aNic, err := vm_nics.GetById(cv)
+		if err == nil {
+			nics = append(nics, *aNic)
+		} else {
+			slog.Error("bac nic", "nic", cv, "vm", vm.ID)
+		}
+	}
+	return nics, nil
 }
 
 func (vm *VM) GetDisks() ([]disk.Disk, error) {
@@ -453,7 +491,75 @@ func (vm *VM) DeleteUEFIState() error {
 	return nil
 }
 
-func (vm *VM) AttachDisk(diskids []string) error {
+func (vm *VM) AttachNics(nicIds []string) error {
+	ac := 0
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
+	if vm.Status != STOPPED {
+		return errors.New("VM must be stopped before adding disk(s)")
+	}
+	occurred := map[string]bool{}
+	var result []string
+
+	for _, aNic := range nicIds {
+		slog.Debug("checking vm nic exists", "vmnic", aNic)
+
+		if occurred[aNic] != true {
+			occurred[aNic] = true
+			result = append(result, aNic)
+		} else {
+			slog.Error("duplicate nic id", "nic", aNic)
+			return errors.New("nic may only be added once")
+		}
+
+		_, err := vm_nics.GetById(aNic)
+		if err != nil {
+			return err
+		}
+
+		slog.Debug("checking if nic is attached to another VM", "nic", aNic)
+		allVms := GetAll()
+		for _, aVm := range allVms {
+			vmNics, err := aVm.GetNics()
+			if err != nil {
+				return err
+			}
+			if aVm.ID == vm.ID {
+				if ac > 0 {
+					slog.Error("nic attached twice", "nic", aNic, "vm", aVm.ID)
+					return errors.New("nic attached twice")
+				}
+				ac += 1
+				continue
+			}
+			for _, aVmNic := range vmNics {
+				if aNic == aVmNic.ID {
+					slog.Error("nic is already attached to VM", "disk", aNic, "vm", aVm.ID)
+					return errors.New("nic already attached")
+				}
+			}
+		}
+	}
+
+	var nicsConfigVal string
+	count := 0
+	for _, diskId := range nicIds {
+		if count > 0 {
+			nicsConfigVal += ","
+		}
+		nicsConfigVal += diskId
+		count += 1
+	}
+	vm.Config.Nics = nicsConfigVal
+	err := vm.Save()
+	if err != nil {
+		slog.Error("error saving VM", "err", err)
+		return err
+	}
+	return nil
+}
+
+func (vm *VM) AttachDisks(diskids []string) error {
 	ac := 0
 	defer List.Mu.Unlock()
 	List.Mu.Lock()

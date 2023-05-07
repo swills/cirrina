@@ -62,14 +62,19 @@ message SetDiskReq {
   repeated string diskid = 2;
 }
 
-message SetVmNicVmsReq {
-  string id = 1;
-  repeated VMID vmid = 2;
+message SetNicReq {
+  string vmid = 1;
+  repeated string vmnicid = 2;
 }
 
 message SetVmNicSwitchReq {
-  string id = 1;
-  repeated SwitchId switchid = 2;
+  VmNicId vmnicid = 1;
+  SwitchId switchid = 2;
+}
+
+message SwitchUplinkReq {
+  SwitchId switchid = 1;
+  optional string uplink = 2;
 }
 
 message KbdLayout {
@@ -213,17 +218,19 @@ service VMInfo {
   rpc RemoveDisk(DiskId) returns (ReqBool);
   rpc SetVmDisks(SetDiskReq) returns (ReqBool);
   rpc GetVmDisks(VMID) returns (stream DiskId);
+  rpc SetVmNics(SetNicReq) returns (ReqBool);
+  rpc GetVmNics(VMID) returns (stream VmNicId);
 
   rpc GetSwitches(SwitchesQuery) returns (stream SwitchId);
   rpc GetSwitchInfo(SwitchId) returns (SwitchInfo);
   rpc AddSwitch(SwitchInfo) returns (SwitchId);
   rpc RemoveSwitch(SwitchId) returns (ReqBool);
+  rpc SetSwitchUplink(SwitchUplinkReq) returns (ReqBool);
 
   rpc GetVmNicsAll(VmNicsQuery) returns (stream VmNicId);
-  rpc GetVmNics(VMID) returns (stream VmNicId);
   rpc GetVmNicInfo(VmNicId) returns (VmNicInfo);
   rpc AddVmNic(VmNicInfo) returns (VmNicId);
-  rpc SetVmNicVm(SetVmNicVmsReq) returns (VmNicId);
+  rpc RemoveVmNic(VmNicId) returns (ReqBool);
   rpc SetVmNicSwitch(SetVmNicSwitchReq) returns (ReqBool);
 
 }

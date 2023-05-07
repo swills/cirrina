@@ -41,15 +41,17 @@ const (
 	VMInfo_RemoveDisk_FullMethodName         = "/cirrina.VMInfo/RemoveDisk"
 	VMInfo_SetVmDisks_FullMethodName         = "/cirrina.VMInfo/SetVmDisks"
 	VMInfo_GetVmDisks_FullMethodName         = "/cirrina.VMInfo/GetVmDisks"
+	VMInfo_SetVmNics_FullMethodName          = "/cirrina.VMInfo/SetVmNics"
+	VMInfo_GetVmNics_FullMethodName          = "/cirrina.VMInfo/GetVmNics"
 	VMInfo_GetSwitches_FullMethodName        = "/cirrina.VMInfo/GetSwitches"
 	VMInfo_GetSwitchInfo_FullMethodName      = "/cirrina.VMInfo/GetSwitchInfo"
 	VMInfo_AddSwitch_FullMethodName          = "/cirrina.VMInfo/AddSwitch"
 	VMInfo_RemoveSwitch_FullMethodName       = "/cirrina.VMInfo/RemoveSwitch"
+	VMInfo_SetSwitchUplink_FullMethodName    = "/cirrina.VMInfo/SetSwitchUplink"
 	VMInfo_GetVmNicsAll_FullMethodName       = "/cirrina.VMInfo/GetVmNicsAll"
-	VMInfo_GetVmNics_FullMethodName          = "/cirrina.VMInfo/GetVmNics"
 	VMInfo_GetVmNicInfo_FullMethodName       = "/cirrina.VMInfo/GetVmNicInfo"
 	VMInfo_AddVmNic_FullMethodName           = "/cirrina.VMInfo/AddVmNic"
-	VMInfo_SetVmNicVm_FullMethodName         = "/cirrina.VMInfo/SetVmNicVm"
+	VMInfo_RemoveVmNic_FullMethodName        = "/cirrina.VMInfo/RemoveVmNic"
 	VMInfo_SetVmNicSwitch_FullMethodName     = "/cirrina.VMInfo/SetVmNicSwitch"
 )
 
@@ -79,15 +81,17 @@ type VMInfoClient interface {
 	RemoveDisk(ctx context.Context, in *DiskId, opts ...grpc.CallOption) (*ReqBool, error)
 	SetVmDisks(ctx context.Context, in *SetDiskReq, opts ...grpc.CallOption) (*ReqBool, error)
 	GetVmDisks(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmDisksClient, error)
+	SetVmNics(ctx context.Context, in *SetNicReq, opts ...grpc.CallOption) (*ReqBool, error)
+	GetVmNics(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmNicsClient, error)
 	GetSwitches(ctx context.Context, in *SwitchesQuery, opts ...grpc.CallOption) (VMInfo_GetSwitchesClient, error)
 	GetSwitchInfo(ctx context.Context, in *SwitchId, opts ...grpc.CallOption) (*SwitchInfo, error)
 	AddSwitch(ctx context.Context, in *SwitchInfo, opts ...grpc.CallOption) (*SwitchId, error)
 	RemoveSwitch(ctx context.Context, in *SwitchId, opts ...grpc.CallOption) (*ReqBool, error)
+	SetSwitchUplink(ctx context.Context, in *SwitchUplinkReq, opts ...grpc.CallOption) (*ReqBool, error)
 	GetVmNicsAll(ctx context.Context, in *VmNicsQuery, opts ...grpc.CallOption) (VMInfo_GetVmNicsAllClient, error)
-	GetVmNics(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmNicsClient, error)
 	GetVmNicInfo(ctx context.Context, in *VmNicId, opts ...grpc.CallOption) (*VmNicInfo, error)
 	AddVmNic(ctx context.Context, in *VmNicInfo, opts ...grpc.CallOption) (*VmNicId, error)
-	SetVmNicVm(ctx context.Context, in *SetVmNicVmsReq, opts ...grpc.CallOption) (*VmNicId, error)
+	RemoveVmNic(ctx context.Context, in *VmNicId, opts ...grpc.CallOption) (*ReqBool, error)
 	SetVmNicSwitch(ctx context.Context, in *SetVmNicSwitchReq, opts ...grpc.CallOption) (*ReqBool, error)
 }
 
@@ -435,8 +439,49 @@ func (x *vMInfoGetVmDisksClient) Recv() (*DiskId, error) {
 	return m, nil
 }
 
+func (c *vMInfoClient) SetVmNics(ctx context.Context, in *SetNicReq, opts ...grpc.CallOption) (*ReqBool, error) {
+	out := new(ReqBool)
+	err := c.cc.Invoke(ctx, VMInfo_SetVmNics_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vMInfoClient) GetVmNics(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmNicsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[6], VMInfo_GetVmNics_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &vMInfoGetVmNicsClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type VMInfo_GetVmNicsClient interface {
+	Recv() (*VmNicId, error)
+	grpc.ClientStream
+}
+
+type vMInfoGetVmNicsClient struct {
+	grpc.ClientStream
+}
+
+func (x *vMInfoGetVmNicsClient) Recv() (*VmNicId, error) {
+	m := new(VmNicId)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *vMInfoClient) GetSwitches(ctx context.Context, in *SwitchesQuery, opts ...grpc.CallOption) (VMInfo_GetSwitchesClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[6], VMInfo_GetSwitches_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[7], VMInfo_GetSwitches_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -494,8 +539,17 @@ func (c *vMInfoClient) RemoveSwitch(ctx context.Context, in *SwitchId, opts ...g
 	return out, nil
 }
 
+func (c *vMInfoClient) SetSwitchUplink(ctx context.Context, in *SwitchUplinkReq, opts ...grpc.CallOption) (*ReqBool, error) {
+	out := new(ReqBool)
+	err := c.cc.Invoke(ctx, VMInfo_SetSwitchUplink_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *vMInfoClient) GetVmNicsAll(ctx context.Context, in *VmNicsQuery, opts ...grpc.CallOption) (VMInfo_GetVmNicsAllClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[7], VMInfo_GetVmNicsAll_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[8], VMInfo_GetVmNicsAll_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -526,38 +580,6 @@ func (x *vMInfoGetVmNicsAllClient) Recv() (*VmNicId, error) {
 	return m, nil
 }
 
-func (c *vMInfoClient) GetVmNics(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmNicsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[8], VMInfo_GetVmNics_FullMethodName, opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &vMInfoGetVmNicsClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type VMInfo_GetVmNicsClient interface {
-	Recv() (*VmNicId, error)
-	grpc.ClientStream
-}
-
-type vMInfoGetVmNicsClient struct {
-	grpc.ClientStream
-}
-
-func (x *vMInfoGetVmNicsClient) Recv() (*VmNicId, error) {
-	m := new(VmNicId)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 func (c *vMInfoClient) GetVmNicInfo(ctx context.Context, in *VmNicId, opts ...grpc.CallOption) (*VmNicInfo, error) {
 	out := new(VmNicInfo)
 	err := c.cc.Invoke(ctx, VMInfo_GetVmNicInfo_FullMethodName, in, out, opts...)
@@ -576,9 +598,9 @@ func (c *vMInfoClient) AddVmNic(ctx context.Context, in *VmNicInfo, opts ...grpc
 	return out, nil
 }
 
-func (c *vMInfoClient) SetVmNicVm(ctx context.Context, in *SetVmNicVmsReq, opts ...grpc.CallOption) (*VmNicId, error) {
-	out := new(VmNicId)
-	err := c.cc.Invoke(ctx, VMInfo_SetVmNicVm_FullMethodName, in, out, opts...)
+func (c *vMInfoClient) RemoveVmNic(ctx context.Context, in *VmNicId, opts ...grpc.CallOption) (*ReqBool, error) {
+	out := new(ReqBool)
+	err := c.cc.Invoke(ctx, VMInfo_RemoveVmNic_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -620,15 +642,17 @@ type VMInfoServer interface {
 	RemoveDisk(context.Context, *DiskId) (*ReqBool, error)
 	SetVmDisks(context.Context, *SetDiskReq) (*ReqBool, error)
 	GetVmDisks(*VMID, VMInfo_GetVmDisksServer) error
+	SetVmNics(context.Context, *SetNicReq) (*ReqBool, error)
+	GetVmNics(*VMID, VMInfo_GetVmNicsServer) error
 	GetSwitches(*SwitchesQuery, VMInfo_GetSwitchesServer) error
 	GetSwitchInfo(context.Context, *SwitchId) (*SwitchInfo, error)
 	AddSwitch(context.Context, *SwitchInfo) (*SwitchId, error)
 	RemoveSwitch(context.Context, *SwitchId) (*ReqBool, error)
+	SetSwitchUplink(context.Context, *SwitchUplinkReq) (*ReqBool, error)
 	GetVmNicsAll(*VmNicsQuery, VMInfo_GetVmNicsAllServer) error
-	GetVmNics(*VMID, VMInfo_GetVmNicsServer) error
 	GetVmNicInfo(context.Context, *VmNicId) (*VmNicInfo, error)
 	AddVmNic(context.Context, *VmNicInfo) (*VmNicId, error)
-	SetVmNicVm(context.Context, *SetVmNicVmsReq) (*VmNicId, error)
+	RemoveVmNic(context.Context, *VmNicId) (*ReqBool, error)
 	SetVmNicSwitch(context.Context, *SetVmNicSwitchReq) (*ReqBool, error)
 	mustEmbedUnimplementedVMInfoServer()
 }
@@ -703,6 +727,12 @@ func (UnimplementedVMInfoServer) SetVmDisks(context.Context, *SetDiskReq) (*ReqB
 func (UnimplementedVMInfoServer) GetVmDisks(*VMID, VMInfo_GetVmDisksServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetVmDisks not implemented")
 }
+func (UnimplementedVMInfoServer) SetVmNics(context.Context, *SetNicReq) (*ReqBool, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetVmNics not implemented")
+}
+func (UnimplementedVMInfoServer) GetVmNics(*VMID, VMInfo_GetVmNicsServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetVmNics not implemented")
+}
 func (UnimplementedVMInfoServer) GetSwitches(*SwitchesQuery, VMInfo_GetSwitchesServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetSwitches not implemented")
 }
@@ -715,11 +745,11 @@ func (UnimplementedVMInfoServer) AddSwitch(context.Context, *SwitchInfo) (*Switc
 func (UnimplementedVMInfoServer) RemoveSwitch(context.Context, *SwitchId) (*ReqBool, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveSwitch not implemented")
 }
+func (UnimplementedVMInfoServer) SetSwitchUplink(context.Context, *SwitchUplinkReq) (*ReqBool, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetSwitchUplink not implemented")
+}
 func (UnimplementedVMInfoServer) GetVmNicsAll(*VmNicsQuery, VMInfo_GetVmNicsAllServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetVmNicsAll not implemented")
-}
-func (UnimplementedVMInfoServer) GetVmNics(*VMID, VMInfo_GetVmNicsServer) error {
-	return status.Errorf(codes.Unimplemented, "method GetVmNics not implemented")
 }
 func (UnimplementedVMInfoServer) GetVmNicInfo(context.Context, *VmNicId) (*VmNicInfo, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVmNicInfo not implemented")
@@ -727,8 +757,8 @@ func (UnimplementedVMInfoServer) GetVmNicInfo(context.Context, *VmNicId) (*VmNic
 func (UnimplementedVMInfoServer) AddVmNic(context.Context, *VmNicInfo) (*VmNicId, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddVmNic not implemented")
 }
-func (UnimplementedVMInfoServer) SetVmNicVm(context.Context, *SetVmNicVmsReq) (*VmNicId, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetVmNicVm not implemented")
+func (UnimplementedVMInfoServer) RemoveVmNic(context.Context, *VmNicId) (*ReqBool, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveVmNic not implemented")
 }
 func (UnimplementedVMInfoServer) SetVmNicSwitch(context.Context, *SetVmNicSwitchReq) (*ReqBool, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetVmNicSwitch not implemented")
@@ -1160,6 +1190,45 @@ func (x *vMInfoGetVmDisksServer) Send(m *DiskId) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _VMInfo_SetVmNics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetNicReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).SetVmNics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_SetVmNics_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).SetVmNics(ctx, req.(*SetNicReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VMInfo_GetVmNics_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(VMID)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(VMInfoServer).GetVmNics(m, &vMInfoGetVmNicsServer{stream})
+}
+
+type VMInfo_GetVmNicsServer interface {
+	Send(*VmNicId) error
+	grpc.ServerStream
+}
+
+type vMInfoGetVmNicsServer struct {
+	grpc.ServerStream
+}
+
+func (x *vMInfoGetVmNicsServer) Send(m *VmNicId) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 func _VMInfo_GetSwitches_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(SwitchesQuery)
 	if err := stream.RecvMsg(m); err != nil {
@@ -1235,6 +1304,24 @@ func _VMInfo_RemoveSwitch_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VMInfo_SetSwitchUplink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SwitchUplinkReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).SetSwitchUplink(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_SetSwitchUplink_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).SetSwitchUplink(ctx, req.(*SwitchUplinkReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _VMInfo_GetVmNicsAll_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(VmNicsQuery)
 	if err := stream.RecvMsg(m); err != nil {
@@ -1253,27 +1340,6 @@ type vMInfoGetVmNicsAllServer struct {
 }
 
 func (x *vMInfoGetVmNicsAllServer) Send(m *VmNicId) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _VMInfo_GetVmNics_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(VMID)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(VMInfoServer).GetVmNics(m, &vMInfoGetVmNicsServer{stream})
-}
-
-type VMInfo_GetVmNicsServer interface {
-	Send(*VmNicId) error
-	grpc.ServerStream
-}
-
-type vMInfoGetVmNicsServer struct {
-	grpc.ServerStream
-}
-
-func (x *vMInfoGetVmNicsServer) Send(m *VmNicId) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -1313,20 +1379,20 @@ func _VMInfo_AddVmNic_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
-func _VMInfo_SetVmNicVm_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetVmNicVmsReq)
+func _VMInfo_RemoveVmNic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VmNicId)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(VMInfoServer).SetVmNicVm(ctx, in)
+		return srv.(VMInfoServer).RemoveVmNic(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: VMInfo_SetVmNicVm_FullMethodName,
+		FullMethod: VMInfo_RemoveVmNic_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(VMInfoServer).SetVmNicVm(ctx, req.(*SetVmNicVmsReq))
+		return srv.(VMInfoServer).RemoveVmNic(ctx, req.(*VmNicId))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1421,6 +1487,10 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _VMInfo_SetVmDisks_Handler,
 		},
 		{
+			MethodName: "SetVmNics",
+			Handler:    _VMInfo_SetVmNics_Handler,
+		},
+		{
 			MethodName: "GetSwitchInfo",
 			Handler:    _VMInfo_GetSwitchInfo_Handler,
 		},
@@ -1433,6 +1503,10 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _VMInfo_RemoveSwitch_Handler,
 		},
 		{
+			MethodName: "SetSwitchUplink",
+			Handler:    _VMInfo_SetSwitchUplink_Handler,
+		},
+		{
 			MethodName: "GetVmNicInfo",
 			Handler:    _VMInfo_GetVmNicInfo_Handler,
 		},
@@ -1441,8 +1515,8 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _VMInfo_AddVmNic_Handler,
 		},
 		{
-			MethodName: "SetVmNicVm",
-			Handler:    _VMInfo_SetVmNicVm_Handler,
+			MethodName: "RemoveVmNic",
+			Handler:    _VMInfo_RemoveVmNic_Handler,
 		},
 		{
 			MethodName: "SetVmNicSwitch",
@@ -1481,6 +1555,11 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 		{
+			StreamName:    "GetVmNics",
+			Handler:       _VMInfo_GetVmNics_Handler,
+			ServerStreams: true,
+		},
+		{
 			StreamName:    "GetSwitches",
 			Handler:       _VMInfo_GetSwitches_Handler,
 			ServerStreams: true,
@@ -1488,11 +1567,6 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "GetVmNicsAll",
 			Handler:       _VMInfo_GetVmNicsAll_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "GetVmNics",
-			Handler:       _VMInfo_GetVmNics_Handler,
 			ServerStreams: true,
 		},
 	},

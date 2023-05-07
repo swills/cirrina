@@ -72,7 +72,6 @@ func setStopped(id string) {
 	vm := VM{ID: id}
 	db := getVmDb()
 	vm.Status = STOPPED
-	vm.NetDev = ""
 	vm.VNCPort = 0
 	vm.BhyvePid = 0
 	res := db.Select([]string{
@@ -83,7 +82,6 @@ func setStopped(id string) {
 	}).Model(&vm).
 		Updates(map[string]interface{}{
 			"status":    &vm.Status,
-			"net_dev":   &vm.NetDev,
 			"vnc_port":  &vm.VNCPort,
 			"bhyve_pid": &vm.BhyvePid,
 		})

@@ -138,13 +138,6 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 		vmInst.Config.RestartDelay = *rc.RestartDelay
 	}
 
-	if isOptionPassed(reflect, "net") {
-		if *rc.Net {
-			vmInst.Config.Net = true
-		} else {
-			vmInst.Config.Net = false
-		}
-	}
 	if isOptionPassed(reflect, "screen_width") {
 		vmInst.Config.ScreenWidth = *rc.ScreenWidth
 	}
@@ -166,22 +159,6 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 			vmInst.Config.AutoStart = true
 		} else {
 			vmInst.Config.AutoStart = false
-		}
-	}
-	if isOptionPassed(reflect, "netdevtype") {
-		if *rc.Netdevtype == 0 {
-			vmInst.Config.NetDevType = "TAP"
-		} else if *rc.Netdevtype == 1 {
-			vmInst.Config.NetDevType = "VMNET"
-		} else if *rc.Netdevtype == 2 {
-			vmInst.Config.NetDevType = "NETGRAPH"
-		}
-	}
-	if isOptionPassed(reflect, "nettype") {
-		if *rc.Nettype == 0 {
-			vmInst.Config.NetType = "VIRTIONET"
-		} else if *rc.Nettype == 1 {
-			vmInst.Config.NetType = "E1000"
 		}
 	}
 	if isOptionPassed(reflect, "sound") {
@@ -279,7 +256,6 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Eop = &vmInst.Config.ExitOnPause
 	pvm.Dpo = &vmInst.Config.DestroyPowerOff
 	pvm.Ium = &vmInst.Config.IgnoreUnknownMSR
-	pvm.Net = &vmInst.Config.Net
 	pvm.Vncport = &vmInst.Config.VNCPort
 	pvm.Mac = &vmInst.Config.Mac
 	pvm.Keyboard = &vmInst.Config.KbdLayout
@@ -295,23 +271,6 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Com3Dev = &vmInst.Config.Com3Dev
 	pvm.Com4 = &vmInst.Config.Com4
 	pvm.Com4Dev = &vmInst.Config.Com4Dev
-	NetTypeVIRTIONET := cirrina.NetType_VIRTIONET
-	NetTypeE1000 := cirrina.NetType_E1000
-	if vmInst.Config.NetType == "VIRTIONET" {
-		pvm.Nettype = &NetTypeVIRTIONET
-	} else if vmInst.Config.NetType == "E1000" {
-		pvm.Nettype = &NetTypeE1000
-	}
-	NetDevTypeTAP := cirrina.NetDevType_TAP
-	NetDevTypeVMNET := cirrina.NetDevType_VMNET
-	NetDevTypeNETGRAPH := cirrina.NetDevType_NETGRAPH
-	if vmInst.Config.NetDevType == "TAP" {
-		pvm.Netdevtype = &NetDevTypeTAP
-	} else if vmInst.Config.NetDevType == "VMNET" {
-		pvm.Netdevtype = &NetDevTypeVMNET
-	} else if vmInst.Config.NetDevType == "NETGRAPH" {
-		pvm.Netdevtype = &NetDevTypeNETGRAPH
-	}
 	if vmInst.Config.ExtraArgs != "" {
 		pvm.ExtraArgs = &vmInst.Config.ExtraArgs
 	}
@@ -419,6 +378,25 @@ func (s *server) SetVmISOs(_ context.Context, sr *cirrina.SetISOReq) (*cirrina.R
 	return &re, nil
 }
 
+func (s *server) SetVmNics(_ context.Context, sn *cirrina.SetNicReq) (*cirrina.ReqBool, error) {
+	var re cirrina.ReqBool
+	re.Success = false
+	slog.Debug("SetVmNics", "vm", sn.Vmid, "vmnic", sn.Vmnicid)
+	vmInst, err := vm.GetById(sn.Vmid)
+	if err != nil {
+		slog.Error("error getting vm", "vm", sn.Vmid, "err", err)
+		return &re, err
+	}
+
+	err = vmInst.AttachNics(sn.Vmnicid)
+
+	if err != nil {
+		return &re, err
+	}
+	re.Success = true
+	return &re, nil
+}
+
 func (s *server) SetVmDisks(_ context.Context, sr *cirrina.SetDiskReq) (*cirrina.ReqBool, error) {
 	re := cirrina.ReqBool{}
 	re.Success = false
@@ -428,7 +406,7 @@ func (s *server) SetVmDisks(_ context.Context, sr *cirrina.SetDiskReq) (*cirrina
 		slog.Error("error getting vm", "vm", sr.Id, "err", err)
 		return &re, err
 	}
-	err = vmInst.AttachDisk(sr.Diskid)
+	err = vmInst.AttachDisks(sr.Diskid)
 	if err != nil {
 		return &re, err
 	}

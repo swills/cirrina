@@ -261,7 +261,6 @@ func getVmNic(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 			"Mac: %v "+
 			"Net_type: %v "+
 			"Net_dev_type: %v "+
-			"vm_id: %v "+
 			"switch_id: %v "+
 			"\n",
 		*res.Name,
@@ -269,7 +268,6 @@ func getVmNic(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 		*res.Mac,
 		netTypeString,
 		netDevTypeString,
-		*res.Vmid,
 		*res.Switchid,
 	)
 }
@@ -404,6 +402,41 @@ func getVMState(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	fmt.Printf("vm id: %v state: %v vnc port: %v\n", *idPtr, vmstate, res.VncPort)
 }
 
+func setVmNicSwitch(c pb.VMInfoClient, ctx context.Context, vmNicId string, switchId string) {
+	var vmnicid pb.VmNicId
+	var vmswitchid pb.SwitchId
+
+	if vmNicId == "" {
+		log.Fatalf("vm NIC ID not specified")
+		return
+	}
+	if switchId == "" {
+		log.Fatalf("Switch ID not specified")
+		return
+	}
+
+	vmnicid.Value = vmNicId
+	vmswitchid.Value = switchId
+
+	nicSwitchSettings := pb.SetVmNicSwitchReq{
+		Vmnicid:  &vmnicid,
+		Switchid: &vmswitchid,
+	}
+	r, err := c.SetVmNicSwitch(ctx, &nicSwitchSettings)
+	if err != nil {
+		log.Fatalf("could not set vm nic switch: %v", err)
+	}
+	if r.Success {
+		log.Printf("Set VM Nic switch connection")
+	} else {
+		log.Printf("Failed to set vmNic switch")
+	}
+}
+
+func setVmNicVm(c pb.VMInfoClient, ctx context.Context) {
+
+}
+
 func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPtr *uint, memPtr *uint, autoStartPtr *bool, c pb.VMInfoClient, ctx context.Context) {
 	if *idPtr == "" {
 		log.Fatalf("ID not specified")
@@ -448,7 +481,8 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 
 func printActionHelp() {
 	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, "+
-		"addISO, addDisk, addSwitch, addVmNic", "getSwitches", "getVmNics", "getSwitch", "getVmNic")
+		"addISO, addDisk, addSwitch, addVmNic", "getSwitches", "getVmNics", "getSwitch", "getVmNic",
+		"setVmNicVm", "setVmNicSwitch")
 }
 
 func main() {
@@ -458,6 +492,8 @@ func main() {
 	descrPtr := flag.String("descr", "", "Description of VM/ISO/Disk")
 	sizePtr := flag.String("size", "", "Size of Disk")
 	switchTypePtr := flag.String("switchType", "IF", "Type of switch (IF or NG)")
+	nicIdPtr := flag.String("nicId", "", "ID of Nic")
+	switchIdPtr := flag.String("switchId", "", "ID of Switch")
 	cpuPtr := flag.Uint("cpus", 1, "Number of CPUs in VM")
 	cpuVal := *cpuPtr
 	cpu32Val := uint32(cpuVal)
@@ -512,6 +548,10 @@ func main() {
 		getSwitches(c, ctx)
 	case "getVmNics":
 		getVmNics(c, ctx)
+	case "setVmNicVm":
+		setVmNicVm(c, ctx)
+	case "setVmNicSwitch":
+		setVmNicSwitch(c, ctx, *nicIdPtr, *switchIdPtr)
 	case "getVMState":
 		getVMState(idPtr, c, ctx)
 	case "addVM":

@@ -2,6 +2,7 @@ package main
 
 import (
 	"cirrina/cirrina"
+	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/vm_nics"
 	"context"
 	"errors"
@@ -83,7 +84,6 @@ func (s *server) GetVmNicInfo(_ context.Context, v *cirrina.VmNicId) (*cirrina.V
 	pvmnicinfo.Name = &vmNic.Name
 	pvmnicinfo.Description = &vmNic.Description
 	slog.Debug("GetVmNicInfo", "description", *pvmnicinfo.Description)
-	pvmnicinfo.Vmid = &vmNic.VmId
 
 	if vmNic.NetType == "VIRTIONET" {
 		pvmnicinfo.Nettype = &NetTypeVIRTIONET
@@ -103,9 +103,34 @@ func (s *server) GetVmNicInfo(_ context.Context, v *cirrina.VmNicId) (*cirrina.V
 		slog.Error("Invalid net dev type", "vmnicid", vmNic.ID, "netdevtype", vmNic.NetDevType)
 	}
 
-	pvmnicinfo.Vmid = &vmNic.VmId
 	pvmnicinfo.Switchid = &vmNic.SwitchId
 	pvmnicinfo.Mac = &vmNic.Mac
 
 	return &pvmnicinfo, nil
+}
+func (s *server) SetVmNicSwitch(_ context.Context, v *cirrina.SetVmNicSwitchReq) (*cirrina.ReqBool, error) {
+	var r cirrina.ReqBool
+	r.Success = false
+
+	if v.Vmnicid.Value == "" {
+		return &r, errors.New("nic ID not specified")
+	}
+	if v.Switchid.Value == "" {
+		return &r, errors.New("switch ID not specified")
+	}
+
+	vmNic, err := vm_nics.GetById(v.Vmnicid.Value)
+	if err != nil {
+		return &r, err
+	}
+	_, err = _switch.GetById(v.Switchid.Value)
+	if err != nil {
+		return &r, err
+	}
+	err = vmNic.SetSwitch(v.Switchid.Value)
+	if err != nil {
+		return &r, err
+	}
+	r.Success = true
+	return &r, nil
 }

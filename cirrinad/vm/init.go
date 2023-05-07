@@ -31,7 +31,6 @@ type Config struct {
 	MaxWait          uint32 `gorm:"default:120;check:max_wait>=0"`
 	Restart          bool   `gorm:"default:True;check:restart IN (0,1)"`
 	RestartDelay     uint32 `gorm:"default:1;check:restart_delay>=0"`
-	Net              bool   `gorm:"default:True;check:screen IN (0,1)"` // TODO remove
 	Mac              string `gorm:"default:AUTO"`
 	Screen           bool   `gorm:"default:True;check:screen IN (0,1)"`
 	ScreenWidth      uint32 `gorm:"default:1920;check:screen_width BETWEEN 640 and 1920"`
@@ -50,8 +49,6 @@ type Config struct {
 	IgnoreUnknownMSR bool   `gorm:"default:True;check:ignore_unknown_msr IN (0,1)"`
 	KbdLayout        string `gorm:"default:default"`
 	AutoStart        bool   `gorm:"default:False;check:auto_start IN (0,1)"`
-	NetType          string `gorm:"default:VIRTIONET;check:net_type IN (\"VIRTIONET\",\"E1000\")"`      // TODO remove
-	NetDevType       string `gorm:"default:TAP;check:net_dev_type IN (\"TAP\",\"VMNET\",\"NETGRAPH\")"` // TODO remove
 	Sound            bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
 	SoundIn          string `gorm:"default:/dev/dsp0"`
 	SoundOut         string `gorm:"default:/dev/dsp0"`
@@ -66,6 +63,7 @@ type Config struct {
 	ExtraArgs        string
 	ISOs             string
 	Disks            string
+	Nics             string
 }
 
 type VM struct {
@@ -75,7 +73,6 @@ type VM struct {
 	Description string
 	Status      StatusType `gorm:"type:status_type"`
 	BhyvePid    uint32     `gorm:"check:bhyve_pid>=0"`
-	NetDev      string
 	VNCPort     int32
 	Config      Config
 	proc        *supervisor.Process
@@ -265,8 +262,12 @@ func GetUsedNetPorts() []string {
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
 	for _, vmInst := range List.VmList {
-		if vmInst.Status != STOPPED {
-			ret = append(ret, vmInst.NetDev)
+		vmNicsList, err := vmInst.GetNics()
+		if err != nil {
+			slog.Error("GetUsedNetPorts failed to get nics", "err", err)
+		}
+		for _, vmNic := range vmNicsList {
+			ret = append(ret, vmNic.NetDev)
 		}
 	}
 	return ret

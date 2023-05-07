@@ -6,6 +6,7 @@ import (
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
 	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vm_nics"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -592,64 +593,93 @@ func ngGetDev(link string) (bridge string, peer string, err error) {
 }
 
 func (vm *VM) getNetArg(slot int) ([]string, int) {
-	if !vm.Config.Net {
-		return []string{}, slot
-	}
-	var netType string
-	if vm.Config.NetType == "VIRTIONET" {
-		netType = "virtio-net"
-	} else if vm.Config.NetType == "E1000" {
-		netType = "e1000"
-	} else {
-		slog.Debug("unknown net type, cannot configure", "netType", vm.Config.NetType)
-		return []string{}, slot
-	}
-	var netDev string
-	var netDevArg string
-	if vm.Config.NetDevType == "TAP" {
-		netDev = getTapDev()
-		netDevArg = netDev
-	} else if vm.Config.NetDevType == "VMNET" {
-		netDev = getVmnetDev()
-		netDevArg = netDev
-	} else if vm.Config.NetDevType == "NETGRAPH" {
-		ngNetDev, ngPeerHook, err := ngGetDev(config.Config.Network.Interface)
+	var netArgs []string
+
+	originalSlot := slot
+
+	nicList := strings.Split(vm.Config.Nics, ",")
+	for _, nicItem := range nicList {
+		if nicItem == "" {
+			continue
+		}
+		slog.Debug("adding nic", "nic", nicItem)
+		thisNic, err := vm_nics.GetById(nicItem)
 		if err != nil {
-			slog.Error("ngGetDev error", "err", err)
+			slog.Error("error getting Disk", "nicItem", nicItem, "err", err)
+			return []string{}, originalSlot
+		}
+		var netType string
+		var netDevArg string
+
+		if thisNic.NetType == "VIRTIONET" {
+			netType = "virtio-net"
+		} else if thisNic.NetType == "E1000" {
+			netType = "e1000"
+		} else {
+			slog.Debug("unknown net type, cannot configure", "netType", thisNic.NetType)
+			return []string{}, originalSlot
+		}
+		if thisNic.NetDevType == "TAP" {
+			thisNic.NetDev = getTapDev()
+			netDevArg = thisNic.NetDev
+			err := thisNic.Save()
+			if err != nil {
+				slog.Error("failed to save net dev", "nic", thisNic.ID, "netdev", thisNic.NetDev)
+				return []string{}, slot
+			}
+			netDevArg = thisNic.NetDev
+		} else if thisNic.NetDevType == "VMNET" {
+			thisNic.NetDev = getVmnetDev()
+			netDevArg = thisNic.NetDev
+			err := thisNic.Save()
+			if err != nil {
+				slog.Error("failed to save net dev", "nic", thisNic.ID, "netdev", thisNic.NetDev)
+				return []string{}, slot
+			}
+			netDevArg = thisNic.NetDev
+		} else if thisNic.NetDevType == "NETGRAPH" {
+			ngNetDev, ngPeerHook, err := ngGetDev(config.Config.Network.Interface)
+			thisNic.NetDev = ngNetDev
+			if err != nil {
+				slog.Error("ngGetDev error", "err", err)
+				return []string{}, slot
+			}
+			err = thisNic.Save()
+			if err != nil {
+				slog.Error("failed to save net dev", "nic", thisNic.ID, "netdev", thisNic.NetDev)
+				return []string{}, slot
+			}
+			netDevArg = "netgraph,path=" + ngNetDev + ":,peerhook=" + ngPeerHook + ",socket=" + vm.Name
+		} else {
+			slog.Debug("unknown net dev type", "netDevType", thisNic.NetDevType)
 			return []string{}, slot
 		}
-		netDev = ngNetDev
-		netDevArg = "netgraph,path=" + ngNetDev + ":,peerhook=" + ngPeerHook + ",socket=" + vm.Name
-	} else {
-		slog.Debug("unknown net dev type", "netDevType", vm.Config.NetDevType)
-		return []string{}, slot
+		slog.Debug("getNetArg", "netdevarg", netDevArg)
+		macAddress := thisNic.Mac
+		macString := ""
+		if macAddress != "AUTO" {
+			macString = ",mac=" + macAddress
+		}
+		netArg := []string{"-s", strconv.Itoa(slot) + "," + netType + "," + netDevArg + macString}
+		slot = slot + 1
+		netArgs = append(netArgs, netArg...)
 	}
-	macAddress := vm.Config.Mac
-	macString := ""
-	if macAddress != "AUTO" {
-		macString = ",mac=" + macAddress
-	}
-	netArg := []string{"-s", strconv.Itoa(slot) + "," + netType + "," + netDevArg + macString}
-	slot = slot + 1
-	vm.NetDev = netDev
-	_ = vm.Save()
-	return netArg, slot
+
+	return netArgs, slot
 }
 
 func getTapDev() string {
 	freeTapDevFound := false
-	var tapDevs []string
+	var netDevs []string
 	tapDev := ""
 	tapNum := 0
 	interfaces, _ := net.Interfaces()
 	for _, inter := range interfaces {
-		if strings.Contains(inter.Name, "tap") {
-			tapDevs = append(tapDevs, inter.Name)
-		}
+		netDevs = append(netDevs, inter.Name)
 	}
 	for !freeTapDevFound {
 		tapDev = "tap" + strconv.Itoa(tapNum)
-		if !containsStr(tapDevs, tapDev) && !IsNetPortUsed(tapDev) {
+		if !containsStr(netDevs, tapDev) && !IsNetPortUsed(tapDev) {
 			freeTapDevFound = true
 		} else {
 			tapNum = tapNum + 1
@@ -660,18 +690,16 @@ func getTapDev() string {
 
 func getVmnetDev() string {
 	freeVmnetDevFound := false
-	var vmnetDevs []string
+	var netDevs []string
 	vmnetDev := ""
 	vmnetNum := 0
 	interfaces, _ := net.Interfaces()
 	for _, inter := range interfaces {
-		if strings.Contains(inter.Name, "vmnet") {
-			vmnetDevs = append(vmnetDevs, inter.Name)
-		}
+		netDevs = append(netDevs, inter.Name)
 	}
 	for !freeVmnetDevFound {
 		vmnetDev = "vmnet" + strconv.Itoa(vmnetNum)
-		if !containsStr(vmnetDevs, vmnetDev) && !IsNetPortUsed(vmnetDev) {
+		if !containsStr(netDevs, vmnetDev) && !IsNetPortUsed(vmnetDev) {
 			freeVmnetDevFound = true
 		} else {
 			vmnetNum = vmnetNum + 1

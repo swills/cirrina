@@ -77,3 +77,36 @@ func Create(VmNicInst *VmNic) (newNicId string, err error) {
 	}
 	return VmNicInst.ID, res.Error
 }
+
+func (d *VmNic) SetSwitch(switchid string) error {
+	d.SwitchId = switchid
+	err := d.Save()
+	if err != nil {
+		slog.Error("error saving VM nic", "err", err)
+		return err
+	}
+
+	return nil
+}
+
+func (d *VmNic) Save() error {
+	db := getVmNicDb()
+
+	res := db.Model(&d).
+		Updates(map[string]interface{}{
+			"name":         &d.Name,
+			"description":  &d.Description,
+			"mac":          &d.Mac,
+			"net_dev":      &d.NetDev,
+			"net_type":     &d.NetType,
+			"net_dev_type": &d.NetDevType,
+			"switch_id":    &d.SwitchId,
+		},
+		)
+
+	if res.Error != nil {
+		return errors.New("error updating vmnic")
+	}
+
+	return nil
+}
