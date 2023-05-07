@@ -1,15 +1,14 @@
 package vm
 
 import (
-	"bufio"
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
+	"cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm_nics"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"golang.org/x/exp/slog"
 	"net"
 	"os"
@@ -363,217 +362,6 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 	return fbufArg, slot
 }
 
-type ngNode struct {
-	nodeName  string
-	nodeType  string
-	nodeId    string
-	nodeHooks int
-}
-
-func ngGetNodes() (ngNodes []ngNode, err error) {
-	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "list")
-	defer func(cmd *exec.Cmd) {
-		err := cmd.Wait()
-		if err != nil {
-			slog.Error("ngctl error", "err", err)
-		}
-	}(cmd)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		text := scanner.Text()
-		textFields := strings.Fields(text)
-		if len(textFields) != 9 {
-			continue
-		}
-		if !strings.HasPrefix(textFields[0], "Name:") {
-			continue
-		}
-		aNodeName := textFields[1]
-		if !strings.HasPrefix(textFields[2], "Type:") {
-			continue
-		}
-		aNodeType := textFields[3]
-		if !strings.HasPrefix(textFields[4], "ID:") {
-			continue
-		}
-		aNodeId := textFields[5]
-		if !strings.HasPrefix(textFields[7], "hooks:") {
-			continue
-		}
-		aNodeHooks, _ := strconv.Atoi(textFields[8])
-		ngNodes = append(ngNodes, ngNode{
-			nodeName:  aNodeName,
-			nodeType:  aNodeType,
-			nodeId:    aNodeId,
-			nodeHooks: aNodeHooks,
-		})
-	}
-
-	if err := scanner.Err(); err != nil {
-		fmt.Println(err)
-	}
-
-	return ngNodes, nil
-}
-
-func ngGetBridges() (bridges []string, err error) {
-	netgraphNodes, err := ngGetNodes()
-	if err != nil {
-		return nil, err
-	}
-	// loop and check for type = bridge, add to list and return list
-	for _, node := range netgraphNodes {
-		if node.nodeType == "bridge" {
-			bridges = append(bridges, node.nodeName)
-		}
-	}
-	return bridges, nil
-}
-
-func ngAllocateBridge(bridgeNames []string) (bridgeName string) {
-	bnetNum := 0
-	bridgeFound := false
-	for !bridgeFound {
-		bridgeName = "bnet" + strconv.Itoa(bnetNum)
-		if util.ContainsStr(bridgeNames, bridgeName) {
-			bnetNum += 1
-		} else {
-			bridgeFound = true
-		}
-	}
-	return bridgeName
-}
-
-type ngBridge struct {
-	localHook string
-	peerName  string
-	peerType  string
-	peerId    string
-	peerHook  string
-}
-
-func ngShowBridge(bridge string) (peers []ngBridge, err error) {
-	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "show",
-		bridge+":")
-	defer func(cmd *exec.Cmd) {
-		err := cmd.Wait()
-		if err != nil {
-			slog.Error("ngctl show error", "err", err)
-		}
-	}(cmd)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-	scanner := bufio.NewScanner(stdout)
-	lineNo := 0
-	for scanner.Scan() {
-		text := scanner.Text()
-		lineNo += 1
-		if lineNo < 4 {
-			continue
-		}
-		textFields := strings.Fields(text)
-		if len(textFields) != 5 {
-			continue
-		}
-		aBridge := ngBridge{
-			localHook: textFields[0],
-			peerName:  textFields[1],
-			peerType:  textFields[2],
-			peerId:    textFields[3],
-			peerHook:  textFields[4],
-		}
-		peers = append(peers, aBridge)
-	}
-
-	return peers, nil
-}
-
-func ngBridgeUplink(peers []ngBridge) (link string) {
-	var upperLink string
-	var lowerLink string
-
-	for _, peer := range peers {
-		if peer.peerHook == "upper" {
-			upperLink = peer.peerName
-		}
-		if peer.peerHook == "lower" {
-			lowerLink = peer.peerName
-		}
-	}
-	if upperLink != "" && upperLink == lowerLink {
-		return upperLink
-	}
-	return ""
-}
-
-func ngBridgeNextPeer(peers []ngBridge) (link string) {
-	found := false
-	linkNum := 0
-	linkName := ""
-	var hooks []string
-
-	for _, peer := range peers {
-		hooks = append(hooks, peer.localHook)
-	}
-
-	for !found {
-		linkName = "link" + strconv.Itoa(linkNum)
-		if util.ContainsStr(hooks, linkName) {
-			linkNum += 1
-		} else {
-			found = true
-		}
-	}
-	return linkName
-}
-
-func ngGetDev(link string) (bridge string, peer string, err error) {
-	defaultPeerLink := "link2"
-	var bridgeNet string
-	var nextLink string
-
-	bridgeList, err := ngGetBridges()
-	if err != nil {
-		return bridge, peer, err
-	}
-
-	if link != "" {
-		for _, bridge := range bridgeList {
-			bridgePeers, err := ngShowBridge(bridge)
-			if err != nil {
-				return "", "", err
-			}
-			peerLink := ngBridgeUplink(bridgePeers)
-			if peerLink == link {
-				bridgeNet = bridge
-				nextLink = ngBridgeNextPeer(bridgePeers)
-			}
-		}
-		if bridgeNet == "" {
-			bridgeNet = ngAllocateBridge(bridgeList)
-			// TODO - ?
-			nextLink = defaultPeerLink
-		}
-	} else {
-		// TODO - pick peer automatically?
-		return bridge, peer, err
-	}
-	return bridgeNet, nextLink, nil
-
-}
-
 func (vm *VM) getNetArg(slot int) ([]string, int) {
 	var netArgs []string
 
@@ -620,10 +408,10 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 			}
 			netDevArg = thisNic.NetDev
 		} else if thisNic.NetDevType == "NETGRAPH" {
-			ngNetDev, ngPeerHook, err := ngGetDev(config.Config.Network.Interface)
+			ngNetDev, ngPeerHook, err := _switch.NgGetDev(config.Config.Network.Interface)
 			thisNic.NetDev = ngNetDev
 			if err != nil {
-				slog.Error("ngGetDev error", "err", err)
+				slog.Error("NgGetDev error", "err", err)
 				return []string{}, slot
 			}
 			err = thisNic.Save()

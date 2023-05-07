@@ -108,10 +108,20 @@ func CreateBridges() {
 			}
 		} else if bridge.Type == "NG" {
 			slog.Debug("creating ng bridge", "name", bridge.Name)
+			bridgeList, err := NgGetBridges()
+			if err != nil {
+				slog.Error("error getting bridge list", "err", err)
+				return
+			}
+			if !util.ContainsStr(bridgeList, bridge.Name) {
+				err := NgCreateBridge(bridge.Name, bridge.Uplink)
+				if err != nil {
+					slog.Error("ngCreateBridge err", "err", err)
+				}
+			}
 		} else {
 			slog.Debug("unknown bridge type", "name", bridge.Name, "type", bridge.Type)
 		}
-
 	}
 }
 
@@ -127,6 +137,10 @@ func DestroyBridges() {
 			}
 		} else if bridge.Type == "NG" {
 			slog.Debug("destroying ng bridge", "name", bridge.Name)
+			err := NgDestroyBridge(bridge.Name)
+			if err != nil {
+				slog.Debug("error destroying if bridge", "err", err)
+			}
 		} else {
 			slog.Debug("unknown bridge type", "name", bridge.Name, "type", bridge.Type)
 		}

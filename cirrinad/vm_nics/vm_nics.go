@@ -47,7 +47,7 @@ func Create(VmNicInst *VmNic) (newNicId string, err error) {
 	if VmNicInst.Mac != "AUTO" {
 		newMac, err := net.ParseMAC(VmNicInst.Mac)
 		if err != nil {
-			return newNicId, errors.New("Bad MAC address")
+			return newNicId, errors.New("bad MAC address")
 		}
 		VmNicInst.Mac = string(newMac)
 	}
@@ -59,7 +59,7 @@ func Create(VmNicInst *VmNic) (newNicId string, err error) {
 	}
 
 	if VmNicInst.NetType != "VIRTIONET" && VmNicInst.NetType != "E1000" {
-		return newNicId, errors.New("Bad Net Type")
+		return newNicId, errors.New("bad net type")
 	}
 
 	if VmNicInst.NetDevType == "" {
@@ -67,7 +67,7 @@ func Create(VmNicInst *VmNic) (newNicId string, err error) {
 	}
 
 	if VmNicInst.NetDevType != "TAP" && VmNicInst.NetDevType != "VMNET" && VmNicInst.NetDevType != "NETGRAPH" {
-		return newNicId, errors.New("Bad Net Dev Type")
+		return newNicId, errors.New("bad net dev type")
 	}
 
 	db := getVmNicDb()

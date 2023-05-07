@@ -17,7 +17,7 @@ func GetAllIfBridges() (bridges []string, err error) {
 	defer func(cmd *exec.Cmd) {
 		err := cmd.Wait()
 		if err != nil {
-			slog.Error("ngctl error", "err", err)
+			slog.Error("ifconfig error", "err", err)
 		}
 	}(cmd)
 	stdout, err := cmd.StdoutPipe()
@@ -44,13 +44,12 @@ func GetAllIfBridges() (bridges []string, err error) {
 }
 
 func GetIfBridgeMembers(name string) (members []string, err error) {
-	var r []string
 	args := []string{name}
 	cmd := exec.Command("/sbin/ifconfig", args...)
 	defer func(cmd *exec.Cmd) {
 		err := cmd.Wait()
 		if err != nil {
-			slog.Error("ngctl error", "err", err)
+			slog.Error("ifconfig error", "err", err)
 		}
 	}(cmd)
 	stdout, err := cmd.StdoutPipe()
@@ -67,7 +66,7 @@ func GetIfBridgeMembers(name string) (members []string, err error) {
 		if len(textFields) != 3 {
 			continue
 		}
-		if !strings.HasPrefix(textFields[0], "member:") {
+		if textFields[0] != "member:" {
 			continue
 		}
 		aBridgeMember := textFields[1]
@@ -76,7 +75,7 @@ func GetIfBridgeMembers(name string) (members []string, err error) {
 	if err := scanner.Err(); err != nil {
 		fmt.Println(err)
 	}
-	return r, nil
+	return members, nil
 }
 
 func CreateIfBridge(name string) error {
@@ -86,7 +85,7 @@ func CreateIfBridge(name string) error {
 		return errors.New("invalid bridge name")
 	}
 
-	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", name, "create")
+	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", name, "create", "up")
 	if err := cmd.Start(); err != nil {
 		return err
 	}

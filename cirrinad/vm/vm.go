@@ -257,58 +257,6 @@ func (vm *VM) createUefiVarsFile() {
 	}
 }
 
-func ngCreateBridge(netDev string, bridgePeer string) (err error) {
-	if netDev == "" {
-		return errors.New("netDev can't be empty")
-	}
-	if bridgePeer == "" {
-		return errors.New("bridgePeer can't be empty")
-	}
-	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "mkpeer",
-		bridgePeer+":", "bridge", "lower", "link0")
-	err = cmd.Run()
-	if err != nil {
-		slog.Error("ngctl mkpeer error", "err", err)
-		return err
-	}
-	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "name",
-		bridgePeer+":lower", netDev)
-	err = cmd.Run()
-	if err != nil {
-		slog.Error("ngctl name err", "err", err)
-		return err
-	}
-	useUplink := true
-	var upper string
-	if useUplink {
-		upper = "uplink"
-	} else {
-		upper = "link"
-	}
-	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "connect",
-		bridgePeer+":", netDev+":", "upper", upper+"1")
-	err = cmd.Run()
-	if err != nil {
-		slog.Error("ngctl connect error", "err", err)
-		return err
-	}
-	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
-		bridgePeer+":", "setpromisc", "1")
-	err = cmd.Run()
-	if err != nil {
-		slog.Error("ngctl msg error", "err", err)
-		return err
-	}
-	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
-		bridgePeer+":", "setautosrc", "0")
-	err = cmd.Run()
-	if err != nil {
-		slog.Error("ngctl msg error", "err", err)
-		return err
-	}
-	return nil
-}
-
 func (vm *VM) netStartup() {
 	vmNicsList, err := vm.GetNics()
 
@@ -334,25 +282,13 @@ func (vm *VM) netStartup() {
 				slog.Error("failed to add tap to bridge", "err", err)
 			}
 		} else if vmNic.NetDevType == "NETGRAPH" {
-			bridgeList, err := ngGetBridges()
-			if err != nil {
-				slog.Error("error getting bridge list", "err", err)
-				return
-			}
-			if !util.ContainsStr(bridgeList, vmNic.NetDev) {
-				err := ngCreateBridge(vmNic.NetDev, config.Config.Network.Interface)
-				if err != nil {
-					slog.Error("ngCreateBridge err", "err", err)
-				}
-			}
+			// Nothing to do for netgraph, it creates nodes automatically
 		} else {
 			slog.Debug("unknown net type, can't set up")
 			return
 		}
 
 	}
-
-	// TODO create bridges (switches) on startup
 }
 
 func (vm *VM) netCleanup() {
@@ -384,8 +320,6 @@ func (vm *VM) netCleanup() {
 			slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
 		}
 	}
-
-	// TODO destroy bridges (switches) on shutdown
 }
 
 func vmDaemon(events chan supervisor.Event, vm *VM) {
