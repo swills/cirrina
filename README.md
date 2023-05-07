@@ -13,12 +13,6 @@ This probably won't work for you:
   * `/usr/sbin/ngctl`
   * `/usr/bin/truncate`
 * `doas` may work instead of `sudo` if you change the `priv_command_prefix` setting, but it is untested.
-* You have to have a bridge interface created and setup, something like this in `rc.conf`:
-  ```
-  cloned_interfaces="bridge0"
-  ifconfig_bridge0="addm em0"
-  ```
-* Only one tap network interface per VM is supported
 * At the moment some things can only be done with the cli (cirrinactl) and others can only be done with
   weasel (the py qt 5 gui)
 * Only UEFI boot is supported, no bhyveload
