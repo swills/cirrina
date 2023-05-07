@@ -245,7 +245,7 @@ func (vm *VM) getTabletArg(slot int) ([]string, int) {
 	return tabletArg, slot
 }
 
-func getFreePort(firstVncPort int) (port int, err error) {
+func GetFreeTCPPort(firstVncPort int) (port int, err error) {
 	cmd := exec.Command("netstat", "-an", "--libxo", "json")
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -333,7 +333,7 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 	var err error
 
 	if vm.Config.VNCPort == "AUTO" {
-		vncListenPortInt, err = getFreePort(int(firstVncPort))
+		vncListenPortInt, err = GetFreeTCPPort(int(firstVncPort))
 		if err != nil {
 			return []string{}, slot
 		}
