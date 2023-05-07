@@ -30,3 +30,21 @@ func OSReadDir(root string) ([]string, error) {
 	}
 	return files, nil
 }
+
+func ContainsStr(elems []string, v string) bool {
+	for _, s := range elems {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}
+
+func ContainsInt(elems []int, v int) bool {
+	for _, s := range elems {
+		if v == s {
+			return true
+		}
+	}
+	return false
+}

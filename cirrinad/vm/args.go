@@ -315,7 +315,7 @@ func getFreePort(firstVncPort int) (port int, err error) {
 
 	vncPort := firstVncPort
 	for ; vncPort <= 65535; vncPort++ {
-		if !containsInt(uniqueLocalListenPorts, vncPort) && !IsVncPortUsed(int32(vncPort)) {
+		if !util.ContainsInt(uniqueLocalListenPorts, vncPort) && !IsVncPortUsed(int32(vncPort)) {
 			break
 		}
 	}
@@ -361,24 +361,6 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 	}
 	slot = slot + 1
 	return fbufArg, slot
-}
-
-func containsStr(elems []string, v string) bool {
-	for _, s := range elems {
-		if v == s {
-			return true
-		}
-	}
-	return false
-}
-
-func containsInt(elems []int, v int) bool {
-	for _, s := range elems {
-		if v == s {
-			return true
-		}
-	}
-	return false
 }
 
 type ngNode struct {
@@ -460,7 +442,7 @@ func ngAllocateBridge(bridgeNames []string) (bridgeName string) {
 	bridgeFound := false
 	for !bridgeFound {
 		bridgeName = "bnet" + strconv.Itoa(bnetNum)
-		if containsStr(bridgeNames, bridgeName) {
+		if util.ContainsStr(bridgeNames, bridgeName) {
 			bnetNum += 1
 		} else {
 			bridgeFound = true
@@ -548,7 +530,7 @@ func ngBridgeNextPeer(peers []ngBridge) (link string) {
 
 	for !found {
 		linkName = "link" + strconv.Itoa(linkNum)
-		if containsStr(hooks, linkName) {
+		if util.ContainsStr(hooks, linkName) {
 			linkNum += 1
 		} else {
 			found = true
@@ -679,7 +661,7 @@ func getTapDev() string {
 	}
 	for !freeTapDevFound {
 		tapDev = "tap" + strconv.Itoa(tapNum)
-		if !containsStr(netDevs, tapDev) && !IsNetPortUsed(tapDev) {
+		if !util.ContainsStr(netDevs, tapDev) && !IsNetPortUsed(tapDev) {
 			freeTapDevFound = true
 		} else {
 			tapNum = tapNum + 1
@@ -699,7 +681,7 @@ func getVmnetDev() string {
 	}
 	for !freeVmnetDevFound {
 		vmnetDev = "vmnet" + strconv.Itoa(vmnetNum)
-		if !containsStr(netDevs, vmnetDev) && !IsNetPortUsed(vmnetDev) {
+		if !util.ContainsStr(netDevs, vmnetDev) && !IsNetPortUsed(vmnetDev) {
 			freeVmnetDevFound = true
 		} else {
 			vmnetNum = vmnetNum + 1
@@ -722,7 +704,7 @@ func getNmdmNum(offset int) (nmdm string, err error) {
 			a := strings.TrimLeft(devName, "nmdm")
 			b := strings.TrimRight(a, "A")
 			c := strings.TrimRight(b, "B")
-			if !containsStr(nmdmDevs, c) {
+			if !util.ContainsStr(nmdmDevs, c) {
 				nmdmDevs = append(nmdmDevs, c)
 			}
 		}

@@ -1,6 +1,7 @@
 package _switch
 
 import (
+	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
 	"golang.org/x/exp/slog"
@@ -72,5 +73,62 @@ func Delete(id string) (err error) {
 	} else {
 		errText := fmt.Sprintf("switch delete error, rows affected %v", res.RowsAffected)
 		return errors.New(errText)
+	}
+}
+
+func CreateBridges() {
+	allBridges := GetAll()
+	allIfBridges, err := GetAllIfBridges()
+	if err != nil {
+		slog.Debug("failed to get all if bridges", "err", err)
+		return
+	}
+
+	for num, bridge := range allBridges {
+		slog.Debug("creating bridge", "num", num, "bridge", bridge.Name)
+		if bridge.Type == "IF" {
+			slog.Debug("creating if bridge", "name", bridge.Name)
+			if util.ContainsStr(allIfBridges, bridge.Name) {
+				slog.Debug("bridge already exists, skipping", "bridge", bridge.Name)
+			} else {
+				var members []string
+				memberList := strings.Split(bridge.Uplink, ",")
+				for _, member := range memberList {
+					if member == "" {
+						continue
+					}
+					members = append(members, member)
+				}
+
+				err := CreateIfBridgeWithMembers(bridge.Name, members)
+				if err != nil {
+					slog.Error("error creating if bridge", "err", err)
+					return
+				}
+			}
+		} else if bridge.Type == "NG" {
+			slog.Debug("creating ng bridge", "name", bridge.Name)
+		} else {
+			slog.Debug("unknown bridge type", "name", bridge.Name, "type", bridge.Type)
+		}
+
+	}
+}
+
+func DestroyBridges() {
+	allBridges := GetAll()
+	for num, bridge := range allBridges {
+		slog.Debug("destroying bridge", "num", num, "bridge", bridge.Name)
+		if bridge.Type == "IF" {
+			slog.Debug("destroying if bridge", "name", bridge.Name)
+			err := DeleteIfBridge(bridge.Name)
+			if err != nil {
+				slog.Debug("error destroying if bridge", "err", err)
+			}
+		} else if bridge.Type == "NG" {
+			slog.Debug("destroying ng bridge", "name", bridge.Name)
+		} else {
+			slog.Debug("unknown bridge type", "name", bridge.Name, "type", bridge.Type)
+		}
 	}
 }

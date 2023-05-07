@@ -2,6 +2,7 @@ package main
 
 import (
 	"cirrina/cirrinad/config"
+	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/vm"
 	"fmt"
 	"golang.org/x/exp/slog"
@@ -51,6 +52,7 @@ func handleSigInt() {
 		slog.Info("waiting on running VM(s)", "count", runningVMs)
 		time.Sleep(time.Second)
 	}
+	_switch.DestroyBridges()
 	slog.Info("Exiting normally")
 	os.Exit(0)
 }
@@ -92,8 +94,6 @@ func main() {
 	var programLevel = new(slog.LevelVar) // Info by default
 	logger := slog.New(slog.HandlerOptions{Level: programLevel}.NewTextHandler(logFile))
 	slog.SetDefault(logger)
-	slog.Info("Starting Daemon")
-
 	if config.Config.Log.Level == "info" {
 		slog.Info("log level set to info")
 		programLevel.Set(slog.LevelInfo)
@@ -104,6 +104,10 @@ func main() {
 		programLevel.Set(slog.LevelInfo)
 		slog.Info("log level not set or un-parseable, setting to info")
 	}
+	slog.Info("Creating bridges")
+	_switch.CreateBridges()
+	slog.Info("Starting Daemon")
+
 	go vm.AutoStartVMs()
 	go rpcServer()
 	go processRequests()

@@ -339,7 +339,7 @@ func (vm *VM) netStartup() {
 				slog.Error("error getting bridge list", "err", err)
 				return
 			}
-			if !containsStr(bridgeList, vmNic.NetDev) {
+			if !util.ContainsStr(bridgeList, vmNic.NetDev) {
 				err := ngCreateBridge(vmNic.NetDev, config.Config.Network.Interface)
 				if err != nil {
 					slog.Error("ngCreateBridge err", "err", err)
