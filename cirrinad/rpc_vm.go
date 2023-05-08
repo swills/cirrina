@@ -531,9 +531,3 @@ func (s *server) GetVmNics(v *cirrina.VMID, stream cirrina.VMInfo_GetVmNicsServe
 
 	return nil
 }
-
-// TODO
-
-func (s *server) RemoveVmNic(context.Context, *cirrina.VmNicId) (*cirrina.ReqBool, error) {
-	return nil, nil
-}

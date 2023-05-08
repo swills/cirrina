@@ -79,10 +79,24 @@ func (s *server) GetSwitchInfo(_ context.Context, v *cirrina.SwitchId) (*cirrina
 	return &pvmswitchinfo, nil
 }
 
-func (s *server) RemoveSwitch(context.Context, *cirrina.SwitchId) (*cirrina.ReqBool, error) {
-	return nil, nil
+func (s *server) RemoveSwitch(_ context.Context, si *cirrina.SwitchId) (*cirrina.ReqBool, error) {
+	var re cirrina.ReqBool
+	re.Success = false
+
+	slog.Debug("RemoveSwitch", "switchid", si.Value)
+	err := _switch.Delete(si.Value)
+	if err != nil {
+		return &re, err
+	}
+	re.Success = true
+	return &re, nil
 }
 
+// TODO
+
 func (s *server) SetSwitchUplink(context.Context, *cirrina.SwitchUplinkReq) (*cirrina.ReqBool, error) {
-	return nil, nil
+	var r cirrina.ReqBool
+	r.Success = false
+
+	return &r, nil
 }

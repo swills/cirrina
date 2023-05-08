@@ -2,6 +2,7 @@ package vm_nics
 
 import (
 	"errors"
+	"fmt"
 	"golang.org/x/exp/slog"
 	"net"
 	"strings"
@@ -76,6 +77,27 @@ func Create(VmNicInst *VmNic) (newNicId string, err error) {
 		return newNicId, res.Error
 	}
 	return VmNicInst.ID, res.Error
+}
+
+func Delete(id string) (err error) {
+
+	// TODO check that vmnic is not in use
+
+	if id == "" {
+		return errors.New("unable to delete, vmnic id empty")
+	}
+	db := getVmNicDb()
+	dNic, err := GetById(id)
+	if err != nil {
+		errorText := fmt.Sprintf("vmnic %v not found", id)
+		return errors.New(errorText)
+	}
+	res := db.Limit(1).Delete(&dNic)
+	if res.RowsAffected != 1 {
+		errText := fmt.Sprintf("vmnic delete error, rows affected %v", res.RowsAffected)
+		return errors.New(errText)
+	}
+	return nil
 }
 
 func (d *VmNic) SetSwitch(switchid string) error {

@@ -60,6 +60,7 @@ func Create(name string, description string, switchType string) (_switch *Switch
 }
 
 func Delete(id string) (err error) {
+	// TODO check that switch is not in use
 	if id == "" {
 		return errors.New("unable to delete, switch id empty")
 	}
@@ -70,12 +71,11 @@ func Delete(id string) (err error) {
 		return errors.New(errorText)
 	}
 	res := db.Limit(1).Delete(&dSwitch)
-	if res.RowsAffected == 1 {
-		return nil
-	} else {
+	if res.RowsAffected != 1 {
 		errText := fmt.Sprintf("switch delete error, rows affected %v", res.RowsAffected)
 		return errors.New(errText)
 	}
+	return nil
 }
 
 func CreateBridges() {

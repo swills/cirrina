@@ -134,3 +134,15 @@ func (s *server) SetVmNicSwitch(_ context.Context, v *cirrina.SetVmNicSwitchReq)
 	r.Success = true
 	return &r, nil
 }
+
+func (s *server) RemoveVmNic(_ context.Context, vn *cirrina.VmNicId) (*cirrina.ReqBool, error) {
+	var re cirrina.ReqBool
+	re.Success = false
+	slog.Debug("RemoveVmNic", "vmnic", vn.Value)
+	err := vm_nics.Delete(vn.Value)
+	if err != nil {
+		return &re, err
+	}
+	re.Success = true
+	return &re, nil
+}
