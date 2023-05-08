@@ -149,7 +149,22 @@ func rmSwitch(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	} else {
 		fmt.Printf("Delete failed")
 	}
+}
 
+func rmVmNic(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
+	if *idPtr == "" {
+		log.Fatalf("ID not specified")
+		return
+	}
+	reqId, err := c.RemoveVmNic(ctx, &pb.VmNicId{Value: *idPtr})
+	if err != nil {
+		log.Fatalf("could not delete switch: %v", err)
+	}
+	if reqId.Success {
+		fmt.Printf("Deleted successful")
+	} else {
+		fmt.Printf("Delete failed")
+	}
 }
 
 func addDisk(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *string, sizePtr *string) {
@@ -612,6 +627,8 @@ func main() {
 		rmSwitch(idPtr, c, ctx)
 	case "addVmNic":
 		addVmNic(namePtr, c, ctx, descrPtr, netTypePtr, netDevTypePtr, macPtr)
+	case "rmVmNic":
+		rmVmNic(idPtr, c, ctx)
 	case "reConfig":
 		Reconfig(idPtr, err, namePtr, descrPtr, cpuPtr, memPtr, autoStartPtr, c, ctx)
 	case "deleteVM":

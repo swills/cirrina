@@ -3,6 +3,7 @@ package main
 import (
 	"cirrina/cirrina"
 	_switch "cirrina/cirrinad/switch"
+	"cirrina/cirrinad/vm"
 	"cirrina/cirrinad/vm_nics"
 	"context"
 	"errors"
@@ -139,7 +140,25 @@ func (s *server) RemoveVmNic(_ context.Context, vn *cirrina.VmNicId) (*cirrina.R
 	var re cirrina.ReqBool
 	re.Success = false
 	slog.Debug("RemoveVmNic", "vmnic", vn.Value)
-	err := vm_nics.Delete(vn.Value)
+
+	allVms := vm.GetAll()
+	for _, aVm := range allVms {
+		nics, err := aVm.GetNics()
+		if err != nil {
+			return &re, nil
+		}
+		for _, aNic := range nics {
+			if aNic.ID == vn.Value {
+				return &re, errors.New("nic in use")
+			}
+		}
+	}
+
+	vmNic, err := vm_nics.GetById(vn.Value)
+	if err != nil {
+		return &re, err
+	}
+	err = vmNic.Delete()
 	if err != nil {
 		return &re, err
 	}

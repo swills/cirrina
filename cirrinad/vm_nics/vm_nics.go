@@ -79,20 +79,9 @@ func Create(VmNicInst *VmNic) (newNicId string, err error) {
 	return VmNicInst.ID, res.Error
 }
 
-func Delete(id string) (err error) {
-
-	// TODO check that vmnic is not in use
-
-	if id == "" {
-		return errors.New("unable to delete, vmnic id empty")
-	}
+func (d *VmNic) Delete() (err error) {
 	db := getVmNicDb()
-	dNic, err := GetById(id)
-	if err != nil {
-		errorText := fmt.Sprintf("vmnic %v not found", id)
-		return errors.New(errorText)
-	}
-	res := db.Limit(1).Delete(&dNic)
+	res := db.Limit(1).Delete(&d)
 	if res.RowsAffected != 1 {
 		errText := fmt.Sprintf("vmnic delete error, rows affected %v", res.RowsAffected)
 		return errors.New(errText)
