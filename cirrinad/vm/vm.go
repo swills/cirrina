@@ -137,7 +137,6 @@ func (vm *VM) Save() error {
 			"max_wait":           &vm.Config.MaxWait,
 			"restart":            &vm.Config.Restart,
 			"restart_delay":      &vm.Config.RestartDelay,
-			"mac":                &vm.Config.Mac,
 			"screen":             &vm.Config.Screen,
 			"screen_width":       &vm.Config.ScreenWidth,
 			"screen_height":      &vm.Config.ScreenHeight,

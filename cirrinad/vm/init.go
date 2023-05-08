@@ -31,7 +31,6 @@ type Config struct {
 	MaxWait          uint32 `gorm:"default:120;check:max_wait>=0"`
 	Restart          bool   `gorm:"default:True;check:restart IN (0,1)"`
 	RestartDelay     uint32 `gorm:"default:1;check:restart_delay>=0"`
-	Mac              string `gorm:"default:AUTO"`
 	Screen           bool   `gorm:"default:True;check:screen IN (0,1)"`
 	ScreenWidth      uint32 `gorm:"default:1920;check:screen_width BETWEEN 640 and 1920"`
 	ScreenHeight     uint32 `gorm:"default:1080;check:screen_height BETWEEN 480 and 1200"`

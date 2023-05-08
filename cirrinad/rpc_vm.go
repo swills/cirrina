@@ -147,10 +147,6 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	if isOptionPassed(reflect, "vncport") {
 		vmInst.Config.VNCPort = *rc.Vncport
 	}
-	if isOptionPassed(reflect, "mac") {
-		// TODO -- validate mac
-		vmInst.Config.Mac = *rc.Mac
-	}
 	if isOptionPassed(reflect, "keyboard") {
 		vmInst.Config.KbdLayout = *rc.Keyboard
 	}
@@ -257,7 +253,6 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Dpo = &vmInst.Config.DestroyPowerOff
 	pvm.Ium = &vmInst.Config.IgnoreUnknownMSR
 	pvm.Vncport = &vmInst.Config.VNCPort
-	pvm.Mac = &vmInst.Config.Mac
 	pvm.Keyboard = &vmInst.Config.KbdLayout
 	pvm.Autostart = &vmInst.Config.AutoStart
 	pvm.Sound = &vmInst.Config.Sound
