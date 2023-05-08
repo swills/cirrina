@@ -135,6 +135,23 @@ func addSwitch(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr
 	fmt.Printf("Created switch %v\n", res.Value)
 }
 
+func rmSwitch(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
+	if *idPtr == "" {
+		log.Fatalf("ID not specified")
+		return
+	}
+	reqId, err := c.RemoveSwitch(ctx, &pb.SwitchId{Value: *idPtr})
+	if err != nil {
+		log.Fatalf("could not delete switch: %v", err)
+	}
+	if reqId.Success {
+		fmt.Printf("Deleted successful")
+	} else {
+		fmt.Printf("Delete failed")
+	}
+
+}
+
 func addDisk(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *string, sizePtr *string) {
 	if *namePtr == "" {
 		log.Fatalf("Name not specified")
@@ -462,7 +479,7 @@ func setVmNicSwitch(c pb.VMInfoClient, ctx context.Context, vmNicId string, swit
 	}
 }
 
-func setVmNicVm(c pb.VMInfoClient, ctx context.Context) {
+func setVmNicVm(_ pb.VMInfoClient, _ context.Context) {
 
 }
 
@@ -509,9 +526,9 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 }
 
 func printActionHelp() {
-	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, "+
-		"addISO, addDisk, addSwitch, addVmNic", "getSwitches", "getVmNics", "getSwitch", "getVmNic",
-		"setVmNicVm", "setVmNicSwitch")
+	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, " +
+		"addISO, addDisk, addSwitch, addVmNic, getSwitches, getVmNics, getSwitch, getVmNic, setVmNicVm, " +
+		"setVmNicSwitch, rmSwitch")
 }
 
 func main() {
@@ -591,6 +608,8 @@ func main() {
 		addDisk(namePtr, c, ctx, descrPtr, sizePtr)
 	case "addSwitch":
 		addSwitch(namePtr, c, ctx, descrPtr, switchTypePtr)
+	case "rmSwitch":
+		rmSwitch(idPtr, c, ctx)
 	case "addVmNic":
 		addVmNic(namePtr, c, ctx, descrPtr, netTypePtr, netDevTypePtr, macPtr)
 	case "reConfig":

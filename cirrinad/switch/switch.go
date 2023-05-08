@@ -3,6 +3,7 @@ package _switch
 import (
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vm_nics"
 	"errors"
 	"fmt"
 	"golang.org/x/exp/slog"
@@ -60,7 +61,6 @@ func Create(name string, description string, switchType string) (_switch *Switch
 }
 
 func Delete(id string) (err error) {
-	// TODO check that switch is not in use
 	if id == "" {
 		return errors.New("unable to delete, switch id empty")
 	}
@@ -70,6 +70,14 @@ func Delete(id string) (err error) {
 		errorText := fmt.Sprintf("switch %v not found", id)
 		return errors.New(errorText)
 	}
+
+	vmNics := vm_nics.GetAll()
+	for _, vmNic := range vmNics {
+		if vmNic.SwitchId == id {
+			return errors.New("switch in use")
+		}
+	}
+
 	res := db.Limit(1).Delete(&dSwitch)
 	if res.RowsAffected != 1 {
 		errText := fmt.Sprintf("switch delete error, rows affected %v", res.RowsAffected)
