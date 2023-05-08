@@ -508,3 +508,32 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 	}
 	return &cirrina.RequestID{Value: newReq.ID}, nil
 }
+
+func (s *server) GetVmNics(v *cirrina.VMID, stream cirrina.VMInfo_GetVmNicsServer) error {
+	var pvmnicId cirrina.VmNicId
+
+	vmInst, err := vm.GetById(v.Value)
+	if err != nil {
+		return err
+	}
+	vmNics, err := vmInst.GetNics()
+	if err != nil {
+		return err
+	}
+
+	for e := range vmNics {
+		pvmnicId.Value = vmNics[e].ID
+		err := stream.Send(&pvmnicId)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// TODO
+
+func (s *server) RemoveVmNic(context.Context, *cirrina.VmNicId) (*cirrina.ReqBool, error) {
+	return nil, nil
+}

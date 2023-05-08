@@ -78,3 +78,11 @@ func (s *server) GetSwitchInfo(_ context.Context, v *cirrina.SwitchId) (*cirrina
 	}
 	return &pvmswitchinfo, nil
 }
+
+func (s *server) RemoveSwitch(context.Context, *cirrina.SwitchId) (*cirrina.ReqBool, error) {
+	return nil, nil
+}
+
+func (s *server) SetSwitchUplink(context.Context, *cirrina.SwitchUplinkReq) (*cirrina.ReqBool, error) {
+	return nil, nil
+}

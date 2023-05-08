@@ -342,7 +342,36 @@ func getVMs(c pb.VMInfoClient, ctx context.Context) {
 	}
 }
 
-func getVmNics(c pb.VMInfoClient, ctx context.Context) {
+func getVmNics(c pb.VMInfoClient, ctx context.Context, idPtr *string) {
+
+	if *idPtr == "" {
+		getVmNicsAll(c, ctx)
+	} else {
+		getVmNicsOne(c, ctx, idPtr)
+	}
+
+}
+
+func getVmNicsOne(c pb.VMInfoClient, ctx context.Context, idPtr *string) {
+	res, err := c.GetVmNics(ctx, &pb.VMID{Value: *idPtr})
+	if err != nil {
+		log.Fatalf("could not get VmNics: %v", err)
+		return
+	}
+	for {
+		VMNicId, err := res.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("GetVmNiss failed: %v", err)
+		}
+		fmt.Printf("VmNic: id: %v\n", VMNicId.Value)
+	}
+
+}
+
+func getVmNicsAll(c pb.VMInfoClient, ctx context.Context) {
 	res, err := c.GetVmNicsAll(ctx, &pb.VmNicsQuery{})
 	if err != nil {
 		log.Fatalf("could not get VmNics: %v", err)
@@ -547,7 +576,7 @@ func main() {
 	case "getSwitches":
 		getSwitches(c, ctx)
 	case "getVmNics":
-		getVmNics(c, ctx)
+		getVmNics(c, ctx, idPtr)
 	case "setVmNicVm":
 		setVmNicVm(c, ctx)
 	case "setVmNicSwitch":
