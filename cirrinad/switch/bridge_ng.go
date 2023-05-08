@@ -19,7 +19,7 @@ type NgNode struct {
 	NodeHooks int
 }
 
-type NgBridge struct {
+type ngPeer struct {
 	LocalHook string
 	PeerName  string
 	PeerType  string
@@ -27,7 +27,7 @@ type NgBridge struct {
 	PeerHook  string
 }
 
-func NgGetNodes() (ngNodes []NgNode, err error) {
+func ngGetNodes() (ngNodes []NgNode, err error) {
 	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "list")
 	defer func(cmd *exec.Cmd) {
 		err := cmd.Wait()
@@ -80,8 +80,8 @@ func NgGetNodes() (ngNodes []NgNode, err error) {
 	return ngNodes, nil
 }
 
-func NgGetBridges() (bridges []string, err error) {
-	netgraphNodes, err := NgGetNodes()
+func ngGetBridges() (bridges []string, err error) {
+	netgraphNodes, err := ngGetNodes()
 	if err != nil {
 		return nil, err
 	}
@@ -94,21 +94,7 @@ func NgGetBridges() (bridges []string, err error) {
 	return bridges, nil
 }
 
-func NgAllocateBridge(bridgeNames []string) (bridgeName string) {
-	bnetNum := 0
-	bridgeFound := false
-	for !bridgeFound {
-		bridgeName = "bnet" + strconv.Itoa(bnetNum)
-		if util.ContainsStr(bridgeNames, bridgeName) {
-			bnetNum += 1
-		} else {
-			bridgeFound = true
-		}
-	}
-	return bridgeName
-}
-
-func NgShowBridge(bridge string) (peers []NgBridge, err error) {
+func ngGetBridgePeers(bridge string) (peers []ngPeer, err error) {
 	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "show",
 		bridge+":")
 	defer func(cmd *exec.Cmd) {
@@ -136,20 +122,20 @@ func NgShowBridge(bridge string) (peers []NgBridge, err error) {
 		if len(textFields) != 5 {
 			continue
 		}
-		aBridge := NgBridge{
+		aPeer := ngPeer{
 			LocalHook: textFields[0],
 			PeerName:  textFields[1],
 			PeerType:  textFields[2],
 			PeerId:    textFields[3],
 			PeerHook:  textFields[4],
 		}
-		peers = append(peers, aBridge)
+		peers = append(peers, aPeer)
 	}
 
 	return peers, nil
 }
 
-func NgBridgeUplink(peers []NgBridge) (link string) {
+func ngBridgeUplink(peers []ngPeer) (link string) {
 	var upperLink string
 	var lowerLink string
 
@@ -167,7 +153,7 @@ func NgBridgeUplink(peers []NgBridge) (link string) {
 	return ""
 }
 
-func NgBridgeNextPeer(peers []NgBridge) (link string) {
+func ngBridgeNextPeer(peers []ngPeer) (link string) {
 	found := false
 	linkNum := 0
 	linkName := ""
@@ -188,47 +174,24 @@ func NgBridgeNextPeer(peers []NgBridge) (link string) {
 	return linkName
 }
 
-func NgGetDev(link string) (bridge string, peer string, err error) {
-	defaultPeerLink := "link2"
-	var bridgeNet string
-	var nextLink string
-
-	bridgeList, err := NgGetBridges()
-	if err != nil {
-		return bridge, peer, err
-	}
-
-	if link != "" {
-		for _, bridge := range bridgeList {
-			bridgePeers, err := NgShowBridge(bridge)
-			if err != nil {
-				return "", "", err
-			}
-			peerLink := NgBridgeUplink(bridgePeers)
-			if peerLink == link {
-				bridgeNet = bridge
-				nextLink = NgBridgeNextPeer(bridgePeers)
-			}
-		}
-		if bridgeNet == "" {
-			bridgeNet = NgAllocateBridge(bridgeList)
-			// TODO - ?
-			nextLink = defaultPeerLink
-		}
-	} else {
-		// TODO - pick peer automatically?
-		return bridge, peer, err
-	}
-	return bridgeNet, nextLink, nil
-
-}
-
-func NgCreateBridge(netDev string, bridgePeer string) (err error) {
+func ngCreateBridge(netDev string, bridgePeer string) (err error) {
+	var dummy bool
+	dummy_if_bridge_name := "bridge32767"
 	if netDev == "" {
 		return errors.New("netDev can't be empty")
 	}
 	if bridgePeer == "" {
-		return errors.New("bridgePeer can't be empty")
+		dummy = true
+		// create a dummy if_bridge to connect the ng_bridge to
+
+		// TODO this needs to check if it exists already and pick a name that doesn't exist
+		//   for now, just go with the highest possible name, making this function not thread safe
+		err = createIfBridge(dummy_if_bridge_name)
+		if err != nil {
+			slog.Error("dummy if_bridge creation error", "err", err)
+			return err
+		}
+		bridgePeer = dummy_if_bridge_name
 	}
 	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "mkpeer",
 		bridgePeer+":", "bridge", "lower", "link0")
@@ -258,24 +221,41 @@ func NgCreateBridge(netDev string, bridgePeer string) (err error) {
 		slog.Error("ngctl connect error", "err", err)
 		return err
 	}
-	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
-		bridgePeer+":", "setpromisc", "1")
-	err = cmd.Run()
-	if err != nil {
-		slog.Error("ngctl msg error", "err", err)
-		return err
+	if !dummy {
+		cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
+			bridgePeer+":", "setpromisc", "1")
+		err = cmd.Run()
+		if err != nil {
+			slog.Error("ngctl msg setpromisc error", "err", err)
+			return err
+		}
+		cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
+			bridgePeer+":", "setautosrc", "0")
+		err = cmd.Run()
+		if err != nil {
+			slog.Error("ngctl msg setautosrc error", "err", err)
+			return err
+		}
 	}
 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
-		bridgePeer+":", "setautosrc", "0")
+		netDev+":", "setpersistent")
 	err = cmd.Run()
 	if err != nil {
-		slog.Error("ngctl msg error", "err", err)
+		slog.Error("ngctl msg setpersistent error", "err", err)
 		return err
 	}
+	if dummy {
+		err = deleteIfBridge(bridgePeer, false)
+		if err != nil {
+			slog.Error("dummy if_bridge deletion error", "err", err)
+			return err
+		}
+	}
+
 	return nil
 }
 
-func NgDestroyBridge(netDev string) (err error) {
+func ngDestroyBridge(netDev string) (err error) {
 	if netDev == "" {
 		return errors.New("netDev can't be empty")
 	}

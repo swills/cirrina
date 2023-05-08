@@ -3,7 +3,6 @@ package main
 import (
 	"cirrina/cirrina"
 	_switch "cirrina/cirrinad/switch"
-	"cirrina/cirrinad/util"
 	"errors"
 	"golang.org/x/exp/slog"
 )
@@ -25,24 +24,13 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 		return &cirrina.SwitchId{}, err
 	}
 	if switchInst != nil && switchInst.ID != "" {
-		allIfBridges, err := _switch.GetAllIfBridges()
+		slog.Debug("creating if bridge", "name", switchInst.Name)
+		err := _switch.BuildIfBridge(switchInst)
 		if err != nil {
-			slog.Debug("failed to get all if bridges", "err", err)
+			slog.Error("error creating if bridge", "err", err)
 			// already created in db, so ignore system state and proceed on...
 			return &cirrina.SwitchId{Value: switchInst.ID}, nil
 		}
-		slog.Debug("creating if bridge", "name", switchInst.Name)
-		if util.ContainsStr(allIfBridges, switchInst.Name) {
-			slog.Debug("bridge already exists, skipping", "bridge", switchInst.Name)
-		} else {
-			err := _switch.BuildIfBridge(switchInst)
-			if err != nil {
-				slog.Error("error creating if bridge", "err", err)
-				// already created in db, so ignore system state and proceed on...
-				return &cirrina.SwitchId{Value: switchInst.ID}, nil
-			}
-		}
-
 		return &cirrina.SwitchId{Value: switchInst.ID}, nil
 	} else {
 		return &cirrina.SwitchId{}, errors.New("unknown error creating switch")

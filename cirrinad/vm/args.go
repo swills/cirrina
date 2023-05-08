@@ -311,8 +311,9 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 			slog.Debug("unknown net type, cannot configure", "netType", thisNic.NetType)
 			return []string{}, originalSlot
 		}
+
 		if thisNic.NetDevType == "TAP" {
-			thisNic.NetDev = getTapDev()
+			thisNic.NetDev = GetTapDev()
 			netDevArg = thisNic.NetDev
 			err := thisNic.Save()
 			if err != nil {
@@ -321,7 +322,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 			}
 			netDevArg = thisNic.NetDev
 		} else if thisNic.NetDevType == "VMNET" {
-			thisNic.NetDev = getVmnetDev()
+			thisNic.NetDev = GetVmnetDev()
 			netDevArg = thisNic.NetDev
 			err := thisNic.Save()
 			if err != nil {
@@ -330,22 +331,17 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 			}
 			netDevArg = thisNic.NetDev
 		} else if thisNic.NetDevType == "NETGRAPH" {
-			thisNicSwitch, err := _switch.GetById(thisNic.SwitchId)
+			ngNetDev, ngPeerHook, err := _switch.GetNgDev(thisNic.SwitchId)
 			if err != nil {
-				slog.Error("switch lookup error", "nicid", thisNic.ID, "switchid", thisNic.SwitchId)
-			}
-			ngNetDev, ngPeerHook, err := _switch.NgGetDev(thisNicSwitch.Uplink)
-			thisNic.NetDev = ngNetDev + "," + ngPeerHook
-			if err != nil {
-				slog.Error("NgGetDev error", "err", err)
+				slog.Error("GetNgDev error", "err", err)
 				return []string{}, slot
 			}
+			thisNic.NetDev = ngNetDev + "," + ngPeerHook
 			err = thisNic.Save()
 			if err != nil {
 				slog.Error("failed to save net dev", "nic", thisNic.ID, "netdev", thisNic.NetDev)
 				return []string{}, slot
 			}
-			slog.Debug("netgraph args selection", "ngNetDev", ngNetDev, "ngPeerHook", ngPeerHook)
 			netDevArg = "netgraph,path=" + ngNetDev + ":,peerhook=" + ngPeerHook + ",socket=" + vm.Name
 		} else {
 			slog.Debug("unknown net dev type", "netDevType", thisNic.NetDevType)
@@ -365,7 +361,9 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	return netArgs, slot
 }
 
-func getTapDev() string {
+// TODO move to switch
+
+func GetTapDev() string {
 	freeTapDevFound := false
 	var netDevs []string
 	tapDev := ""
@@ -385,7 +383,9 @@ func getTapDev() string {
 	return tapDev
 }
 
-func getVmnetDev() string {
+// TODO move to switch
+
+func GetVmnetDev() string {
 	freeVmnetDevFound := false
 	var netDevs []string
 	vmnetDev := ""

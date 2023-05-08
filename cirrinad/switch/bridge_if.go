@@ -3,6 +3,7 @@ package _switch
 import (
 	"bufio"
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
 	"golang.org/x/exp/slog"
@@ -10,7 +11,7 @@ import (
 	"strings"
 )
 
-func GetAllIfBridges() (bridges []string, err error) {
+func getAllIfBridges() (bridges []string, err error) {
 	var r []string
 	args := []string{"-g", "bridge"}
 	cmd := exec.Command("/sbin/ifconfig", args...)
@@ -43,7 +44,7 @@ func GetAllIfBridges() (bridges []string, err error) {
 	return r, nil
 }
 
-func GetIfBridgeMembers(name string) (members []string, err error) {
+func getIfBridgeMembers(name string) (members []string, err error) {
 	args := []string{name}
 	cmd := exec.Command("/sbin/ifconfig", args...)
 	defer func(cmd *exec.Cmd) {
@@ -78,18 +79,25 @@ func GetIfBridgeMembers(name string) (members []string, err error) {
 	return members, nil
 }
 
-func CreateIfBridge(name string) error {
+func createIfBridge(name string) error {
 	// TODO allow other bridge names by creating with a dummy name and then renaming
 	if !strings.HasPrefix(name, "bridge") {
 		slog.Error("invalid bridge name", "name", name)
 		return errors.New("invalid bridge name")
 	}
-
+	allIfBridges, err := getAllIfBridges()
+	if err != nil {
+		slog.Debug("failed to get all if bridges", "err", err)
+		return err
+	}
+	if util.ContainsStr(allIfBridges, name) {
+		slog.Debug("bridge already exists", "bridge", name)
+		return errors.New("duplicate bridge")
+	}
 	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", name, "create", "up")
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-
 	if err := cmd.Wait(); err != nil {
 		exiterr, ok := err.(*exec.ExitError)
 		if !ok {
@@ -100,15 +108,17 @@ func CreateIfBridge(name string) error {
 	return nil
 }
 
-func DeleteIfBridge(name string) error {
+func deleteIfBridge(name string, cleanup bool) error {
 	// TODO allow other bridge names
 	if !strings.HasPrefix(name, "bridge") {
 		slog.Error("invalid bridge name", "name", name)
 		return errors.New("invalid bridge name")
 	}
-	err := BridgeIfDeleteAllMembers(name)
-	if err != nil {
-		return err
+	if cleanup {
+		err := bridgeIfDeleteAllMembers(name)
+		if err != nil {
+			return err
+		}
 	}
 	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", name, "destroy")
 	if err := cmd.Start(); err != nil {
@@ -126,14 +136,14 @@ func DeleteIfBridge(name string) error {
 
 }
 
-func BridgeIfDeleteAllMembers(name string) error {
-	bridgeMembers, err := GetIfBridgeMembers(name)
+func bridgeIfDeleteAllMembers(name string) error {
+	bridgeMembers, err := getIfBridgeMembers(name)
 	slog.Debug("deleting all if bridge members", "bridge", name, "members", bridgeMembers)
 	if err != nil {
 		return err
 	}
 	for _, member := range bridgeMembers {
-		err := BridgeIfDeleteMember(name, member)
+		err := bridgeIfDeleteMember(name, member)
 		if err != nil {
 			return err
 		}
@@ -141,23 +151,7 @@ func BridgeIfDeleteAllMembers(name string) error {
 	return nil
 }
 
-func BridgeIfAddMember(bridgeName string, memberName string) error {
-	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "addm", memberName)
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-
-	if err := cmd.Wait(); err != nil {
-		exiterr, ok := err.(*exec.ExitError)
-		if !ok {
-			slog.Error("failed running ifconfig", "exec", exiterr, "err", err)
-			return err
-		}
-	}
-	return nil
-}
-
-func BridgeIfDeleteMember(bridgeName string, memberName string) error {
+func bridgeIfDeleteMember(bridgeName string, memberName string) error {
 	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "deletem", memberName)
 	if err := cmd.Start(); err != nil {
 		return err
@@ -172,12 +166,12 @@ func BridgeIfDeleteMember(bridgeName string, memberName string) error {
 	return nil
 }
 
-func CreateIfBridgeWithMembers(bridgeName string, bridgeMembers []string) error {
-	err := CreateIfBridge(bridgeName)
+func createIfBridgeWithMembers(bridgeName string, bridgeMembers []string) error {
+	err := createIfBridge(bridgeName)
 	if err != nil {
 		return err
 	}
-	err = BridgeIfDeleteAllMembers(bridgeName)
+	err = bridgeIfDeleteAllMembers(bridgeName)
 	if err != nil {
 		return err
 	}
