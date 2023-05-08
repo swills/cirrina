@@ -33,6 +33,7 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 	var cdString []string
 	maxSataDevs := 32 - slot - 1
 	devCount := 0
+	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 
 	isoList := strings.Split(vm.Config.ISOs, ",")
 	for _, isoItem := range isoList {
@@ -73,7 +74,7 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 	var diskString []string
 	maxSataDevs := 32 - slot - 1
 	devCount := 0
-
+	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	diskList := strings.Split(vm.Config.Disks, ",")
 	for _, diskItem := range diskList {
 		if diskItem == "" {
@@ -289,6 +290,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 
 	originalSlot := slot
 
+	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	nicList := strings.Split(vm.Config.Nics, ",")
 	for _, nicItem := range nicList {
 		if nicItem == "" {

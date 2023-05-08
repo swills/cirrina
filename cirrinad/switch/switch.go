@@ -140,8 +140,25 @@ func DestroyBridges() {
 	}
 }
 
+func BridgeIfAddMember(bridgeName string, memberName string) error {
+	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "addm", memberName)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	if err := cmd.Wait(); err != nil {
+		exiterr, ok := err.(*exec.ExitError)
+		if !ok {
+			slog.Error("failed running ifconfig", "exec", exiterr, "err", err)
+			return err
+		}
+	}
+	return nil
+}
+
 func BuildIfBridge(switchInst *Switch) error {
 	var members []string
+	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	memberList := strings.Split(switchInst.Uplink, ",")
 	for _, member := range memberList {
 		if member == "" {
@@ -167,20 +184,4 @@ func GetNgDev(switchId string) (bridge string, peer string, err error) {
 
 	nextLink := ngBridgeNextPeer(bridgePeers)
 	return thisSwitch.Name, nextLink, nil
-}
-
-func BridgeIfAddMember(bridgeName string, memberName string) error {
-	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "addm", memberName)
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-
-	if err := cmd.Wait(); err != nil {
-		exiterr, ok := err.(*exec.ExitError)
-		if !ok {
-			slog.Error("failed running ifconfig", "exec", exiterr, "err", err)
-			return err
-		}
-	}
-	return nil
 }

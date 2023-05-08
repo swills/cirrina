@@ -394,6 +394,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 func (vm *VM) GetISOs() ([]iso.ISO, error) {
 	var isos []iso.ISO
 	slog.Debug("GetISOs", "vm", vm.ID, "ISOs", vm.Config.ISOs)
+	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	for _, cv := range strings.Split(vm.Config.ISOs, ",") {
 		if cv == "" {
 			continue
@@ -410,6 +411,7 @@ func (vm *VM) GetISOs() ([]iso.ISO, error) {
 
 func (vm *VM) GetNics() ([]vm_nics.VmNic, error) {
 	var nics []vm_nics.VmNic
+	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	for _, cv := range strings.Split(vm.Config.Nics, ",") {
 		if cv == "" {
 			continue
@@ -418,7 +420,7 @@ func (vm *VM) GetNics() ([]vm_nics.VmNic, error) {
 		if err == nil {
 			nics = append(nics, *aNic)
 		} else {
-			slog.Error("bac nic", "nic", cv, "vm", vm.ID)
+			slog.Error("bad nic", "nic", cv, "vm", vm.ID)
 		}
 	}
 	return nics, nil
@@ -426,6 +428,7 @@ func (vm *VM) GetNics() ([]vm_nics.VmNic, error) {
 
 func (vm *VM) GetDisks() ([]disk.Disk, error) {
 	var disks []disk.Disk
+	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	for _, cv := range strings.Split(vm.Config.Disks, ",") {
 		if cv == "" {
 			continue
