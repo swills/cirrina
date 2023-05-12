@@ -95,11 +95,26 @@ message DiskInfo {
   optional DiskType disk_type = 4;
 }
 
+message NetInterfacesReq {
+}
+
+message NetIf {
+  repeated string InterfaceName = 1;
+}
+
 message SwitchInfo {
   optional string name = 1;
   optional string description = 2;
   optional SwitchType switch_type = 3;
   optional string uplink = 4;
+}
+
+message SwitchInfoUpdate {
+  string id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional SwitchType switch_type = 4;
+  optional string uplink = 5;
 }
 
 message VmNicInfo {
@@ -203,6 +218,7 @@ service VMInfo {
   rpc DeleteVM(VMID) returns (RequestID);
 
   rpc ClearUEFIState(VMID) returns (ReqBool);
+  rpc GetNetInterfaces(NetInterfacesReq) returns (stream NetIf);
   rpc RequestStatus(RequestID) returns (ReqStatus);
   rpc GetKeyboardLayouts(KbdQuery) returns (stream KbdLayout);
 
@@ -222,6 +238,7 @@ service VMInfo {
   rpc GetSwitches(SwitchesQuery) returns (stream SwitchId);
   rpc GetSwitchInfo(SwitchId) returns (SwitchInfo);
   rpc AddSwitch(SwitchInfo) returns (SwitchId);
+  rpc SetSwitchInfo(SwitchInfoUpdate) returns (ReqBool);
   rpc RemoveSwitch(SwitchId) returns (ReqBool);
   rpc SetSwitchUplink(SwitchUplinkReq) returns (ReqBool);
 

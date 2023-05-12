@@ -6,6 +6,7 @@ import (
 	"cirrina/cirrinad/vm"
 	"fmt"
 	"golang.org/x/exp/slog"
+	"net"
 	"os"
 	"os/signal"
 	"runtime"
@@ -79,6 +80,11 @@ func sigHandler(signal os.Signal) {
 func main() {
 	signals := make(chan os.Signal)
 	signal.Notify(signals, os.Interrupt, syscall.SIGINFO)
+	var netDevs []string
+	netInterfaces, _ := net.Interfaces()
+	for _, inter := range netInterfaces {
+		netDevs = append(netDevs, inter.Name)
+	}
 
 	go func() {
 		for {

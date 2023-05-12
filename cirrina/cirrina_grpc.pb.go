@@ -28,6 +28,7 @@ const (
 	VMInfo_StopVM_FullMethodName             = "/cirrina.VMInfo/StopVM"
 	VMInfo_DeleteVM_FullMethodName           = "/cirrina.VMInfo/DeleteVM"
 	VMInfo_ClearUEFIState_FullMethodName     = "/cirrina.VMInfo/ClearUEFIState"
+	VMInfo_GetNetInterfaces_FullMethodName   = "/cirrina.VMInfo/GetNetInterfaces"
 	VMInfo_RequestStatus_FullMethodName      = "/cirrina.VMInfo/RequestStatus"
 	VMInfo_GetKeyboardLayouts_FullMethodName = "/cirrina.VMInfo/GetKeyboardLayouts"
 	VMInfo_GetISOs_FullMethodName            = "/cirrina.VMInfo/GetISOs"
@@ -44,6 +45,7 @@ const (
 	VMInfo_GetSwitches_FullMethodName        = "/cirrina.VMInfo/GetSwitches"
 	VMInfo_GetSwitchInfo_FullMethodName      = "/cirrina.VMInfo/GetSwitchInfo"
 	VMInfo_AddSwitch_FullMethodName          = "/cirrina.VMInfo/AddSwitch"
+	VMInfo_SetSwitchInfo_FullMethodName      = "/cirrina.VMInfo/SetSwitchInfo"
 	VMInfo_RemoveSwitch_FullMethodName       = "/cirrina.VMInfo/RemoveSwitch"
 	VMInfo_SetSwitchUplink_FullMethodName    = "/cirrina.VMInfo/SetSwitchUplink"
 	VMInfo_GetVmNicsAll_FullMethodName       = "/cirrina.VMInfo/GetVmNicsAll"
@@ -68,6 +70,7 @@ type VMInfoClient interface {
 	StopVM(ctx context.Context, in *VMID, opts ...grpc.CallOption) (*RequestID, error)
 	DeleteVM(ctx context.Context, in *VMID, opts ...grpc.CallOption) (*RequestID, error)
 	ClearUEFIState(ctx context.Context, in *VMID, opts ...grpc.CallOption) (*ReqBool, error)
+	GetNetInterfaces(ctx context.Context, in *NetInterfacesReq, opts ...grpc.CallOption) (VMInfo_GetNetInterfacesClient, error)
 	RequestStatus(ctx context.Context, in *RequestID, opts ...grpc.CallOption) (*ReqStatus, error)
 	GetKeyboardLayouts(ctx context.Context, in *KbdQuery, opts ...grpc.CallOption) (VMInfo_GetKeyboardLayoutsClient, error)
 	GetISOs(ctx context.Context, in *ISOsQuery, opts ...grpc.CallOption) (VMInfo_GetISOsClient, error)
@@ -84,6 +87,7 @@ type VMInfoClient interface {
 	GetSwitches(ctx context.Context, in *SwitchesQuery, opts ...grpc.CallOption) (VMInfo_GetSwitchesClient, error)
 	GetSwitchInfo(ctx context.Context, in *SwitchId, opts ...grpc.CallOption) (*SwitchInfo, error)
 	AddSwitch(ctx context.Context, in *SwitchInfo, opts ...grpc.CallOption) (*SwitchId, error)
+	SetSwitchInfo(ctx context.Context, in *SwitchInfoUpdate, opts ...grpc.CallOption) (*ReqBool, error)
 	RemoveSwitch(ctx context.Context, in *SwitchId, opts ...grpc.CallOption) (*ReqBool, error)
 	SetSwitchUplink(ctx context.Context, in *SwitchUplinkReq, opts ...grpc.CallOption) (*ReqBool, error)
 	GetVmNicsAll(ctx context.Context, in *VmNicsQuery, opts ...grpc.CallOption) (VMInfo_GetVmNicsAllClient, error)
@@ -207,6 +211,38 @@ func (c *vMInfoClient) ClearUEFIState(ctx context.Context, in *VMID, opts ...grp
 	return out, nil
 }
 
+func (c *vMInfoClient) GetNetInterfaces(ctx context.Context, in *NetInterfacesReq, opts ...grpc.CallOption) (VMInfo_GetNetInterfacesClient, error) {
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[1], VMInfo_GetNetInterfaces_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &vMInfoGetNetInterfacesClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type VMInfo_GetNetInterfacesClient interface {
+	Recv() (*NetIf, error)
+	grpc.ClientStream
+}
+
+type vMInfoGetNetInterfacesClient struct {
+	grpc.ClientStream
+}
+
+func (x *vMInfoGetNetInterfacesClient) Recv() (*NetIf, error) {
+	m := new(NetIf)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *vMInfoClient) RequestStatus(ctx context.Context, in *RequestID, opts ...grpc.CallOption) (*ReqStatus, error) {
 	out := new(ReqStatus)
 	err := c.cc.Invoke(ctx, VMInfo_RequestStatus_FullMethodName, in, out, opts...)
@@ -217,7 +253,7 @@ func (c *vMInfoClient) RequestStatus(ctx context.Context, in *RequestID, opts ..
 }
 
 func (c *vMInfoClient) GetKeyboardLayouts(ctx context.Context, in *KbdQuery, opts ...grpc.CallOption) (VMInfo_GetKeyboardLayoutsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[1], VMInfo_GetKeyboardLayouts_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[2], VMInfo_GetKeyboardLayouts_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -249,7 +285,7 @@ func (x *vMInfoGetKeyboardLayoutsClient) Recv() (*KbdLayout, error) {
 }
 
 func (c *vMInfoClient) GetISOs(ctx context.Context, in *ISOsQuery, opts ...grpc.CallOption) (VMInfo_GetISOsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[2], VMInfo_GetISOs_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[3], VMInfo_GetISOs_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +344,7 @@ func (c *vMInfoClient) SetVmISOs(ctx context.Context, in *SetISOReq, opts ...grp
 }
 
 func (c *vMInfoClient) GetVmISOs(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmISOsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[3], VMInfo_GetVmISOs_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[4], VMInfo_GetVmISOs_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +376,7 @@ func (x *vMInfoGetVmISOsClient) Recv() (*ISOID, error) {
 }
 
 func (c *vMInfoClient) GetDisks(ctx context.Context, in *DisksQuery, opts ...grpc.CallOption) (VMInfo_GetDisksClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[4], VMInfo_GetDisks_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[5], VMInfo_GetDisks_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -408,7 +444,7 @@ func (c *vMInfoClient) SetVmDisks(ctx context.Context, in *SetDiskReq, opts ...g
 }
 
 func (c *vMInfoClient) GetVmDisks(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmDisksClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[5], VMInfo_GetVmDisks_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[6], VMInfo_GetVmDisks_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -440,7 +476,7 @@ func (x *vMInfoGetVmDisksClient) Recv() (*DiskId, error) {
 }
 
 func (c *vMInfoClient) GetSwitches(ctx context.Context, in *SwitchesQuery, opts ...grpc.CallOption) (VMInfo_GetSwitchesClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[6], VMInfo_GetSwitches_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[7], VMInfo_GetSwitches_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -489,6 +525,15 @@ func (c *vMInfoClient) AddSwitch(ctx context.Context, in *SwitchInfo, opts ...gr
 	return out, nil
 }
 
+func (c *vMInfoClient) SetSwitchInfo(ctx context.Context, in *SwitchInfoUpdate, opts ...grpc.CallOption) (*ReqBool, error) {
+	out := new(ReqBool)
+	err := c.cc.Invoke(ctx, VMInfo_SetSwitchInfo_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *vMInfoClient) RemoveSwitch(ctx context.Context, in *SwitchId, opts ...grpc.CallOption) (*ReqBool, error) {
 	out := new(ReqBool)
 	err := c.cc.Invoke(ctx, VMInfo_RemoveSwitch_FullMethodName, in, out, opts...)
@@ -508,7 +553,7 @@ func (c *vMInfoClient) SetSwitchUplink(ctx context.Context, in *SwitchUplinkReq,
 }
 
 func (c *vMInfoClient) GetVmNicsAll(ctx context.Context, in *VmNicsQuery, opts ...grpc.CallOption) (VMInfo_GetVmNicsAllClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[7], VMInfo_GetVmNicsAll_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[8], VMInfo_GetVmNicsAll_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -585,7 +630,7 @@ func (c *vMInfoClient) SetVmNics(ctx context.Context, in *SetNicReq, opts ...grp
 }
 
 func (c *vMInfoClient) GetVmNics(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmNicsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[8], VMInfo_GetVmNics_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[9], VMInfo_GetVmNics_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -629,6 +674,7 @@ type VMInfoServer interface {
 	StopVM(context.Context, *VMID) (*RequestID, error)
 	DeleteVM(context.Context, *VMID) (*RequestID, error)
 	ClearUEFIState(context.Context, *VMID) (*ReqBool, error)
+	GetNetInterfaces(*NetInterfacesReq, VMInfo_GetNetInterfacesServer) error
 	RequestStatus(context.Context, *RequestID) (*ReqStatus, error)
 	GetKeyboardLayouts(*KbdQuery, VMInfo_GetKeyboardLayoutsServer) error
 	GetISOs(*ISOsQuery, VMInfo_GetISOsServer) error
@@ -645,6 +691,7 @@ type VMInfoServer interface {
 	GetSwitches(*SwitchesQuery, VMInfo_GetSwitchesServer) error
 	GetSwitchInfo(context.Context, *SwitchId) (*SwitchInfo, error)
 	AddSwitch(context.Context, *SwitchInfo) (*SwitchId, error)
+	SetSwitchInfo(context.Context, *SwitchInfoUpdate) (*ReqBool, error)
 	RemoveSwitch(context.Context, *SwitchId) (*ReqBool, error)
 	SetSwitchUplink(context.Context, *SwitchUplinkReq) (*ReqBool, error)
 	GetVmNicsAll(*VmNicsQuery, VMInfo_GetVmNicsAllServer) error
@@ -687,6 +734,9 @@ func (UnimplementedVMInfoServer) DeleteVM(context.Context, *VMID) (*RequestID, e
 }
 func (UnimplementedVMInfoServer) ClearUEFIState(context.Context, *VMID) (*ReqBool, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ClearUEFIState not implemented")
+}
+func (UnimplementedVMInfoServer) GetNetInterfaces(*NetInterfacesReq, VMInfo_GetNetInterfacesServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetNetInterfaces not implemented")
 }
 func (UnimplementedVMInfoServer) RequestStatus(context.Context, *RequestID) (*ReqStatus, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RequestStatus not implemented")
@@ -735,6 +785,9 @@ func (UnimplementedVMInfoServer) GetSwitchInfo(context.Context, *SwitchId) (*Swi
 }
 func (UnimplementedVMInfoServer) AddSwitch(context.Context, *SwitchInfo) (*SwitchId, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddSwitch not implemented")
+}
+func (UnimplementedVMInfoServer) SetSwitchInfo(context.Context, *SwitchInfoUpdate) (*ReqBool, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetSwitchInfo not implemented")
 }
 func (UnimplementedVMInfoServer) RemoveSwitch(context.Context, *SwitchId) (*ReqBool, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveSwitch not implemented")
@@ -939,6 +992,27 @@ func _VMInfo_ClearUEFIState_Handler(srv interface{}, ctx context.Context, dec fu
 		return srv.(VMInfoServer).ClearUEFIState(ctx, req.(*VMID))
 	}
 	return interceptor(ctx, in, info, handler)
+}
+
+func _VMInfo_GetNetInterfaces_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(NetInterfacesReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(VMInfoServer).GetNetInterfaces(m, &vMInfoGetNetInterfacesServer{stream})
+}
+
+type VMInfo_GetNetInterfacesServer interface {
+	Send(*NetIf) error
+	grpc.ServerStream
+}
+
+type vMInfoGetNetInterfacesServer struct {
+	grpc.ServerStream
+}
+
+func (x *vMInfoGetNetInterfacesServer) Send(m *NetIf) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 func _VMInfo_RequestStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -1247,6 +1321,24 @@ func _VMInfo_AddSwitch_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VMInfo_SetSwitchInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SwitchInfoUpdate)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).SetSwitchInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_SetSwitchInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).SetSwitchInfo(ctx, req.(*SwitchInfoUpdate))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _VMInfo_RemoveSwitch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SwitchId)
 	if err := dec(in); err != nil {
@@ -1495,6 +1587,10 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _VMInfo_AddSwitch_Handler,
 		},
 		{
+			MethodName: "SetSwitchInfo",
+			Handler:    _VMInfo_SetSwitchInfo_Handler,
+		},
+		{
 			MethodName: "RemoveSwitch",
 			Handler:    _VMInfo_RemoveSwitch_Handler,
 		},
@@ -1527,6 +1623,11 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "GetVMs",
 			Handler:       _VMInfo_GetVMs_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetNetInterfaces",
+			Handler:       _VMInfo_GetNetInterfaces_Handler,
 			ServerStreams: true,
 		},
 		{

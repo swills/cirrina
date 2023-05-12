@@ -458,7 +458,6 @@ func (vm *VM) DeleteUEFIState() error {
 }
 
 func (vm *VM) AttachNics(nicIds []string) error {
-	ac := 0
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
 	if vm.Status != STOPPED {
@@ -490,16 +489,8 @@ func (vm *VM) AttachNics(nicIds []string) error {
 			if err != nil {
 				return err
 			}
-			if aVm.ID == vm.ID {
-				if ac > 0 {
-					slog.Error("nic attached twice", "nic", aNic, "vm", aVm.ID)
-					return errors.New("nic attached twice")
-				}
-				ac += 1
-				continue
-			}
 			for _, aVmNic := range vmNics {
-				if aNic == aVmNic.ID {
+				if aNic == aVmNic.ID && aVm.ID != vm.ID {
 					slog.Error("nic is already attached to VM", "disk", aNic, "vm", aVm.ID)
 					return errors.New("nic already attached")
 				}
@@ -526,7 +517,6 @@ func (vm *VM) AttachNics(nicIds []string) error {
 }
 
 func (vm *VM) AttachDisks(diskids []string) error {
-	ac := 0
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
 	if vm.Status != STOPPED {
@@ -559,17 +549,8 @@ func (vm *VM) AttachDisks(diskids []string) error {
 			if err != nil {
 				return err
 			}
-			if aVm.ID == vm.ID {
-				if ac > 0 {
-					slog.Error("disk attached twice", "disk", aDisk, "vm", aVm.ID)
-					return errors.New("disk attached twice")
-
-				}
-				ac += 1
-				continue
-			}
 			for _, aVmDisk := range vmDisks {
-				if aDisk == aVmDisk.ID {
+				if aDisk == aVmDisk.ID && aVm.ID != vm.ID {
 					slog.Error("disk is already attached to VM", "disk", aDisk, "vm", aVm.ID)
 					return errors.New("disk already attached")
 				}
