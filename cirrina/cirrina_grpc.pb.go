@@ -51,6 +51,7 @@ const (
 	VMInfo_GetVmNicsAll_FullMethodName       = "/cirrina.VMInfo/GetVmNicsAll"
 	VMInfo_GetVmNicInfo_FullMethodName       = "/cirrina.VMInfo/GetVmNicInfo"
 	VMInfo_AddVmNic_FullMethodName           = "/cirrina.VMInfo/AddVmNic"
+	VMInfo_UpdateVmNic_FullMethodName        = "/cirrina.VMInfo/UpdateVmNic"
 	VMInfo_RemoveVmNic_FullMethodName        = "/cirrina.VMInfo/RemoveVmNic"
 	VMInfo_SetVmNicSwitch_FullMethodName     = "/cirrina.VMInfo/SetVmNicSwitch"
 	VMInfo_SetVmNics_FullMethodName          = "/cirrina.VMInfo/SetVmNics"
@@ -93,6 +94,7 @@ type VMInfoClient interface {
 	GetVmNicsAll(ctx context.Context, in *VmNicsQuery, opts ...grpc.CallOption) (VMInfo_GetVmNicsAllClient, error)
 	GetVmNicInfo(ctx context.Context, in *VmNicId, opts ...grpc.CallOption) (*VmNicInfo, error)
 	AddVmNic(ctx context.Context, in *VmNicInfo, opts ...grpc.CallOption) (*VmNicId, error)
+	UpdateVmNic(ctx context.Context, in *VmNicInfoUpdate, opts ...grpc.CallOption) (*ReqBool, error)
 	RemoveVmNic(ctx context.Context, in *VmNicId, opts ...grpc.CallOption) (*ReqBool, error)
 	SetVmNicSwitch(ctx context.Context, in *SetVmNicSwitchReq, opts ...grpc.CallOption) (*ReqBool, error)
 	SetVmNics(ctx context.Context, in *SetNicReq, opts ...grpc.CallOption) (*ReqBool, error)
@@ -602,6 +604,15 @@ func (c *vMInfoClient) AddVmNic(ctx context.Context, in *VmNicInfo, opts ...grpc
 	return out, nil
 }
 
+func (c *vMInfoClient) UpdateVmNic(ctx context.Context, in *VmNicInfoUpdate, opts ...grpc.CallOption) (*ReqBool, error) {
+	out := new(ReqBool)
+	err := c.cc.Invoke(ctx, VMInfo_UpdateVmNic_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *vMInfoClient) RemoveVmNic(ctx context.Context, in *VmNicId, opts ...grpc.CallOption) (*ReqBool, error) {
 	out := new(ReqBool)
 	err := c.cc.Invoke(ctx, VMInfo_RemoveVmNic_FullMethodName, in, out, opts...)
@@ -697,6 +708,7 @@ type VMInfoServer interface {
 	GetVmNicsAll(*VmNicsQuery, VMInfo_GetVmNicsAllServer) error
 	GetVmNicInfo(context.Context, *VmNicId) (*VmNicInfo, error)
 	AddVmNic(context.Context, *VmNicInfo) (*VmNicId, error)
+	UpdateVmNic(context.Context, *VmNicInfoUpdate) (*ReqBool, error)
 	RemoveVmNic(context.Context, *VmNicId) (*ReqBool, error)
 	SetVmNicSwitch(context.Context, *SetVmNicSwitchReq) (*ReqBool, error)
 	SetVmNics(context.Context, *SetNicReq) (*ReqBool, error)
@@ -803,6 +815,9 @@ func (UnimplementedVMInfoServer) GetVmNicInfo(context.Context, *VmNicId) (*VmNic
 }
 func (UnimplementedVMInfoServer) AddVmNic(context.Context, *VmNicInfo) (*VmNicId, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddVmNic not implemented")
+}
+func (UnimplementedVMInfoServer) UpdateVmNic(context.Context, *VmNicInfoUpdate) (*ReqBool, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateVmNic not implemented")
 }
 func (UnimplementedVMInfoServer) RemoveVmNic(context.Context, *VmNicId) (*ReqBool, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveVmNic not implemented")
@@ -1432,6 +1447,24 @@ func _VMInfo_AddVmNic_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VMInfo_UpdateVmNic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VmNicInfoUpdate)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).UpdateVmNic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_UpdateVmNic_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).UpdateVmNic(ctx, req.(*VmNicInfoUpdate))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _VMInfo_RemoveVmNic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(VmNicId)
 	if err := dec(in); err != nil {
@@ -1605,6 +1638,10 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddVmNic",
 			Handler:    _VMInfo_AddVmNic_Handler,
+		},
+		{
+			MethodName: "UpdateVmNic",
+			Handler:    _VMInfo_UpdateVmNic_Handler,
 		},
 		{
 			MethodName: "RemoveVmNic",

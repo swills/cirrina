@@ -127,6 +127,17 @@ message VmNicInfo {
   optional string switchid = 7;
 }
 
+message VmNicInfoUpdate {
+  VmNicId vmnicid = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional string mac = 4;
+  optional NetDevType netdevtype = 5;
+  optional NetType nettype = 6;
+  optional string vmid = 7;
+  optional string switchid = 8;
+}
+
 message VMConfig {
   string id = 1;
   optional string name = 2;
@@ -245,6 +256,7 @@ service VMInfo {
   rpc GetVmNicsAll(VmNicsQuery) returns (stream VmNicId);
   rpc GetVmNicInfo(VmNicId) returns (VmNicInfo);
   rpc AddVmNic(VmNicInfo) returns (VmNicId);
+  rpc UpdateVmNic(VmNicInfoUpdate) returns (ReqBool);
   rpc RemoveVmNic(VmNicId) returns (ReqBool);
   rpc SetVmNicSwitch(SetVmNicSwitchReq) returns (ReqBool);
 
