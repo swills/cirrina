@@ -21,6 +21,7 @@ func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 	vmNicInst.Name = *v.Name
 	vmNicInst.Description = *v.Description
 	vmNicInst.Mac = *v.Mac
+	vmNicInst.SwitchId = *v.Switchid
 
 	if *v.Nettype == cirrina.NetType_VIRTIONET {
 		vmNicInst.NetType = "VIRTIONET"
