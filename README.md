@@ -40,18 +40,7 @@ This probably won't work for you:
     * Implement creating disks as zvols
     * Create disk from existing image (clone) or other disk image.
   * Networking
-    * Add net device list
     * Support vxlan and vale switches
-    * Implement picking tap mode bridge device
-    * Implement picking netgraph bridge peer device
-    * Add virtual network management
-      * Add net device selection dialog
-      * Add net device creation code
-    * Implement tap mode bridge device
-    * Implement netgraph bridge peer device
-    * Add virtual network management
-      * Add net device management code
-      * Add net device creation code
   * Sound
     * Add sound device list
 * Access/Sharing
