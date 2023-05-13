@@ -34,11 +34,27 @@ func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 	if *v.Netdevtype == cirrina.NetDevType_TAP {
 		vmNicInst.NetDevType = "TAP"
 	} else if *v.Netdevtype == cirrina.NetDevType_VMNET {
-		vmNicInst.NetType = "VMNET"
+		vmNicInst.NetDevType = "VMNET"
 	} else if *v.Netdevtype == cirrina.NetDevType_NETGRAPH {
-		vmNicInst.NetType = "NETGRAPH"
+		vmNicInst.NetDevType = "NETGRAPH"
 	} else {
 		return vmNicId, errors.New("invalid net dev type name")
+	}
+
+	if vmNicInst.SwitchId != "" {
+		switchInst, err := _switch.GetById(vmNicInst.SwitchId)
+		if err != nil {
+			return vmNicId, errors.New("bad switch id")
+		}
+		if vmNicInst.NetDevType == "TAP" || vmNicInst.NetDevType == "VMNET" {
+			if switchInst.Type != "IF" {
+				return vmNicId, errors.New("uplink switch has wrong type")
+			}
+		} else if vmNicInst.NetDevType == "NETGRAPH" {
+			if switchInst.Type != "NG" {
+				return vmNicId, errors.New("uplink switch has wrong type")
+			}
+		}
 	}
 
 	newVmNicId, err := vm_nics.Create(&vmNicInst)
