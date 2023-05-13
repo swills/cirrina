@@ -50,10 +50,8 @@ func Create(VmNicInst *VmNic) (newNicId string, err error) {
 		if err != nil {
 			return newNicId, errors.New("bad MAC address")
 		}
-		VmNicInst.Mac = string(newMac)
+		VmNicInst.Mac = newMac.String()
 	}
-
-	// TODO -- validate switch
 
 	if VmNicInst.NetType == "" {
 		VmNicInst.NetType = "VIRTIONET"
