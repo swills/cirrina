@@ -2,7 +2,7 @@
 
 Daemon for [Bhyve](https://wiki.freebsd.org/bhyve) written in Go using gRPC
 
-# How To
+# Notes
 
 This probably won't work for you:
 
@@ -17,6 +17,38 @@ This probably won't work for you:
   weasel (the py qt 5 gui)
 * Only UEFI boot is supported, no bhyveload
 * You must edit config.yml before starting cirrinad
+
+# How to use
+
+* Build cirinad:
+  * `cd cirrinad`
+  * `go build -o out ./...`
+* Create and edit config
+  * `cp config.sample.yml config.yml`
+  * `vi config.yml`
+* Run cirrinad
+  * `./out/cirrinad`
+* Build cirrinactl:
+  * `cd cirrinactl`
+  * `go build ./...`
+* Create a switch
+  * `./cirrinactl -action addSwitch -name bridge0`
+  * At the moment, specifying the switch uplink has to be done manually by updating the db:
+    * `sqlite3 /path/to/db/cirrina.sqlite`
+    * `select * from switches`
+    * `update switches set uplink = 'em0' where id = 'switchuuid';`
+  * Restart cirrinad
+* Add an iso for your VM to use:
+  * `./cirrinactl -action addISO -name something.iso -path /path/to/something.iso`
+* Add a disk for a VM:
+  * `./cirrinactl -action addDisk -name something -descr 'a disk' -size 8g`
+* Add a NIC for a VM:
+  * `./cirrinactl -action addVmNic -name something_int0 -switchId switchuuid`
+* Add a VM:
+  * `./cirrinactl -action addVM -name something`
+* Start weasel
+  * select VM, click edit, add disk, iso and nic to VM
+  * start VM
 
 # TODO
 
