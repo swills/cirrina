@@ -33,11 +33,8 @@ This probably won't work for you:
   * `go build ./...`
 * Create a switch
   * `./cirrinactl -action addSwitch -name bridge0`
-  * At the moment, specifying the switch uplink has to be done manually by updating the db:
-    * `sqlite3 /path/to/db/cirrina.sqlite`
-    * `select * from switches`
-    * `update switches set uplink = 'em0' where id = 'switchuuid';`
-  * Restart cirrinad
+* Set it's uplink
+  * `./cirrinactl -action setSwitchUplink -switchId switchuuid -uplinkName "em0"`
 * Add an iso for your VM to use:
   * `./cirrinactl -action addISO -name something.iso -path /path/to/something.iso`
 * Add a disk for a VM:
