@@ -61,7 +61,7 @@ func addISO(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *s
 	fmt.Printf("Created ISO %v\n", res.Value)
 }
 
-func addVmNic(name *string, c pb.VMInfoClient, ctx context.Context, descrptr *string, nettypeptr *string, netdevtypeptr *string, macPtr *string) {
+func addVmNic(name *string, c pb.VMInfoClient, ctx context.Context, descrptr *string, nettypeptr *string, netdevtypeptr *string, macPtr *string, switchIdPtr *string) {
 	var thisVmNic pb.VmNicInfo
 	var thisNetType pb.NetType
 	var thisNetDevType pb.NetDevType
@@ -69,6 +69,7 @@ func addVmNic(name *string, c pb.VMInfoClient, ctx context.Context, descrptr *st
 	thisVmNic.Name = name
 	thisVmNic.Description = descrptr
 	thisVmNic.Mac = macPtr
+	thisVmNic.Switchid = switchIdPtr
 
 	if *nettypeptr == "VIRTIONET" {
 		thisNetType = pb.NetType_VIRTIONET
@@ -626,7 +627,7 @@ func main() {
 	case "rmSwitch":
 		rmSwitch(idPtr, c, ctx)
 	case "addVmNic":
-		addVmNic(namePtr, c, ctx, descrPtr, netTypePtr, netDevTypePtr, macPtr)
+		addVmNic(namePtr, c, ctx, descrPtr, netTypePtr, netDevTypePtr, macPtr, switchIdPtr)
 	case "rmVmNic":
 		rmVmNic(idPtr, c, ctx)
 	case "reConfig":
