@@ -6,6 +6,8 @@ import (
 	"cirrina/cirrinad/vm"
 	"context"
 	"golang.org/x/exp/slog"
+	"net"
+	"strings"
 )
 
 func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrina.ReqStatus, error) {
@@ -34,4 +36,36 @@ func (s *server) ClearUEFIState(_ context.Context, v *cirrina.VMID) (*cirrina.Re
 	}
 	re.Success = true
 	return &re, nil
+}
+
+func (s *server) GetNetInterfaces(_ *cirrina.NetInterfacesReq, st cirrina.VMInfo_GetNetInterfacesServer) error {
+	var phNic cirrina.NetIf
+	var netDevs []string
+	netInterfaces, _ := net.Interfaces()
+	for _, inter := range netInterfaces {
+		netDevs = append(netDevs, inter.Name)
+	}
+
+	for e, nic := range netDevs {
+		slog.Debug("netdev", "e", e, "nic", nic)
+		if strings.HasPrefix(nic, "lo") {
+			continue
+		}
+		if strings.HasPrefix(nic, "bridge") {
+			continue
+		}
+		if strings.HasPrefix(nic, "tap") {
+			continue
+		}
+		if strings.HasPrefix(nic, "vmnet") {
+			continue
+		}
+		phNic.InterfaceName = nic
+		err := st.Send(&phNic)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

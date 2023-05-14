@@ -440,6 +440,25 @@ func getSwitches(c pb.VMInfoClient, ctx context.Context) {
 	}
 }
 
+func getHostNics(c pb.VMInfoClient, ctx context.Context) {
+	res, err := c.GetNetInterfaces(ctx, &pb.NetInterfacesReq{})
+	if err != nil {
+		log.Fatalf("could not get host nics: %v", err)
+		return
+	}
+	for {
+		hostNic, err := res.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("GetNetInterfaces failed: %v", err)
+		}
+		fmt.Printf("nic: name: %v\n", hostNic.InterfaceName)
+	}
+
+}
+
 func getVMState(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if *idPtr == "" {
 		log.Fatalf("ID not specified")
@@ -544,7 +563,7 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 func printActionHelp() {
 	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, " +
 		"addISO, addDisk, addSwitch, addVmNic, getSwitches, getVmNics, getSwitch, getVmNic, setVmNicVm, " +
-		"setVmNicSwitch, rmSwitch")
+		"setVmNicSwitch, rmSwitch, getHostNics")
 }
 
 func main() {
@@ -640,6 +659,8 @@ func main() {
 		startVM(idPtr, c, ctx)
 	case "stopVM":
 		stopVM(idPtr, c, ctx)
+	case "getHostNics":
+		getHostNics(c, ctx)
 	default:
 		log.Fatalf("Action %v unknown", *actionPtr)
 	}

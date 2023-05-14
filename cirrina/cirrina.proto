@@ -99,7 +99,7 @@ message NetInterfacesReq {
 }
 
 message NetIf {
-  repeated string InterfaceName = 1;
+  string InterfaceName = 1;
 }
 
 message SwitchInfo {
