@@ -22,12 +22,12 @@ This probably won't work for you:
 
 * Build cirinad:
   * `cd cirrinad`
-  * `go build -o out ./...`
+  * `go build -o cirrinad ./`
 * Create and edit config
   * `cp config.sample.yml config.yml`
   * `vi config.yml`
 * Run cirrinad
-  * `./out/cirrinad`
+  * `./cirrinad`
 * Build cirrinactl:
   * `cd cirrinactl`
   * `go build ./...`
