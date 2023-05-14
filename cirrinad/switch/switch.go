@@ -1,6 +1,7 @@
 package _switch
 
 import (
+	"bytes"
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm_nics"
@@ -14,12 +15,18 @@ import (
 func GetById(id string) (s *Switch, err error) {
 	db := getSwitchDb()
 	db.Limit(1).Find(&s, "id = ?", id)
+	if s.Name == "" {
+		return s, errors.New("not found")
+	}
 	return s, nil
 }
 
 func GetByName(name string) (s *Switch, err error) {
 	db := getSwitchDb()
 	db.Limit(1).Find(&s, "name = ?", name)
+	if s.ID == "" {
+		return s, errors.New("not found")
+	}
 	return s, nil
 }
 
@@ -35,12 +42,8 @@ func Create(name string, description string, switchType string) (_switch *Switch
 	if strings.Contains(name, "/") {
 		return switchInst, errors.New("illegal character in switch name")
 	}
-	existingSwitch, err := GetByName(name)
-	if err != nil {
-		slog.Error("error checking db for switch", "name", name, "err", err)
-		return switchInst, err
-	}
-	if existingSwitch.Name != "" {
+	_, err = GetByName(name)
+	if err == nil {
 		slog.Error("switch exists", "switch", name)
 		return switchInst, errors.New("switch exists")
 	}
@@ -88,16 +91,16 @@ func Delete(id string) (err error) {
 
 func CreateBridges() {
 	allBridges := GetAll()
-	allIfBridges, err := getAllIfBridges()
-	if err != nil {
-		slog.Debug("failed to get all if bridges", "err", err)
-		return
-	}
 
 	for num, bridge := range allBridges {
 		slog.Debug("creating bridge", "num", num, "bridge", bridge.Name)
 		if bridge.Type == "IF" {
 			slog.Debug("creating if bridge", "name", bridge.Name)
+			allIfBridges, err := getAllIfBridges()
+			if err != nil {
+				slog.Debug("failed to get all if bridges", "err", err)
+				return
+			}
 			if util.ContainsStr(allIfBridges, bridge.Name) {
 				slog.Debug("bridge already exists, skipping", "bridge", bridge.Name)
 			} else {
@@ -109,15 +112,18 @@ func CreateBridges() {
 			}
 		} else if bridge.Type == "NG" {
 			slog.Debug("creating ng bridge", "name", bridge.Name)
-			bridgeList, err := ngGetBridges()
+			allNgBridges, err := getAllNgBridges()
 			if err != nil {
 				slog.Error("error getting bridge list", "err", err)
 				return
 			}
-			if !util.ContainsStr(bridgeList, bridge.Name) {
-				err := ngCreateBridge(bridge.Name, bridge.Uplink)
+			if util.ContainsStr(allNgBridges, bridge.Name) {
+				slog.Debug("bridge already exists, skipping", "bridge", bridge.Name)
+			} else {
+				err := BuildNgBridge(bridge)
 				if err != nil {
-					slog.Error("ngCreateBridge err", "err", err)
+					slog.Error("error creating ng bridge", "err", err)
+					return
 				}
 			}
 		} else {
@@ -149,19 +155,41 @@ func DestroyBridges() {
 }
 
 func BridgeIfAddMember(bridgeName string, memberName string) error {
+
+	// TODO
+	//netDevs := util.GetHostInterfaces()
+	//
+	//if !util.ContainsStr(netDevs, memberName) {
+	//	return errors.New("invalid switch member name")
+	//}
+
 	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "addm", memberName)
+	var out bytes.Buffer
+	cmd.Stdout = &out
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-
 	if err := cmd.Wait(); err != nil {
-		exiterr, ok := err.(*exec.ExitError)
-		if !ok {
-			slog.Error("failed running ifconfig", "exec", exiterr, "err", err)
-			return err
-		}
+		slog.Error("failed running ifconfig", "err", err, "out", out)
+		return errors.New("ifconfig failed")
 	}
 	return nil
+}
+
+func BuildNgBridge(switchInst *Switch) error {
+	var members []string
+	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
+	memberList := strings.Split(switchInst.Uplink, ",")
+	for _, member := range memberList {
+		if member == "" {
+			continue
+		}
+		members = append(members, member)
+	}
+
+	err := createNgBridgeWithMembers(switchInst.Name, members)
+	return err
+
 }
 
 func BuildIfBridge(switchInst *Switch) error {
@@ -179,6 +207,17 @@ func BuildIfBridge(switchInst *Switch) error {
 	return err
 }
 
+func ngGetBridgeNextLink(bridge string) (nextLink string, err error) {
+	bridgePeers, err := ngGetBridgePeers(bridge)
+	if err != nil {
+		return nextLink, err
+	}
+
+	nextLink = ngBridgeNextLink(bridgePeers)
+	return nextLink, nil
+
+}
+
 func GetNgDev(switchId string) (bridge string, peer string, err error) {
 	thisSwitch, err := GetById(switchId)
 	if err != nil {
@@ -190,6 +229,118 @@ func GetNgDev(switchId string) (bridge string, peer string, err error) {
 		return "", "", err
 	}
 
-	nextLink := ngBridgeNextPeer(bridgePeers)
+	nextLink := ngBridgeNextLink(bridgePeers)
 	return thisSwitch.Name, nextLink, nil
+}
+
+func (d *Switch) UnsetUplink() error {
+	if d.Type == "IF" {
+		slog.Debug("unsetting IF bridge uplink", "id", d.ID)
+		err := bridgeIfDeleteMember(d.Name, d.Uplink)
+		if err != nil {
+			return err
+		}
+		d.Uplink = ""
+		err = d.Save()
+		if err != nil {
+			return err
+		}
+		return nil
+	} else if d.Type == "NG" {
+		slog.Debug("unsetting NG bridge uplink", "id", d.ID)
+		err := bridgeNgRemoveUplink(d.Name, d.Uplink)
+		if err != nil {
+			return err
+		}
+		d.Uplink = ""
+		err = d.Save()
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return errors.New("unknown switch type")
+
+}
+
+func (d *Switch) SetUplink(uplink string) error {
+
+	netDevs := util.GetHostInterfaces()
+
+	if !util.ContainsStr(netDevs, uplink) {
+		return errors.New("invalid switch uplink name")
+	}
+
+	if d.Type == "IF" {
+		slog.Debug("setting IF bridge uplink", "id", d.ID)
+		err := BridgeIfAddMember(d.Name, uplink)
+		if err != nil {
+			return err
+		}
+		d.Uplink = uplink
+		err = d.Save()
+		if err != nil {
+			return err
+		}
+		return nil
+	} else if d.Type == "NG" {
+		slog.Debug("setting NG bridge uplink", "id", d.ID)
+		err := BridgeNgAddMember(d.Name, uplink)
+		if err != nil {
+			return err
+		}
+		d.Uplink = uplink
+		err = d.Save()
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return errors.New("unknown switch type")
+}
+
+func (d *Switch) Save() error {
+	db := getSwitchDb()
+
+	res := db.Model(&d).
+		Updates(map[string]interface{}{
+			"name":        &d.Name,
+			"description": &d.Description,
+			"type":        &d.Type,
+			"uplink":      &d.Uplink,
+		},
+		)
+
+	if res.Error != nil {
+		return errors.New("error updating switch")
+	}
+
+	return nil
+}
+
+func BridgeNgAddMember(bridgeName string, memberName string) error {
+	link, err := ngGetBridgeNextLink(bridgeName)
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "connect",
+		memberName+":", bridgeName+":", "lower", link)
+	err = cmd.Run()
+	if err != nil {
+		slog.Error("ngctl connect error", "err", err)
+		return err
+	}
+
+	link, err = ngGetBridgeNextLink(bridgeName)
+	if err != nil {
+		return err
+	}
+	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "connect",
+		memberName+":", bridgeName+":", "upper", link)
+	err = cmd.Run()
+	if err != nil {
+		slog.Error("ngctl connect error", "err", err)
+		return err
+	}
+	return nil
 }

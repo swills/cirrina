@@ -136,6 +136,30 @@ func addSwitch(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr
 	fmt.Printf("Created switch %v\n", res.Value)
 }
 
+func setSwitchUplink(c pb.VMInfoClient, ctx context.Context, switchIdPtr *string, uplinkNamePtr *string) {
+	if *switchIdPtr == "" {
+		log.Fatalf("switch id not specified")
+		return
+	}
+
+	req := &pb.SwitchUplinkReq{}
+	si := &pb.SwitchId{}
+	si.Value = *switchIdPtr
+	req.Switchid = si
+	req.Uplink = uplinkNamePtr
+
+	res, err := c.SetSwitchUplink(ctx, req)
+	if err != nil {
+		log.Fatalf("could not set switch uplink: %v", err)
+	}
+	if res.Success {
+		fmt.Printf("Switch uplink set successful")
+	} else {
+		fmt.Printf("Switch uplink set failed")
+	}
+
+}
+
 func rmSwitch(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	if *idPtr == "" {
 		log.Fatalf("ID not specified")
@@ -248,10 +272,12 @@ func getSwitch(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 		"name: %v "+
 			"description: %v "+
 			"type: %v "+
+			"uplink: %v"+
 			"\n",
 		*res.Name,
 		*res.Description,
 		*res.SwitchType,
+		*res.Uplink,
 	)
 
 }
@@ -563,7 +589,7 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 func printActionHelp() {
 	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, " +
 		"addISO, addDisk, addSwitch, addVmNic, getSwitches, getVmNics, getSwitch, getVmNic, setVmNicVm, " +
-		"setVmNicSwitch, rmSwitch, getHostNics")
+		"setVmNicSwitch, rmSwitch, getHostNics, setSwitchUplink")
 }
 
 func main() {
@@ -575,6 +601,7 @@ func main() {
 	switchTypePtr := flag.String("switchType", "IF", "Type of switch (IF or NG)")
 	nicIdPtr := flag.String("nicId", "", "ID of Nic")
 	switchIdPtr := flag.String("switchId", "", "ID of Switch")
+	uplinkNamePtr := flag.String("uplinkName", "value", "name of switch uplink")
 	cpuPtr := flag.Uint("cpus", 1, "Number of CPUs in VM")
 	cpuVal := *cpuPtr
 	cpu32Val := uint32(cpuVal)
@@ -661,6 +688,8 @@ func main() {
 		stopVM(idPtr, c, ctx)
 	case "getHostNics":
 		getHostNics(c, ctx)
+	case "setSwitchUplink":
+		setSwitchUplink(c, ctx, switchIdPtr, uplinkNamePtr)
 	default:
 		log.Fatalf("Action %v unknown", *actionPtr)
 	}

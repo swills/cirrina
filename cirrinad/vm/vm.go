@@ -288,6 +288,7 @@ func (vm *VM) netStartup() {
 							"nicname", vmNic.Name,
 							"nicid", vmNic.ID,
 							"switchid", vmNic.SwitchId,
+							"netdev", vmNic.NetDev,
 							"err", err,
 						)
 					}

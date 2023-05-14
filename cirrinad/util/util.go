@@ -3,6 +3,8 @@ package util
 import (
 	"encoding/json"
 	"errors"
+	"golang.org/x/exp/slog"
+	"net"
 	"os"
 	"os/exec"
 	"sort"
@@ -71,6 +73,7 @@ func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (port int, err error) 
 		return 0, err
 	}
 	if err := cmd.Wait(); err != nil {
+		slog.Error("GetFreeTCPPort", "err", err)
 		return 0, err
 	}
 	statistics, valid := result["statistics"].(map[string]interface{})
@@ -131,4 +134,29 @@ func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (port int, err error) 
 		}
 	}
 	return vncPort, nil
+}
+
+func GetHostInterfaces() []string {
+	var netDevs []string
+	netInterfaces, err := net.Interfaces()
+	if err != nil {
+		panic(err)
+	}
+	slog.Debug("GetHostInterfaces", "netInterfaces", netInterfaces)
+	for _, inter := range netInterfaces {
+		if strings.HasPrefix(inter.Name, "lo") {
+			continue
+		}
+		if strings.HasPrefix(inter.Name, "bridge") {
+			continue
+		}
+		if strings.HasPrefix(inter.Name, "tap") {
+			continue
+		}
+		if strings.HasPrefix(inter.Name, "vmnet") {
+			continue
+		}
+		netDevs = append(netDevs, inter.Name)
+	}
+	return netDevs
 }

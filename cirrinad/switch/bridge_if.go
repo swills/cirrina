@@ -2,6 +2,7 @@ package _switch
 
 import (
 	"bufio"
+	"bytes"
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
 	"errors"
@@ -13,8 +14,7 @@ import (
 
 func getAllIfBridges() (bridges []string, err error) {
 	var r []string
-	args := []string{"-g", "bridge"}
-	cmd := exec.Command("/sbin/ifconfig", args...)
+	cmd := exec.Command("/sbin/ifconfig", "-g", "bridge")
 	defer func(cmd *exec.Cmd) {
 		err := cmd.Wait()
 		if err != nil {
@@ -80,10 +80,14 @@ func getIfBridgeMembers(name string) (members []string, err error) {
 }
 
 func createIfBridge(name string) error {
+	if name == "" {
+		return errors.New("name can't be empty")
+	}
+
 	// TODO allow other bridge names by creating with a dummy name and then renaming
 	if !strings.HasPrefix(name, "bridge") {
 		slog.Error("invalid bridge name", "name", name)
-		return errors.New("invalid bridge name")
+		return errors.New("invalid bridge name, bridge name must start with \"bridge\"")
 	}
 	allIfBridges, err := getAllIfBridges()
 	if err != nil {
@@ -94,16 +98,25 @@ func createIfBridge(name string) error {
 		slog.Debug("bridge already exists", "bridge", name)
 		return errors.New("duplicate bridge")
 	}
+
+	err = actualIfBridgeCreate(name)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func actualIfBridgeCreate(name string) error {
 	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", name, "create", "up")
+	var out bytes.Buffer
+	cmd.Stdout = &out
 	if err := cmd.Start(); err != nil {
 		return err
 	}
 	if err := cmd.Wait(); err != nil {
-		exiterr, ok := err.(*exec.ExitError)
-		if !ok {
-			slog.Error("failed running ifconfig", "exec", exiterr, "err", err)
-			return err
-		}
+		slog.Error("failed running ifconfig", "err", err, "out", out)
+		return err
 	}
 	return nil
 }
@@ -121,16 +134,14 @@ func deleteIfBridge(name string, cleanup bool) error {
 		}
 	}
 	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", name, "destroy")
+	var out bytes.Buffer
+	cmd.Stdout = &out
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-
 	if err := cmd.Wait(); err != nil {
-		exiterr, ok := err.(*exec.ExitError)
-		if !ok {
-			slog.Error("failed running ifconfig", "exec", exiterr, "err", err)
-			return err
-		}
+		slog.Error("failed running ifconfig", "err", err, "out", out)
+		return err
 	}
 	return nil
 
@@ -153,15 +164,14 @@ func bridgeIfDeleteAllMembers(name string) error {
 
 func bridgeIfDeleteMember(bridgeName string, memberName string) error {
 	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "deletem", memberName)
+	var out bytes.Buffer
+	cmd.Stdout = &out
 	if err := cmd.Start(); err != nil {
 		return err
 	}
 	if err := cmd.Wait(); err != nil {
-		exiterr, ok := err.(*exec.ExitError)
-		if !ok {
-			slog.Error("failed running ifconfig", "exec", exiterr, "err", err)
-			return err
-		}
+		slog.Error("failed running ifconfig", "err", err, "out", out)
+		return err
 	}
 	return nil
 }

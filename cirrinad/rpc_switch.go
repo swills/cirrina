@@ -92,11 +92,26 @@ func (s *server) RemoveSwitch(_ context.Context, si *cirrina.SwitchId) (*cirrina
 	return &re, nil
 }
 
-// TODO
-
-func (s *server) SetSwitchUplink(context.Context, *cirrina.SwitchUplinkReq) (*cirrina.ReqBool, error) {
+func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq) (*cirrina.ReqBool, error) {
 	var r cirrina.ReqBool
 	r.Success = false
+	thisSwitch := su.Switchid.Value
+	uplink := *su.Uplink
+	slog.Debug("SetSwitchUplink", "switch", thisSwitch, "uplink", uplink)
+	switchInst, err := _switch.GetById(thisSwitch)
+	if err != nil {
+		return &r, err
+	}
+	if uplink == "" {
+		if err = switchInst.UnsetUplink(); err != nil {
+			return &r, err
+		}
 
+	} else {
+		if err = switchInst.SetUplink(uplink); err != nil {
+			return &r, err
+		}
+	}
+	r.Success = true
 	return &r, nil
 }
