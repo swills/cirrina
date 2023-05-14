@@ -2,6 +2,7 @@ package vm
 
 import (
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/util"
 	"errors"
 	"github.com/kontera-technologies/go-supervisor/v2"
 	"golang.org/x/exp/slog"
@@ -88,6 +89,20 @@ var List = ListType{
 	VmList: map[string]*VM{},
 }
 
+func getVmLogPath(logpath string) error {
+	ex, err := util.PathExists(logpath)
+	if err != nil {
+		return err
+	}
+	if !ex {
+		err := os.MkdirAll(logpath, 0755)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func init() {
 
 	db := getVmDb()
@@ -102,7 +117,12 @@ func init() {
 
 	List.Mu.Lock()
 	for _, vmInst := range GetAll() {
-		vmLogFilePath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name + "/log"
+		vmLogPath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name
+		err := getVmLogPath(vmLogPath)
+		if err != nil {
+			panic(err)
+		}
+		vmLogFilePath := vmLogPath + "/log"
 		vmLogFile, err := os.OpenFile(vmLogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			slog.Error("failed to open VM log file", "err", err)
