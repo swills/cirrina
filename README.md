@@ -49,8 +49,6 @@ This probably won't work for you:
 
 # TODO
 
-* Clean up
-  * Separate log_path from config path
 * Basics
   * Implement VM rename
   * Switch to using bhyve config file instead of command line args

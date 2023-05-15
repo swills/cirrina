@@ -1,14 +1,18 @@
 package main
 
 import (
+	"bufio"
 	pb "cirrina/cirrina"
 	"context"
+	"crypto/sha512"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"io"
 	"log"
+	"os"
 	"time"
 )
 
@@ -59,6 +63,114 @@ func addISO(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *s
 		return
 	}
 	fmt.Printf("Created ISO %v\n", res.Value)
+}
+
+func uploadIso(c pb.VMInfoClient, ctx context.Context, idPtr *string, filePathPtr *string) {
+	if *idPtr == "" {
+		log.Fatalf("ID not specified")
+		return
+	}
+	if *filePathPtr == "" {
+		log.Fatalf("File path not specified")
+		return
+	}
+
+	thisisoid := pb.ISOID{Value: *idPtr}
+
+	fi, err := os.Stat(*filePathPtr)
+	if err != nil {
+		log.Printf("error: %v", err)
+	}
+	isoSize := fi.Size()
+
+	f, err := os.Open(*filePathPtr)
+	if err != nil {
+		log.Printf("error: %v", err)
+	}
+
+	hasher := sha512.New()
+
+	if _, err := io.Copy(hasher, f); err != nil {
+		log.Fatalf("Failed reading iso: %v", err)
+		return
+	}
+
+	isoChecksum := hex.EncodeToString(hasher.Sum(nil))
+
+	err = f.Close()
+	if err != nil {
+		log.Fatalf("failed closing: %v", err)
+		return
+	}
+
+	log.Printf("Uploading %v for ISO %v, size %v checksum %v", *filePathPtr, *idPtr, isoSize, isoChecksum)
+
+	stream, err := c.UploadIso(ctx)
+	if err != nil {
+		log.Fatalf("failed to get stream: %v", err)
+		return
+	}
+
+	req := &pb.ISOImageRequest{
+		Data: &pb.ISOImageRequest_Isouploadinfo{
+			Isouploadinfo: &pb.ISOUploadInfo{
+				Isoid:     &thisisoid,
+				Size:      uint64(isoSize),
+				Sha512Sum: isoChecksum,
+			},
+		},
+	}
+
+	err = stream.Send(req)
+	if err != nil {
+		fmt.Printf("Upload iso failed: %v\n", err)
+	} else {
+		fmt.Printf("sent iso info %v\n", *idPtr)
+	}
+
+	f, err = os.Open(*filePathPtr)
+	if err != nil {
+		log.Printf("error: %v", err)
+	}
+
+	defer func(f *os.File) {
+		_ = f.Close()
+	}(f)
+
+	// actually send file
+	reader := bufio.NewReader(f)
+	buffer := make([]byte, 1024*1024)
+
+	log.Printf("Streaming: ")
+	for {
+		n, err := reader.Read(buffer)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal("cannot read chunk to buffer: ", err)
+		}
+
+		req := &pb.ISOImageRequest{
+			Data: &pb.ISOImageRequest_Image{
+				Image: buffer[:n],
+			},
+		}
+
+		err = stream.Send(req)
+		if err != nil {
+			fmt.Printf("\nsending req failed: %v\n", err)
+		} else {
+			fmt.Printf(".")
+		}
+	}
+	fmt.Printf("\n")
+
+	reply, err := stream.CloseAndRecv()
+	if err != nil {
+		fmt.Printf("cannot receive response: %v\n", err)
+	}
+	fmt.Printf("ISO Upload complete: %v\n", reply)
 }
 
 func addVmNic(name *string, c pb.VMInfoClient, ctx context.Context, descrptr *string, nettypeptr *string, netdevtypeptr *string, macPtr *string, switchIdPtr *string) {
@@ -589,7 +701,7 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 func printActionHelp() {
 	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, " +
 		"addISO, addDisk, addSwitch, addVmNic, getSwitches, getVmNics, getSwitch, getVmNic, setVmNicVm, " +
-		"setVmNicSwitch, rmSwitch, getHostNics, setSwitchUplink")
+		"setVmNicSwitch, rmSwitch, getHostNics, setSwitchUplink, uploadIso")
 }
 
 func main() {
@@ -614,6 +726,7 @@ func main() {
 	netTypePtr := flag.String("netType", "VIRTIONET", "Type of net (VIRTIONET or E1000")
 	netDevTypePtr := flag.String("netDevType", "TAP", "type of net dev (TAP, VMNET or NETGRAPH")
 	macPtr := flag.String("mac", "AUTO", "Mac address of NIC (or AUTO)")
+	filePathPtr := flag.String("filePath", "", "path to iso or disk file")
 	//maxWaitPtr := flag.Uint("maxWait", 120, "Max wait time for VM shutdown")
 	//restartPtr := flag.Bool("restart", true, "Automatically restart VM")
 	//restartDelayPtr := flag.Uint("restartDelay", 1, "How long to wait before restarting VM")
@@ -636,7 +749,8 @@ func main() {
 	c := pb.NewVMInfoClient(conn)
 
 	// Contact the server and print out its response.
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	timeout := time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	switch *actionPtr {
@@ -690,6 +804,12 @@ func main() {
 		getHostNics(c, ctx)
 	case "setSwitchUplink":
 		setSwitchUplink(c, ctx, switchIdPtr, uplinkNamePtr)
+	case "uploadIso":
+		timeout := time.Hour
+		longCtx, longCancel := context.WithTimeout(context.Background(), timeout)
+		defer longCancel()
+
+		uploadIso(c, longCtx, idPtr, filePathPtr)
 	default:
 		log.Fatalf("Action %v unknown", *actionPtr)
 	}

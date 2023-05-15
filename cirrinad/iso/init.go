@@ -11,6 +11,8 @@ type ISO struct {
 	Name        string `gorm:"not null"`
 	Description string
 	Path        string `gorm:"not null"`
+	Size        uint64
+	Checksum    string
 }
 
 func (iso *ISO) BeforeCreate(_ *gorm.DB) (err error) {

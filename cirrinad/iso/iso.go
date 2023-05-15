@@ -32,3 +32,23 @@ func GetById(id string) (result *ISO, err error) {
 	db.First(&result, "id = ?", id)
 	return result, nil
 }
+
+func (iso *ISO) Save() error {
+	db := getIsoDb()
+
+	res := db.Model(&iso).
+		Updates(map[string]interface{}{
+			"name":        &iso.Name,
+			"description": &iso.Description,
+			"path":        &iso.Path,
+			"size":        &iso.Size,
+			"checksum":    &iso.Checksum,
+		},
+		)
+
+	if res.Error != nil {
+		return errors.New("error updating iso")
+	}
+
+	return nil
+}

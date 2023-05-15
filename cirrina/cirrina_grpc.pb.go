@@ -36,6 +36,7 @@ const (
 	VMInfo_AddISO_FullMethodName             = "/cirrina.VMInfo/AddISO"
 	VMInfo_SetVmISOs_FullMethodName          = "/cirrina.VMInfo/SetVmISOs"
 	VMInfo_GetVmISOs_FullMethodName          = "/cirrina.VMInfo/GetVmISOs"
+	VMInfo_UploadIso_FullMethodName          = "/cirrina.VMInfo/UploadIso"
 	VMInfo_GetDisks_FullMethodName           = "/cirrina.VMInfo/GetDisks"
 	VMInfo_GetDiskInfo_FullMethodName        = "/cirrina.VMInfo/GetDiskInfo"
 	VMInfo_AddDisk_FullMethodName            = "/cirrina.VMInfo/AddDisk"
@@ -79,6 +80,7 @@ type VMInfoClient interface {
 	AddISO(ctx context.Context, in *ISOInfo, opts ...grpc.CallOption) (*ISOID, error)
 	SetVmISOs(ctx context.Context, in *SetISOReq, opts ...grpc.CallOption) (*ReqBool, error)
 	GetVmISOs(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmISOsClient, error)
+	UploadIso(ctx context.Context, opts ...grpc.CallOption) (VMInfo_UploadIsoClient, error)
 	GetDisks(ctx context.Context, in *DisksQuery, opts ...grpc.CallOption) (VMInfo_GetDisksClient, error)
 	GetDiskInfo(ctx context.Context, in *DiskId, opts ...grpc.CallOption) (*DiskInfo, error)
 	AddDisk(ctx context.Context, in *DiskInfo, opts ...grpc.CallOption) (*DiskId, error)
@@ -377,8 +379,42 @@ func (x *vMInfoGetVmISOsClient) Recv() (*ISOID, error) {
 	return m, nil
 }
 
+func (c *vMInfoClient) UploadIso(ctx context.Context, opts ...grpc.CallOption) (VMInfo_UploadIsoClient, error) {
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[5], VMInfo_UploadIso_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &vMInfoUploadIsoClient{stream}
+	return x, nil
+}
+
+type VMInfo_UploadIsoClient interface {
+	Send(*ISOImageRequest) error
+	CloseAndRecv() (*ReqBool, error)
+	grpc.ClientStream
+}
+
+type vMInfoUploadIsoClient struct {
+	grpc.ClientStream
+}
+
+func (x *vMInfoUploadIsoClient) Send(m *ISOImageRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *vMInfoUploadIsoClient) CloseAndRecv() (*ReqBool, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(ReqBool)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *vMInfoClient) GetDisks(ctx context.Context, in *DisksQuery, opts ...grpc.CallOption) (VMInfo_GetDisksClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[5], VMInfo_GetDisks_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[6], VMInfo_GetDisks_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -446,7 +482,7 @@ func (c *vMInfoClient) SetVmDisks(ctx context.Context, in *SetDiskReq, opts ...g
 }
 
 func (c *vMInfoClient) GetVmDisks(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmDisksClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[6], VMInfo_GetVmDisks_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[7], VMInfo_GetVmDisks_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -478,7 +514,7 @@ func (x *vMInfoGetVmDisksClient) Recv() (*DiskId, error) {
 }
 
 func (c *vMInfoClient) GetSwitches(ctx context.Context, in *SwitchesQuery, opts ...grpc.CallOption) (VMInfo_GetSwitchesClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[7], VMInfo_GetSwitches_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[8], VMInfo_GetSwitches_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -555,7 +591,7 @@ func (c *vMInfoClient) SetSwitchUplink(ctx context.Context, in *SwitchUplinkReq,
 }
 
 func (c *vMInfoClient) GetVmNicsAll(ctx context.Context, in *VmNicsQuery, opts ...grpc.CallOption) (VMInfo_GetVmNicsAllClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[8], VMInfo_GetVmNicsAll_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[9], VMInfo_GetVmNicsAll_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -641,7 +677,7 @@ func (c *vMInfoClient) SetVmNics(ctx context.Context, in *SetNicReq, opts ...grp
 }
 
 func (c *vMInfoClient) GetVmNics(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmNicsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[9], VMInfo_GetVmNics_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[10], VMInfo_GetVmNics_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -693,6 +729,7 @@ type VMInfoServer interface {
 	AddISO(context.Context, *ISOInfo) (*ISOID, error)
 	SetVmISOs(context.Context, *SetISOReq) (*ReqBool, error)
 	GetVmISOs(*VMID, VMInfo_GetVmISOsServer) error
+	UploadIso(VMInfo_UploadIsoServer) error
 	GetDisks(*DisksQuery, VMInfo_GetDisksServer) error
 	GetDiskInfo(context.Context, *DiskId) (*DiskInfo, error)
 	AddDisk(context.Context, *DiskInfo) (*DiskId, error)
@@ -770,6 +807,9 @@ func (UnimplementedVMInfoServer) SetVmISOs(context.Context, *SetISOReq) (*ReqBoo
 }
 func (UnimplementedVMInfoServer) GetVmISOs(*VMID, VMInfo_GetVmISOsServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetVmISOs not implemented")
+}
+func (UnimplementedVMInfoServer) UploadIso(VMInfo_UploadIsoServer) error {
+	return status.Errorf(codes.Unimplemented, "method UploadIso not implemented")
 }
 func (UnimplementedVMInfoServer) GetDisks(*DisksQuery, VMInfo_GetDisksServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetDisks not implemented")
@@ -1163,6 +1203,32 @@ type vMInfoGetVmISOsServer struct {
 
 func (x *vMInfoGetVmISOsServer) Send(m *ISOID) error {
 	return x.ServerStream.SendMsg(m)
+}
+
+func _VMInfo_UploadIso_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(VMInfoServer).UploadIso(&vMInfoUploadIsoServer{stream})
+}
+
+type VMInfo_UploadIsoServer interface {
+	SendAndClose(*ReqBool) error
+	Recv() (*ISOImageRequest, error)
+	grpc.ServerStream
+}
+
+type vMInfoUploadIsoServer struct {
+	grpc.ServerStream
+}
+
+func (x *vMInfoUploadIsoServer) SendAndClose(m *ReqBool) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *vMInfoUploadIsoServer) Recv() (*ISOImageRequest, error) {
+	m := new(ISOImageRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func _VMInfo_GetDisks_Handler(srv interface{}, stream grpc.ServerStream) error {
@@ -1681,6 +1747,11 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "GetVmISOs",
 			Handler:       _VMInfo_GetVmISOs_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "UploadIso",
+			Handler:       _VMInfo_UploadIso_Handler,
+			ClientStreams: true,
 		},
 		{
 			StreamName:    "GetDisks",
