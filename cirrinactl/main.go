@@ -48,7 +48,7 @@ func addVM(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *st
 	fmt.Printf("Created VM %v\n", res.Value)
 }
 
-func addISO(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *string, pathPtr *string) {
+func addISO(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *string) {
 	if *namePtr == "" {
 		log.Fatalf("Name not specified")
 		return
@@ -56,7 +56,6 @@ func addISO(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *s
 	res, err := c.AddISO(ctx, &pb.ISOInfo{
 		Name:        namePtr,
 		Description: descrPtr,
-		Path:        pathPtr,
 	})
 	if err != nil {
 		log.Fatalf("could not create ISO: %v", err)
@@ -733,7 +732,6 @@ func main() {
 	//screenPtr := flag.Bool("screen", true, "Should the VM have a screen (frame buffer)")
 	//screenWidthPtr := flag.Uint("screenWidth", 1920, "Width of VM screen")
 	//screenHeightPtr := flag.Uint(screenHeight, 1080, "Height of VM screen")
-	pathPtr := flag.String("path", "", "path of ISO")
 
 	flag.Parse()
 	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
@@ -779,7 +777,7 @@ func main() {
 	case "addVM":
 		addVM(namePtr, c, ctx, descrPtr, cpu32Ptr, mem32Ptr)
 	case "addISO":
-		addISO(namePtr, c, ctx, descrPtr, pathPtr)
+		addISO(namePtr, c, ctx, descrPtr)
 	case "addDisk":
 		addDisk(namePtr, c, ctx, descrPtr, sizePtr)
 	case "addSwitch":

@@ -36,10 +36,6 @@ message VMID {
   string value = 1;
 }
 
-message ISOID {
-  string value = 1;
-}
-
 message DiskId {
   string value = 1;
 }
@@ -80,12 +76,6 @@ message SwitchUplinkReq {
 message KbdLayout {
   string name = 1;
   string description = 2;
-}
-
-message ISOInfo {
-  optional string name = 1;
-  optional string description = 2;
-  optional string path = 3;
 }
 
 message DiskInfo {
@@ -216,6 +206,15 @@ message VMState {
 
 message ReqBool {
   bool success = 1;
+}
+
+message ISOID {
+  string value = 1;
+}
+
+message ISOInfo {
+  optional string name = 1;
+  optional string description = 2;
 }
 
 message ISOUploadInfo {

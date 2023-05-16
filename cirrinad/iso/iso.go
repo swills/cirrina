@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func Create(name string, description string, path string) (iso *ISO, err error) {
+func Create(name string, description string) (iso *ISO, err error) {
 	var isoInst *ISO
 	if strings.Contains(name, "/") {
 		return isoInst, errors.New("illegal character in ISO name")
@@ -13,7 +13,6 @@ func Create(name string, description string, path string) (iso *ISO, err error) 
 	isoInst = &ISO{
 		Name:        name,
 		Description: description,
-		Path:        path,
 	}
 	db := getIsoDb()
 	res := db.Create(&isoInst)

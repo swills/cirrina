@@ -52,7 +52,7 @@ func (s *server) AddISO(_ context.Context, i *cirrina.ISOInfo) (*cirrina.ISOID, 
 	//}
 	//defer vm.List.Mu.Unlock()
 	//vm.List.Mu.Lock()
-	isoInst, err := iso.Create(*i.Name, *i.Description, *i.Path)
+	isoInst, err := iso.Create(*i.Name, *i.Description)
 	if err != nil {
 		return &cirrina.ISOID{}, err
 	}
@@ -146,6 +146,10 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 	} else {
 		slog.Debug("UploadIso", "msg", "image checksum correct")
 		isoInst.Checksum = isoChecksum
+	}
+
+	if isoInst.Name == "" {
+		slog.Error("Name is empty")
 	}
 
 	if isoInst.Path == "" {
