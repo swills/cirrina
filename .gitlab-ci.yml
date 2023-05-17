@@ -7,6 +7,10 @@ cirranad:
     - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mouf.net/swills/go-supervisor.git go-supervisor
     - cd cirrinad
     - go build .
+  artifacts:
+    name: cirrinad-"$CI_COMMIT_REF_NAME"
+    paths:
+      - ./cirrinad/cirrinad
 
 cirranactl:
   stage: build
@@ -15,3 +19,7 @@ cirranactl:
   script:
     - cd cirrinactl
     - go build .
+  artifacts:
+    name: cirrinactl-"$CI_COMMIT_REF_NAME"
+    paths:
+      - ./cirrinactl/cirrinactl
