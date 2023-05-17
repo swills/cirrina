@@ -248,6 +248,7 @@ service VMInfo {
   rpc GetISOs(ISOsQuery) returns (stream ISOID);
   rpc GetISOInfo(ISOID) returns (ISOInfo);
   rpc AddISO(ISOInfo) returns (ISOID);
+  rpc RemoveISO(ISOID) returns (ReqBool);
   rpc SetVmISOs(SetISOReq) returns (ReqBool);
   rpc GetVmISOs(VMID) returns (stream ISOID);
   rpc UploadIso(stream ISOImageRequest) returns (ReqBool);

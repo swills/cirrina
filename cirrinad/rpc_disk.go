@@ -60,6 +60,12 @@ func (s *server) RemoveDisk(_ context.Context, i *cirrina.DiskId) (*cirrina.ReqB
 		return &re, errors.New("disk id must be specified")
 	}
 
+	_, err := disk.GetById(i.Value)
+	if err != nil {
+		slog.Debug("error getting disk, does not exist", "disk", i.Value, "err", err)
+		return &re, err
+	}
+
 	// check that disk is not in use by a VM
 	allVMs := vm.GetAll()
 	for _, thisVm := range allVMs {

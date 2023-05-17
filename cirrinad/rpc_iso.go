@@ -5,10 +5,12 @@ import (
 	"cirrina/cirrina"
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/iso"
+	"cirrina/cirrinad/vm"
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"golang.org/x/exp/slog"
 	"io"
 	"os"
@@ -46,21 +48,13 @@ func (s *server) GetISOInfo(_ context.Context, i *cirrina.ISOID) (*cirrina.ISOIn
 }
 
 func (s *server) AddISO(_ context.Context, i *cirrina.ISOInfo) (*cirrina.ISOID, error) {
-	//if _, err := iso.GetByName(*isoInfo.Name); err == nil {
-	//	return &cirrina.ISOID{}, errors.New(fmt.Sprintf("%v already exists", v.Name))
-	//
-	//}
-	//defer vm.List.Mu.Unlock()
-	//vm.List.Mu.Lock()
 	isoInst, err := iso.Create(*i.Name, *i.Description)
 	if err != nil {
 		return &cirrina.ISOID{}, err
 	}
-	//iso.List.VmList[vmInst.ID] = vmInst
 	return &cirrina.ISOID{Value: isoInst.ID}, nil
 }
 
-// func (s *server) UploadIso(_ context.Context, iir *cirrina.ISOImageRequest) (*cirrina.ReqBool, error) {
 func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 	var re cirrina.ReqBool
 	re.Success = false
@@ -189,4 +183,54 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 
 	return nil
 
+}
+
+func (s *server) RemoveISO(_ context.Context, i *cirrina.ISOID) (*cirrina.ReqBool, error) {
+	re := cirrina.ReqBool{}
+	re.Success = false
+
+	slog.Debug("GetISOInfo", "iso", i.Value)
+	if i.Value == "" {
+		return &re, errors.New("ISO id must be specified")
+	}
+
+	_, err := iso.GetById(i.Value)
+	if err != nil {
+		slog.Debug("error getting iso", "iso", i.Value, "err", err)
+		return &re, err
+	}
+
+	// check that iso is not in use by a VM
+	allVMs := vm.GetAll()
+	for _, thisVm := range allVMs {
+		slog.Debug("vm checks", "vm", thisVm)
+		thisVmISOs, err := thisVm.GetISOs()
+		if err != nil {
+			return &re, err
+		}
+		for _, vmISO := range thisVmISOs {
+			if vmISO.ID == i.Value {
+				slog.Error("RemoveISO",
+					"msg", "tried to remove ISO in use by VM",
+					"isoid", i.Value,
+					"vm", thisVm.ID,
+					"vmname", thisVm.Name,
+				)
+				errorText := fmt.Sprintf("ISO in use by VM %v (%v)", thisVm.ID, thisVm.Name)
+				return &re, errors.New(errorText)
+			}
+		}
+	}
+
+	res := iso.Delete(i.Value)
+	if res != nil {
+		slog.Error("error deleting iso", "res", res)
+		errorText := fmt.Sprintf("error deleting iso: %v", err)
+		return &re, errors.New(errorText)
+	}
+
+	// TODO dare we actually delete data from disk?
+
+	re.Success = true
+	return &re, nil
 }

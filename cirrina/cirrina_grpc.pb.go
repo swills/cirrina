@@ -34,6 +34,7 @@ const (
 	VMInfo_GetISOs_FullMethodName            = "/cirrina.VMInfo/GetISOs"
 	VMInfo_GetISOInfo_FullMethodName         = "/cirrina.VMInfo/GetISOInfo"
 	VMInfo_AddISO_FullMethodName             = "/cirrina.VMInfo/AddISO"
+	VMInfo_RemoveISO_FullMethodName          = "/cirrina.VMInfo/RemoveISO"
 	VMInfo_SetVmISOs_FullMethodName          = "/cirrina.VMInfo/SetVmISOs"
 	VMInfo_GetVmISOs_FullMethodName          = "/cirrina.VMInfo/GetVmISOs"
 	VMInfo_UploadIso_FullMethodName          = "/cirrina.VMInfo/UploadIso"
@@ -78,6 +79,7 @@ type VMInfoClient interface {
 	GetISOs(ctx context.Context, in *ISOsQuery, opts ...grpc.CallOption) (VMInfo_GetISOsClient, error)
 	GetISOInfo(ctx context.Context, in *ISOID, opts ...grpc.CallOption) (*ISOInfo, error)
 	AddISO(ctx context.Context, in *ISOInfo, opts ...grpc.CallOption) (*ISOID, error)
+	RemoveISO(ctx context.Context, in *ISOID, opts ...grpc.CallOption) (*ReqBool, error)
 	SetVmISOs(ctx context.Context, in *SetISOReq, opts ...grpc.CallOption) (*ReqBool, error)
 	GetVmISOs(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmISOsClient, error)
 	UploadIso(ctx context.Context, opts ...grpc.CallOption) (VMInfo_UploadIsoClient, error)
@@ -332,6 +334,15 @@ func (c *vMInfoClient) GetISOInfo(ctx context.Context, in *ISOID, opts ...grpc.C
 func (c *vMInfoClient) AddISO(ctx context.Context, in *ISOInfo, opts ...grpc.CallOption) (*ISOID, error) {
 	out := new(ISOID)
 	err := c.cc.Invoke(ctx, VMInfo_AddISO_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vMInfoClient) RemoveISO(ctx context.Context, in *ISOID, opts ...grpc.CallOption) (*ReqBool, error) {
+	out := new(ReqBool)
+	err := c.cc.Invoke(ctx, VMInfo_RemoveISO_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -727,6 +738,7 @@ type VMInfoServer interface {
 	GetISOs(*ISOsQuery, VMInfo_GetISOsServer) error
 	GetISOInfo(context.Context, *ISOID) (*ISOInfo, error)
 	AddISO(context.Context, *ISOInfo) (*ISOID, error)
+	RemoveISO(context.Context, *ISOID) (*ReqBool, error)
 	SetVmISOs(context.Context, *SetISOReq) (*ReqBool, error)
 	GetVmISOs(*VMID, VMInfo_GetVmISOsServer) error
 	UploadIso(VMInfo_UploadIsoServer) error
@@ -801,6 +813,9 @@ func (UnimplementedVMInfoServer) GetISOInfo(context.Context, *ISOID) (*ISOInfo, 
 }
 func (UnimplementedVMInfoServer) AddISO(context.Context, *ISOInfo) (*ISOID, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddISO not implemented")
+}
+func (UnimplementedVMInfoServer) RemoveISO(context.Context, *ISOID) (*ReqBool, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveISO not implemented")
 }
 func (UnimplementedVMInfoServer) SetVmISOs(context.Context, *SetISOReq) (*ReqBool, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetVmISOs not implemented")
@@ -1162,6 +1177,24 @@ func _VMInfo_AddISO_Handler(srv interface{}, ctx context.Context, dec func(inter
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(VMInfoServer).AddISO(ctx, req.(*ISOInfo))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VMInfo_RemoveISO_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ISOID)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).RemoveISO(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_RemoveISO_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).RemoveISO(ctx, req.(*ISOID))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1656,6 +1689,10 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddISO",
 			Handler:    _VMInfo_AddISO_Handler,
+		},
+		{
+			MethodName: "RemoveISO",
+			Handler:    _VMInfo_RemoveISO_Handler,
 		},
 		{
 			MethodName: "SetVmISOs",
