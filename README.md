@@ -36,11 +36,14 @@ This probably won't work for you:
 * Set it's uplink
   * `./cirrinactl -action setSwitchUplink -switchId switchuuid -uplinkName "em0"`
 * Add an iso for your VM to use:
-  * `./cirrinactl -action addISO -name something.iso -path /path/to/something.iso`
+  * `./cirrinactl -action addISO -name something.iso`
+  * `./cirrinactl -action uploadIso -id isoid -filePath /some/file/path.iso`
+  * Or use the GUI (weasel)
 * Add a disk for a VM:
   * `./cirrinactl -action addDisk -name something -descr 'a disk' -size 8g`
 * Add a NIC for a VM:
   * `./cirrinactl -action addVmNic -name something_int0 -switchId switchuuid`
+  * Or use the GUI (weasel)
 * Add a VM:
   * `./cirrinactl -action addVM -name something`
 * Start weasel
