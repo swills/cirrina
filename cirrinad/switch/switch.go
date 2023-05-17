@@ -171,7 +171,8 @@ func BridgeIfAddMember(bridgeName string, memberName string) error {
 	}
 	if err := cmd.Wait(); err != nil {
 		slog.Error("failed running ifconfig", "err", err, "out", out)
-		return errors.New("ifconfig failed")
+		errtxt := fmt.Sprintf("ifconfig failed: err: %v, out: %v", err, out)
+		return errors.New(errtxt)
 	}
 	return nil
 }
