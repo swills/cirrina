@@ -41,6 +41,7 @@ This probably won't work for you:
   * Or use the GUI (weasel)
 * Add a disk for a VM:
   * `./cirrinactl -action addDisk -name something -descr 'a disk' -size 8g`
+  * Or use the GUI (weasel)
 * Add a NIC for a VM:
   * `./cirrinactl -action addVmNic -name something_int0 -switchId switchuuid`
   * Or use the GUI (weasel)
