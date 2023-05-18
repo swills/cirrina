@@ -87,3 +87,4 @@ This probably won't work for you:
   * Add VNC recording
   * OVA import/export
   * AWS and/or other cloud import/export/interoperability
+  * Build TUI with [Bubbletea](https://github.com/charmbracelet/bubbletea)
