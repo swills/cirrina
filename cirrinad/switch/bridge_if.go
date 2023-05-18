@@ -121,32 +121,6 @@ func actualIfBridgeCreate(name string) error {
 	return nil
 }
 
-func deleteIfBridge(name string, cleanup bool) error {
-	// TODO allow other bridge names
-	if !strings.HasPrefix(name, "bridge") {
-		slog.Error("invalid bridge name", "name", name)
-		return errors.New("invalid bridge name")
-	}
-	if cleanup {
-		err := bridgeIfDeleteAllMembers(name)
-		if err != nil {
-			return err
-		}
-	}
-	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", name, "destroy")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	if err := cmd.Start(); err != nil {
-		return err
-	}
-	if err := cmd.Wait(); err != nil {
-		slog.Error("failed running ifconfig", "err", err, "out", out)
-		return err
-	}
-	return nil
-
-}
-
 func bridgeIfDeleteAllMembers(name string) error {
 	bridgeMembers, err := getIfBridgeMembers(name)
 	slog.Debug("deleting all if bridge members", "bridge", name, "members", bridgeMembers)

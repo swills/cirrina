@@ -13,8 +13,12 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 
 	if *i.SwitchType == cirrina.SwitchType_IF {
 		switchType = "IF"
+		// TODO check that same uplink isn't used for another switch of same type
+		// TODO check that name has proper prefix for type
 	} else if *i.SwitchType == cirrina.SwitchType_NG {
 		switchType = "NG"
+		// TODO check that same uplink isn't used for another switch of same type
+		// TODO check that name has proper prefix for type
 	} else {
 		return &cirrina.SwitchId{}, errors.New("invalid switch type")
 	}
@@ -24,12 +28,22 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 		return &cirrina.SwitchId{}, err
 	}
 	if switchInst != nil && switchInst.ID != "" {
-		slog.Debug("creating if bridge", "name", switchInst.Name)
-		err := _switch.BuildIfBridge(switchInst)
-		if err != nil {
-			slog.Error("error creating if bridge", "err", err)
-			// already created in db, so ignore system state and proceed on...
-			return &cirrina.SwitchId{Value: switchInst.ID}, nil
+		if switchInst.Type == "IF" {
+			slog.Debug("creating if bridge", "name", switchInst.Name)
+			err := _switch.BuildIfBridge(switchInst)
+			if err != nil {
+				slog.Error("error creating if bridge", "err", err)
+				// already created in db, so ignore system state and proceed on...
+				return &cirrina.SwitchId{Value: switchInst.ID}, nil
+			}
+		} else if switchInst.Type == "NG" {
+			slog.Debug("creating ng bridge", "name", switchInst.Name)
+			err := _switch.BuildNgBridge(switchInst)
+			if err != nil {
+				slog.Error("error creating ng bridge", "err", err)
+				// already created in db, so ignore system state and proceed on...
+				return &cirrina.SwitchId{Value: switchInst.ID}, nil
+			}
 		}
 		return &cirrina.SwitchId{Value: switchInst.ID}, nil
 	} else {
@@ -83,8 +97,25 @@ func (s *server) RemoveSwitch(_ context.Context, si *cirrina.SwitchId) (*cirrina
 	var re cirrina.ReqBool
 	re.Success = false
 
+	switchInst, err := _switch.GetById(si.Value)
+	if err != nil {
+		return &re, errors.New("not foudn")
+	}
+	if switchInst.Type == "IF" {
+		err := _switch.DestroyIfBridge(switchInst.Name, true)
+		if err != nil {
+			return &re, err
+		}
+	} else if switchInst.Type == "NG" {
+		err := _switch.DestroyNgBridge(switchInst.Name)
+		if err != nil {
+			return &re, err
+		}
+	} else {
+		return &re, errors.New("invalid switch type")
+	}
 	slog.Debug("RemoveSwitch", "switchid", si.Value)
-	err := _switch.Delete(si.Value)
+	err = _switch.Delete(si.Value)
 	if err != nil {
 		return &re, err
 	}

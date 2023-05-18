@@ -138,13 +138,13 @@ func DestroyBridges() {
 		slog.Debug("destroying bridge", "num", num, "bridge", bridge.Name)
 		if bridge.Type == "IF" {
 			slog.Debug("destroying if bridge", "name", bridge.Name)
-			err := deleteIfBridge(bridge.Name, true)
+			err := DestroyIfBridge(bridge.Name, true)
 			if err != nil {
 				slog.Debug("error destroying if bridge", "err", err)
 			}
 		} else if bridge.Type == "NG" {
 			slog.Debug("destroying ng bridge", "name", bridge.Name)
-			err := ngDestroyBridge(bridge.Name)
+			err := DestroyNgBridge(bridge.Name)
 			if err != nil {
 				slog.Debug("error destroying if bridge", "err", err)
 			}
@@ -190,7 +190,6 @@ func BuildNgBridge(switchInst *Switch) error {
 
 	err := createNgBridgeWithMembers(switchInst.Name, members)
 	return err
-
 }
 
 func BuildIfBridge(switchInst *Switch) error {
@@ -203,7 +202,6 @@ func BuildIfBridge(switchInst *Switch) error {
 		}
 		members = append(members, member)
 	}
-
 	err := createIfBridgeWithMembers(switchInst.Name, members)
 	return err
 }
@@ -341,6 +339,46 @@ func BridgeNgAddMember(bridgeName string, memberName string) error {
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("ngctl connect error", "err", err)
+		return err
+	}
+	return nil
+}
+
+func DestroyIfBridge(name string, cleanup bool) error {
+	// TODO allow other bridge names
+	if !strings.HasPrefix(name, "bridge") {
+		slog.Error("invalid bridge name", "name", name)
+		return errors.New("invalid bridge name")
+	}
+	if cleanup {
+		err := bridgeIfDeleteAllMembers(name)
+		if err != nil {
+			return err
+		}
+	}
+	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", name, "destroy")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	if err := cmd.Wait(); err != nil {
+		slog.Error("failed running ifconfig", "err", err, "out", out)
+		return err
+	}
+	return nil
+
+}
+
+func DestroyNgBridge(netDev string) (err error) {
+	if netDev == "" {
+		return errors.New("netDev can't be empty")
+	}
+	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
+		netDev+":", "shutdown")
+	err = cmd.Run()
+	if err != nil {
+		slog.Error("ngctl msg error", "err", err)
 		return err
 	}
 	return nil

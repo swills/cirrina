@@ -271,26 +271,12 @@ func actualNgBridgeCreate(netDev string) error {
 	}
 
 	// and delete our dummy if_bridge
-	err = deleteIfBridge(dummyIfBridgeName, false)
+	err = DestroyIfBridge(dummyIfBridgeName, false)
 	if err != nil {
 		slog.Error("dummy if_bridge deletion error", "err", err)
 		return err
 	}
 
-	return nil
-}
-
-func ngDestroyBridge(netDev string) (err error) {
-	if netDev == "" {
-		return errors.New("netDev can't be empty")
-	}
-	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
-		netDev+":", "shutdown")
-	err = cmd.Run()
-	if err != nil {
-		slog.Error("ngctl msg error", "err", err)
-		return err
-	}
 	return nil
 }
 

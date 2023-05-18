@@ -33,8 +33,10 @@ This probably won't work for you:
   * `go build ./...`
 * Create a switch
   * `./cirrinactl -action addSwitch -name bridge0`
+  * Or use the GUI (weasel)
 * Set it's uplink
   * `./cirrinactl -action setSwitchUplink -switchId switchuuid -uplinkName "em0"`
+  * Or use the GUI (weasel)
 * Add an iso for your VM to use:
   * `./cirrinactl -action addISO -name something.iso`
   * `./cirrinactl -action uploadIso -id isoid -filePath /some/file/path.iso`
