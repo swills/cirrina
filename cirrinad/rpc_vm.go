@@ -320,6 +320,7 @@ func (s *server) AddVM(_ context.Context, v *cirrina.VMConfig) (*cirrina.VMID, e
 	defer vm.List.Mu.Unlock()
 	vm.List.Mu.Lock()
 	vmInst, err := vm.Create(*v.Name, *v.Description, *v.Cpu, *v.Mem)
+	vm.InitOneVm(vmInst)
 	slog.Debug("Created VM", "vm", vmInst.ID)
 	if err != nil {
 		return &cirrina.VMID{}, err

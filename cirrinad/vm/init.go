@@ -117,36 +117,40 @@ func init() {
 
 	List.Mu.Lock()
 	for _, vmInst := range GetAll() {
-		vmLogPath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name
-		err := getVmLogPath(vmLogPath)
-		if err != nil {
-			panic(err)
-		}
-		vmLogFilePath := vmLogPath + "/log"
-		vmLogFile, err := os.OpenFile(vmLogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			slog.Error("failed to open VM log file", "err", err)
-		}
-		var programLevel = new(slog.LevelVar) // Info by default
-		vmLogger := slog.New(slog.HandlerOptions{Level: programLevel}.NewTextHandler(vmLogFile))
-
-		vmInst.log = *vmLogger
-
-		if config.Config.Log.Level == "info" {
-			vmInst.log.Info("log level set to info")
-			programLevel.Set(slog.LevelInfo)
-		} else if config.Config.Log.Level == "debug" {
-			vmInst.log.Info("log level set to debug")
-			programLevel.Set(slog.LevelDebug)
-		} else {
-			programLevel.Set(slog.LevelInfo)
-			vmInst.log.Info("log level not set or un-parseable, setting to info")
-		}
-
-		List.VmList[vmInst.ID] = vmInst
-		vmInst.log.Debug("vm init", "id", vmInst.ID, "isos", vmInst.Config.ISOs, "disks", vmInst.Config.Disks)
+		InitOneVm(vmInst)
 	}
 	List.Mu.Unlock()
+}
+
+func InitOneVm(vmInst *VM) {
+	vmLogPath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name
+	err := getVmLogPath(vmLogPath)
+	if err != nil {
+		panic(err)
+	}
+	vmLogFilePath := vmLogPath + "/log"
+	vmLogFile, err := os.OpenFile(vmLogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		slog.Error("failed to open VM log file", "err", err)
+	}
+	var programLevel = new(slog.LevelVar) // Info by default
+	vmLogger := slog.New(slog.HandlerOptions{Level: programLevel}.NewTextHandler(vmLogFile))
+
+	vmInst.log = *vmLogger
+
+	if config.Config.Log.Level == "info" {
+		vmInst.log.Info("log level set to info")
+		programLevel.Set(slog.LevelInfo)
+	} else if config.Config.Log.Level == "debug" {
+		vmInst.log.Info("log level set to debug")
+		programLevel.Set(slog.LevelDebug)
+	} else {
+		programLevel.Set(slog.LevelInfo)
+		vmInst.log.Info("log level not set or un-parseable, setting to info")
+	}
+
+	List.VmList[vmInst.ID] = vmInst
+	vmInst.log.Debug("vm init", "id", vmInst.ID, "isos", vmInst.Config.ISOs, "disks", vmInst.Config.Disks)
 }
 
 func AutoStartVMs() {
