@@ -150,8 +150,11 @@ func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq)
 			}
 		}
 	} else {
-		if err = switchInst.SetUplink(uplink); err != nil {
-			return &r, err
+		if switchInst.Uplink != uplink {
+			slog.Debug("SetSwitchUplink", "msg", "setting switch uplink", "switchInst", switchInst)
+			if err = switchInst.SetUplink(uplink); err != nil {
+				return &r, err
+			}
 		}
 	}
 	r.Success = true
