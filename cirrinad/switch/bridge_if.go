@@ -44,7 +44,7 @@ func getAllIfBridges() (bridges []string, err error) {
 	return r, nil
 }
 
-func getIfBridgeMembers(name string) (members []string, err error) {
+func GetIfBridgeMembers(name string) (members []string, err error) {
 	args := []string{name}
 	cmd := exec.Command("/sbin/ifconfig", args...)
 	defer func(cmd *exec.Cmd) {
@@ -122,7 +122,7 @@ func actualIfBridgeCreate(name string) error {
 }
 
 func bridgeIfDeleteAllMembers(name string) error {
-	bridgeMembers, err := getIfBridgeMembers(name)
+	bridgeMembers, err := GetIfBridgeMembers(name)
 	slog.Debug("deleting all if bridge members", "bridge", name, "members", bridgeMembers)
 	if err != nil {
 		return err

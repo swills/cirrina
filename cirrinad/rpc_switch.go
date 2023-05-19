@@ -5,6 +5,7 @@ import (
 	_switch "cirrina/cirrinad/switch"
 	"errors"
 	"golang.org/x/exp/slog"
+	"strings"
 )
 import "context"
 
@@ -14,11 +15,19 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 	if *i.SwitchType == cirrina.SwitchType_IF {
 		switchType = "IF"
 		// TODO check that same uplink isn't used for another switch of same type
-		// TODO check that name has proper prefix for type
+		if !strings.HasPrefix(*i.Name, "bridge") {
+			slog.Error("invalid bridge name", "name", *i.Name)
+			return &cirrina.SwitchId{Value: ""}, errors.New("invalid bridge name, bridge name must start with \"bridge\"")
+		}
+
 	} else if *i.SwitchType == cirrina.SwitchType_NG {
 		switchType = "NG"
 		// TODO check that same uplink isn't used for another switch of same type
-		// TODO check that name has proper prefix for type
+		if !strings.HasPrefix(*i.Name, "bnet") {
+			slog.Error("invalid bridge name", "name", *i.Name)
+			return &cirrina.SwitchId{Value: ""}, errors.New("invalid bridge name, bridge name must start with \"bnet\"")
+		}
+
 	} else {
 		return &cirrina.SwitchId{}, errors.New("invalid switch type")
 	}
@@ -134,10 +143,12 @@ func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq)
 		return &r, err
 	}
 	if uplink == "" {
-		if err = switchInst.UnsetUplink(); err != nil {
-			return &r, err
+		if switchInst.Uplink != "" {
+			slog.Debug("SetSwitchUplink", "msg", "unsetting switch uplink", "switchInst", switchInst)
+			if err = switchInst.UnsetUplink(); err != nil {
+				return &r, err
+			}
 		}
-
 	} else {
 		if err = switchInst.SetUplink(uplink); err != nil {
 			return &r, err
