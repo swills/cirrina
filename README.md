@@ -49,6 +49,7 @@ This probably won't work for you:
   * Or use the GUI (weasel)
 * Add a VM:
   * `./cirrinactl -action addVM -name something`
+  * Or use the GUI (weasel)
 * Start weasel
   * select VM, click edit, add disk, iso and nic to VM
   * start VM
