@@ -62,7 +62,7 @@ func parseDiskSize(size string) (sizeBytes uint64, err error) {
 	return r, nil
 }
 
-func Create(name string, description string, size string) (disk *Disk, err error) {
+func Create(name string, description string, size string, diskType string) (disk *Disk, err error) {
 	var diskInst *Disk
 	if strings.Contains(name, "/") {
 		return diskInst, errors.New("illegal character in disk name")
@@ -97,6 +97,11 @@ func Create(name string, description string, size string) (disk *Disk, err error
 		diskSize, err = parseDiskSize(size)
 	}
 
+	if diskType != "NVME" && diskType != "AHCI-HD" && diskType != "VIRTIO-BLK" {
+		slog.Error("disk create", "msg", "invalid disk type", "diskType", diskType)
+		return diskInst, err
+	}
+
 	args := []string{"/usr/bin/truncate", "-s", strconv.FormatUint(diskSize, 10), path}
 	slog.Debug("creating disk", "path", path, "size", diskSize, "args", args)
 	cmd := exec.Command(config.Config.Sys.Sudo, args...)
@@ -109,6 +114,7 @@ func Create(name string, description string, size string) (disk *Disk, err error
 		Name:        name + ".img",
 		Description: description,
 		Path:        path,
+		Type:        diskType,
 	}
 	db := getDiskDb()
 	res := db.Create(&diskInst)

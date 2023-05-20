@@ -303,15 +303,34 @@ func rmVmNic(idPtr *string, c pb.VMInfoClient, ctx context.Context) {
 	}
 }
 
-func addDisk(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *string, sizePtr *string) {
+func addDisk(namePtr *string, c pb.VMInfoClient, ctx context.Context, descrPtr *string, sizePtr *string, diskTypePtr *string) {
+	var thisDiskType pb.DiskType
+
 	if *namePtr == "" {
 		log.Fatalf("Name not specified")
 		return
 	}
+
+	if *diskTypePtr == "" {
+		log.Fatalf("Disk type not specified")
+		return
+	}
+	if *diskTypePtr == "NVME" {
+		thisDiskType = pb.DiskType_NVME
+	} else if *diskTypePtr == "AHCI" {
+		thisDiskType = pb.DiskType_AHCIHD
+	} else if *diskTypePtr == "VIRTIOBLK" {
+		thisDiskType = pb.DiskType_VIRTIOBLK
+	} else {
+		log.Fatalf("Invalid disk type specified")
+		return
+	}
+
 	res, err := c.AddDisk(ctx, &pb.DiskInfo{
 		Name:        namePtr,
 		Description: descrPtr,
 		Size:        sizePtr,
+		DiskType:    &thisDiskType,
 	})
 	if err != nil {
 		log.Fatalf("could not create Disk: %v", err)
@@ -724,6 +743,7 @@ func main() {
 	autoStartPtr := flag.Bool("autostart", false, "automatically start the VM")
 	netTypePtr := flag.String("netType", "VIRTIONET", "Type of net (VIRTIONET or E1000")
 	netDevTypePtr := flag.String("netDevType", "TAP", "type of net dev (TAP, VMNET or NETGRAPH")
+	diskTypePtr := flag.String("diskType", "NVME", "Type of disk dev (NVME, AHCIHD, or VIRTIOBLK")
 	macPtr := flag.String("mac", "AUTO", "Mac address of NIC (or AUTO)")
 	filePathPtr := flag.String("filePath", "", "path to iso or disk file")
 	//maxWaitPtr := flag.Uint("maxWait", 120, "Max wait time for VM shutdown")
@@ -779,7 +799,7 @@ func main() {
 	case "addISO":
 		addISO(namePtr, c, ctx, descrPtr)
 	case "addDisk":
-		addDisk(namePtr, c, ctx, descrPtr, sizePtr)
+		addDisk(namePtr, c, ctx, descrPtr, sizePtr, diskTypePtr)
 	case "addSwitch":
 		addSwitch(namePtr, c, ctx, descrPtr, switchTypePtr)
 	case "rmSwitch":

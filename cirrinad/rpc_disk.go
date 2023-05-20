@@ -24,8 +24,17 @@ func (s *server) GetDisks(_ *cirrina.DisksQuery, stream cirrina.VMInfo_GetDisksS
 }
 
 func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskId, error) {
+	var diskType string
 
-	diskInst, err := disk.Create(*i.Name, *i.Description, *i.Size)
+	if *i.DiskType == cirrina.DiskType_NVME {
+		diskType = "NVME"
+	} else if *i.DiskType == cirrina.DiskType_AHCIHD {
+		diskType = "AHCI-HD"
+	} else if *i.DiskType == cirrina.DiskType_VIRTIOBLK {
+		diskType = "VIRTIO-BLK"
+	}
+
+	diskInst, err := disk.Create(*i.Name, *i.Description, *i.Size, diskType)
 	if err != nil {
 		return &cirrina.DiskId{}, err
 	}
