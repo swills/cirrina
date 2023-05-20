@@ -25,6 +25,11 @@ func (s *server) GetDisks(_ *cirrina.DisksQuery, stream cirrina.VMInfo_GetDisksS
 
 func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskId, error) {
 	var diskType string
+	defaultDiskType := cirrina.DiskType_NVME
+
+	if i.DiskType == nil {
+		i.DiskType = &defaultDiskType
+	}
 
 	if *i.DiskType == cirrina.DiskType_NVME {
 		diskType = "NVME"
