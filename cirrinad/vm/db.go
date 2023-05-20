@@ -74,16 +74,19 @@ func setStopped(id string) {
 	vm.Status = STOPPED
 	vm.VNCPort = 0
 	vm.BhyvePid = 0
+	vm.ComDevs = ""
 	res := db.Select([]string{
 		"status",
 		"net_dev",
 		"vnc_port",
 		"bhyve_pid",
+		"com_devs",
 	}).Model(&vm).
 		Updates(map[string]interface{}{
 			"status":    &vm.Status,
 			"vnc_port":  &vm.VNCPort,
 			"bhyve_pid": &vm.BhyvePid,
+			"com_devs":  &vm.ComDevs,
 		})
 	if res.Error != nil {
 		slog.Error("error saving VM stopped", "err", res.Error)
@@ -107,5 +110,10 @@ func setStopping(id string) {
 
 func (vm *VM) setVNCPort(port int) {
 	vm.VNCPort = int32(port)
+	_ = vm.Save()
+}
+
+func (vm *VM) setComPorts(ports string) {
+	vm.ComDevs = ports
 	_ = vm.Save()
 }

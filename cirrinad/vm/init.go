@@ -74,6 +74,7 @@ type VM struct {
 	Status      StatusType `gorm:"type:status_type"`
 	BhyvePid    uint32     `gorm:"check:bhyve_pid>=0"`
 	VNCPort     int32
+	ComDevs     string
 	Config      Config
 	proc        *supervisor.Process
 	mu          sync.Mutex

@@ -427,7 +427,7 @@ func getNmdmNum(offset int) (nmdm string, err error) {
 		}
 	}
 	sort.Strings(nmdmDevs)
-	slog.Debug("getNmdmNum", "nmdmDevs", nmdmDevs)
+	//slog.Debug("getNmdmNum", "nmdmDevs", nmdmDevs)
 	if len(nmdmDevs) == 0 {
 		nmdmDev = "/dev/nmdm" + strconv.Itoa(offset) + "A"
 	} else {
@@ -455,6 +455,7 @@ func getCom(comDev string, nmdmOffset int, num int) (int, []string, string) {
 	} else {
 		nmdm = comDev
 	}
+	slog.Debug("getCom", "nmdm", nmdm)
 	comArg = append(comArg, "-l", "com"+strconv.Itoa(num)+","+nmdm)
 	return nmdmOffset, comArg, nmdm
 }
@@ -468,6 +469,10 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	var com3Arg []string
 	var com4Arg []string
 	var cdArg []string
+	com1Dev := ""
+	com2Dev := ""
+	com3Dev := ""
+	com4Dev := ""
 	cpuArg := vm.getCpuArg()
 	memArg := vm.getMemArg()
 	acpiArg := vm.getACPIArg()
@@ -486,17 +491,51 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	cdArg, slot = vm.getCDArg(slot)
 	soundArg, slot := vm.getSoundArg(slot)
 	if vm.Config.Com1 {
-		nmdmOffset, com1Arg, _ = getCom(vm.Config.Com1Dev, nmdmOffset, 1)
+		nmdmOffset, com1Arg, com1Dev = getCom(vm.Config.Com1Dev, nmdmOffset, 1)
 	}
 	if vm.Config.Com2 {
-		nmdmOffset, com2Arg, _ = getCom(vm.Config.Com1Dev, nmdmOffset, 2)
+		nmdmOffset, com2Arg, com2Dev = getCom(vm.Config.Com1Dev, nmdmOffset, 2)
 	}
 	if vm.Config.Com3 {
-		nmdmOffset, com3Arg, _ = getCom(vm.Config.Com1Dev, nmdmOffset, 3)
+		nmdmOffset, com3Arg, com3Dev = getCom(vm.Config.Com1Dev, nmdmOffset, 3)
 	}
 	if vm.Config.Com4 {
-		nmdmOffset, com4Arg, _ = getCom(vm.Config.Com1Dev, nmdmOffset, 4)
+		nmdmOffset, com4Arg, com4Dev = getCom(vm.Config.Com1Dev, nmdmOffset, 4)
 	}
+
+	comCount := 0
+	comConfigVal := ""
+
+	if com1Dev != "" {
+		comConfigVal += com1Dev
+		comCount += 1
+	}
+	if com2Dev != "" {
+		if comCount > 0 {
+			comConfigVal += ","
+		}
+		comConfigVal += com2Dev
+		comCount += 1
+	}
+	if com3Dev != "" {
+		if comCount > 0 {
+			comConfigVal += ","
+		}
+		comConfigVal += com3Dev
+		comCount += 1
+	}
+	if com4Dev != "" {
+		if comCount > 0 {
+			comConfigVal += ","
+		}
+		comConfigVal += com4Dev
+		comCount += 1
+	}
+
+	slog.Debug("com stuff", "comConfigVal", comConfigVal)
+	vm.ComDevs = comConfigVal
+	vm.setComPorts(comConfigVal)
+
 	lpcArg, slot := vm.getLPCArg(slot)
 
 	kbdArg := vm.getKeyboardArg()

@@ -89,3 +89,5 @@ This probably won't work for you:
   * OVA import/export
   * AWS and/or other cloud import/export/interoperability
   * Build TUI with [Bubbletea](https://github.com/charmbracelet/bubbletea)
+  * Maybe run a DHCP server on switches of the proper "type"
+  * Add cloud-init style meta-data server

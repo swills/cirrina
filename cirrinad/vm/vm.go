@@ -77,6 +77,7 @@ func (vm *VM) Start() (err error) {
 	vm.log.Info("start", "cmd", cmdName, "args", cmdArgs)
 	vm.createUefiVarsFile()
 	vm.netStartup()
+	slog.Debug("startup com stuff", "com_devs", vm.ComDevs)
 	err = vm.Save()
 	if err != nil {
 		return err
@@ -176,16 +177,19 @@ func (vm *VM) Save() error {
 		return errors.New("error updating VM")
 	}
 
+	slog.Debug("vm save", "vm", vm)
 	res = db.Select([]string{
 		"name",
 		"description",
 		"net_dev",
 		"vnc_port",
+		"com_devs",
 	}).Model(&vm).
 		Updates(map[string]interface{}{
 			"name":        &vm.Name,
 			"description": &vm.Description,
 			"vnc_port":    &vm.VNCPort,
+			"com_devs":    &vm.ComDevs,
 		})
 
 	if res.Error != nil {
@@ -383,6 +387,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			List.VmList[vm.ID].Status = STOPPED
 			List.VmList[vm.ID].VNCPort = 0
 			List.VmList[vm.ID].BhyvePid = 0
+			List.VmList[vm.ID].ComDevs = ""
 			vm.mu.Unlock()
 			vm.maybeForceKillVM()
 			vm.log.Info("closing loop we are done")
