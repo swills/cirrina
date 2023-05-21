@@ -9,6 +9,8 @@ This probably won't work for you:
 * You need to load the `vmm`, `ng_ether` and `ng_bridge` kernel modules
 * You need to be able to `sudo` without a password prompt to run the following commands:
   * `/sbin/ifconfig`
+  * `/usr/bin/protect`
+  * `/usr/sbin/bhyve`
   * `/usr/sbin/bhyvectl`
   * `/usr/sbin/ngctl`
   * `/usr/bin/truncate`
