@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"golang.org/x/term"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"io"
@@ -170,6 +171,84 @@ func uploadIso(c pb.VMInfoClient, ctx context.Context, idPtr *string, filePathPt
 		fmt.Printf("cannot receive response: %v\n", err)
 	}
 	fmt.Printf("ISO Upload complete: %v\n", reply)
+}
+
+func useCom1(c pb.VMInfoClient, idPtr *string) {
+	if *idPtr == "" {
+		log.Fatalf("ID not specified")
+		return
+	}
+	ctx, ctxCancel := context.WithCancel(context.Background())
+	defer ctxCancel()
+
+	stream, err := c.Com1Interactive(ctx)
+	if err != nil {
+		log.Fatalf("failed to get stream: %v", err)
+		return
+	}
+
+	vmId := &pb.VMID{Value: *idPtr}
+	req := &pb.ComDataRequest{
+		Data: &pb.ComDataRequest_VmId{
+			VmId: vmId,
+		},
+	}
+
+	err = stream.Send(req)
+	if err != nil {
+		fmt.Printf("streaming com1 failed: %v\n", err)
+	}
+
+	fmt.Print("starting terminal session, press ctrl-\\ to quit\n")
+
+	go func(stream pb.VMInfo_Com1InteractiveClient) {
+		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		defer func(fd int, oldState *term.State) {
+			_ = term.Restore(fd, oldState)
+		}(int(os.Stdin.Fd()), oldState)
+
+		for {
+			b := make([]byte, 1)
+			_, err = os.Stdin.Read(b)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			if b[0] == 0x1c {
+				ctxCancel()
+				_ = term.Restore(int(os.Stdin.Fd()), oldState)
+				return
+			}
+			req := &pb.ComDataRequest{
+				Data: &pb.ComDataRequest_ComInBytes{
+					ComInBytes: b,
+				},
+			}
+			err = stream.Send(req)
+			//log.Print("sent")
+			if err != nil {
+				return
+			}
+		}
+	}(stream)
+
+	for {
+		out, err := stream.Recv()
+		if err != nil {
+			code := err.Error()
+			if code == "rpc error: code = Canceled desc = context canceled" {
+				fmt.Print("quitting\n")
+			} else {
+				fmt.Printf("error receiving from com1: %v\n", err)
+			}
+			return
+		}
+		fmt.Print(string(out.ComOutBytes))
+	}
 }
 
 func addVmNic(name *string, c pb.VMInfoClient, ctx context.Context, descrptr *string, nettypeptr *string, netdevtypeptr *string, macPtr *string, switchIdPtr *string) {
@@ -719,7 +798,7 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 func printActionHelp() {
 	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, " +
 		"addISO, addDisk, addSwitch, addVmNic, getSwitches, getVmNics, getSwitch, getVmNic, setVmNicVm, " +
-		"setVmNicSwitch, rmSwitch, getHostNics, setSwitchUplink, uploadIso")
+		"setVmNicSwitch, rmSwitch, getHostNics, setSwitchUplink, uploadIso, useCom1")
 }
 
 func main() {
@@ -828,6 +907,8 @@ func main() {
 		defer longCancel()
 
 		uploadIso(c, longCtx, idPtr, filePathPtr)
+	case "useCom1":
+		useCom1(c, idPtr)
 	default:
 		log.Fatalf("Action %v unknown", *actionPtr)
 	}

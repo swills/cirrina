@@ -160,3 +160,21 @@ func GetHostInterfaces() []string {
 	}
 	return netDevs
 }
+
+func CopyFile(in, out string) (int64, error) {
+	i, e := os.Open(in)
+	if e != nil {
+		return 0, e
+	}
+	defer func(i *os.File) {
+		_ = i.Close()
+	}(i)
+	o, e := os.Create(out)
+	if e != nil {
+		return 0, e
+	}
+	defer func(o *os.File) {
+		_ = o.Close()
+	}(o)
+	return o.ReadFrom(i)
+}

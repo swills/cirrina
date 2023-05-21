@@ -11,8 +11,10 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/kontera-technologies/go-supervisor/v2"
+	"github.com/tarm/serial"
 	"golang.org/x/exp/slog"
 	"gorm.io/gorm"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -77,7 +79,6 @@ func (vm *VM) Start() (err error) {
 	vm.log.Info("start", "cmd", cmdName, "args", cmdArgs)
 	vm.createUefiVarsFile()
 	vm.netStartup()
-	slog.Debug("startup com stuff", "com_devs", vm.ComDevs)
 	err = vm.Save()
 	if err != nil {
 		return err
@@ -158,11 +159,11 @@ func (vm *VM) Save() error {
 			"sound":              &vm.Config.Sound,
 			"sound_in":           &vm.Config.SoundIn,
 			"sound_out":          &vm.Config.SoundOut,
-			"com1":               &vm.Config.Com1,
+			"Com1":               &vm.Config.Com1,
 			"com1_dev":           &vm.Config.Com1Dev,
-			"com2":               &vm.Config.Com2,
+			"Com2":               &vm.Config.Com2,
 			"com2_dev":           &vm.Config.Com2Dev,
-			"com3":               &vm.Config.Com3,
+			"Com3":               &vm.Config.Com3,
 			"com3_dev":           &vm.Config.Com3Dev,
 			"com4":               &vm.Config.Com4,
 			"com4_dev":           &vm.Config.Com4Dev,
@@ -177,19 +178,24 @@ func (vm *VM) Save() error {
 		return errors.New("error updating VM")
 	}
 
-	slog.Debug("vm save", "vm", vm)
 	res = db.Select([]string{
 		"name",
 		"description",
 		"net_dev",
 		"vnc_port",
-		"com_devs",
+		"com1_dev",
+		"com2_dev",
+		"com3_dev",
+		"com4_dev",
 	}).Model(&vm).
 		Updates(map[string]interface{}{
 			"name":        &vm.Name,
 			"description": &vm.Description,
 			"vnc_port":    &vm.VNCPort,
-			"com_devs":    &vm.ComDevs,
+			"com1_dev":    &vm.Com1Dev,
+			"com2_dev":    &vm.Com2Dev,
+			"com3_dev":    &vm.Com3Dev,
+			"com4_dev":    &vm.Com4Dev,
 		})
 
 	if res.Error != nil {
@@ -217,24 +223,6 @@ func (vm *VM) maybeForceKillVM() {
 	_ = cmd.Run()
 }
 
-func copyFile(in, out string) (int64, error) {
-	i, e := os.Open(in)
-	if e != nil {
-		return 0, e
-	}
-	defer func(i *os.File) {
-		_ = i.Close()
-	}(i)
-	o, e := os.Create(out)
-	if e != nil {
-		return 0, e
-	}
-	defer func(o *os.File) {
-		_ = o.Close()
-	}(o)
-	return o.ReadFrom(i)
-}
-
 func (vm *VM) createUefiVarsFile() {
 	uefiVarsFilePath := baseVMStatePath + "/" + vm.Name
 	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
@@ -254,7 +242,7 @@ func (vm *VM) createUefiVarsFile() {
 		return
 	}
 	if !uvFileExists {
-		_, err = copyFile(uefiVarFileTemplate, uefiVarsFile)
+		_, err = util.CopyFile(uefiVarFileTemplate, uefiVarsFile)
 		if err != nil {
 			slog.Error("failed to copy uefiVars template", "err", err)
 		}
@@ -367,7 +355,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			switch event.Code {
 			case "ProcessStart":
 				vm.log.Info("event", "code", event.Code, "message", event.Message)
-				go setRunning(vm.ID, vm.proc.Pid())
+				go vm.setRunning(vm.proc.Pid())
 				vm.mu.Lock()
 				List.VmList[vm.ID].Status = RUNNING
 				vm.mu.Unlock()
@@ -387,7 +375,10 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			List.VmList[vm.ID].Status = STOPPED
 			List.VmList[vm.ID].VNCPort = 0
 			List.VmList[vm.ID].BhyvePid = 0
-			List.VmList[vm.ID].ComDevs = ""
+			List.VmList[vm.ID].Com1Dev = ""
+			List.VmList[vm.ID].Com2Dev = ""
+			List.VmList[vm.ID].Com3Dev = ""
+			List.VmList[vm.ID].Com4Dev = ""
 			vm.mu.Unlock()
 			vm.maybeForceKillVM()
 			vm.log.Info("closing loop we are done")
@@ -580,4 +571,91 @@ func (vm *VM) AttachDisks(diskids []string) error {
 		return err
 	}
 	return nil
+}
+
+func (vm *VM) killComLoggers() {
+	if vm.Com1 != nil {
+		_ = vm.Com1.Close()
+	}
+	vm.Com1 = nil
+}
+
+func (vm *VM) setupComLoggers() {
+	slog.Debug("setRunning", "msg", "starting serial logger(s)")
+	if vm.Com1Dev != "" {
+
+		cr, err := startSerialPort(vm.Com1Dev)
+		if err != nil {
+			slog.Error("setupComLoggers", "err", err)
+			return
+		}
+		vm.Com1 = cr
+
+		//com1LogPath := config.Config.Disk.VM.Path.State + "/" + vm.Name + "/"
+		//com1LogFile := com1LogPath + "Com1.log"
+		//vl, err := os.OpenFile(com1LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		//if err != nil {
+		//	slog.Error("failed to open VM log file", "err", err)
+		//}
+		//
+		//go comLogger(vm.Com1, vl)
+	}
+	//if vm.Com2Dev != "" {
+	//	startSerialLogger(vm.Com2Dev)
+	//}
+	//if vm.Com3Dev != "" {
+	//	startSerialLogger(vm.Com3Dev)
+	//}
+	//if vm.Com4Dev != "" {
+	//	startSerialLogger(vm.Com4Dev)
+	//}
+	return
+}
+
+func comLogger(cr *serial.Port, vl *os.File) {
+	n := 0
+	for {
+		b := make([]byte, 1)
+		nb, err := cr.Read(b)
+		if err == io.EOF {
+			_ = cr.Close()
+			_ = vl.Close()
+			slog.Error("comLogger", "eof", true)
+			return
+		} else if err != nil {
+			slog.Error("comLogger", "error reading", err)
+			_ = cr.Close()
+			_ = vl.Close()
+			return
+		}
+		if nb != 0 {
+			_, err = vl.Write(b)
+			n = n + nb
+			if err != nil {
+				slog.Error("comLogger", "error writing", err)
+				_ = vl.Close()
+				return
+			}
+		}
+	}
+}
+
+func startSerialPort(comDev string) (*serial.Port, error) {
+	if strings.HasSuffix(comDev, "A") {
+		comBaseDev := comDev[:len(comDev)-1]
+		comReadDev := comBaseDev + "B"
+		slog.Debug("setRunning starting serial logger on com", "comReadDev", comReadDev)
+		c := &serial.Config{
+			Name: comReadDev,
+			Baud: 115200, // TODO - allow setting port speed
+		}
+		comReader, err := serial.OpenPort(c)
+		//comReader, err := os.OpenFile(comReadDev, os.O_RDONLY, os.O_SYNC)
+		if err != nil {
+			slog.Error("setRunning error opening comReadDev", "error", err)
+		}
+		slog.Debug("startSerialLogger", "opened", comReadDev)
+		return comReader, nil
+	}
+	return nil, errors.New("invalid com dev")
 }

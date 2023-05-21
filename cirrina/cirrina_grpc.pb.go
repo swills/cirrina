@@ -58,6 +58,7 @@ const (
 	VMInfo_SetVmNicSwitch_FullMethodName     = "/cirrina.VMInfo/SetVmNicSwitch"
 	VMInfo_SetVmNics_FullMethodName          = "/cirrina.VMInfo/SetVmNics"
 	VMInfo_GetVmNics_FullMethodName          = "/cirrina.VMInfo/GetVmNics"
+	VMInfo_Com1Interactive_FullMethodName    = "/cirrina.VMInfo/Com1Interactive"
 )
 
 // VMInfoClient is the client API for VMInfo service.
@@ -103,6 +104,7 @@ type VMInfoClient interface {
 	SetVmNicSwitch(ctx context.Context, in *SetVmNicSwitchReq, opts ...grpc.CallOption) (*ReqBool, error)
 	SetVmNics(ctx context.Context, in *SetNicReq, opts ...grpc.CallOption) (*ReqBool, error)
 	GetVmNics(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmNicsClient, error)
+	Com1Interactive(ctx context.Context, opts ...grpc.CallOption) (VMInfo_Com1InteractiveClient, error)
 }
 
 type vMInfoClient struct {
@@ -719,6 +721,37 @@ func (x *vMInfoGetVmNicsClient) Recv() (*VmNicId, error) {
 	return m, nil
 }
 
+func (c *vMInfoClient) Com1Interactive(ctx context.Context, opts ...grpc.CallOption) (VMInfo_Com1InteractiveClient, error) {
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[11], VMInfo_Com1Interactive_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &vMInfoCom1InteractiveClient{stream}
+	return x, nil
+}
+
+type VMInfo_Com1InteractiveClient interface {
+	Send(*ComDataRequest) error
+	Recv() (*ComDataResponse, error)
+	grpc.ClientStream
+}
+
+type vMInfoCom1InteractiveClient struct {
+	grpc.ClientStream
+}
+
+func (x *vMInfoCom1InteractiveClient) Send(m *ComDataRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *vMInfoCom1InteractiveClient) Recv() (*ComDataResponse, error) {
+	m := new(ComDataResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // VMInfoServer is the server API for VMInfo service.
 // All implementations must embed UnimplementedVMInfoServer
 // for forward compatibility
@@ -762,6 +795,7 @@ type VMInfoServer interface {
 	SetVmNicSwitch(context.Context, *SetVmNicSwitchReq) (*ReqBool, error)
 	SetVmNics(context.Context, *SetNicReq) (*ReqBool, error)
 	GetVmNics(*VMID, VMInfo_GetVmNicsServer) error
+	Com1Interactive(VMInfo_Com1InteractiveServer) error
 	mustEmbedUnimplementedVMInfoServer()
 }
 
@@ -885,6 +919,9 @@ func (UnimplementedVMInfoServer) SetVmNics(context.Context, *SetNicReq) (*ReqBoo
 }
 func (UnimplementedVMInfoServer) GetVmNics(*VMID, VMInfo_GetVmNicsServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetVmNics not implemented")
+}
+func (UnimplementedVMInfoServer) Com1Interactive(VMInfo_Com1InteractiveServer) error {
+	return status.Errorf(codes.Unimplemented, "method Com1Interactive not implemented")
 }
 func (UnimplementedVMInfoServer) mustEmbedUnimplementedVMInfoServer() {}
 
@@ -1639,6 +1676,32 @@ func (x *vMInfoGetVmNicsServer) Send(m *VmNicId) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _VMInfo_Com1Interactive_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(VMInfoServer).Com1Interactive(&vMInfoCom1InteractiveServer{stream})
+}
+
+type VMInfo_Com1InteractiveServer interface {
+	Send(*ComDataResponse) error
+	Recv() (*ComDataRequest, error)
+	grpc.ServerStream
+}
+
+type vMInfoCom1InteractiveServer struct {
+	grpc.ServerStream
+}
+
+func (x *vMInfoCom1InteractiveServer) Send(m *ComDataResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *vMInfoCom1InteractiveServer) Recv() (*ComDataRequest, error) {
+	m := new(ComDataRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // VMInfo_ServiceDesc is the grpc.ServiceDesc for VMInfo service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1814,6 +1877,12 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "GetVmNics",
 			Handler:       _VMInfo_GetVmNics_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "Com1Interactive",
+			Handler:       _VMInfo_Com1Interactive_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "cirrina.proto",

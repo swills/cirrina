@@ -5,6 +5,7 @@ import (
 	"cirrina/cirrinad/util"
 	"errors"
 	"github.com/kontera-technologies/go-supervisor/v2"
+	"github.com/tarm/serial"
 	"golang.org/x/exp/slog"
 	"gorm.io/gorm"
 	"os"
@@ -74,11 +75,18 @@ type VM struct {
 	Status      StatusType `gorm:"type:status_type"`
 	BhyvePid    uint32     `gorm:"check:bhyve_pid>=0"`
 	VNCPort     int32
-	ComDevs     string
+	Com1Dev     string
+	Com2Dev     string
+	Com3Dev     string
+	Com4Dev     string
 	Config      Config
 	proc        *supervisor.Process
 	mu          sync.Mutex
 	log         slog.Logger
+	Com1        *serial.Port `gorm:"-:all"`
+	Com2        *serial.Port `gorm:"-:all"`
+	Com3        *serial.Port `gorm:"-:all"`
+	com4        *serial.Port `gorm:"-:all"`
 }
 
 type ListType struct {
@@ -105,7 +113,6 @@ func getVmLogPath(logpath string) error {
 }
 
 func init() {
-
 	db := getVmDb()
 	err := db.AutoMigrate(&VM{})
 	if err != nil {

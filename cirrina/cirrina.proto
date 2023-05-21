@@ -230,6 +230,19 @@ message ISOImageRequest {
   }
 }
 
+message ComDataRequest {
+  oneof data {
+    VMID vm_id = 1;
+    bytes com_in_bytes = 2;
+  }
+}
+
+
+message ComDataResponse {
+  bytes com_out_bytes = 2;
+}
+
+
 service VMInfo {
   rpc AddVM(VMConfig) returns (VMID);
   rpc GetVMs(VMsQuery) returns (stream VMID);
@@ -277,4 +290,5 @@ service VMInfo {
   rpc SetVmNics(SetNicReq) returns (ReqBool);
   rpc GetVmNics(VMID) returns (stream VmNicId);
 
+  rpc Com1Interactive(stream ComDataRequest) returns (stream ComDataResponse);
 }

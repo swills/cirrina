@@ -261,6 +261,7 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 			return []string{}, slot
 		}
 		vncListenPort = strconv.Itoa(vncListenPortInt)
+		vm.VNCPort = int32(vncListenPortInt)
 		vm.setVNCPort(vncListenPortInt)
 	} else {
 		vncListenPort = vm.Config.VNCPort
@@ -268,6 +269,7 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 		if err != nil {
 			return []string{}, slot
 		}
+		vm.VNCPort = int32(vncListenPortInt)
 		vm.setVNCPort(vncListenPortInt)
 	}
 
@@ -503,38 +505,11 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 		nmdmOffset, com4Arg, com4Dev = getCom(vm.Config.Com1Dev, nmdmOffset, 4)
 	}
 
-	comCount := 0
-	comConfigVal := ""
-
-	if com1Dev != "" {
-		comConfigVal += com1Dev
-		comCount += 1
-	}
-	if com2Dev != "" {
-		if comCount > 0 {
-			comConfigVal += ","
-		}
-		comConfigVal += com2Dev
-		comCount += 1
-	}
-	if com3Dev != "" {
-		if comCount > 0 {
-			comConfigVal += ","
-		}
-		comConfigVal += com3Dev
-		comCount += 1
-	}
-	if com4Dev != "" {
-		if comCount > 0 {
-			comConfigVal += ","
-		}
-		comConfigVal += com4Dev
-		comCount += 1
-	}
-
-	slog.Debug("com stuff", "comConfigVal", comConfigVal)
-	vm.ComDevs = comConfigVal
-	vm.setComPorts(comConfigVal)
+	vm.Com1Dev = com1Dev
+	vm.Com2Dev = com2Dev
+	vm.Com3Dev = com3Dev
+	vm.Com4Dev = com4Dev
+	_ = vm.Save()
 
 	lpcArg, slot := vm.getLPCArg(slot)
 

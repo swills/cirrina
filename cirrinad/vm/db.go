@@ -35,22 +35,27 @@ func getVmDb() *gorm.DB {
 	return instance.vmDb
 }
 
-func setRunning(id string, pid int) {
-	vm := VM{ID: id}
+func (vm *VM) setRunning(pid int) {
 	db := getVmDb()
 	vm.Status = RUNNING
 	vm.BhyvePid = uint32(pid)
 	res := db.Select([]string{
 		"status",
 		"bhyve_pid",
+		"com_devs",
 	}).Model(&vm).
 		Updates(map[string]interface{}{
 			"status":    &vm.Status,
 			"bhyve_pid": &vm.BhyvePid,
+			"com1_dev":  &vm.Com1Dev,
+			"com2_dev":  &vm.Com2Dev,
+			"com3_dev":  &vm.Com3Dev,
+			"com4_dev":  &vm.Com4Dev,
 		})
 	if res.Error != nil {
 		slog.Error("error saving VM running", "err", res.Error)
 	}
+	vm.setupComLoggers()
 }
 
 func (vm *VM) setStarting() {
@@ -74,23 +79,33 @@ func setStopped(id string) {
 	vm.Status = STOPPED
 	vm.VNCPort = 0
 	vm.BhyvePid = 0
-	vm.ComDevs = ""
+	vm.Com1Dev = ""
+	vm.Com2Dev = ""
+	vm.Com3Dev = ""
+	vm.Com4Dev = ""
 	res := db.Select([]string{
 		"status",
 		"net_dev",
 		"vnc_port",
 		"bhyve_pid",
-		"com_devs",
+		"com1_dev",
+		"com2_dev",
+		"com3_dev",
+		"com4_dev",
 	}).Model(&vm).
 		Updates(map[string]interface{}{
 			"status":    &vm.Status,
 			"vnc_port":  &vm.VNCPort,
 			"bhyve_pid": &vm.BhyvePid,
-			"com_devs":  &vm.ComDevs,
+			"com1_dev":  &vm.Com1Dev,
+			"com2_dev":  &vm.Com2Dev,
+			"com3_dev":  &vm.Com3Dev,
+			"com4_dev":  &vm.Com4Dev,
 		})
 	if res.Error != nil {
 		slog.Error("error saving VM stopped", "err", res.Error)
 	}
+	vm.killComLoggers()
 }
 
 func setStopping(id string) {
@@ -109,11 +124,7 @@ func setStopping(id string) {
 }
 
 func (vm *VM) setVNCPort(port int) {
+	slog.Debug("setVNCPort", "port", port)
 	vm.VNCPort = int32(port)
-	_ = vm.Save()
-}
-
-func (vm *VM) setComPorts(ports string) {
-	vm.ComDevs = ports
 	_ = vm.Save()
 }
