@@ -17,7 +17,6 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 	if err != nil {
 		return err
 	}
-	slog.Debug("Com1Interactive", "in", in)
 	vmid := in.GetVmId()
 	vmInst, err := vm.GetById(vmid.Value)
 	if err != nil {
@@ -32,6 +31,10 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 		return errors.New("com not available")
 	}
 
+	vmInst.Com1lock.Lock()
+	defer vmInst.Com1lock.Unlock()
+
+	slog.Debug("Com1Interactive", "vm_id", vmid.Value)
 	go func(vmInst *vm.VM, stream cirrina.VMInfo_Com1InteractiveServer) {
 		for {
 			if vmInst.Com1 == nil {

@@ -75,18 +75,22 @@ type VM struct {
 	Status      StatusType `gorm:"type:status_type"`
 	BhyvePid    uint32     `gorm:"check:bhyve_pid>=0"`
 	VNCPort     int32
-	Com1Dev     string
-	Com2Dev     string
-	Com3Dev     string
-	Com4Dev     string
-	Config      Config
 	proc        *supervisor.Process
 	mu          sync.Mutex
 	log         slog.Logger
+	Config      Config
+	Com1Dev     string // TODO make a com struct and put these in it?
+	Com2Dev     string
+	Com3Dev     string
+	Com4Dev     string
 	Com1        *serial.Port `gorm:"-:all"`
 	Com2        *serial.Port `gorm:"-:all"`
 	Com3        *serial.Port `gorm:"-:all"`
-	com4        *serial.Port `gorm:"-:all"`
+	Com4        *serial.Port `gorm:"-:all"`
+	Com1lock    sync.Mutex   `gorm:"-:all"`
+	Com2lock    sync.Mutex   `gorm:"-:all"`
+	Com3lock    sync.Mutex   `gorm:"-:all"`
+	Com4lock    sync.Mutex   `gorm:"-:all"`
 }
 
 type ListType struct {
