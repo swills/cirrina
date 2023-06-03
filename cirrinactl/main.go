@@ -200,6 +200,7 @@ func useCom1(c pb.VMInfoClient, idPtr *string) {
 	}
 
 	fmt.Print("starting terminal session, press ctrl-\\ to quit\n")
+	time.Sleep(1 * time.Second)
 
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
@@ -235,9 +236,10 @@ func useCom1(c pb.VMInfoClient, idPtr *string) {
 					return
 				}
 				if b[0] == 0x1c {
-					ctxCancel()
 					quitChan <- true
-					_ = term.Restore(int(os.Stdin.Fd()), oldState)
+					//_ = stream.CloseSend()
+					//ctxCancel()
+					//_ = term.Restore(int(os.Stdin.Fd()), oldState)
 					return
 				}
 				req := &pb.ComDataRequest{
@@ -283,24 +285,37 @@ func useCom1(c pb.VMInfoClient, idPtr *string) {
 		}
 	}(stream, oldState, quitChan)
 
+	cleared := false
 	// monitor
 	for {
-		res, err := c.GetVMState(ctx, &pb.VMID{Value: *idPtr})
-		if err != nil {
+		select {
+		case <-quitChan:
 			_ = stream.CloseSend()
 			ctxCancel()
 			_ = term.Restore(int(os.Stdin.Fd()), oldState)
 			return
-		}
+		default:
+			res, err := c.GetVMState(ctx, &pb.VMID{Value: *idPtr})
+			if err != nil {
+				_ = stream.CloseSend()
+				ctxCancel()
+				_ = term.Restore(int(os.Stdin.Fd()), oldState)
+				return
+			}
 
-		if res.Status != pb.VmStatus_STATUS_RUNNING {
-			_ = stream.CloseSend()
-			ctxCancel()
-			_ = term.Restore(int(os.Stdin.Fd()), oldState)
+			if res.Status != pb.VmStatus_STATUS_RUNNING {
+				_ = stream.CloseSend()
+				ctxCancel()
+				_ = term.Restore(int(os.Stdin.Fd()), oldState)
+			} else {
+				if !cleared {
+					fmt.Print("\033[H\033[2J")
+					cleared = true
+				}
+				time.Sleep(1 * time.Second)
+			}
 		}
-		time.Sleep(1 * time.Second)
 	}
-
 }
 
 func addVmNic(name *string, c pb.VMInfoClient, ctx context.Context, descrptr *string, nettypeptr *string, netdevtypeptr *string, macPtr *string, switchIdPtr *string) {
