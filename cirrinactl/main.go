@@ -201,54 +201,106 @@ func useCom1(c pb.VMInfoClient, idPtr *string) {
 
 	fmt.Print("starting terminal session, press ctrl-\\ to quit\n")
 
-	go func(stream pb.VMInfo_Com1InteractiveClient) {
-		oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		defer func(fd int, oldState *term.State) {
-			_ = term.Restore(fd, oldState)
-		}(int(os.Stdin.Fd()), oldState)
+	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer func(fd int, oldState *term.State) {
+		_ = term.Restore(fd, oldState)
+	}(int(os.Stdin.Fd()), oldState)
 
+	quitChan := make(chan bool)
+
+	// send
+	go func(stream pb.VMInfo_Com1InteractiveClient, oldState *term.State, quitChan chan bool) {
 		for {
-			b := make([]byte, 1)
-			_, err = os.Stdin.Read(b)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-			if b[0] == 0x1c {
+			select {
+			case <-quitChan:
+				_ = stream.CloseSend()
 				ctxCancel()
 				_ = term.Restore(int(os.Stdin.Fd()), oldState)
 				return
-			}
-			req := &pb.ComDataRequest{
-				Data: &pb.ComDataRequest_ComInBytes{
-					ComInBytes: b,
-				},
-			}
-			err = stream.Send(req)
-			//log.Print("sent")
-			if err != nil {
-				return
+			default:
+				b := make([]byte, 1)
+				_, err = os.Stdin.Read(b)
+				if err != nil {
+					if err.Error() != "EOF" {
+						fmt.Println(err)
+					}
+					quitChan <- true
+					_ = stream.CloseSend()
+					ctxCancel()
+					_ = term.Restore(int(os.Stdin.Fd()), oldState)
+					return
+				}
+				if b[0] == 0x1c {
+					ctxCancel()
+					quitChan <- true
+					_ = term.Restore(int(os.Stdin.Fd()), oldState)
+					return
+				}
+				req := &pb.ComDataRequest{
+					Data: &pb.ComDataRequest_ComInBytes{
+						ComInBytes: b,
+					},
+				}
+				err = stream.Send(req)
+				//log.Print("sent")
+				if err != nil {
+					return
+				}
 			}
 		}
-	}(stream)
+	}(stream, oldState, quitChan)
 
-	for {
-		out, err := stream.Recv()
-		if err != nil {
-			code := err.Error()
-			if code == "rpc error: code = Canceled desc = context canceled" {
-				fmt.Print("quitting\n")
-			} else {
-				fmt.Printf("error receiving from com1: %v\n", err)
+	// receive
+	go func(stream pb.VMInfo_Com1InteractiveClient, oldState *term.State, quitChan chan bool) {
+
+		for {
+			select {
+			case <-quitChan:
+				_ = stream.CloseSend()
+				ctxCancel()
+				_ = term.Restore(int(os.Stdin.Fd()), oldState)
+				return
+			default:
+				out, err := stream.Recv()
+				if err != nil {
+					_ = stream.CloseSend()
+					ctxCancel()
+					_ = term.Restore(int(os.Stdin.Fd()), oldState)
+					code := err.Error()
+					if code == "EOF" {
+						fmt.Printf("connection closed\n")
+					} else if code != "rpc error: code = Canceled desc = context canceled" {
+						fmt.Printf("error receiving from com1: %v\n", err)
+					}
+					return
+				}
+				fmt.Print(string(out.ComOutBytes))
 			}
+		}
+	}(stream, oldState, quitChan)
+
+	// monitor
+	for {
+		res, err := c.GetVMState(ctx, &pb.VMID{Value: *idPtr})
+		if err != nil {
+			_ = stream.CloseSend()
+			ctxCancel()
+			_ = term.Restore(int(os.Stdin.Fd()), oldState)
 			return
 		}
-		fmt.Print(string(out.ComOutBytes))
+
+		if res.Status != pb.VmStatus_STATUS_RUNNING {
+			_ = stream.CloseSend()
+			ctxCancel()
+			_ = term.Restore(int(os.Stdin.Fd()), oldState)
+		}
+		time.Sleep(1 * time.Second)
 	}
+
 }
 
 func addVmNic(name *string, c pb.VMInfoClient, ctx context.Context, descrptr *string, nettypeptr *string, netdevtypeptr *string, macPtr *string, switchIdPtr *string) {

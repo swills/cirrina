@@ -40,6 +40,9 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 			if vmInst.Com1 == nil {
 				return
 			}
+			if vmInst.Status != "RUNNING" {
+				return
+			}
 			b := make([]byte, 1)
 			_, err := vmInst.Com1.Read(b)
 			if err == io.EOF {
@@ -62,6 +65,9 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 	//slog.Debug("starting loop")
 	for {
 
+		if vmInst.Status != "RUNNING" {
+			return nil
+		}
 		in, err := stream.Recv()
 		if err == io.EOF {
 			return nil
