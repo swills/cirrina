@@ -7,14 +7,13 @@ Daemon for [Bhyve](https://wiki.freebsd.org/bhyve) written in Go using gRPC
 This probably won't work for you:
 
 * You need to load the `vmm`, `nmdm`, `if_bridge`, and `ng_bridge` kernel modules
-* You need to be able to `sudo` without a password prompt to run the following commands:
+* You need to be able to `sudo` *without a password prompt* to run the following commands:
   * `/sbin/ifconfig`
   * `/usr/bin/protect`
   * `/usr/sbin/bhyve`
   * `/usr/sbin/bhyvectl`
   * `/usr/sbin/ngctl`
   * `/usr/bin/truncate`
-* `doas` may work instead of `sudo` if you change the `priv_command_prefix` setting, but it is untested.
 * At the moment some things can only be done with the cli (cirrinactl) and others can only be done with
   weasel (the py qt 5 gui)
 * Only UEFI boot is supported, no bhyveload
@@ -77,6 +76,7 @@ This probably won't work for you:
     * Create disk from existing image (clone) or other disk image.
   * Networking
     * Support vxlan and vale switches
+    * Support epair
   * Sound
     * Add sound device list
 * Access/Sharing
@@ -91,5 +91,17 @@ This probably won't work for you:
   * OVA import/export
   * AWS and/or other cloud import/export/interoperability
   * Build TUI with [Bubbletea](https://github.com/charmbracelet/bubbletea)
+  * Build Web UI -- maybe [awesome-grpc](https://github.com/grpc-ecosystem/awesome-grpc) has suggestions
   * Maybe run a DHCP server on switches of the proper "type"
-  * Add cloud-init style meta-data server
+  * Add cloud-init
+    style [meta-data](https://docs.openstack.org/nova/train/admin/metadata-service.html) [server](https://docs.tinkerbell.org/services/hegel/)
+  * Clean up protobuf api, specify max string lengths, check for missing values, etc.
+  * Consider [go-sqlite](https://github.com/glebarez/go-sqlite)
+  * Compare
+    with [VirtualBox](https://www.virtualbox.org/wiki/Documentation), [vm-bhyve](https://github.com/churchers/vm-bhyve)
+    and [chyves](http://chyves.org/) for missing features
+  *
+  Review [networking](https://freebsdfoundation.org/wp-content/uploads/2020/01/Arranging-Your-Virtual-Network-on-FreeBSD.pdf)
+  * Consider a cirrinactl command for remote sound, similar to remote serial
+  * Support suspend/resume
+  * Support fw_cfg
