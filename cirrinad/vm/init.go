@@ -55,12 +55,16 @@ type Config struct {
 	SoundOut         string `gorm:"default:/dev/dsp0"`
 	Com1             bool   `gorm:"default:True;check:vnc_wait IN(0,1)"`
 	Com1Dev          string `gorm:"default:AUTO"`
+	Com1Log          bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
 	Com2             bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
 	Com2Dev          string `gorm:"default:AUTO"`
+	Com2Log          bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
 	Com3             bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
 	Com3Dev          string `gorm:"default:AUTO"`
+	Com3Log          bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
 	Com4             bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
 	Com4Dev          string `gorm:"default:AUTO"`
+	Com4Log          bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
 	ExtraArgs        string
 	ISOs             string
 	Disks            string
@@ -91,6 +95,8 @@ type VM struct {
 	Com2lock    sync.Mutex   `gorm:"-:all"`
 	Com3lock    sync.Mutex   `gorm:"-:all"`
 	Com4lock    sync.Mutex   `gorm:"-:all"`
+	Com1rchan   chan byte    `gorm:"-:all"`
+	Com1wchan   chan byte    `gorm:"-:all"`
 }
 
 type ListType struct {
@@ -102,7 +108,7 @@ var List = ListType{
 	VmList: map[string]*VM{},
 }
 
-func getVmLogPath(logpath string) error {
+func GetVmLogPath(logpath string) error {
 	ex, err := util.PathExists(logpath)
 	if err != nil {
 		return err
@@ -136,7 +142,7 @@ func init() {
 
 func InitOneVm(vmInst *VM) {
 	vmLogPath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name
-	err := getVmLogPath(vmLogPath)
+	err := GetVmLogPath(vmLogPath)
 	if err != nil {
 		panic(err)
 	}

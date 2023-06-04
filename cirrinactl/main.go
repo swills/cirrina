@@ -862,10 +862,14 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 	fmt.Printf("Success\n")
 }
 
+//func startTui() {
+//	startTea()
+//}
+
 func printActionHelp() {
 	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, " +
 		"addISO, addDisk, addSwitch, addVmNic, getSwitches, getVmNics, getSwitch, getVmNic, setVmNicVm, " +
-		"setVmNicSwitch, rmSwitch, getHostNics, setSwitchUplink, uploadIso, useCom1")
+		"setVmNicSwitch, rmSwitch, getHostNics, setSwitchUplink, uploadIso, useCom1, tui")
 }
 
 func main() {
@@ -919,7 +923,7 @@ func main() {
 
 	switch *actionPtr {
 	case "":
-		log.Fatalf("Action not specified")
+		log.Fatalf("Action not specified, try \"help\"")
 	case "help":
 		printActionHelp()
 	case "getVM":
@@ -976,6 +980,8 @@ func main() {
 		uploadIso(c, longCtx, idPtr, filePathPtr)
 	case "useCom1":
 		useCom1(c, idPtr)
+	//case "tui":
+	//	startTui()
 	default:
 		log.Fatalf("Action %v unknown", *actionPtr)
 	}

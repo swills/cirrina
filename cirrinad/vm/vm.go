@@ -591,15 +591,11 @@ func (vm *VM) setupComLoggers() {
 		}
 		vm.Com1 = cr
 
-		//com1LogPath := config.Config.Disk.VM.Path.State + "/" + vm.Name + "/"
-		//com1LogFile := com1LogPath + "Com1.log"
-		//vl, err := os.OpenFile(com1LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		//if err != nil {
-		//	slog.Error("failed to open VM log file", "err", err)
-		//}
-		//
-		//go comLogger(vm.Com1, vl)
+		if vm.Config.Com1Log {
+			go comLogger(vm)
+		}
 	}
+
 	//if vm.Com2Dev != "" {
 	//	startSerialLogger(vm.Com2Dev)
 	//}
@@ -612,24 +608,46 @@ func (vm *VM) setupComLoggers() {
 	return
 }
 
-func comLogger(cr *serial.Port, vl *os.File) {
+func comLogger(vm *VM) {
+	com1LogPath := config.Config.Disk.VM.Path.State + "/" + vm.Name + "/"
+	com1LogFile := com1LogPath + "com1_out.log"
+	err := GetVmLogPath(com1LogPath)
+	if err != nil {
+		slog.Error("setupComLoggers", "err", err)
+		return
+	}
+
+	vl, err := os.OpenFile(com1LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		slog.Error("failed to open VM out log file", "err", err)
+	}
+
 	n := 0
 	for {
 		b := make([]byte, 1)
-		nb, err := cr.Read(b)
+		b2 := make([]byte, 1)
+		nb, err := vm.Com1.Read(b)
+		//slog.Debug("comLogger read bytes", "byte_count", nb)
 		if err == io.EOF {
-			_ = cr.Close()
+			_ = vm.Com1.Close()
 			_ = vl.Close()
 			slog.Error("comLogger", "eof", true)
 			return
 		} else if err != nil {
 			slog.Error("comLogger", "error reading", err)
-			_ = cr.Close()
+			_ = vm.Com1.Close()
 			_ = vl.Close()
 			return
 		}
 		if nb != 0 {
+			nb2 := copy(b2, b)
+			if nb != nb2 {
+				slog.Error("comLogger", "some bytes lost")
+			}
 			_, err = vl.Write(b)
+			if vm.Com1rchan != nil {
+				vm.Com1rchan <- b2[0]
+			}
 			n = n + nb
 			if err != nil {
 				slog.Error("comLogger", "error writing", err)
