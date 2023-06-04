@@ -68,6 +68,7 @@ This probably won't work for you:
     * Implement customization of CPU sockets, cores and threads
   * Serial
     * Implement serial console logging
+    * Input playback
   * Disk
     * Implement support for separate controllers and types and specifying which HD/CD are on which controller
     * Implement enlarging disks
@@ -88,6 +89,7 @@ This probably won't work for you:
   * Implement 9p sharing
 * Other/Ideas
   * Add VNC recording
+  * Add VNC input playback
   * OVA import/export
   * AWS and/or other cloud import/export/interoperability
   * Build TUI with [Bubbletea](https://github.com/charmbracelet/bubbletea)
