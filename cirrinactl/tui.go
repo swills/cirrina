@@ -10,13 +10,14 @@ import (
 	"io"
 	"log"
 	"os"
+	"sort"
 	"time"
 )
 
 type model struct {
-	choices  []string         // items on the to-do list
-	cursor   int              // which to-do list item our cursor is pointing at
-	selected map[int]struct{} // which to-do items are selected
+	choices  []string
+	cursor   int
+	selected map[int]struct{}
 }
 
 func initialModel() model {
@@ -61,6 +62,8 @@ func initialModel() model {
 		}
 		vmNames = append(vmNames, *res.Name)
 	}
+
+	sort.Strings(vmNames)
 
 	return model{
 		choices:  vmNames,
