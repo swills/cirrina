@@ -88,7 +88,7 @@ This probably won't work for you:
   * RDP
   * Implement 9p sharing
 * Other/Ideas
-  * Add VNC recording
+  * Add VNC recording (see also [minimega feature](https://minimega.org/articles/vnc.article))
   * Add VNC input playback
   * OVA import/export
   * AWS and/or other cloud import/export/interoperability
@@ -100,8 +100,8 @@ This probably won't work for you:
   * Clean up protobuf api, specify max string lengths, check for missing values, etc.
   * Consider [go-sqlite](https://github.com/glebarez/go-sqlite)
   * Compare
-    with [VirtualBox](https://www.virtualbox.org/wiki/Documentation), [vm-bhyve](https://github.com/churchers/vm-bhyve)
-    and [chyves](http://chyves.org/) for missing features
+    with [VirtualBox](https://www.virtualbox.org/wiki/Documentation), [vm-bhyve](https://github.com/churchers/vm-bhyve),
+    [chyves](http://chyves.org/), and [minimega](https://minimega.org/) for missing features
   *
   Review [networking](https://freebsdfoundation.org/wp-content/uploads/2020/01/Arranging-Your-Virtual-Network-on-FreeBSD.pdf)
   * Consider a cirrinactl command for remote sound, similar to remote serial
