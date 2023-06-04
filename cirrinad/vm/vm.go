@@ -576,14 +576,13 @@ func (vm *VM) AttachDisks(diskids []string) error {
 func (vm *VM) killComLoggers() {
 	if vm.Com1 != nil {
 		_ = vm.Com1.Close()
+		vm.Com1 = nil
 	}
-	vm.Com1 = nil
 }
 
 func (vm *VM) setupComLoggers() {
 	slog.Debug("setRunning", "msg", "starting serial logger(s)")
 	if vm.Com1Dev != "" {
-
 		cr, err := startSerialPort(vm.Com1Dev)
 		if err != nil {
 			slog.Error("setupComLoggers", "err", err)
@@ -621,28 +620,46 @@ func comLogger(vm *VM) {
 	if err != nil {
 		slog.Error("failed to open VM out log file", "err", err)
 	}
+	defer func(vl *os.File) {
+		_ = vl.Close()
+	}(vl)
+
+	defer func(Com1 *serial.Port) {
+		if vm.Com1 != nil {
+			err := Com1.Close()
+			if err != nil {
+				slog.Error("comLogger", "msg", "error closing com port", "err", err)
+			}
+			vm.Com1 = nil
+		}
+	}(vm.Com1)
 
 	n := 0
 	for {
+		if vm.Status != RUNNING {
+			slog.Debug("comLogger", "msg", "vm not running, exiting2")
+			return
+		}
+		if vm.Com1 == nil {
+			slog.Error("comLogger", "msg", "unable to read nil port")
+			return
+		}
 		b := make([]byte, 1)
 		b2 := make([]byte, 1)
 		nb, err := vm.Com1.Read(b)
 		//slog.Debug("comLogger read bytes", "byte_count", nb)
-		if err == io.EOF {
-			_ = vm.Com1.Close()
-			_ = vl.Close()
-			slog.Error("comLogger", "eof", true)
+		if err == io.EOF && vm.Status != RUNNING {
+			slog.Debug("comLogger", "msg", "vm not running, exiting")
 			return
-		} else if err != nil {
-			slog.Error("comLogger", "error reading", err)
-			_ = vm.Com1.Close()
-			_ = vl.Close()
+		}
+		if err != nil && err != io.EOF {
+			slog.Error("comLogger", "msg", "error reading", err)
 			return
 		}
 		if nb != 0 {
 			nb2 := copy(b2, b)
 			if nb != nb2 {
-				slog.Error("comLogger", "some bytes lost")
+				slog.Error("comLogger", "msg", "some bytes lost")
 			}
 			_, err = vl.Write(b)
 			if vm.Com1rchan != nil {
@@ -650,8 +667,7 @@ func comLogger(vm *VM) {
 			}
 			n = n + nb
 			if err != nil {
-				slog.Error("comLogger", "error writing", err)
-				_ = vl.Close()
+				slog.Error("comLogger", "msg", "error writing", err)
 				return
 			}
 		}
@@ -664,8 +680,9 @@ func startSerialPort(comDev string) (*serial.Port, error) {
 		comReadDev := comBaseDev + "B"
 		slog.Debug("setRunning starting serial logger on com", "comReadDev", comReadDev)
 		c := &serial.Config{
-			Name: comReadDev,
-			Baud: 115200, // TODO - allow setting port speed
+			Name:        comReadDev,
+			Baud:        115200, // TODO - allow setting port speed
+			ReadTimeout: 500 * time.Millisecond,
 		}
 		comReader, err := serial.OpenPort(c)
 		//comReader, err := os.OpenFile(comReadDev, os.O_RDONLY, os.O_SYNC)
