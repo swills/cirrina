@@ -108,3 +108,4 @@ This probably won't work for you:
   * Consider a cirrinactl command for remote sound, similar to remote serial
   * Support suspend/resume
   * Support fw_cfg
+  * Test grpc interface with [grpcurl](https://github.com/fullstorydev/grpcurl)
