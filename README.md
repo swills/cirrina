@@ -88,7 +88,8 @@ This probably won't work for you:
   * RDP
   * Implement 9p sharing
 * Other/Ideas
-  * Add VNC recording (see also [minimega feature](https://minimega.org/articles/vnc.article))
+  * Add VNC recording (see also [minimega feature](https://minimega.org/articles/vnc.article)
+    and [vncproxy](https://pkg.go.dev/github.com/amitbet/vncproxy))
   * Add VNC input playback
   * OVA import/export
   * AWS and/or other cloud import/export/interoperability
