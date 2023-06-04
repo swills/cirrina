@@ -862,9 +862,9 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 	fmt.Printf("Success\n")
 }
 
-//func startTui() {
-//	startTea()
-//}
+func startTui() {
+	startTea()
+}
 
 func printActionHelp() {
 	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, " +
@@ -980,8 +980,8 @@ func main() {
 		uploadIso(c, longCtx, idPtr, filePathPtr)
 	case "useCom1":
 		useCom1(c, idPtr)
-	//case "tui":
-	//	startTui()
+	case "tui":
+		startTui()
 	default:
 		log.Fatalf("Action %v unknown", *actionPtr)
 	}
