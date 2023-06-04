@@ -13,7 +13,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 func (vm *VM) getKeyboardArg() []string {
@@ -244,11 +243,7 @@ func (vm *VM) getTabletArg(slot int) ([]string, int) {
 	return tabletArg, slot
 }
 
-var videoArgLock sync.Mutex
-
 func (vm *VM) getVideoArg(slot int) ([]string, int) {
-	videoArgLock.Lock()
-	defer videoArgLock.Unlock()
 	if !vm.Config.Screen {
 		return []string{}, slot
 	}

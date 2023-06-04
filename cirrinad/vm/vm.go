@@ -18,6 +18,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -63,7 +64,11 @@ func (vm *VM) Delete() (err error) {
 	return nil
 }
 
+var vmStartLock sync.Mutex
+
 func (vm *VM) Start() (err error) {
+	vmStartLock.Lock()
+	defer vmStartLock.Unlock()
 	if vm.Status != STOPPED {
 		return errors.New("must be stopped first")
 	}
