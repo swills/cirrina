@@ -58,16 +58,20 @@ This probably won't work for you:
 # TODO
 
 * Basics
+  * Finish serial port stuff
+    * Allow setting port speed
+    * Add config message to enable/disable serial logging
+    * Ports 2, 3 and 4
+  * Add auto-start delay
   * Implement VM rename
-  * Switch to using bhyve config file instead of command line args
 * Booting
   * Add feature to manage UEFI settings such as boot order to GUI
 * Devices
   * CPU
     * Implement CPU pinning support
     * Implement customization of CPU sockets, cores and threads
+    * CPU Usage limits
   * Serial
-    * Implement serial console logging
     * Input playback
   * Disk
     * Implement support for separate controllers and types and specifying which HD/CD are on which controller
@@ -76,26 +80,41 @@ This probably won't work for you:
     * Implement creating disks as zvols
     * Create disk from existing image (clone) or other disk image.
   * Networking
+    * Support various network types from VBox
+    * Support rate limiting
     * Support vxlan and vale switches
     * Support epair
+    * Maybe run a DHCP server on switches of the proper "type"
+    * Tunnel/VPN support
   * Sound
     * Add sound device list
 * Access/Sharing
   * VNC
+    * Proxying
+    * Clipboard sharing
+    * Resizing
     * Add VNC preview
+    * Screenshots
+    * Add VNC recording (see also [minimega feature](https://minimega.org/articles/vnc.article)
+      and [vncproxy](https://pkg.go.dev/github.com/amitbet/vncproxy))
+    * Add VNC input playback
   * SSH
     * Add SSH integration
   * RDP
   * Implement 9p sharing
 * Other/Ideas
-  * Add VNC recording (see also [minimega feature](https://minimega.org/articles/vnc.article)
-    and [vncproxy](https://pkg.go.dev/github.com/amitbet/vncproxy))
-  * Add VNC input playback
+  * VM grouping
+  * VM templates for various OSs
+  * Automated OS install
+  * VM Snapshots
+  * Cloning
+  * UI/API for specifying PCI bus/slot/feature of devices
   * OVA import/export
+  * VM Stats (CPU/Mem/IO) in GUI
+  * VM Logs in GUI
   * AWS and/or other cloud import/export/interoperability
   * Build TUI with [Bubbletea](https://github.com/charmbracelet/bubbletea)
   * Build Web UI -- maybe [awesome-grpc](https://github.com/grpc-ecosystem/awesome-grpc) has suggestions
-  * Maybe run a DHCP server on switches of the proper "type"
   * Add cloud-init
     style [meta-data](https://docs.openstack.org/nova/train/admin/metadata-service.html) [server](https://docs.tinkerbell.org/services/hegel/)
   * Clean up protobuf api, specify max string lengths, check for missing values, etc.
@@ -107,5 +126,6 @@ This probably won't work for you:
   Review [networking](https://freebsdfoundation.org/wp-content/uploads/2020/01/Arranging-Your-Virtual-Network-on-FreeBSD.pdf)
   * Consider a cirrinactl command for remote sound, similar to remote serial
   * Support suspend/resume
+  * Switch to using bhyve config file instead of command line args
   * Support fw_cfg
   * Test grpc interface with [grpcurl](https://github.com/fullstorydev/grpcurl)
