@@ -652,6 +652,9 @@ func comLogger(vm *VM) {
 		b := make([]byte, 1)
 		b2 := make([]byte, 1)
 		nb, err := vm.Com1.Read(b)
+		if nb > 1 {
+			slog.Error("comLogger read more than 1 byte", "nb", nb)
+		}
 		//slog.Debug("comLogger read bytes", "byte_count", nb)
 		if err == io.EOF && vm.Status != RUNNING {
 			slog.Debug("comLogger", "msg", "vm not running, exiting")
