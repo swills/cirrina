@@ -97,6 +97,12 @@ type VM struct {
 	Com4lock    sync.Mutex   `gorm:"-:all"`
 	Com1rchan   chan byte    `gorm:"-:all"`
 	Com1wchan   chan byte    `gorm:"-:all"`
+	Com2rchan   chan byte    `gorm:"-:all"`
+	Com2wchan   chan byte    `gorm:"-:all"`
+	Com3rchan   chan byte    `gorm:"-:all"`
+	Com3wchan   chan byte    `gorm:"-:all"`
+	Com4rchan   chan byte    `gorm:"-:all"`
+	Com4wchan   chan byte    `gorm:"-:all"`
 }
 
 type ListType struct {

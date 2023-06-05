@@ -59,6 +59,9 @@ const (
 	VMInfo_SetVmNics_FullMethodName          = "/cirrina.VMInfo/SetVmNics"
 	VMInfo_GetVmNics_FullMethodName          = "/cirrina.VMInfo/GetVmNics"
 	VMInfo_Com1Interactive_FullMethodName    = "/cirrina.VMInfo/Com1Interactive"
+	VMInfo_Com2Interactive_FullMethodName    = "/cirrina.VMInfo/Com2Interactive"
+	VMInfo_Com3Interactive_FullMethodName    = "/cirrina.VMInfo/Com3Interactive"
+	VMInfo_Com4Interactive_FullMethodName    = "/cirrina.VMInfo/Com4Interactive"
 )
 
 // VMInfoClient is the client API for VMInfo service.
@@ -105,6 +108,9 @@ type VMInfoClient interface {
 	SetVmNics(ctx context.Context, in *SetNicReq, opts ...grpc.CallOption) (*ReqBool, error)
 	GetVmNics(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmNicsClient, error)
 	Com1Interactive(ctx context.Context, opts ...grpc.CallOption) (VMInfo_Com1InteractiveClient, error)
+	Com2Interactive(ctx context.Context, opts ...grpc.CallOption) (VMInfo_Com2InteractiveClient, error)
+	Com3Interactive(ctx context.Context, opts ...grpc.CallOption) (VMInfo_Com3InteractiveClient, error)
+	Com4Interactive(ctx context.Context, opts ...grpc.CallOption) (VMInfo_Com4InteractiveClient, error)
 }
 
 type vMInfoClient struct {
@@ -752,6 +758,99 @@ func (x *vMInfoCom1InteractiveClient) Recv() (*ComDataResponse, error) {
 	return m, nil
 }
 
+func (c *vMInfoClient) Com2Interactive(ctx context.Context, opts ...grpc.CallOption) (VMInfo_Com2InteractiveClient, error) {
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[12], VMInfo_Com2Interactive_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &vMInfoCom2InteractiveClient{stream}
+	return x, nil
+}
+
+type VMInfo_Com2InteractiveClient interface {
+	Send(*ComDataRequest) error
+	Recv() (*ComDataResponse, error)
+	grpc.ClientStream
+}
+
+type vMInfoCom2InteractiveClient struct {
+	grpc.ClientStream
+}
+
+func (x *vMInfoCom2InteractiveClient) Send(m *ComDataRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *vMInfoCom2InteractiveClient) Recv() (*ComDataResponse, error) {
+	m := new(ComDataResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *vMInfoClient) Com3Interactive(ctx context.Context, opts ...grpc.CallOption) (VMInfo_Com3InteractiveClient, error) {
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[13], VMInfo_Com3Interactive_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &vMInfoCom3InteractiveClient{stream}
+	return x, nil
+}
+
+type VMInfo_Com3InteractiveClient interface {
+	Send(*ComDataRequest) error
+	Recv() (*ComDataResponse, error)
+	grpc.ClientStream
+}
+
+type vMInfoCom3InteractiveClient struct {
+	grpc.ClientStream
+}
+
+func (x *vMInfoCom3InteractiveClient) Send(m *ComDataRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *vMInfoCom3InteractiveClient) Recv() (*ComDataResponse, error) {
+	m := new(ComDataResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *vMInfoClient) Com4Interactive(ctx context.Context, opts ...grpc.CallOption) (VMInfo_Com4InteractiveClient, error) {
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[14], VMInfo_Com4Interactive_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &vMInfoCom4InteractiveClient{stream}
+	return x, nil
+}
+
+type VMInfo_Com4InteractiveClient interface {
+	Send(*ComDataRequest) error
+	Recv() (*ComDataResponse, error)
+	grpc.ClientStream
+}
+
+type vMInfoCom4InteractiveClient struct {
+	grpc.ClientStream
+}
+
+func (x *vMInfoCom4InteractiveClient) Send(m *ComDataRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *vMInfoCom4InteractiveClient) Recv() (*ComDataResponse, error) {
+	m := new(ComDataResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // VMInfoServer is the server API for VMInfo service.
 // All implementations must embed UnimplementedVMInfoServer
 // for forward compatibility
@@ -796,6 +895,9 @@ type VMInfoServer interface {
 	SetVmNics(context.Context, *SetNicReq) (*ReqBool, error)
 	GetVmNics(*VMID, VMInfo_GetVmNicsServer) error
 	Com1Interactive(VMInfo_Com1InteractiveServer) error
+	Com2Interactive(VMInfo_Com2InteractiveServer) error
+	Com3Interactive(VMInfo_Com3InteractiveServer) error
+	Com4Interactive(VMInfo_Com4InteractiveServer) error
 	mustEmbedUnimplementedVMInfoServer()
 }
 
@@ -922,6 +1024,15 @@ func (UnimplementedVMInfoServer) GetVmNics(*VMID, VMInfo_GetVmNicsServer) error 
 }
 func (UnimplementedVMInfoServer) Com1Interactive(VMInfo_Com1InteractiveServer) error {
 	return status.Errorf(codes.Unimplemented, "method Com1Interactive not implemented")
+}
+func (UnimplementedVMInfoServer) Com2Interactive(VMInfo_Com2InteractiveServer) error {
+	return status.Errorf(codes.Unimplemented, "method Com2Interactive not implemented")
+}
+func (UnimplementedVMInfoServer) Com3Interactive(VMInfo_Com3InteractiveServer) error {
+	return status.Errorf(codes.Unimplemented, "method Com3Interactive not implemented")
+}
+func (UnimplementedVMInfoServer) Com4Interactive(VMInfo_Com4InteractiveServer) error {
+	return status.Errorf(codes.Unimplemented, "method Com4Interactive not implemented")
 }
 func (UnimplementedVMInfoServer) mustEmbedUnimplementedVMInfoServer() {}
 
@@ -1702,6 +1813,84 @@ func (x *vMInfoCom1InteractiveServer) Recv() (*ComDataRequest, error) {
 	return m, nil
 }
 
+func _VMInfo_Com2Interactive_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(VMInfoServer).Com2Interactive(&vMInfoCom2InteractiveServer{stream})
+}
+
+type VMInfo_Com2InteractiveServer interface {
+	Send(*ComDataResponse) error
+	Recv() (*ComDataRequest, error)
+	grpc.ServerStream
+}
+
+type vMInfoCom2InteractiveServer struct {
+	grpc.ServerStream
+}
+
+func (x *vMInfoCom2InteractiveServer) Send(m *ComDataResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *vMInfoCom2InteractiveServer) Recv() (*ComDataRequest, error) {
+	m := new(ComDataRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _VMInfo_Com3Interactive_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(VMInfoServer).Com3Interactive(&vMInfoCom3InteractiveServer{stream})
+}
+
+type VMInfo_Com3InteractiveServer interface {
+	Send(*ComDataResponse) error
+	Recv() (*ComDataRequest, error)
+	grpc.ServerStream
+}
+
+type vMInfoCom3InteractiveServer struct {
+	grpc.ServerStream
+}
+
+func (x *vMInfoCom3InteractiveServer) Send(m *ComDataResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *vMInfoCom3InteractiveServer) Recv() (*ComDataRequest, error) {
+	m := new(ComDataRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _VMInfo_Com4Interactive_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(VMInfoServer).Com4Interactive(&vMInfoCom4InteractiveServer{stream})
+}
+
+type VMInfo_Com4InteractiveServer interface {
+	Send(*ComDataResponse) error
+	Recv() (*ComDataRequest, error)
+	grpc.ServerStream
+}
+
+type vMInfoCom4InteractiveServer struct {
+	grpc.ServerStream
+}
+
+func (x *vMInfoCom4InteractiveServer) Send(m *ComDataResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *vMInfoCom4InteractiveServer) Recv() (*ComDataRequest, error) {
+	m := new(ComDataRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // VMInfo_ServiceDesc is the grpc.ServiceDesc for VMInfo service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1881,6 +2070,24 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "Com1Interactive",
 			Handler:       _VMInfo_Com1Interactive_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "Com2Interactive",
+			Handler:       _VMInfo_Com2Interactive_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "Com3Interactive",
+			Handler:       _VMInfo_Com3Interactive_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "Com4Interactive",
+			Handler:       _VMInfo_Com4Interactive_Handler,
 			ServerStreams: true,
 			ClientStreams: true,
 		},

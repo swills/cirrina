@@ -173,15 +173,26 @@ func uploadIso(c pb.VMInfoClient, ctx context.Context, idPtr *string, filePathPt
 	fmt.Printf("ISO Upload complete: %v\n", reply)
 }
 
-func useCom1(c pb.VMInfoClient, idPtr *string) {
+func useCom(c pb.VMInfoClient, idPtr *string, comNum int) {
 	if *idPtr == "" {
 		log.Fatalf("ID not specified")
 		return
 	}
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	defer ctxCancel()
+	var err error
+	var stream pb.VMInfo_Com1InteractiveClient
 
-	stream, err := c.Com1Interactive(ctx)
+	switch comNum {
+	case 1:
+		stream, err = c.Com1Interactive(ctx)
+	case 2:
+		stream, err = c.Com2Interactive(ctx)
+	case 3:
+		stream, err = c.Com3Interactive(ctx)
+	case 4:
+		stream, err = c.Com4Interactive(ctx)
+	}
 	if err != nil {
 		log.Fatalf("failed to get stream: %v", err)
 		return
@@ -196,7 +207,7 @@ func useCom1(c pb.VMInfoClient, idPtr *string) {
 
 	err = stream.Send(req)
 	if err != nil {
-		fmt.Printf("streaming com1 failed: %v\n", err)
+		fmt.Printf("streaming com failed: %v\n", err)
 	}
 
 	fmt.Print("starting terminal session, press ctrl-\\ to quit\n")
@@ -214,6 +225,7 @@ func useCom1(c pb.VMInfoClient, idPtr *string) {
 	quitChan := make(chan bool)
 
 	// send
+	// FIXME -- cheating a bit here
 	go func(stream pb.VMInfo_Com1InteractiveClient, oldState *term.State, quitChan chan bool) {
 		for {
 			select {
@@ -237,9 +249,6 @@ func useCom1(c pb.VMInfoClient, idPtr *string) {
 				}
 				if b[0] == 0x1c {
 					quitChan <- true
-					//_ = stream.CloseSend()
-					//ctxCancel()
-					//_ = term.Restore(int(os.Stdin.Fd()), oldState)
 					return
 				}
 				req := &pb.ComDataRequest{
@@ -248,7 +257,6 @@ func useCom1(c pb.VMInfoClient, idPtr *string) {
 					},
 				}
 				err = stream.Send(req)
-				//log.Print("sent")
 				if err != nil {
 					return
 				}
@@ -257,6 +265,7 @@ func useCom1(c pb.VMInfoClient, idPtr *string) {
 	}(stream, oldState, quitChan)
 
 	// receive
+	// FIXME -- cheating a bit here
 	go func(stream pb.VMInfo_Com1InteractiveClient, oldState *term.State, quitChan chan bool) {
 
 		for {
@@ -276,7 +285,7 @@ func useCom1(c pb.VMInfoClient, idPtr *string) {
 					if code == "EOF" {
 						fmt.Printf("connection closed\n")
 					} else if code != "rpc error: code = Canceled desc = context canceled" {
-						fmt.Printf("error receiving from com1: %v\n", err)
+						fmt.Printf("error receiving from com: %v\n", err)
 					}
 					return
 				}
@@ -869,7 +878,7 @@ func startTui() {
 func printActionHelp() {
 	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, " +
 		"addISO, addDisk, addSwitch, addVmNic, getSwitches, getVmNics, getSwitch, getVmNic, setVmNicVm, " +
-		"setVmNicSwitch, rmSwitch, getHostNics, setSwitchUplink, uploadIso, useCom1, tui")
+		"setVmNicSwitch, rmSwitch, getHostNics, setSwitchUplink, uploadIso, useCom1, useCom2, useCom3, useCom4, tui")
 }
 
 func main() {
@@ -976,10 +985,15 @@ func main() {
 		timeout := time.Hour
 		longCtx, longCancel := context.WithTimeout(context.Background(), timeout)
 		defer longCancel()
-
 		uploadIso(c, longCtx, idPtr, filePathPtr)
 	case "useCom1":
-		useCom1(c, idPtr)
+		useCom(c, idPtr, 1)
+	case "useCom2":
+		useCom(c, idPtr, 2)
+	case "useCom3":
+		useCom(c, idPtr, 3)
+	case "useCom4":
+		useCom(c, idPtr, 4)
 	case "tui":
 		startTui()
 	default:

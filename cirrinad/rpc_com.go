@@ -9,10 +9,10 @@ import (
 	"golang.org/x/exp/slog"
 	"io"
 	"os"
+	"strconv"
 )
 
 func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) error {
-
 	in, err := stream.Recv()
 	if err == io.EOF {
 		return nil
@@ -30,74 +30,157 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 		return errors.New("vm not running")
 	}
 
-	if vmInst.Com1 == nil {
-		return errors.New("com not available")
-	}
-	if vmInst.Config.Com1Log {
-		com1Chan := make(chan byte)
-		vmInst.Com1rchan = com1Chan
-		defer func() { vmInst.Com1rchan = nil }()
-	}
-
 	vmInst.Com1lock.Lock()
 	defer vmInst.Com1lock.Unlock()
+	return comInteractive(stream, vmInst, vmid, 1)
+}
 
-	defer func(comPort *serial.Port) {
-		if comPort != nil {
-			err := comPort.Close()
-			if err != nil {
-				slog.Error("comLogger", "msg", "error closing com port", "err", err)
-			}
-			comPort = nil
+func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) error {
+	in, err := stream.Recv()
+	if err == io.EOF {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	vmid := in.GetVmId()
+	vmInst, err := vm.GetById(vmid.Value)
+	if err != nil {
+		return err
+	}
+
+	if vmInst.Status != "RUNNING" {
+		return errors.New("vm not running")
+	}
+
+	vmInst.Com2lock.Lock()
+	defer vmInst.Com2lock.Unlock()
+	return comInteractive(stream, vmInst, vmid, 2)
+}
+
+func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) error {
+	in, err := stream.Recv()
+	if err == io.EOF {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	vmid := in.GetVmId()
+	vmInst, err := vm.GetById(vmid.Value)
+	if err != nil {
+		return err
+	}
+
+	if vmInst.Status != "RUNNING" {
+		return errors.New("vm not running")
+	}
+
+	vmInst.Com3lock.Lock()
+	defer vmInst.Com3lock.Unlock()
+	return comInteractive(stream, vmInst, vmid, 3)
+}
+
+func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) error {
+	in, err := stream.Recv()
+	if err == io.EOF {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	vmid := in.GetVmId()
+	vmInst, err := vm.GetById(vmid.Value)
+	if err != nil {
+		return err
+	}
+
+	if vmInst.Status != "RUNNING" {
+		return errors.New("vm not running")
+	}
+
+	vmInst.Com4lock.Lock()
+	defer vmInst.Com4lock.Unlock()
+	return comInteractive(stream, vmInst, vmid, 4)
+}
+
+// FIXME -- cheating a bit here
+func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, vmid *cirrina.VMID, comNum int) error {
+
+	var thisCom *serial.Port
+	var thisComLog bool
+	var thisRChan chan byte
+
+	slog.Debug("comLogger starting", "comNum", comNum)
+
+	switch comNum {
+	case 1:
+		thisCom = vmInst.Com1
+		thisComLog = vmInst.Config.Com1Log
+		if vmInst.Config.Com1Log {
+			thisRChan = vmInst.Com1rchan
 		}
-	}(vmInst.Com1)
+	case 2:
+		thisCom = vmInst.Com2
+		thisComLog = vmInst.Config.Com2Log
+		if vmInst.Config.Com2Log {
+			thisRChan = vmInst.Com2rchan
+		}
+	case 3:
+		thisCom = vmInst.Com3
+		thisComLog = vmInst.Config.Com3Log
+		if vmInst.Config.Com3Log {
+			thisRChan = vmInst.Com3rchan
+		}
+	case 4:
+		thisCom = vmInst.Com4
+		thisComLog = vmInst.Config.Com4Log
+		if vmInst.Config.Com4Log {
+			thisRChan = vmInst.Com4rchan
+		}
+	default:
+		slog.Error("comLogger invalid com", "comNum", comNum)
+		return errors.New("invalid comNum")
+	}
 
-	slog.Debug("Com1Interactive", "vm_id", vmid.Value)
+	if thisCom == nil {
+		return errors.New("com not available")
+	}
+
+	slog.Debug("ComInteractive", "vm_id", vmid.Value, "comNum", comNum)
+	// FIXME -- cheating a bit here
 	go func(vmInst *vm.VM, stream cirrina.VMInfo_Com1InteractiveServer) {
 		b := make([]byte, 1)
 		for {
-			if vmInst.Com1 == nil {
-				if vmInst.Config.Com1Log {
-					<-vmInst.Com1rchan
-					vmInst.Com1rchan = nil
-				}
-				return
-			}
-			if vmInst.Status != "RUNNING" {
-				if vmInst.Config.Com1Log {
-					<-vmInst.Com1rchan
-					vmInst.Com1rchan = nil
-				}
+			if thisCom == nil || vmInst.Status != "RUNNING" {
 				return
 			}
 
 			// get byte from channel if logging, else read port directly
-			if vmInst.Config.Com1Log {
+			if thisComLog {
 				var b2 byte
-				b2 = <-vmInst.Com1rchan
+				b2 = <-thisRChan
 				b[0] = b2
 				req := cirrina.ComDataResponse{
 					ComOutBytes: b,
 				}
-				err = stream.Send(&req)
+				err := stream.Send(&req)
 				if err != nil {
 					// unreachable
-					slog.Debug("Com1Interactive logged failure sending to com channel", "err", err)
-					<-vmInst.Com1rchan
-					vmInst.Com1rchan = nil
+					slog.Debug("ComInteractive logged failure sending to com channel", "err", err)
 					return
 				}
 			} else {
-				nb, err := vmInst.Com1.Read(b)
+				nb, err := thisCom.Read(b)
 				if nb > 1 {
-					slog.Error("Com1Interactive read more than 1 byte", "nb", nb)
+					slog.Error("ComInteractive read more than 1 byte", "nb", nb)
 				}
 				if err == io.EOF && vmInst.Status != vm.RUNNING {
-					slog.Debug("comLogger", "msg", "vm not running, exiting")
+					slog.Debug("ComInteractive", "msg", "vm not running")
 					return
 				}
 				if err != nil && err != io.EOF {
-					slog.Error("Com1Interactive error reading com port", "err", err)
+					slog.Error("ComInteractive error reading com port", "err", err)
 					return
 				}
 				if nb != 0 {
@@ -106,11 +189,7 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 					}
 					err = stream.Send(&req)
 					if err != nil {
-						slog.Debug("Com1Interactive un-logged failure sending to com channel", "err", err)
-						if vmInst.Config.Com1Log {
-							<-vmInst.Com1rchan
-							vmInst.Com1rchan = nil
-						}
+						slog.Debug("ComInteractive un-logged failure sending to com channel", "err", err)
 						return
 					}
 				}
@@ -119,17 +198,17 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 	}(vmInst, stream)
 
 	var vl *os.File
-	if vmInst.Config.Com1Log {
-		com1LogPath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name + "/"
-		com1LogFile := com1LogPath + "com1_in.log"
-		err = vm.GetVmLogPath(com1LogPath)
+	if thisComLog {
+		comLogPath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name + "/"
+		comLogFile := comLogPath + "com" + strconv.Itoa(comNum) + "_in.log"
+		err := vm.GetVmLogPath(comLogPath)
 		if err != nil {
-			slog.Error("Com1Interactive", "err", err)
+			slog.Error("ComInteractive", "err", err)
 			return err
 		}
-		vl, err = os.OpenFile(com1LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		vl, err = os.OpenFile(comLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			slog.Error("failed to open VM in log file", "err", err)
+			slog.Error("failed to open VM input log file", "filename", comLogFile, "err", err)
 		}
 		defer func(vl *os.File) {
 			_ = vl.Close()
@@ -148,11 +227,11 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 			return err
 		}
 		inBytes := in.GetComInBytes()
-		_, err = vmInst.Com1.Write(inBytes)
+		_, err = thisCom.Write(inBytes)
 		if err != nil {
 			return err
 		}
-		if vmInst.Config.Com1Log {
+		if thisComLog {
 			_, err = vl.Write(inBytes)
 			if err != nil {
 				return err

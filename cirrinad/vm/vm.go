@@ -376,6 +376,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 		case <-vm.proc.DoneNotifier():
 			vm.log.Info("stopped")
 			vm.netCleanup()
+			vm.killComLoggers()
 			setStopped(vm.ID)
 			vm.mu.Lock()
 			List.VmList[vm.ID].Status = STOPPED
@@ -584,10 +585,33 @@ func (vm *VM) killComLoggers() {
 		_ = vm.Com1.Close()
 		vm.Com1 = nil
 	}
+	if vm.Com1rchan != nil {
+		vm.Com1rchan = nil
+	}
+	if vm.Com2 != nil {
+		_ = vm.Com2.Close()
+		vm.Com2 = nil
+	}
+	if vm.Com2rchan != nil {
+		vm.Com2rchan = nil
+	}
+	if vm.Com3 != nil {
+		_ = vm.Com3.Close()
+		vm.Com3 = nil
+	}
+	if vm.Com3rchan != nil {
+		vm.Com3rchan = nil
+	}
+	if vm.Com4 != nil {
+		_ = vm.Com4.Close()
+		vm.Com4 = nil
+	}
+	if vm.Com4rchan != nil {
+		vm.Com4rchan = nil
+	}
 }
 
 func (vm *VM) setupComLoggers() {
-	slog.Debug("setRunning", "msg", "starting serial logger(s)")
 	if vm.Com1Dev != "" {
 		cr, err := startSerialPort(vm.Com1Dev)
 		if err != nil {
@@ -601,32 +625,82 @@ func (vm *VM) setupComLoggers() {
 		}
 	}
 
-	//if vm.Com2Dev != "" {
-	//	startSerialLogger(vm.Com2Dev)
-	//}
-	//if vm.Com3Dev != "" {
-	//	startSerialLogger(vm.Com3Dev)
-	//}
-	//if vm.Com4Dev != "" {
-	//	startSerialLogger(vm.Com4Dev)
-	//}
+	if vm.Com2Dev != "" {
+		cr, err := startSerialPort(vm.Com2Dev)
+		if err != nil {
+			slog.Error("setupComLoggers", "err", err)
+			return
+		}
+		vm.Com2 = cr
+
+		if vm.Config.Com2Log {
+			go comLogger(vm, 2)
+		}
+	}
+
+	if vm.Com3Dev != "" {
+		cr, err := startSerialPort(vm.Com3Dev)
+		if err != nil {
+			slog.Error("setupComLoggers", "err", err)
+			return
+		}
+		vm.Com3 = cr
+
+		if vm.Config.Com3Log {
+			go comLogger(vm, 3)
+		}
+	}
+
+	if vm.Com4Dev != "" {
+		cr, err := startSerialPort(vm.Com4Dev)
+		if err != nil {
+			slog.Error("setupComLoggers", "err", err)
+			return
+		}
+		vm.Com4 = cr
+
+		if vm.Config.Com4Log {
+			go comLogger(vm, 4)
+		}
+	}
+
 	return
 }
 
 func comLogger(vm *VM, comNum int) {
 	var thisCom *serial.Port
-
+	var thisRChan chan byte
 	slog.Debug("comLogger starting", "comNum", comNum)
 
 	switch comNum {
 	case 1:
 		thisCom = vm.Com1
+		if vm.Config.Com1Log {
+			com1Chan := make(chan byte)
+			vm.Com1rchan = com1Chan
+			thisRChan = vm.Com1rchan
+		}
 	case 2:
 		thisCom = vm.Com2
+		if vm.Config.Com2Log {
+			com2Chan := make(chan byte)
+			vm.Com2rchan = com2Chan
+			thisRChan = vm.Com2rchan
+		}
 	case 3:
 		thisCom = vm.Com3
+		if vm.Config.Com3Log {
+			com3Chan := make(chan byte)
+			vm.Com3rchan = com3Chan
+			thisRChan = vm.Com3rchan
+		}
 	case 4:
 		thisCom = vm.Com4
+		if vm.Config.Com4Log {
+			com4Chan := make(chan byte)
+			vm.Com4rchan = com4Chan
+			thisRChan = vm.Com4rchan
+		}
 	default:
 		slog.Error("comLogger invalid com", "comNum", comNum)
 		return
@@ -642,21 +716,11 @@ func comLogger(vm *VM, comNum int) {
 
 	vl, err := os.OpenFile(comLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		slog.Error("failed to open VM out log file", "err", err)
+		slog.Error("failed to open VM output log file", "filename", comLogFile, "err", err)
 	}
 	defer func(vl *os.File) {
 		_ = vl.Close()
 	}(vl)
-
-	defer func(comPort *serial.Port) {
-		if comPort != nil {
-			err := comPort.Close()
-			if err != nil {
-				slog.Error("comLogger", "msg", "error closing com port", "err", err)
-			}
-			comPort = nil
-		}
-	}(thisCom)
 
 	n := 0
 	for {
@@ -688,9 +752,11 @@ func comLogger(vm *VM, comNum int) {
 				slog.Error("comLogger", "msg", "some bytes lost")
 			}
 			_, err = vl.Write(b)
-			if vm.Com1rchan != nil {
-				vm.Com1rchan <- b2[0]
+
+			if thisRChan != nil {
+				thisRChan <- b2[0]
 			}
+
 			n = n + nb
 			if err != nil {
 				slog.Error("comLogger", "msg", "error writing", err)
@@ -711,7 +777,6 @@ func startSerialPort(comDev string) (*serial.Port, error) {
 			ReadTimeout: 500 * time.Millisecond,
 		}
 		comReader, err := serial.OpenPort(c)
-		//comReader, err := os.OpenFile(comReadDev, os.O_RDONLY, os.O_SYNC)
 		if err != nil {
 			slog.Error("setRunning error opening comReadDev", "error", err)
 		}

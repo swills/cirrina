@@ -105,7 +105,6 @@ func setStopped(id string) {
 	if res.Error != nil {
 		slog.Error("error saving VM stopped", "err", res.Error)
 	}
-	vm.killComLoggers()
 }
 
 func setStopping(id string) {

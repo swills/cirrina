@@ -291,4 +291,7 @@ service VMInfo {
   rpc GetVmNics(VMID) returns (stream VmNicId);
 
   rpc Com1Interactive(stream ComDataRequest) returns (stream ComDataResponse);
+  rpc Com2Interactive(stream ComDataRequest) returns (stream ComDataResponse);
+  rpc Com3Interactive(stream ComDataRequest) returns (stream ComDataResponse);
+  rpc Com4Interactive(stream ComDataRequest) returns (stream ComDataResponse);
 }
