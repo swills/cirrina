@@ -5,6 +5,7 @@ import (
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/vm"
 	"errors"
+	"github.com/tarm/serial"
 	"golang.org/x/exp/slog"
 	"io"
 	"os"
@@ -40,6 +41,16 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 
 	vmInst.Com1lock.Lock()
 	defer vmInst.Com1lock.Unlock()
+
+	defer func(comPort *serial.Port) {
+		if comPort != nil {
+			err := comPort.Close()
+			if err != nil {
+				slog.Error("comLogger", "msg", "error closing com port", "err", err)
+			}
+			comPort = nil
+		}
+	}(vmInst.Com1)
 
 	slog.Debug("Com1Interactive", "vm_id", vmid.Value)
 	go func(vmInst *vm.VM, stream cirrina.VMInfo_Com1InteractiveServer) {
