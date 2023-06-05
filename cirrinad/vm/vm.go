@@ -17,6 +17,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -596,7 +597,7 @@ func (vm *VM) setupComLoggers() {
 		vm.Com1 = cr
 
 		if vm.Config.Com1Log {
-			go comLogger(vm)
+			go comLogger(vm, 1)
 		}
 	}
 
@@ -612,16 +613,34 @@ func (vm *VM) setupComLoggers() {
 	return
 }
 
-func comLogger(vm *VM) {
-	com1LogPath := config.Config.Disk.VM.Path.State + "/" + vm.Name + "/"
-	com1LogFile := com1LogPath + "com1_out.log"
-	err := GetVmLogPath(com1LogPath)
+func comLogger(vm *VM, comNum int) {
+	var thisCom *serial.Port
+
+	slog.Debug("comLogger starting", "comNum", comNum)
+
+	switch comNum {
+	case 1:
+		thisCom = vm.Com1
+	case 2:
+		thisCom = vm.Com2
+	case 3:
+		thisCom = vm.Com3
+	case 4:
+		thisCom = vm.Com4
+	default:
+		slog.Error("comLogger invalid com", "comNum", comNum)
+		return
+	}
+
+	comLogPath := config.Config.Disk.VM.Path.State + "/" + vm.Name + "/"
+	comLogFile := comLogPath + "com" + strconv.Itoa(comNum) + "_out.log"
+	err := GetVmLogPath(comLogPath)
 	if err != nil {
 		slog.Error("setupComLoggers", "err", err)
 		return
 	}
 
-	vl, err := os.OpenFile(com1LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	vl, err := os.OpenFile(comLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		slog.Error("failed to open VM out log file", "err", err)
 	}
@@ -629,15 +648,15 @@ func comLogger(vm *VM) {
 		_ = vl.Close()
 	}(vl)
 
-	defer func(Com1 *serial.Port) {
-		if vm.Com1 != nil {
-			err := Com1.Close()
+	defer func(comPort *serial.Port) {
+		if comPort != nil {
+			err := comPort.Close()
 			if err != nil {
 				slog.Error("comLogger", "msg", "error closing com port", "err", err)
 			}
-			vm.Com1 = nil
+			comPort = nil
 		}
-	}(vm.Com1)
+	}(thisCom)
 
 	n := 0
 	for {
@@ -645,17 +664,16 @@ func comLogger(vm *VM) {
 			slog.Debug("comLogger", "msg", "vm not running, exiting2")
 			return
 		}
-		if vm.Com1 == nil {
+		if thisCom == nil {
 			slog.Error("comLogger", "msg", "unable to read nil port")
 			return
 		}
 		b := make([]byte, 1)
 		b2 := make([]byte, 1)
-		nb, err := vm.Com1.Read(b)
+		nb, err := thisCom.Read(b)
 		if nb > 1 {
 			slog.Error("comLogger read more than 1 byte", "nb", nb)
 		}
-		//slog.Debug("comLogger read bytes", "byte_count", nb)
 		if err == io.EOF && vm.Status != RUNNING {
 			slog.Debug("comLogger", "msg", "vm not running, exiting")
 			return
