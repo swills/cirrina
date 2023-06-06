@@ -30,8 +30,6 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 		return errors.New("vm not running")
 	}
 
-	vmInst.Com1lock.Lock()
-	defer vmInst.Com1lock.Unlock()
 	return comInteractive(stream, vmInst, vmid, 1)
 }
 
@@ -53,8 +51,6 @@ func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) er
 		return errors.New("vm not running")
 	}
 
-	vmInst.Com2lock.Lock()
-	defer vmInst.Com2lock.Unlock()
 	return comInteractive(stream, vmInst, vmid, 2)
 }
 
@@ -76,8 +72,6 @@ func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) er
 		return errors.New("vm not running")
 	}
 
-	vmInst.Com3lock.Lock()
-	defer vmInst.Com3lock.Unlock()
 	return comInteractive(stream, vmInst, vmid, 3)
 }
 
@@ -99,8 +93,6 @@ func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) er
 		return errors.New("vm not running")
 	}
 
-	vmInst.Com4lock.Lock()
-	defer vmInst.Com4lock.Unlock()
 	return comInteractive(stream, vmInst, vmid, 4)
 }
 
@@ -111,36 +103,70 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 	var thisComLog bool
 	var thisRChan chan byte
 
-	slog.Debug("comLogger starting", "comNum", comNum)
+	slog.Debug("comInteractive starting", "comNum", comNum)
 
 	switch comNum {
 	case 1:
+		vmInst.Com1lock.Lock()
+		defer vmInst.Com1lock.Unlock()
 		thisCom = vmInst.Com1
 		thisComLog = vmInst.Config.Com1Log
 		if vmInst.Config.Com1Log {
 			thisRChan = vmInst.Com1rchan
 		}
+		vmInst.Com1write = true
+		defer func() {
+			vmInst.Com1write = false
+		}()
 	case 2:
+		vmInst.Com2lock.Lock()
+		defer vmInst.Com2lock.Unlock()
 		thisCom = vmInst.Com2
 		thisComLog = vmInst.Config.Com2Log
 		if vmInst.Config.Com2Log {
 			thisRChan = vmInst.Com2rchan
 		}
+		vmInst.Com2write = true
+		defer func() {
+			vmInst.Com2write = false
+		}()
 	case 3:
+		vmInst.Com3lock.Lock()
+		defer vmInst.Com3lock.Unlock()
 		thisCom = vmInst.Com3
 		thisComLog = vmInst.Config.Com3Log
 		if vmInst.Config.Com3Log {
 			thisRChan = vmInst.Com3rchan
 		}
+		vmInst.Com3write = true
+		defer func() {
+			vmInst.Com3write = false
+		}()
 	case 4:
+		vmInst.Com4lock.Lock()
+		defer vmInst.Com4lock.Unlock()
 		thisCom = vmInst.Com4
 		thisComLog = vmInst.Config.Com4Log
 		if vmInst.Config.Com4Log {
 			thisRChan = vmInst.Com4rchan
 		}
+		vmInst.Com4write = true
+		defer func() {
+			vmInst.Com4write = false
+		}()
 	default:
 		slog.Error("comLogger invalid com", "comNum", comNum)
 		return errors.New("invalid comNum")
+	}
+
+	// discard any existing input/output
+	// Flush() doesn't seem to flush everything?
+	for {
+		b := make([]byte, 1)
+		nb, err := thisCom.Read(b)
+		if nb == 0 || err != nil {
+			break
+		}
 	}
 
 	if thisCom == nil {
@@ -176,7 +202,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 					slog.Error("ComInteractive read more than 1 byte", "nb", nb)
 				}
 				if err == io.EOF && vmInst.Status != vm.RUNNING {
-					slog.Debug("ComInteractive", "msg", "vm not running")
+					slog.Debug("ComInteractive", "msg", "vm not running, exiting")
 					return
 				}
 				if err != nil && err != io.EOF {
@@ -189,7 +215,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 					}
 					err = stream.Send(&req)
 					if err != nil {
-						slog.Debug("ComInteractive un-logged failure sending to com channel", "err", err)
+						//slog.Debug("ComInteractive un-logged failure sending to com channel", "err", err)
 						return
 					}
 				}

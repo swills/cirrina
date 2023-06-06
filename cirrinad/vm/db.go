@@ -55,7 +55,6 @@ func (vm *VM) setRunning(pid int) {
 	if res.Error != nil {
 		slog.Error("error saving VM running", "err", res.Error)
 	}
-	vm.setupComLoggers()
 }
 
 func (vm *VM) setStarting() {

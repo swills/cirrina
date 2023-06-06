@@ -362,6 +362,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			case "ProcessStart":
 				vm.log.Info("event", "code", event.Code, "message", event.Message)
 				go vm.setRunning(vm.proc.Pid())
+				go vm.setupComLoggers()
 				vm.mu.Lock()
 				List.VmList[vm.ID].Status = RUNNING
 				vm.mu.Unlock()
@@ -670,6 +671,7 @@ func (vm *VM) setupComLoggers() {
 func comLogger(vm *VM, comNum int) {
 	var thisCom *serial.Port
 	var thisRChan chan byte
+	var thisComChanWriteFlag bool
 	slog.Debug("comLogger starting", "comNum", comNum)
 
 	switch comNum {
@@ -732,6 +734,18 @@ func comLogger(vm *VM, comNum int) {
 			slog.Error("comLogger", "msg", "unable to read nil port")
 			return
 		}
+
+		switch comNum {
+		case 1:
+			thisComChanWriteFlag = vm.Com1write
+		case 2:
+			thisComChanWriteFlag = vm.Com2write
+		case 3:
+			thisComChanWriteFlag = vm.Com3write
+		case 4:
+			thisComChanWriteFlag = vm.Com4write
+		}
+
 		b := make([]byte, 1)
 		b2 := make([]byte, 1)
 		nb, err := thisCom.Read(b)
@@ -739,7 +753,7 @@ func comLogger(vm *VM, comNum int) {
 			slog.Error("comLogger read more than 1 byte", "nb", nb)
 		}
 		if err == io.EOF && vm.Status != RUNNING {
-			slog.Debug("comLogger", "msg", "vm not running, exiting")
+			slog.Debug("comLogger", "msg", "vm not running, exiting", "vm_id", vm.ID, "comNum", comNum)
 			return
 		}
 		if err != nil && err != io.EOF {
@@ -751,9 +765,12 @@ func comLogger(vm *VM, comNum int) {
 			if nb != nb2 {
 				slog.Error("comLogger", "msg", "some bytes lost")
 			}
+
+			// write to log file
 			_, err = vl.Write(b)
 
-			if thisRChan != nil {
+			// write to channel used by remote users, if someone is reading from it
+			if thisRChan != nil && thisComChanWriteFlag {
 				thisRChan <- b2[0]
 			}
 
@@ -770,7 +787,7 @@ func startSerialPort(comDev string) (*serial.Port, error) {
 	if strings.HasSuffix(comDev, "A") {
 		comBaseDev := comDev[:len(comDev)-1]
 		comReadDev := comBaseDev + "B"
-		slog.Debug("setRunning starting serial logger on com", "comReadDev", comReadDev)
+		slog.Debug("startSerialPort starting serial port on com", "comReadDev", comReadDev)
 		c := &serial.Config{
 			Name:        comReadDev,
 			Baud:        115200, // TODO - allow setting port speed
@@ -778,7 +795,7 @@ func startSerialPort(comDev string) (*serial.Port, error) {
 		}
 		comReader, err := serial.OpenPort(c)
 		if err != nil {
-			slog.Error("setRunning error opening comReadDev", "error", err)
+			slog.Error("startSerialPort error opening comReadDev", "error", err)
 		}
 		slog.Debug("startSerialLogger", "opened", comReadDev)
 		return comReader, nil
