@@ -119,11 +119,14 @@ This probably won't work for you:
     style [meta-data](https://docs.openstack.org/nova/train/admin/metadata-service.html) [server](https://docs.tinkerbell.org/services/hegel/)
   * Clean up protobuf api, specify max string lengths, check for missing values, etc.
   * Consider [go-sqlite](https://github.com/glebarez/go-sqlite)
-  * Compare
-    with [VirtualBox](https://www.virtualbox.org/wiki/Documentation), [vm-bhyve](https://github.com/churchers/vm-bhyve),
-    [chyves](http://chyves.org/), and [minimega](https://minimega.org/) for missing features
-  *
-  Review [networking](https://freebsdfoundation.org/wp-content/uploads/2020/01/Arranging-Your-Virtual-Network-on-FreeBSD.pdf)
+  * Compare with:
+    * [VirtualBox](https://www.virtualbox.org/wiki/Documentation)
+    * [vm-bhyve](https://github.com/churchers/vm-bhyve)
+    * [chyves](http://chyves.org/)
+    * [ProxMox](https://pve.proxmox.com/)
+    * [minimega](https://minimega.org/)
+    * [Ganeti](https://ganeti.org/)
+      Review [networking](https://freebsdfoundation.org/wp-content/uploads/2020/01/Arranging-Your-Virtual-Network-on-FreeBSD.pdf)
   * Consider a cirrinactl command for remote sound, similar to remote serial
   * Support suspend/resume
   * Switch to using bhyve config file instead of command line args
