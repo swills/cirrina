@@ -60,8 +60,6 @@ This probably won't work for you:
 * Basics
   * Finish serial port stuff
     * Allow setting port speed
-    * Add config message to enable/disable serial logging
-    * Ports 2, 3 and 4
   * Add auto-start delay
   * Implement VM rename
 * Booting

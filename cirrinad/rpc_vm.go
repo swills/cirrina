@@ -214,6 +214,34 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	if isOptionPassed(reflect, "extra_args") {
 		vmInst.Config.ExtraArgs = *rc.ExtraArgs
 	}
+	if isOptionPassed(reflect, "com1log") {
+		if *rc.Com1Log {
+			vmInst.Config.Com1Log = true
+		} else {
+			vmInst.Config.Com1Log = false
+		}
+	}
+	if isOptionPassed(reflect, "com2log") {
+		if *rc.Com2Log {
+			vmInst.Config.Com2Log = true
+		} else {
+			vmInst.Config.Com2Log = false
+		}
+	}
+	if isOptionPassed(reflect, "com3log") {
+		if *rc.Com3Log {
+			vmInst.Config.Com3Log = true
+		} else {
+			vmInst.Config.Com3Log = false
+		}
+	}
+	if isOptionPassed(reflect, "com4log") {
+		if *rc.Com4Log {
+			vmInst.Config.Com4Log = true
+		} else {
+			vmInst.Config.Com4Log = false
+		}
+	}
 
 	err = vmInst.Save()
 	if err != nil {
@@ -266,6 +294,10 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Com3Dev = &vmInst.Config.Com3Dev
 	pvm.Com4 = &vmInst.Config.Com4
 	pvm.Com4Dev = &vmInst.Config.Com4Dev
+	pvm.Com1Log = &vmInst.Config.Com1Log
+	pvm.Com2Log = &vmInst.Config.Com2Log
+	pvm.Com3Log = &vmInst.Config.Com3Log
+	pvm.Com4Log = &vmInst.Config.Com4Log
 	if vmInst.Config.ExtraArgs != "" {
 		pvm.ExtraArgs = &vmInst.Config.ExtraArgs
 	}

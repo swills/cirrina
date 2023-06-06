@@ -177,6 +177,10 @@ func (vm *VM) Save() error {
 			"is_os":              &vm.Config.ISOs,
 			"disks":              &vm.Config.Disks,
 			"nics":               &vm.Config.Nics,
+			"com1_log":           &vm.Config.Com1Log,
+			"com2_log":           &vm.Config.Com2Log,
+			"com3_log":           &vm.Config.Com3Log,
+			"com4_log":           &vm.Config.Com4Log,
 		},
 		)
 

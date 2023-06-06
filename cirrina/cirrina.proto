@@ -170,6 +170,10 @@ message VMConfig {
   optional bool com4 = 39;
   optional string com4dev = 40;
   optional string extra_args = 41;
+  optional bool com1log = 42;
+  optional bool com2log = 43;
+  optional bool com3log = 44;
+  optional bool com4log = 45;
 }
 
 message VMsQuery {
@@ -237,11 +241,9 @@ message ComDataRequest {
   }
 }
 
-
 message ComDataResponse {
   bytes com_out_bytes = 2;
 }
-
 
 service VMInfo {
   rpc AddVM(VMConfig) returns (VMID);
