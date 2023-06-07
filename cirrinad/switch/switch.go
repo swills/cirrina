@@ -81,7 +81,7 @@ func Delete(id string) (err error) {
 		}
 	}
 
-	res := db.Limit(1).Delete(&dSwitch)
+	res := db.Limit(1).Unscoped().Delete(&dSwitch)
 	if res.RowsAffected != 1 {
 		errText := fmt.Sprintf("switch delete error, rows affected %v", res.RowsAffected)
 		return errors.New(errText)

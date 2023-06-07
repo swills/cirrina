@@ -4,6 +4,7 @@ import (
 	"cirrina/cirrina"
 	_switch "cirrina/cirrinad/switch"
 	"errors"
+	"fmt"
 	"golang.org/x/exp/slog"
 	"strings"
 )
@@ -150,8 +151,27 @@ func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq)
 			}
 		}
 	} else {
+		switchList := _switch.GetAll()
+		for _, sw := range switchList {
+			if sw.ID != switchInst.ID && sw.Type == switchInst.Type && sw.Uplink == uplink {
+				slog.Error("SetSwitchUplink uplink already in use by another switch",
+					"uplink", uplink,
+					"name", sw.Name,
+				)
+				errorString := fmt.Sprintf("uplink already in use by %v", sw.Name)
+				return &r, errors.New(errorString)
+			}
+		}
 		if switchInst.Uplink != uplink {
 			slog.Debug("SetSwitchUplink", "msg", "setting switch uplink", "switchInst", switchInst)
+			if err = switchInst.SetUplink(uplink); err != nil {
+				return &r, err
+			}
+		} else {
+			slog.Debug("SetSwitchUplink", "msg", "re-setting switch uplink", "switchInst", switchInst)
+			if err = switchInst.UnsetUplink(); err != nil {
+				return &r, err
+			}
 			if err = switchInst.SetUplink(uplink); err != nil {
 				return &r, err
 			}
