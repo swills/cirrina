@@ -35,6 +35,9 @@ This probably won't work for you:
 * Create a switch
   * `./cirrinactl -action addSwitch -name bridge0`
   * Or use the GUI (weasel)
+  * Note:
+    * "IF" (`if_bridge`) type switches must have names which start with `bridge`
+    * "NG" (`netgraph`) type switches must have names which start with `bnet`
 * Set it's uplink
   * `./cirrinactl -action setSwitchUplink -switchId switchuuid -uplinkName "em0"`
   * Or use the GUI (weasel)
