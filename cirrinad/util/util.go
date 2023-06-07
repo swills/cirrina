@@ -144,16 +144,14 @@ func GetHostInterfaces() []string {
 	}
 	slog.Debug("GetHostInterfaces", "netInterfaces", netInterfaces)
 	for _, inter := range netInterfaces {
-		if strings.HasPrefix(inter.Name, "lo") {
-			continue
-		}
 		if strings.HasPrefix(inter.Name, "bridge") {
 			continue
 		}
 		if strings.HasPrefix(inter.Name, "tap") {
 			continue
 		}
-		if strings.HasPrefix(inter.Name, "vmnet") {
+		slog.Debug("GetHostInterfaces", "HardwareAddr", inter.HardwareAddr)
+		if inter.HardwareAddr.String() == "" {
 			continue
 		}
 		netDevs = append(netDevs, inter.Name)

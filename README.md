@@ -100,6 +100,8 @@ This probably won't work for you:
   * Implement 9p sharing
 * Other/Ideas
   * Have GUI manage config for and automatically start daemon for a purely local mode
+  * User/password auth
+  * Server manager with grouping
   * Add GUI config for remote host
   * VM grouping
   * VM templates for various OSs
