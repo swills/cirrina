@@ -150,7 +150,6 @@ func GetHostInterfaces() []string {
 		if strings.HasPrefix(inter.Name, "tap") {
 			continue
 		}
-		slog.Debug("GetHostInterfaces", "HardwareAddr", inter.HardwareAddr)
 		if inter.HardwareAddr.String() == "" {
 			continue
 		}
