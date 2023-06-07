@@ -181,6 +181,10 @@ func (vm *VM) Save() error {
 			"com2_log":           &vm.Config.Com2Log,
 			"com3_log":           &vm.Config.Com3Log,
 			"com4_log":           &vm.Config.Com4Log,
+			"com1_speed":         &vm.Config.Com1Speed,
+			"com2_speed":         &vm.Config.Com2Speed,
+			"com3_speed":         &vm.Config.Com3Speed,
+			"com4_speed":         &vm.Config.Com4Speed,
 		},
 		)
 
@@ -618,7 +622,7 @@ func (vm *VM) killComLoggers() {
 
 func (vm *VM) setupComLoggers() {
 	if vm.Com1Dev != "" {
-		cr, err := startSerialPort(vm.Com1Dev)
+		cr, err := startSerialPort(vm.Com1Dev, uint(vm.Config.Com1Speed))
 		if err != nil {
 			slog.Error("setupComLoggers", "err", err)
 			return
@@ -631,7 +635,7 @@ func (vm *VM) setupComLoggers() {
 	}
 
 	if vm.Com2Dev != "" {
-		cr, err := startSerialPort(vm.Com2Dev)
+		cr, err := startSerialPort(vm.Com2Dev, uint(vm.Config.Com2Speed))
 		if err != nil {
 			slog.Error("setupComLoggers", "err", err)
 			return
@@ -644,7 +648,7 @@ func (vm *VM) setupComLoggers() {
 	}
 
 	if vm.Com3Dev != "" {
-		cr, err := startSerialPort(vm.Com3Dev)
+		cr, err := startSerialPort(vm.Com3Dev, uint(vm.Config.Com3Speed))
 		if err != nil {
 			slog.Error("setupComLoggers", "err", err)
 			return
@@ -657,7 +661,7 @@ func (vm *VM) setupComLoggers() {
 	}
 
 	if vm.Com4Dev != "" {
-		cr, err := startSerialPort(vm.Com4Dev)
+		cr, err := startSerialPort(vm.Com4Dev, uint(vm.Config.Com4Speed))
 		if err != nil {
 			slog.Error("setupComLoggers", "err", err)
 			return
@@ -787,14 +791,17 @@ func comLogger(vm *VM, comNum int) {
 	}
 }
 
-func startSerialPort(comDev string) (*serial.Port, error) {
+func startSerialPort(comDev string, comSpeed uint) (*serial.Port, error) {
 	if strings.HasSuffix(comDev, "A") {
 		comBaseDev := comDev[:len(comDev)-1]
 		comReadDev := comBaseDev + "B"
-		slog.Debug("startSerialPort starting serial port on com", "comReadDev", comReadDev)
+		slog.Debug("startSerialPort starting serial port on com",
+			"comReadDev", comReadDev,
+			"comSpeed", comSpeed,
+		)
 		c := &serial.Config{
 			Name:        comReadDev,
-			Baud:        115200, // TODO - allow setting port speed
+			Baud:        int(comSpeed),
 			ReadTimeout: 500 * time.Millisecond,
 		}
 		comReader, err := serial.OpenPort(c)

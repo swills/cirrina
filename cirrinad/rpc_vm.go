@@ -242,6 +242,18 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 			vmInst.Config.Com4Log = false
 		}
 	}
+	if isOptionPassed(reflect, "com1speed") {
+		vmInst.Config.Com1Speed = *rc.Com1Speed
+	}
+	if isOptionPassed(reflect, "com2speed") {
+		vmInst.Config.Com2Speed = *rc.Com2Speed
+	}
+	if isOptionPassed(reflect, "com3speed") {
+		vmInst.Config.Com3Speed = *rc.Com3Speed
+	}
+	if isOptionPassed(reflect, "com4speed") {
+		vmInst.Config.Com4Speed = *rc.Com4Speed
+	}
 
 	err = vmInst.Save()
 	if err != nil {
@@ -298,6 +310,10 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Com2Log = &vmInst.Config.Com2Log
 	pvm.Com3Log = &vmInst.Config.Com3Log
 	pvm.Com4Log = &vmInst.Config.Com4Log
+	pvm.Com1Speed = &vmInst.Config.Com1Speed
+	pvm.Com2Speed = &vmInst.Config.Com2Speed
+	pvm.Com3Speed = &vmInst.Config.Com3Speed
+	pvm.Com4Speed = &vmInst.Config.Com4Speed
 	if vmInst.Config.ExtraArgs != "" {
 		pvm.ExtraArgs = &vmInst.Config.ExtraArgs
 	}

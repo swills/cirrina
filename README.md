@@ -58,8 +58,6 @@ This probably won't work for you:
 # TODO
 
 * Basics
-  * Finish serial port stuff
-    * Allow setting port speed
   * Add auto-start delay
   * Implement VM rename
 * Booting
