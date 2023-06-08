@@ -79,7 +79,7 @@ func Create(VmNicInst *VmNic) (newNicId string, err error) {
 
 func (d *VmNic) Delete() (err error) {
 	db := getVmNicDb()
-	res := db.Limit(1).Delete(&d)
+	res := db.Limit(1).Unscoped().Delete(&d)
 	if res.RowsAffected != 1 {
 		errText := fmt.Sprintf("vmnic delete error, rows affected %v", res.RowsAffected)
 		return errors.New(errText)

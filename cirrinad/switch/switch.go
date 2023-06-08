@@ -259,7 +259,6 @@ func (d *Switch) UnsetUplink() error {
 		return nil
 	}
 	return errors.New("unknown switch type")
-
 }
 
 func (d *Switch) SetUplink(uplink string) error {
@@ -367,7 +366,6 @@ func DestroyIfBridge(name string, cleanup bool) error {
 		return err
 	}
 	return nil
-
 }
 
 func DestroyNgBridge(netDev string) (err error) {
