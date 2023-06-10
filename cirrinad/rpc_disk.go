@@ -62,6 +62,20 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 	}
 	ic.Name = &diskInst.Name
 	ic.Description = &diskInst.Description
+	DiskTypeNVME := cirrina.DiskType_NVME
+	DiskTypeAHCI := cirrina.DiskType_AHCIHD
+	DiskTypeVIRT := cirrina.DiskType_VIRTIOBLK
+
+	if diskInst.Type == "NVME" {
+		ic.DiskType = &DiskTypeNVME
+	} else if diskInst.Type == "AHCI-HD" {
+		ic.DiskType = &DiskTypeAHCI
+	} else if diskInst.Type == "VIRTIO-BLK" {
+		ic.DiskType = &DiskTypeVIRT
+	} else {
+		slog.Error("GetDiskInfo invalid disk type", "diskid", i.Value, "disktype", diskInst.Type)
+		return nil, errors.New("invalid disk type")
+	}
 	return &ic, nil
 }
 
