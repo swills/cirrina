@@ -118,3 +118,31 @@ func (s *server) RemoveDisk(_ context.Context, i *cirrina.DiskId) (*cirrina.ReqB
 	re.Success = true
 	return &re, nil
 }
+
+func (s *server) GetDiskVm(_ context.Context, i *cirrina.DiskId) (v *cirrina.VMID, err error) {
+	slog.Debug("GetDiskVm finding VM for disk", "diskid", i.Value)
+	var pvmId cirrina.VMID
+
+	allVMs := vm.GetAll()
+	found := false
+	for _, thisVm := range allVMs {
+		thisVmDisks, err := thisVm.GetDisks()
+		if err != nil {
+			return nil, err
+		}
+		for _, vmDisk := range thisVmDisks {
+			if vmDisk.ID == i.Value {
+				if found == true {
+					slog.Error("GetDiskVm disk in use by more than one VM",
+						"diskid", i.Value,
+						"vmid", thisVm.ID,
+					)
+					return nil, errors.New("disk in use by more than one VM")
+				}
+				found = true
+				pvmId.Value = thisVm.ID
+			}
+		}
+	}
+	return &pvmId, nil
+}

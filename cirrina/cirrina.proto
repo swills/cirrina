@@ -278,6 +278,7 @@ service VMInfo {
   rpc RemoveDisk(DiskId) returns (ReqBool);
   rpc SetVmDisks(SetDiskReq) returns (ReqBool);
   rpc GetVmDisks(VMID) returns (stream DiskId);
+  rpc GetDiskVm(DiskId) returns (VMID);
 
   rpc GetSwitches(SwitchesQuery) returns (stream SwitchId);
   rpc GetSwitchInfo(SwitchId) returns (SwitchInfo);
@@ -292,6 +293,7 @@ service VMInfo {
   rpc UpdateVmNic(VmNicInfoUpdate) returns (ReqBool);
   rpc RemoveVmNic(VmNicId) returns (ReqBool);
   rpc SetVmNicSwitch(SetVmNicSwitchReq) returns (ReqBool);
+  rpc GetVmNicVm(VmNicId) returns (VMID);
 
   rpc SetVmNics(SetNicReq) returns (ReqBool);
   rpc GetVmNics(VMID) returns (stream VmNicId);
