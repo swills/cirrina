@@ -410,7 +410,6 @@ func GetVmnetDev() string {
 }
 
 func getNmdmNum(offset int) (nmdm string, err error) {
-	// dear god this is so ugly please kill it
 	var nmdmDevs []string
 	var nmdmDev string
 	devList, err := os.ReadDir("/dev/")
@@ -429,17 +428,15 @@ func getNmdmNum(offset int) (nmdm string, err error) {
 		}
 	}
 	sort.Strings(nmdmDevs)
-	//slog.Debug("getNmdmNum", "nmdmDevs", nmdmDevs)
-	if len(nmdmDevs) == 0 {
-		nmdmDev = "/dev/nmdm" + strconv.Itoa(offset) + "A"
-	} else {
-		d := nmdmDevs[len(nmdmDevs)-1]
-		e, err := strconv.Atoi(d)
-		if err != nil {
-			return "", err
+	found := false
+	num := offset
+	for !found {
+		nmdmDev = strconv.Itoa(num)
+		if !util.ContainsStr(nmdmDevs, nmdmDev) {
+			found = true
+			nmdmDev = "/dev/nmdm" + nmdmDev + "A"
 		}
-		f := e + 1 + offset
-		nmdmDev = "/dev/nmdm" + strconv.Itoa(f) + "A"
+		num = num + 1
 	}
 	return nmdmDev, nil
 }
