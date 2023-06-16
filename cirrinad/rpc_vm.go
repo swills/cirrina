@@ -459,12 +459,20 @@ func (s *server) SetVmDisks(_ context.Context, sr *cirrina.SetDiskReq) (*cirrina
 }
 
 func (s *server) GetVmISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVmISOsServer) error {
+	if v == nil {
+		slog.Error("GetVmISOs v is nil")
+		return errors.New("not found")
+	}
+	if v.Value == "" {
+		slog.Error("GetVmISOs v.Value is empty")
+		return errors.New("not found")
+	}
 	vmInst, err := vm.GetById(v.Value)
-	slog.Debug("GetVmISOs", "vm", v.Value, "isos", vmInst.Config.ISOs)
 	if err != nil {
 		slog.Error("error getting vm", "vm", v.Value, "err", err)
 		return err
 	}
+	slog.Debug("GetVmISOs", "vm", v.Value, "isos", vmInst.Config.ISOs)
 
 	isos, err := vmInst.GetISOs()
 	if err != nil {
