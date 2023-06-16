@@ -66,6 +66,7 @@ This probably won't work for you:
   * Fetching logs from server to client
   * Add auto-start delay
   * Implement VM rename - High Priority
+  * Switch from polling to streaming for VM status
 * Booting
   * Add feature to manage UEFI settings such as boot order to GUI
   * Fix restart delay of zero - High Priority
@@ -109,6 +110,9 @@ This probably won't work for you:
   * RDP
   * Implement 9p sharing - High Priority
 * Other/Ideas
+  * Clients
+    * Build TUI with [Bubbletea](https://github.com/charmbracelet/bubbletea)
+    * Build Web UI -- maybe [awesome-grpc](https://github.com/grpc-ecosystem/awesome-grpc) has suggestions
   * Have GUI manage config for and automatically start daemon for a purely local mode
   * User/password auth - High Priority
   * Server manager with grouping - High Priority
@@ -123,8 +127,6 @@ This probably won't work for you:
   * VM Stats (CPU/Mem/IO) in GUI
   * VM Logs in GUI
   * AWS and/or other cloud import/export/interoperability
-  * Build TUI with [Bubbletea](https://github.com/charmbracelet/bubbletea)
-  * Build Web UI -- maybe [awesome-grpc](https://github.com/grpc-ecosystem/awesome-grpc) has suggestions
   * Add cloud-init
     style [meta-data](https://docs.openstack.org/nova/train/admin/metadata-service.html)
     [server](https://docs.tinkerbell.org/services/hegel/)
