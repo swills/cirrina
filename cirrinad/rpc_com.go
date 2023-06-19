@@ -163,6 +163,9 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 	// Flush() doesn't seem to flush everything?
 	for {
 		b := make([]byte, 1)
+		if thisCom == nil {
+			return nil
+		}
 		nb, err := thisCom.Read(b)
 		if nb == 0 || err != nil {
 			break
