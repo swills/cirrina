@@ -383,6 +383,9 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 				vm.log.Info("event", "code", event.Code, "message", event.Message)
 			}
 		case <-vm.proc.DoneNotifier():
+			slog.Debug("vm stopped",
+				"vm_name", vm.Name,
+			)
 			vm.log.Info("stopped")
 			vm.netCleanup()
 			vm.killComLoggers()
@@ -621,7 +624,7 @@ func (vm *VM) killComLoggers() {
 }
 
 func (vm *VM) setupComLoggers() {
-	if vm.Com1Dev != "" {
+	if vm.Com1Dev != "" && vm.Com1 == nil {
 		cr, err := startSerialPort(vm.Com1Dev, uint(vm.Config.Com1Speed))
 		if err != nil {
 			slog.Error("setupComLoggers", "err", err)
@@ -633,8 +636,7 @@ func (vm *VM) setupComLoggers() {
 			go comLogger(vm, 1)
 		}
 	}
-
-	if vm.Com2Dev != "" {
+	if vm.Com2Dev != "" && vm.Com2 == nil {
 		cr, err := startSerialPort(vm.Com2Dev, uint(vm.Config.Com2Speed))
 		if err != nil {
 			slog.Error("setupComLoggers", "err", err)
@@ -646,8 +648,7 @@ func (vm *VM) setupComLoggers() {
 			go comLogger(vm, 2)
 		}
 	}
-
-	if vm.Com3Dev != "" {
+	if vm.Com3Dev != "" && vm.Com3 == nil {
 		cr, err := startSerialPort(vm.Com3Dev, uint(vm.Config.Com3Speed))
 		if err != nil {
 			slog.Error("setupComLoggers", "err", err)
@@ -659,8 +660,7 @@ func (vm *VM) setupComLoggers() {
 			go comLogger(vm, 3)
 		}
 	}
-
-	if vm.Com4Dev != "" {
+	if vm.Com4Dev != "" && vm.Com4 == nil {
 		cr, err := startSerialPort(vm.Com4Dev, uint(vm.Config.Com4Speed))
 		if err != nil {
 			slog.Error("setupComLoggers", "err", err)
