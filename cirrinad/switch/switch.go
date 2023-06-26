@@ -74,17 +74,25 @@ func Delete(id string) (err error) {
 		return errors.New(errorText)
 	}
 
-	vmNics := vm_nics.GetAll()
-	for _, vmNic := range vmNics {
-		if vmNic.SwitchId == id {
-			return errors.New("switch in use")
-		}
+	err2 := CheckSwitchInUse(id)
+	if err2 != nil {
+		return err2
 	}
 
 	res := db.Limit(1).Unscoped().Delete(&dSwitch)
 	if res.RowsAffected != 1 {
 		errText := fmt.Sprintf("switch delete error, rows affected %v", res.RowsAffected)
 		return errors.New(errText)
+	}
+	return nil
+}
+
+func CheckSwitchInUse(id string) error {
+	vmNics := vm_nics.GetAll()
+	for _, vmNic := range vmNics {
+		if vmNic.SwitchId == id {
+			return errors.New("switch in use")
+		}
 	}
 	return nil
 }
@@ -376,7 +384,7 @@ func DestroyNgBridge(netDev string) (err error) {
 		netDev+":", "shutdown")
 	err = cmd.Run()
 	if err != nil {
-		slog.Error("ngctl msg error", "err", err)
+		slog.Error("ngctl msg shutdown error", "err", err)
 		return err
 	}
 	return nil
