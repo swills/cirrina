@@ -69,7 +69,6 @@ This probably won't work for you:
   * Switch from polling to streaming for VM status
 * Booting
   * Add feature to manage UEFI settings such as boot order to GUI
-  * Fix restart delay of zero - High Priority
 * Resources limiting
   * Network I/O
   * Disk I/O

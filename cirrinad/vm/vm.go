@@ -90,6 +90,13 @@ func (vm *VM) Start() (err error) {
 		return err
 	}
 
+	respawnWait := time.Duration(vm.Config.RestartDelay) * time.Second
+	// avoid go-supervisor setting this to default (2m) -- 1ns is hard to differentiate from 0ns and I prefer not to
+	// change go-supervisor unless I have to
+	if respawnWait == 0 {
+		respawnWait = 1
+	}
+
 	p := supervisor.NewProcess(supervisor.ProcessOptions{
 		Name:                    cmdName,
 		Args:                    cmdArgs,
@@ -100,8 +107,8 @@ func (vm *VM) Start() (err error) {
 		ErrorParser:             supervisor.MakeBytesParser,
 		MaxSpawns:               -1,
 		MaxSpawnAttempts:        -1,
-		RespawnWait:             time.Duration(vm.Config.RestartDelay) * time.Second,
-		SpawnWait:               time.Duration(vm.Config.RestartDelay) * time.Second,
+		RespawnWait:             respawnWait,
+		SpawnWait:               respawnWait,
 		MaxInterruptAttempts:    1,
 		MaxTerminateAttempts:    1,
 		IdleTimeout:             -1,
