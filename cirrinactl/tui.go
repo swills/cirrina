@@ -20,8 +20,8 @@ type model struct {
 	selected map[int]struct{}
 }
 
-func initialModel() model {
-	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+func initialModel(addr string) model {
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -130,9 +130,9 @@ func (m model) View() string {
 	return s
 }
 
-func startTea() {
+func startTea(serverAddr string) {
 
-	p := tea.NewProgram(initialModel())
+	p := tea.NewProgram(initialModel(serverAddr))
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Alas, there's been an error: %v", err)
 		os.Exit(1)

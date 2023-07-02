@@ -17,10 +17,6 @@ import (
 	"time"
 )
 
-var (
-	addr = flag.String("addr", "localhost:50051", "the address to connect to")
-)
-
 func isFlagPassed(name string) bool {
 	found := false
 	flag.Visit(func(fflag *flag.Flag) {
@@ -871,8 +867,8 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 	fmt.Printf("Success\n")
 }
 
-func startTui() {
-	startTea()
+func startTui(serverAddr string) {
+	startTea(serverAddr)
 }
 
 func printActionHelp() {
@@ -882,6 +878,7 @@ func printActionHelp() {
 }
 
 func main() {
+	serverAddrPtr := flag.String("server", "localhost", "name/ip of server")
 	actionPtr := flag.String("action", "", "action to take")
 	idPtr := flag.String("id", "", "ID of VM")
 	namePtr := flag.String("name", "", "Name of VM/ISO/Disk")
@@ -913,7 +910,8 @@ func main() {
 	//screenHeightPtr := flag.Uint(screenHeight, 1080, "Height of VM screen")
 
 	flag.Parse()
-	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	addr := *serverAddrPtr + ":50051"
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -995,7 +993,7 @@ func main() {
 	case "useCom4":
 		useCom(c, idPtr, 4)
 	case "tui":
-		startTui()
+		startTui(addr)
 	default:
 		log.Fatalf("Action %v unknown", *actionPtr)
 	}
