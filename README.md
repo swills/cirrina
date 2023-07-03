@@ -39,7 +39,7 @@ This probably won't work for you:
     * Log, DB and ROM paths are files
     * Disk image, state and iso paths are directories
 * Run cirrinad
-  * `./cirrinad`
+  * `./cirrinad -config config.yml`
 
 ## Run Clients
 
