@@ -21,42 +21,59 @@ This probably won't work for you:
 
 # How to use
 
+## Build
+
 * Build cirinad:
   * `cd cirrinad`
   * `go build -o cirrinad ./`
-* Create and edit config
-  * `cp config.sample.yml config.yml`
-  * `vi config.yml`
-* Run cirrinad
-  * `./cirrinad`
 * Build cirrinactl:
   * `cd cirrinactl`
   * `go build ./...`
-* Create a switch
-  * `./cirrinactl -action addSwitch -name bridge0`
-  * Or use the GUI (weasel)
+
+## Run Daemon
+
+* Create and edit config
+  * `cp config.sample.yml config.yml`
+  * `vi config.yml`
   * Note:
-    * "IF" (`if_bridge`) type switches must have names which start with `bridge`
-    * "NG" (`netgraph`) type switches must have names which start with `bnet`
-* Set it's uplink
-  * `./cirrinactl -action setSwitchUplink -switchId switchuuid -uplinkName "em0"`
-  * Or use the GUI (weasel)
-* Add an iso for your VM to use:
-  * `./cirrinactl -action addISO -name something.iso`
-  * `./cirrinactl -action uploadIso -id isoid -filePath /some/file/path.iso`
-  * Or use the GUI (weasel)
-* Add a disk for a VM:
-  * `./cirrinactl -action addDisk -name something -descr 'a disk' -size 8g`
-  * Or use the GUI (weasel)
-* Add a NIC for a VM:
-  * `./cirrinactl -action addVmNic -name something_int0 -switchId switchuuid`
-  * Or use the GUI (weasel)
-* Add a VM:
-  * `./cirrinactl -action addVM -name something`
-  * Or use the GUI (weasel)
-* Start weasel
-  * select VM, click edit, add disk, iso and nic to VM
-  * start VM
+    * Log, DB and ROM paths are files
+    * Disk image, state and iso paths are directories
+* Run cirrinad
+  * `./cirrinad`
+
+## Run Clients
+
+* GUI
+  * Start weasel
+    * Create switch
+    * Create VM
+    * Add Disk
+    * Add NIC
+    * Upload ISO
+    * Select VM, click edit, add disk, iso and nic to VM
+    * Start VM
+* Command line - Incomplete
+  * Create a switch
+    * `./cirrinactl -action addSwitch -name bridge0`
+    * Note:
+      * "IF" (`if_bridge`) type switches must have names which start with `bridge`
+      * "NG" (`netgraph`) type switches must have names which start with `bnet`
+  * Set it's uplink
+    * `./cirrinactl -action setSwitchUplink -switchId switchuuid -uplinkName "em0"`
+    * Or use the GUI (weasel)
+  * Add an iso for your VM to use:
+    * `./cirrinactl -action addISO -name something.iso`
+    * `./cirrinactl -action uploadIso -id isoid -filePath /some/file/path.iso`
+    * Or use the GUI (weasel)
+  * Add a disk for a VM:
+    * `./cirrinactl -action addDisk -name something -descr 'a disk' -size 8g`
+    * Or use the GUI (weasel)
+  * Add a NIC for a VM:
+    * `./cirrinactl -action addVmNic -name something_int0 -switchId switchuuid`
+    * Or use the GUI (weasel)
+  * Add a VM:
+    * `./cirrinactl -action addVM -name something`
+    * Or use the GUI (weasel)
 
 # TODO
 
