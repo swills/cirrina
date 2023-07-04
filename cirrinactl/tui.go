@@ -17,7 +17,7 @@ type vmItem struct {
 	desc string
 }
 
-func getVms(addr string) []vmItem {
+func getVmItems(addr string) []vmItem {
 	var vmIds []string
 	var vmItems []vmItem
 
@@ -73,7 +73,7 @@ func getVms(addr string) []vmItem {
 func startTui(serverAddr string) {
 
 	vmList := tview.NewList()
-	vmItems := getVms(serverAddr)
+	vmItems := getVmItems(serverAddr)
 
 	app := tview.NewApplication()
 	for _, vmItem := range vmItems {
