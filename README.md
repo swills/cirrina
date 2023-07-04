@@ -127,7 +127,7 @@ This probably won't work for you:
   * Implement 9p sharing - High Priority
 * Other/Ideas
   * Clients
-    * Build TUI with [Bubbletea](https://github.com/charmbracelet/bubbletea)
+    * Build TUI with [tview](https://github.com/rivo/tview)
     * Build Web UI -- maybe [awesome-grpc](https://github.com/grpc-ecosystem/awesome-grpc) has suggestions
   * Have GUI manage config for and automatically start daemon for a purely local mode
   * User/password auth - High Priority

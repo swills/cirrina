@@ -867,10 +867,6 @@ func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPt
 	fmt.Printf("Success\n")
 }
 
-func startTui(serverAddr string) {
-	startTea(serverAddr)
-}
-
 func printActionHelp() {
 	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, " +
 		"addISO, addDisk, addSwitch, addVmNic, getSwitches, getVmNics, getSwitch, getVmNic, setVmNicVm, " +

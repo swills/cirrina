@@ -3,60 +3,23 @@ package main
 import (
 	pb "cirrina/cirrina"
 	"context"
-	"fmt"
-	"github.com/charmbracelet/bubbles/list"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/rivo/tview"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"io"
 	"log"
-	"os"
 	"sort"
 	"time"
 )
 
-var docStyle = lipgloss.NewStyle()
-
-type item struct {
-	name, desc string
+type vmItem struct {
+	name string
+	desc string
 }
 
-func (i item) Title() string       { return i.name }
-func (i item) Description() string { return i.desc }
-func (i item) FilterValue() string { return i.name }
-
-type vmListModel struct {
-	list list.Model
-}
-
-func (m vmListModel) Init() tea.Cmd {
-	return nil
-}
-
-func (m vmListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		if msg.String() == "ctrl+c" {
-			return m, tea.Quit
-		}
-	case tea.WindowSizeMsg:
-		h, v := docStyle.GetFrameSize()
-		m.list.SetSize(msg.Width-h, msg.Height-v)
-	}
-
-	var cmd tea.Cmd
-	m.list, cmd = m.list.Update(msg)
-	return m, cmd
-}
-
-func (m vmListModel) View() string {
-	return docStyle.Render(m.list.View())
-}
-
-func getVms(addr string) []list.Item {
+func getVms(addr string) []vmItem {
 	var vmIds []string
-	var vmItems []list.Item
+	var vmItems []vmItem
 
 	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -95,29 +58,33 @@ func getVms(addr string) []list.Item {
 		if err != nil {
 			log.Fatalf("could not get VM: %v", err)
 		}
-		aItem := item{
+		aItem := vmItem{
 			name: *res.Name,
 			desc: *res.Description,
 		}
 		vmItems = append(vmItems, aItem)
 	}
 
-	sort.Slice(vmItems, func(i, j int) bool { return vmItems[i].FilterValue() < vmItems[j].FilterValue() })
+	sort.Slice(vmItems, func(i, j int) bool { return vmItems[i].name < vmItems[j].name })
 
 	return vmItems
 }
 
-func startTea(serverAddr string) {
+func startTui(serverAddr string) {
 
+	vmList := tview.NewList()
 	vmItems := getVms(serverAddr)
 
-	m := vmListModel{list: list.New(vmItems, list.NewDefaultDelegate(), 0, 0)}
-	m.list.Title = "VMs"
+	app := tview.NewApplication()
+	for _, vmItem := range vmItems {
+		vmList.AddItem(vmItem.name, vmItem.desc, 0, nil)
+	}
 
-	p := tea.NewProgram(m, tea.WithAltScreen())
+	vmList.AddItem("Quit", "Press to exit", 'q', func() {
+		app.Stop()
+	})
 
-	if _, err := p.Run(); err != nil {
-		fmt.Println("Error running program:", err)
-		os.Exit(1)
+	if err := app.SetRoot(vmList, true).SetFocus(vmList).Run(); err != nil {
+		panic(err)
 	}
 }
