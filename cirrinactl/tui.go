@@ -34,20 +34,13 @@ func getVmItems(addr string) []vmItem {
 	var vmIds []string
 	var vmItems []vmItem
 
-	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		log.Fatalf("did not connect: %v", err)
-	}
+	conn, err, c, ctx, cancel := getConnection(addr)
 	defer func(conn *grpc.ClientConn) {
 		err := conn.Close()
 		if err != nil {
 			log.Fatalf("Failed to close connection")
 		}
 	}(conn)
-	c := pb.NewVMInfoClient(conn)
-
-	timeout := time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	res, err := c.GetVMs(ctx, &pb.VMsQuery{})
@@ -81,6 +74,18 @@ func getVmItems(addr string) []vmItem {
 	sort.Slice(vmItems, func(i, j int) bool { return vmItems[i].name < vmItems[j].name })
 
 	return vmItems
+}
+
+func getConnection(addr string) (*grpc.ClientConn, error, pb.VMInfoClient, context.Context, context.CancelFunc) {
+	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	c := pb.NewVMInfoClient(conn)
+
+	timeout := time.Second * 120
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	return conn, err, c, ctx, cancel
 }
 
 func startButtonExit(key tcell.Key) {
@@ -133,11 +138,48 @@ func vncButtonExit(key tcell.Key) {
 	}
 }
 
+func vmStartFunc(name string) {
+	conn, err, c, ctx, cancel := getConnection(serverAddr)
+	if err != nil {
+		return
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			log.Fatalf("Failed to close connection")
+		}
+	}(conn)
+	defer cancel()
+
+	vmId := vmNameToId(name, c, ctx)
+	if vmId == "" {
+		return
+	}
+	_, _ = c.StartVM(ctx, &pb.VMID{Value: vmId})
+}
+
+func vmStopFunc(name string) {
+	conn, err, c, ctx, cancel := getConnection(serverAddr)
+	if err != nil {
+		return
+	}
+	defer func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			log.Fatalf("Failed to close connection")
+		}
+	}(conn)
+	defer cancel()
+
+	vmId := vmNameToId(name, c, ctx)
+	_, _ = c.StopVM(ctx, &pb.VMID{Value: vmId})
+}
+
 func vmChangedFunc(index int, name string, _ string, _ rune) {
 	infoFlex.Clear()
 	if index >= len(vmItems) {
 		quit := tview.NewTextView()
-		quit.SetText("Quit?\n")
+		quit.SetText("Quit?")
 		infoFlex.AddItem(quit, 0, 1, false)
 		return
 	}
@@ -145,10 +187,12 @@ func vmChangedFunc(index int, name string, _ string, _ rune) {
 	buttonRowFlex := tview.NewFlex()
 	startButton = tview.NewButton("Start")
 	startButton.SetExitFunc(startButtonExit)
+	startButton.SetSelectedFunc(func() { vmStartFunc(name) })
 	buttonRowFlex.AddItem(startButton, 0, 1, true)
 
 	stopButton = tview.NewButton("Stop")
 	stopButton.SetExitFunc(stopButtonExit)
+	stopButton.SetSelectedFunc(func() { vmStopFunc(name) })
 	buttonRowFlex.AddItem(stopButton, 0, 1, true)
 
 	editButton = tview.NewButton("Edit")
@@ -177,7 +221,7 @@ func vmSelectedFunc(_ int, _ string, _ string, _ rune) {
 	app.SetFocus(infoFlex)
 }
 
-func startTui(serverAddr string) {
+func startTui() {
 	title := fmt.Sprintf(" cirrinactl - %v ", serverAddr)
 
 	vmList = tview.NewList()

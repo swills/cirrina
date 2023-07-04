@@ -10,6 +10,8 @@ import (
 	"time"
 )
 
+var serverAddr string
+
 func isFlagPassed(name string) bool {
 	found := false
 	flag.Visit(func(fflag *flag.Flag) {
@@ -59,8 +61,8 @@ func main() {
 	//screenHeightPtr := flag.Uint(screenHeight, 1080, "Height of VM screen")
 
 	flag.Parse()
-	addr := *serverAddrPtr + ":50051"
-	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	serverAddr = *serverAddrPtr + ":50051"
+	conn, err := grpc.Dial(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
@@ -142,7 +144,7 @@ func main() {
 	case "useCom4":
 		useCom(c, idPtr, 4)
 	case "tui":
-		startTui(addr)
+		startTui()
 	default:
 		log.Fatalf("Action %v unknown", *actionPtr)
 	}

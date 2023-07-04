@@ -62,7 +62,7 @@ func startVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 	fmt.Printf("Started request created, reqid: %v\n", reqId.Value)
 }
 
-func getVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
+func getVMConfig(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (res *cirrina.VMConfig) {
 	if *idPtr == "" {
 		log.Fatalf("ID not specified")
 		return
@@ -70,27 +70,32 @@ func getVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 	res, err := c.GetVMConfig(ctx, &cirrina.VMID{Value: *idPtr})
 	if err != nil {
 		log.Fatalf("could not get VM: %v", err)
+		return nil
 	}
+	return res
+}
+
+func getVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
+	res := getVMConfig(idPtr, c, ctx)
+	// TODO JSON output
 	fmt.Printf(
 		"name: %v "+
-			"desc: %v "+
-			"cpus: %v "+
-			"mem: %v "+
-			"vncWait: %v "+
-			"wire guest mem: %v "+
-			"tablet mode: %v "+
-			"store uefi vars: %v "+
-			"use utc time: %v "+
-			"use host bridge: %v "+
-			"generate acpi tables: %v "+
-			"yield on HLT: %v "+
-			"exit on PAUSE: %v "+
-			"destroy on power off: %v "+
-			"ignore unknown msr: %v "+
-			"Use network %v "+
-			"vnc port: %v "+
-			"mac address: %v "+
-			"auto start: %v"+
+			"\ndesc: %v "+
+			"\ncpus: %v "+
+			"\nmem: %v "+
+			"\nvncWait: %v "+
+			"\nwire guest mem: %v "+
+			"\ntablet mode: %v "+
+			"\nstore uefi vars: %v "+
+			"\nuse utc time: %v "+
+			"\nuse host bridge: %v "+
+			"\ngenerate acpi tables: %v "+
+			"\nyield on HLT: %v "+
+			"\nexit on PAUSE: %v "+
+			"\ndestroy on power off: %v "+
+			"\nignore unknown msr: %v "+
+			"\nvnc port: %v "+
+			"\nauto start: %v"+
 			"\n",
 		*res.Name,
 		*res.Description,
@@ -107,18 +112,16 @@ func getVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 		*res.Eop,
 		*res.Dpo,
 		*res.Ium,
-		*res.Net,
 		*res.Vncport,
-		*res.Mac,
 		*res.Autostart,
 	)
 }
 
-func getVMs(c cirrina.VMInfoClient, ctx context.Context) {
+func getVmIds(c cirrina.VMInfoClient, ctx context.Context) (ids []string) {
 	res, err := c.GetVMs(ctx, &cirrina.VMsQuery{})
 	if err != nil {
 		log.Fatalf("could not get VMs: %v", err)
-		return
+		return ids
 	}
 	for {
 		VM, err := res.Recv()
@@ -128,7 +131,15 @@ func getVMs(c cirrina.VMInfoClient, ctx context.Context) {
 		if err != nil {
 			log.Fatalf("GetVMs failed: %v", err)
 		}
-		fmt.Printf("VM: id: %v\n", VM.Value)
+		ids = append(ids, VM.Value)
+	}
+	return ids
+}
+
+func getVMs(c cirrina.VMInfoClient, ctx context.Context) {
+	ids := getVmIds(c, ctx)
+	for _, id := range ids {
+		fmt.Printf("VM: id: %v\n", id)
 	}
 }
 
@@ -196,4 +207,21 @@ func getVMState(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 		vmstate = "stopping"
 	}
 	fmt.Printf("vm id: %v state: %v vnc port: %v\n", *idPtr, vmstate, res.VncPort)
+}
+
+func vmNameToId(name string, c cirrina.VMInfoClient, ctx context.Context) (rid string) {
+	found := false
+	ids := getVmIds(c, ctx)
+	for _, id := range ids {
+		res := getVMConfig(&id, c, ctx)
+		if *res.Name == name {
+			if found == true {
+				log.Fatalf("Duplicate VM name %v", name)
+			} else {
+				found = true
+				rid = id
+			}
+		}
+	}
+	return rid
 }
