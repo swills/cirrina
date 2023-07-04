@@ -17,8 +17,11 @@ replace github.com/kontera-technologies/go-supervisor/v2 => ./go-supervisor
 
 require (
 	github.com/BurntSushi/toml v0.3.1 // indirect
+	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
+	github.com/charmbracelet/bubbles v0.16.1 // indirect
 	github.com/charmbracelet/bubbletea v0.24.1 // indirect
+	github.com/charmbracelet/lipgloss v0.7.1 // indirect
 	github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
@@ -33,6 +36,7 @@ require (
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.15.1 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
+	github.com/sahilm/fuzzy v0.1.0 // indirect
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07 // indirect
 	golang.org/x/net v0.5.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect

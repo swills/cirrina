@@ -4,7 +4,9 @@ import (
 	pb "cirrina/cirrina"
 	"context"
 	"fmt"
+	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"io"
@@ -14,13 +16,48 @@ import (
 	"time"
 )
 
-type model struct {
-	choices  []string
-	cursor   int
-	selected map[int]struct{}
+var docStyle = lipgloss.NewStyle()
+
+type item struct {
+	name, desc string
 }
 
-func initialModel(addr string) model {
+func (i item) Title() string       { return i.name }
+func (i item) Description() string { return i.desc }
+func (i item) FilterValue() string { return i.name }
+
+type vmListModel struct {
+	list list.Model
+}
+
+func (m vmListModel) Init() tea.Cmd {
+	return nil
+}
+
+func (m vmListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		if msg.String() == "ctrl+c" {
+			return m, tea.Quit
+		}
+	case tea.WindowSizeMsg:
+		h, v := docStyle.GetFrameSize()
+		m.list.SetSize(msg.Width-h, msg.Height-v)
+	}
+
+	var cmd tea.Cmd
+	m.list, cmd = m.list.Update(msg)
+	return m, cmd
+}
+
+func (m vmListModel) View() string {
+	return docStyle.Render(m.list.View())
+}
+
+func getVms(addr string) []list.Item {
+	var vmIds []string
+	var vmItems []list.Item
+
 	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
@@ -37,13 +74,11 @@ func initialModel(addr string) model {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	var vmIds []string
-	var vmNames []string
-
 	res, err := c.GetVMs(ctx, &pb.VMsQuery{})
 	if err != nil {
-		return model{}
+		return vmItems
 	}
+
 	for {
 		VM, err := res.Recv()
 		if err == io.EOF {
@@ -60,82 +95,29 @@ func initialModel(addr string) model {
 		if err != nil {
 			log.Fatalf("could not get VM: %v", err)
 		}
-		vmNames = append(vmNames, *res.Name)
-	}
-
-	sort.Strings(vmNames)
-
-	return model{
-		choices:  vmNames,
-		selected: make(map[int]struct{}),
-	}
-}
-
-func (m model) Init() tea.Cmd {
-	return nil
-}
-
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-
-	case tea.KeyMsg:
-		switch msg.String() {
-
-		case "ctrl+c", "q":
-			return m, tea.Quit
-
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-
-		case "down", "j":
-			if m.cursor < len(m.choices)-1 {
-				m.cursor++
-			}
-
-		case "enter", " ":
-			_, ok := m.selected[m.cursor]
-			if ok {
-				delete(m.selected, m.cursor)
-			} else {
-				m.selected[m.cursor] = struct{}{}
-			}
+		aItem := item{
+			name: *res.Name,
+			desc: *res.Description,
 		}
+		vmItems = append(vmItems, aItem)
 	}
 
-	return m, nil
-}
+	sort.Slice(vmItems, func(i, j int) bool { return vmItems[i].FilterValue() < vmItems[j].FilterValue() })
 
-func (m model) View() string {
-	s := "Select VM\n\n"
-
-	for i, choice := range m.choices {
-
-		cursor := " "
-		if m.cursor == i {
-			cursor = ">"
-		}
-
-		checked := " "
-		if _, ok := m.selected[i]; ok {
-			checked = "x"
-		}
-
-		s += fmt.Sprintf("%s [%s] %s\n", cursor, checked, choice)
-	}
-
-	s += "\nPress q to quit.\n"
-
-	return s
+	return vmItems
 }
 
 func startTea(serverAddr string) {
 
-	p := tea.NewProgram(initialModel(serverAddr))
+	vmItems := getVms(serverAddr)
+
+	m := vmListModel{list: list.New(vmItems, list.NewDefaultDelegate(), 0, 0)}
+	m.list.Title = "VMs"
+
+	p := tea.NewProgram(m, tea.WithAltScreen())
+
 	if _, err := p.Run(); err != nil {
-		fmt.Printf("Alas, there's been an error: %v", err)
+		fmt.Println("Error running program:", err)
 		os.Exit(1)
 	}
-
 }
