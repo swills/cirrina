@@ -110,6 +110,11 @@ func (d *VmNic) Save() error {
 			"net_type":     &d.NetType,
 			"net_dev_type": &d.NetDevType,
 			"switch_id":    &d.SwitchId,
+			"rate_limit":   &d.RateLimit,
+			"rate_in":      &d.RateIn,
+			"rate_out":     &d.RateOut,
+			"inst_bridge":  &d.InstBridge,
+			"inst_epair":   &d.InstEpair,
 		},
 		)
 

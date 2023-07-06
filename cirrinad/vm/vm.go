@@ -3,6 +3,7 @@ package vm
 import (
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
+	"cirrina/cirrinad/epair"
 	"cirrina/cirrinad/iso"
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
@@ -295,15 +296,61 @@ func (vm *VM) netStartup() {
 						"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchId)
 				}
 				if thisSwitch.Type == "IF" {
-					err := _switch.BridgeIfAddMember(thisSwitch.Name, vmNic.NetDev)
-					if err != nil {
-						slog.Error("failed to add nic to switch",
-							"nicname", vmNic.Name,
-							"nicid", vmNic.ID,
-							"switchid", vmNic.SwitchId,
-							"netdev", vmNic.NetDev,
-							"err", err,
-						)
+					if vmNic.RateLimit {
+						thisEpair := epair.GetDummyEpairName()
+						slog.Debug("netStartup rate limiting", "thisEpair", thisEpair)
+						err = epair.CreateEpair(thisEpair)
+						if err != nil {
+							slog.Error("error creating epair", err)
+						}
+						vmNic.InstEpair = thisEpair
+						err = vmNic.Save()
+						if err != nil {
+							slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+						}
+						err = epair.SetRateLimit(thisEpair, vmNic.RateIn, vmNic.RateOut)
+						if err != nil {
+							slog.Error("failed to set epair rate limit", "epair", thisEpair)
+						}
+						thisInstSwitch := _switch.GetDummyBridgeName()
+						var bridgeMembers []string
+						bridgeMembers = append(bridgeMembers, thisEpair+"a")
+						bridgeMembers = append(bridgeMembers, vmNic.NetDev)
+						err = _switch.CreateIfBridgeWithMembers(thisInstSwitch, bridgeMembers)
+						if err != nil {
+							slog.Error("failed to create switch",
+								"nic", vmNic.ID,
+								"thisInstSwitch", thisInstSwitch,
+								"err", err,
+							)
+						}
+						vmNic.InstBridge = thisInstSwitch
+						err = vmNic.Save()
+						if err != nil {
+							slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+						}
+						err := _switch.BridgeIfAddMember(thisSwitch.Name, thisEpair+"b")
+						if err != nil {
+							slog.Error("failed to add nic to switch",
+								"nicname", vmNic.Name,
+								"nicid", vmNic.ID,
+								"switchid", vmNic.SwitchId,
+								"netdev", vmNic.NetDev,
+								"err", err,
+							)
+						}
+
+					} else {
+						err := _switch.BridgeIfAddMember(thisSwitch.Name, vmNic.NetDev)
+						if err != nil {
+							slog.Error("failed to add nic to switch",
+								"nicname", vmNic.Name,
+								"nicid", vmNic.ID,
+								"switchid", vmNic.SwitchId,
+								"netdev", vmNic.NetDev,
+								"err", err,
+							)
+						}
 					}
 				} else {
 					slog.Error("bridge/interface type mismatch",
@@ -335,14 +382,11 @@ func (vm *VM) netStartup() {
 }
 
 func (vm *VM) netCleanup() {
-
 	vmNicsList, err := vm.GetNics()
-
 	if err != nil {
 		slog.Error("netStartup failed to get nics", "err", err)
 		return
 	}
-
 	for _, vmNic := range vmNicsList {
 		if vmNic.NetDevType == "TAP" || vmNic.NetDevType == "VMNET" {
 			args := []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"}
@@ -351,6 +395,24 @@ func (vm *VM) netCleanup() {
 			if err != nil {
 				slog.Error("failed to destroy network interface", "err", err)
 			}
+			if vmNic.RateLimit {
+				err = epair.DestroyEpair(vmNic.InstEpair)
+				if err != nil {
+					slog.Error("failed to destroy epair", err)
+				}
+				err = _switch.DestroyIfBridge(vmNic.InstBridge, false)
+				if err != nil {
+					slog.Error("failed to destroy switch", err)
+				}
+				err = epair.NgDestroyPipe(vmNic.InstEpair + "a")
+				if err != nil {
+					slog.Error("failed to ng pipe", err)
+				}
+				err = epair.NgDestroyPipe(vmNic.InstEpair + "b")
+				if err != nil {
+					slog.Error("failed to ng pipe", err)
+				}
+			}
 
 		} else if vmNic.NetDevType == "NETGRAPH" {
 			// nothing to do for netgraph
@@ -358,6 +420,8 @@ func (vm *VM) netCleanup() {
 			slog.Error("unknown net type, can't clean up")
 		}
 		vmNic.NetDev = ""
+		vmNic.InstEpair = ""
+		vmNic.InstBridge = ""
 		err = vmNic.Save()
 		if err != nil {
 			slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)

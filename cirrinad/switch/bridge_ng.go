@@ -157,33 +157,11 @@ func ngBridgeNextLink(peers []ngPeer) (link string) {
 	return linkName
 }
 
-func getDummyBridgeName() string {
-	// highest if_bridge num
-	bridgeNum := 32767
-
-	bridgeList, err := getAllIfBridges()
-	if err != nil {
-		return ""
-	}
-
-	for bridgeNum > 0 {
-		bridgeName := "bridge" + strconv.Itoa(bridgeNum)
-		if util.ContainsStr(bridgeList, bridgeName) {
-			bridgeNum = bridgeNum - 1
-		} else {
-			return bridgeName
-		}
-	}
-
-	return ""
-}
-
 func createNgBridge(name string) (err error) {
 	if name == "" {
 		return errors.New("name can't be empty")
 	}
 
-	// TODO allow other bridge names
 	if !strings.HasPrefix(name, "bnet") {
 		slog.Error("invalid bridge name", "name", name)
 		return errors.New("invalid bridge name, bridge name must start with \"bnet\"")
@@ -210,7 +188,7 @@ func createNgBridge(name string) (err error) {
 
 func actualNgBridgeCreate(netDev string) error {
 	// create a dummy if_bridge to connect the ng_bridge to
-	dummyIfBridgeName := getDummyBridgeName()
+	dummyIfBridgeName := GetDummyBridgeName()
 	if dummyIfBridgeName == "" {
 		return errors.New("failed to create ng bridge: could not get dummy bridge name")
 	}
@@ -283,15 +261,28 @@ func actualNgBridgeCreate(netDev string) error {
 func createNgBridgeWithMembers(bridgeName string, bridgeMembers []string) error {
 	err := createNgBridge(bridgeName)
 	if err != nil {
+		slog.Error("createNgBridgeWithMembers error creating bridge",
+			"name", bridgeName,
+			"err", err,
+		)
 		return err
 	}
 	err = bridgeNgDeleteAllPeers(bridgeName)
 	if err != nil {
+		slog.Error("createNgBridgeWithMembers error deleting bridge peers",
+			"name", bridgeName,
+			"err", err,
+		)
 		return err
 	}
 	for _, member := range bridgeMembers {
 		err = BridgeNgAddMember(bridgeName, member)
 		if err != nil {
+			slog.Error("createNgBridgeWithMembers error adding bridge member",
+				"name", bridgeName,
+				"member", member,
+				"err", err,
+			)
 			return err
 		}
 	}

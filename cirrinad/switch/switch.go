@@ -130,7 +130,10 @@ func CreateBridges() {
 			} else {
 				err := BuildNgBridge(bridge)
 				if err != nil {
-					slog.Error("error creating ng bridge", "err", err)
+					slog.Error("error creating ng bridge",
+						"name", bridge.Name,
+						"err", err,
+					)
 					return
 				}
 			}
@@ -210,7 +213,7 @@ func BuildIfBridge(switchInst *Switch) error {
 		}
 		members = append(members, member)
 	}
-	err := createIfBridgeWithMembers(switchInst.Name, members)
+	err := CreateIfBridgeWithMembers(switchInst.Name, members)
 	return err
 }
 

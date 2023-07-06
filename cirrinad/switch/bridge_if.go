@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"golang.org/x/exp/slog"
 	"os/exec"
+	"strconv"
 	"strings"
 )
 
@@ -150,7 +151,7 @@ func bridgeIfDeleteMember(bridgeName string, memberName string) error {
 	return nil
 }
 
-func createIfBridgeWithMembers(bridgeName string, bridgeMembers []string) error {
+func CreateIfBridgeWithMembers(bridgeName string, bridgeMembers []string) error {
 	err := createIfBridge(bridgeName)
 	if err != nil {
 		return err
@@ -166,4 +167,25 @@ func createIfBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 		}
 	}
 	return nil
+}
+
+func GetDummyBridgeName() string {
+	// highest if_bridge num
+	bridgeNum := 32767
+
+	bridgeList, err := getAllIfBridges()
+	if err != nil {
+		return ""
+	}
+
+	for bridgeNum > 0 {
+		bridgeName := "bridge" + strconv.Itoa(bridgeNum)
+		if util.ContainsStr(bridgeList, bridgeName) {
+			bridgeNum = bridgeNum - 1
+		} else {
+			return bridgeName
+		}
+	}
+
+	return ""
 }
