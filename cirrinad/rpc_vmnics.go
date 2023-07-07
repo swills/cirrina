@@ -40,6 +40,17 @@ func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 	} else {
 		return vmNicId, errors.New("invalid net dev type name")
 	}
+	if *v.Netdevtype == cirrina.NetDevType_TAP || *v.Netdevtype == cirrina.NetDevType_VMNET {
+		slog.Debug("AddVmNic", "msg", "checking rate limiting")
+		r := v.ProtoReflect()
+		if isOptionPassed(r, "ratelimit") &&
+			isOptionPassed(r, "ratein") &&
+			isOptionPassed(r, "rateout") {
+			vmNicInst.RateLimit = *v.Ratelimit
+			vmNicInst.RateIn = *v.Ratein
+			vmNicInst.RateOut = *v.Rateout
+		}
+	}
 
 	if vmNicInst.SwitchId != "" {
 		switchInst, err := _switch.GetById(vmNicInst.SwitchId)
@@ -126,6 +137,7 @@ func (s *server) GetVmNicInfo(_ context.Context, v *cirrina.VmNicId) (*cirrina.V
 
 	return &pvmnicinfo, nil
 }
+
 func (s *server) SetVmNicSwitch(_ context.Context, v *cirrina.SetVmNicSwitchReq) (*cirrina.ReqBool, error) {
 	var r cirrina.ReqBool
 	r.Success = false
@@ -210,4 +222,10 @@ func (s *server) GetVmNicVm(_ context.Context, i *cirrina.VmNicId) (v *cirrina.V
 	}
 
 	return &pvmId, nil
+}
+
+func (s *server) UpdateVmNic(context.Context, *cirrina.VmNicInfoUpdate) (*cirrina.ReqBool, error) {
+	var re cirrina.ReqBool
+	re.Success = false
+	return &re, errors.New("not implemented yet")
 }

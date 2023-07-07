@@ -115,6 +115,9 @@ message VmNicInfo {
   optional NetType nettype = 5;
   optional string vmid = 6;
   optional string switchid = 7;
+  optional bool ratelimit = 8;
+  optional uint64 ratein = 9;
+  optional uint64 rateout = 10;
 }
 
 message VmNicInfoUpdate {
