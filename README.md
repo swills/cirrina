@@ -6,7 +6,7 @@ Daemon for [Bhyve](https://wiki.freebsd.org/bhyve) written in Go using gRPC
 
 This probably won't work for you:
 
-* You need to load the `vmm`, `nmdm`, `if_bridge`, and `ng_bridge` kernel modules
+* You need to load the `vmm`, `nmdm`, `if_bridge`, `if_epair`, `ng_pipe`, and `ng_bridge` kernel modules
 * You need to be able to `sudo` *without a password prompt* to run the following commands:
   * `/sbin/ifconfig`
   * `/usr/bin/protect`
