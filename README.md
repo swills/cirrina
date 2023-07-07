@@ -87,7 +87,6 @@ This probably won't work for you:
 * Booting
   * Add feature to manage UEFI settings such as boot order to GUI
 * Resources limiting
-  * Network I/O
   * Disk I/O
 * Devices
   * CPU
@@ -106,7 +105,6 @@ This probably won't work for you:
     * Support various network types from VBox
     * Support rate limiting - High Priority
     * Support vxlan and vale switches - High Priority
-    * Support epair
     * Maybe run a DHCP server on switches of the proper "type"
     * Tunnel/VPN support
   * Sound
