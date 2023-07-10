@@ -18,28 +18,28 @@ This probably won't work for you:
 
 # Installation
 
-Maybe you want to create a cirrinad user:
+Maybe you want to create a cirrinad user (as root):
 
   ```
-  # pw adduser cirrinad
+  pw adduser cirrinad
   ```
 
-You might want something like this in sudoers:
+You might want something like this in `/usr/local/etc/sudoers` (use `visudo`):
 
   ```
   Cmnd_Alias      CIRRINAD = /sbin/ifconfig, /usr/bin/protect, /usr/sbin/bhyve, /usr/sbin/bhyvectl, /usr/sbin/ngctl, /usr/bin/truncate
   cirrinad ALL=(ALL) NOPASSWD: CIRRINAD
   ```
 
-You might want to do something like this:
+You might want to do something like this (as root):
 
   ```
-  # mkdir -p /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve/isos /usr/local/etc/cirrinad
-  # chown -R cirrina:cirrina /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve/isos
-  # cp config.sample.yml /usr/local/etc/cirrinad/config.yml
+  mkdir -p /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve/isos /usr/local/etc/cirrinad
+  chown -R cirrina:cirrina /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve/isos
+  cp config.sample.yml /usr/local/etc/cirrinad/config.yml
   ```
 
-You might want to edit /usr/local/etc/cirrinad/config.yml appropriately.
+You might want to edit `/usr/local/etc/cirrinad/config.yml` appropriately.
 
 Maybe you want to add something like this to roots crontab:
 
