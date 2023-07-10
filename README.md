@@ -7,6 +7,7 @@ Daemon for [Bhyve](https://wiki.freebsd.org/bhyve) written in Go using gRPC
 This probably won't work for you:
 
 * You need to load the `vmm`, `nmdm`, `if_bridge`, `if_epair`, `ng_pipe`, and `ng_bridge` kernel modules
+* Only UEFI boot is supported, no bhyveload
 * You need to be able to `sudo` *without a password prompt* to run the following commands:
   * `/sbin/ifconfig`
   * `/usr/bin/protect`
@@ -14,10 +15,37 @@ This probably won't work for you:
   * `/usr/sbin/bhyvectl`
   * `/usr/sbin/ngctl`
   * `/usr/bin/truncate`
-* At the moment some things can only be done with the cli (cirrinactl) and others can only be done with
-  weasel (the py qt 5 gui)
-* Only UEFI boot is supported, no bhyveload
-* You must edit config.yml before starting cirrinad
+
+# Installation
+
+Maybe you want to create a cirrinad user:
+
+  ```
+  # pw adduser cirrinad
+  ```
+
+You might want something like this in sudoers:
+
+  ```
+  Cmnd_Alias      CIRRINAD = /sbin/ifconfig, /usr/bin/protect, /usr/sbin/bhyve, /usr/sbin/bhyvectl, /usr/sbin/ngctl, /usr/bin/truncate
+  cirrinad ALL=(ALL) NOPASSWD: CIRRINAD
+  ```
+
+You might want to do something like this:
+
+  ```
+  # mkdir -p /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve/isos /usr/local/etc/cirrinad
+  # chown -R cirrina:cirrina /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve/isos
+  # cp config.sample.yml /usr/local/etc/cirrinad/config.yml
+  ```
+
+You might want to edit /usr/local/etc/cirrinad/config.yml appropriately.
+
+Maybe you want to add something like this to roots crontab:
+
+  ```
+  @reboot /usr/sbin/daemon -u cirrinad -f -r -S -P /var/run/cirrinad/cirrinad.daemon.pid -p /var/run/cirrinad/cirrinad.pid /usr/local/bin/cirrinad -config /usr/local/etc/cirrinad/config.yml
+  ```
 
 # How to use
 
