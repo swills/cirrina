@@ -2,72 +2,72 @@
 
 Daemon for [Bhyve](https://wiki.freebsd.org/bhyve) written in Go using gRPC
 
-# Notes
+# Warning
 
-This probably won't work for you:
-
-* You need to load the `vmm`, `nmdm`, `if_bridge`, `if_epair`, `ng_pipe`, and `ng_bridge` kernel modules
-* Only UEFI boot is supported, no bhyveload
-* You need to be able to `sudo` *without a password prompt* to run the following commands:
-  * `/sbin/ifconfig`
-  * `/usr/bin/protect`
-  * `/usr/sbin/bhyve`
-  * `/usr/sbin/bhyvectl`
-  * `/usr/sbin/ngctl`
-  * `/usr/bin/truncate`
+This is still fairly new software. Only UEFI boot is supported, no bhyveload.
 
 # Installation
 
-Maybe you want to create a cirrinad user (as root):
+## Requirements
 
-  ```
-  pw adduser cirrinad
-  ```
+### User
 
-You might want something like this in `/usr/local/etc/sudoers` (use `visudo`):
+```
+pw adduser cirrinad
+```
 
-  ```
-  Cmnd_Alias      CIRRINAD = /sbin/ifconfig, /usr/bin/protect, /usr/sbin/bhyve, /usr/sbin/bhyvectl, /usr/sbin/ngctl, /usr/bin/truncate
-  cirrinad ALL=(ALL) NOPASSWD: CIRRINAD
-  ```
+### sudo
 
-You might want to do something like this (as root):
+Ensure you have `sudo` installed. Then, run `visudo` and add:
 
-  ```
-  mkdir -p /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve/isos /usr/local/etc/cirrinad
-  chown -R cirrina:cirrina /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve/isos
-  cp config.sample.yml /usr/local/etc/cirrinad/config.yml
-  ```
+```
+Cmnd_Alias      CIRRINAD = /sbin/ifconfig, /usr/bin/protect, /usr/sbin/bhyve, /usr/sbin/bhyvectl, /usr/sbin/ngctl, /usr/bin/truncate
+cirrinad ALL=(ALL) NOPASSWD: CIRRINAD
+```
 
-You might want to edit `/usr/local/etc/cirrinad/config.yml` appropriately.
+### kernel modules
 
-Maybe you want to add something like this to roots crontab:
+```
+sysrc kld_list="vmm nmdm if_bridge if_epair ng_bridge ng_ether ng_pipe"
+service kld restart
+```
 
-  ```
-  @reboot /usr/sbin/daemon -u cirrinad -f -r -S -P /var/run/cirrinad/cirrinad.daemon.pid -p /var/run/cirrinad/cirrinad.pid /usr/local/bin/cirrinad -config /usr/local/etc/cirrinad/config.yml
-  ```
+# Build and install binaries:
+
+```
+cd cirrinad
+go build -o cirrinad ./
+cp cirrinad /usr/local/bin
+mkdir /usr/local/etc/cirrinad
+cp config.sample.yml /usr/local/etc/cirrinad/config.yml
+cd ../cirrinactl
+go build ./...
+cp cirrinactl /usr/local/bin
+```
+
+# Setup
+
+Run these (as root):
+
+```
+mkdir -p /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve/isos
+chown -R cirrina:cirrina /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve/isos
+```
+
+# Config
+
+Edit `/usr/local/etc/cirrinad/config.yml` if necessary. Note: Log, DB and ROM paths must be files. Disk image, state
+and iso paths must be directories.
+
+# Startup
+
+Run `crontab -e` and add:
+
+```
+@reboot /usr/sbin/daemon -u cirrinad -f -r -S -P /var/run/cirrinad/cirrinad.daemon.pid -p /var/run/cirrinad/cirrinad.pid /usr/local/bin/cirrinad -config /usr/local/etc/cirrinad/config.yml
+```
 
 # How to use
-
-## Build
-
-* Build cirinad:
-  * `cd cirrinad`
-  * `go build -o cirrinad ./`
-* Build cirrinactl:
-  * `cd cirrinactl`
-  * `go build ./...`
-
-## Run Daemon
-
-* Create and edit config
-  * `cp config.sample.yml config.yml`
-  * `vi config.yml`
-  * Note:
-    * Log, DB and ROM paths are files
-    * Disk image, state and iso paths are directories
-* Run cirrinad
-  * `./cirrinad -config config.yml`
 
 ## Run Clients
 

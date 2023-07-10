@@ -2,18 +2,18 @@ sys:
   sudo: /usr/local/bin/sudo
 
 log:
-  path: /whatever/path/to/log/cirrinad.log
+  path: /var/log/cirrinad/cirrinad.log
   level: info
 
 db:
-  path: /a/path/to/db/cirrina.sqlite
+  path: /var/db/cirrinad/cirrina.sqlite
 
 disk:
   vm:
     path:
-      image: /some/path
-      state: /some/other/path
-      iso: /yet/another/path
+      image: /bhyve/disk
+      state: /var/tmp/cirrinad/state/
+      iso: /bhyve/isos
   default:
     size: 1G
 
