@@ -9,7 +9,7 @@ import (
 func startVM(rs *requests.Request) {
 	vmInst, err := vm.GetById(rs.VmId)
 	if err != nil {
-		slog.Error("error getting vm", "vm", rs.VmId, "err", err)
+		slog.Error("startVM error getting vm", "vm", rs.VmId, "err", err)
 		return
 	}
 	err = vmInst.Start()
@@ -24,7 +24,7 @@ func startVM(rs *requests.Request) {
 func stopVM(rs *requests.Request) {
 	vmInst, err := vm.GetById(rs.VmId)
 	if err != nil {
-		slog.Error("error getting vm", "vm", rs.VmId, "err", err)
+		slog.Error("stopVM error getting vm", "vm", rs.VmId, "err", err)
 		return
 	}
 	slog.Debug("stopping VM", "vm", rs.VmId)
@@ -40,7 +40,7 @@ func stopVM(rs *requests.Request) {
 func deleteVM(rs *requests.Request) {
 	vmInst, err := vm.GetById(rs.VmId)
 	if err != nil {
-		slog.Error("error getting vm", "vm", rs.VmId, "err", err)
+		slog.Error("deleteVM error getting vm", "vm", rs.VmId, "err", err)
 		return
 	}
 	slog.Debug("deleting VM", "id", rs.VmId)

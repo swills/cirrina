@@ -39,7 +39,7 @@ func (s *server) GetISOInfo(_ context.Context, i *cirrina.ISOID) (*cirrina.ISOIn
 	}
 	isoInst, err := iso.GetById(i.Value)
 	if err != nil {
-		slog.Debug("error getting iso", "iso", i.Value, "err", err)
+		slog.Error("error getting iso", "iso", i.Value, "err", err)
 		return &ic, err
 	}
 	ic.Name = &isoInst.Name
@@ -196,7 +196,7 @@ func (s *server) RemoveISO(_ context.Context, i *cirrina.ISOID) (*cirrina.ReqBoo
 
 	_, err := iso.GetById(i.Value)
 	if err != nil {
-		slog.Debug("error getting iso", "iso", i.Value, "err", err)
+		slog.Error("error getting iso", "iso", i.Value, "err", err)
 		return &re, err
 	}
 

@@ -26,7 +26,7 @@ func (s *server) ClearUEFIState(_ context.Context, v *cirrina.VMID) (*cirrina.Re
 	re.Success = false
 	vmInst, err := vm.GetById(v.Value)
 	if err != nil {
-		slog.Error("error getting vm", "vm", v.Value, "err", err)
+		slog.Error("ClearUEFIState error getting vm", "vm", v.Value, "err", err)
 		return &re, err
 	}
 	err = vmInst.DeleteUEFIState()

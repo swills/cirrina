@@ -82,7 +82,7 @@ func (s *server) GetSwitchInfo(_ context.Context, v *cirrina.SwitchId) (*cirrina
 
 	vmSwitch, err := _switch.GetById(v.Value)
 	if err != nil {
-		slog.Debug("error getting switch info", "switch", v.Value, "err", err)
+		slog.Error("error getting switch info", "switch", v.Value, "err", err)
 		return &pvmswitchinfo, err
 	}
 
@@ -114,7 +114,7 @@ func (s *server) RemoveSwitch(_ context.Context, si *cirrina.SwitchId) (*cirrina
 
 	err2 := _switch.CheckSwitchInUse(si.Value)
 	if err2 != nil {
-		slog.Debug("attmpted to delete switch which is in use",
+		slog.Debug("attempted to delete switch which is in use",
 			"switch", si.Value,
 			"switch_name", switchInst.Name,
 		)

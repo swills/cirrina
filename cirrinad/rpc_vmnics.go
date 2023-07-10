@@ -99,7 +99,7 @@ func (s *server) GetVmNicInfo(_ context.Context, v *cirrina.VmNicId) (*cirrina.V
 	var pvmnicinfo cirrina.VmNicInfo
 	vmNic, err := vm_nics.GetById(v.Value)
 	if err != nil {
-		slog.Debug("error getting vmnic", "vm", v.Value, "err", err)
+		slog.Error("GetVmNicInfo error getting vmnic", "vm", v.Value, "err", err)
 		return &pvmnicinfo, err
 	}
 

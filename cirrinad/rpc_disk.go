@@ -90,7 +90,7 @@ func (s *server) RemoveDisk(_ context.Context, i *cirrina.DiskId) (*cirrina.ReqB
 
 	_, err := disk.GetById(i.Value)
 	if err != nil {
-		slog.Debug("error getting disk, does not exist", "disk", i.Value, "err", err)
+		slog.Error("error getting disk, does not exist", "disk", i.Value, "err", err)
 		return &re, err
 	}
 

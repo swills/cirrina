@@ -151,13 +151,13 @@ func DestroyBridges() {
 			slog.Debug("destroying if bridge", "name", bridge.Name)
 			err := DestroyIfBridge(bridge.Name, true)
 			if err != nil {
-				slog.Debug("error destroying if bridge", "err", err)
+				slog.Error("error destroying if bridge", "err", err)
 			}
 		} else if bridge.Type == "NG" {
 			slog.Debug("destroying ng bridge", "name", bridge.Name)
 			err := DestroyNgBridge(bridge.Name)
 			if err != nil {
-				slog.Debug("error destroying if bridge", "err", err)
+				slog.Error("error destroying if bridge", "err", err)
 			}
 		} else {
 			slog.Debug("unknown bridge type", "name", bridge.Name, "type", bridge.Type)

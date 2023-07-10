@@ -15,7 +15,7 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	re.Success = false
 	vmInst, err := vm.GetById(rc.Id)
 	if err != nil {
-		slog.Debug("error getting vm", "vm", rc.Id, "err", err)
+		slog.Error("UpdateVM error getting vm", "vm", rc.Id, "err", err)
 		return &cirrina.ReqBool{}, err
 	}
 	reflect := rc.ProtoReflect()
@@ -267,7 +267,7 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	var pvm cirrina.VMConfig
 	vmInst, err := vm.GetById(v.Value)
 	if err != nil {
-		slog.Debug("error getting vm", "vm", v.Value, "err", err)
+		slog.Error("GetVMConfig error getting vm", "vm", v.Value, "err", err)
 		return &pvm, err
 	}
 	pvm.Name = &vmInst.Name
@@ -339,7 +339,7 @@ func (s *server) GetVMState(_ context.Context, p *cirrina.VMID) (*cirrina.VMStat
 	vmInst, err := vm.GetById(p.Value)
 	pvm := cirrina.VMState{}
 	if err != nil {
-		slog.Debug("error getting vm", "vm", p.Value, "err", err)
+		slog.Error("GetVMState error getting vm", "vm", p.Value, "err", err)
 		return &pvm, err
 	}
 	switch vmInst.Status {
@@ -410,7 +410,7 @@ func (s *server) SetVmISOs(_ context.Context, sr *cirrina.SetISOReq) (*cirrina.R
 	}
 	vmInst, err := vm.GetById(sr.Id)
 	if err != nil {
-		slog.Error("error getting vm", "vm", sr.Id, "err", err)
+		slog.Error("SetVmISOs error getting vm", "vm", sr.Id, "err", err)
 		return &re, err
 	}
 	vmInst.Config.ISOs = isosConfigVal
@@ -428,7 +428,7 @@ func (s *server) SetVmNics(_ context.Context, sn *cirrina.SetNicReq) (*cirrina.R
 	slog.Debug("SetVmNics", "vm", sn.Vmid, "vmnic", sn.Vmnicid)
 	vmInst, err := vm.GetById(sn.Vmid)
 	if err != nil {
-		slog.Error("error getting vm", "vm", sn.Vmid, "err", err)
+		slog.Error("SetVmNics error getting vm", "vm", sn.Vmid, "err", err)
 		return &re, err
 	}
 
@@ -447,7 +447,7 @@ func (s *server) SetVmDisks(_ context.Context, sr *cirrina.SetDiskReq) (*cirrina
 	slog.Debug("SetVmDisks", "vm", sr.Id, "disk", sr.Diskid)
 	vmInst, err := vm.GetById(sr.Id)
 	if err != nil {
-		slog.Error("error getting vm", "vm", sr.Id, "err", err)
+		slog.Error("SetVmDisks error getting vm", "vm", sr.Id, "err", err)
 		return &re, err
 	}
 	err = vmInst.AttachDisks(sr.Diskid)
@@ -469,7 +469,7 @@ func (s *server) GetVmISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVmISOsServe
 	}
 	vmInst, err := vm.GetById(v.Value)
 	if err != nil {
-		slog.Error("error getting vm", "vm", v.Value, "err", err)
+		slog.Error("GetVmISOs error getting vm", "vm", v.Value, "err", err)
 		return err
 	}
 	slog.Debug("GetVmISOs", "vm", v.Value, "isos", vmInst.Config.ISOs)
@@ -495,7 +495,7 @@ func (s *server) GetVmDisks(v *cirrina.VMID, stream cirrina.VMInfo_GetVmDisksSer
 	vmInst, err := vm.GetById(v.Value)
 	slog.Debug("GetVMDisks", "vm", v.Value, "disks", vmInst.Config.Disks)
 	if err != nil {
-		slog.Error("error getting vm", "vm", v.Value, "err", err)
+		slog.Error("GetVmDisks error getting vm", "vm", v.Value, "err", err)
 		return err
 	}
 
@@ -525,7 +525,7 @@ func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID
 	}
 	vmInst, err := vm.GetById(v.Value)
 	if err != nil {
-		slog.Debug("error getting vm", "vm", v.Value, "err", err)
+		slog.Error("StartVM error getting vm", "vm", v.Value, "err", err)
 		return &cirrina.RequestID{}, err
 	}
 	if vmInst.Status != vm.STOPPED {
@@ -548,7 +548,7 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 	}
 	vmInst, err := vm.GetById(v.Value)
 	if err != nil {
-		slog.Error("error getting vm", "vm", v.Value, "err", err)
+		slog.Error("StopVM error getting vm", "vm", v.Value, "err", err)
 		return &cirrina.RequestID{}, err
 	}
 	if vmInst.Status != vm.RUNNING {
