@@ -134,6 +134,9 @@ func (s *server) GetVmNicInfo(_ context.Context, v *cirrina.VmNicId) (*cirrina.V
 
 	pvmnicinfo.Switchid = &vmNic.SwitchId
 	pvmnicinfo.Mac = &vmNic.Mac
+	pvmnicinfo.Ratelimit = &vmNic.RateLimit
+	pvmnicinfo.Ratein = &vmNic.RateIn
+	pvmnicinfo.Rateout = &vmNic.RateOut
 
 	return &pvmnicinfo, nil
 }

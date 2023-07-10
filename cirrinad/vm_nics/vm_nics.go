@@ -69,8 +69,10 @@ func Create(VmNicInst *VmNic) (newNicId string, err error) {
 		return newNicId, errors.New("bad net dev type")
 	}
 
-	if VmNicInst.RateIn <= 0 || VmNicInst.RateOut <= 0 {
-		return newNicId, errors.New("bad network rate limit")
+	if VmNicInst.RateLimit {
+		if VmNicInst.RateIn <= 0 || VmNicInst.RateOut <= 0 {
+			return newNicId, errors.New("bad network rate limit")
+		}
 	}
 
 	db := getVmNicDb()
