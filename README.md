@@ -12,6 +12,8 @@ This is still fairly new software. Only UEFI boot is supported, no bhyveload.
 
 ### User
 
+Run (as root):
+
 ```
 pw adduser cirrinad
 ```
@@ -26,6 +28,8 @@ cirrinad ALL=(ALL) NOPASSWD: CIRRINAD
 ```
 
 ### kernel modules
+
+Run (as root):
 
 ```
 sysrc kld_list="vmm nmdm if_bridge if_epair ng_bridge ng_ether ng_pipe"
@@ -47,7 +51,7 @@ cp cirrinactl /usr/local/bin
 
 # Setup
 
-Run these (as root):
+Run (as root):
 
 ```
 mkdir -p /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve/isos
@@ -61,7 +65,13 @@ and iso paths must be directories.
 
 # Startup
 
-Run `crontab -e` and add:
+Run (as root):
+
+```
+crontab -e
+```
+
+and add:
 
 ```
 @reboot /usr/sbin/daemon -u cirrinad -f -r -S -P /var/run/cirrinad/cirrinad.daemon.pid -p /var/run/cirrinad/cirrinad.pid /usr/local/bin/cirrinad -config /usr/local/etc/cirrinad/config.yml
