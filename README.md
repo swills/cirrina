@@ -36,7 +36,7 @@ sysrc kld_list="vmm nmdm if_bridge if_epair ng_bridge ng_ether ng_pipe"
 service kld restart
 ```
 
-# Build and install binaries:
+## Build and install binaries:
 
 ```
 cd cirrinad
@@ -49,7 +49,9 @@ go build ./...
 cp cirrinactl /usr/local/bin
 ```
 
-# Setup
+## Setup
+
+### Directories
 
 Run (as `root`):
 
@@ -58,12 +60,12 @@ mkdir -p /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve
 chown -R cirrina:cirrina /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve/isos
 ```
 
-# Config
+### Config
 
 Edit `/usr/local/etc/cirrinad/config.yml` if necessary. Note: Log, DB and ROM paths must be files. Disk image, state
 and iso paths must be directories.
 
-# Startup
+### Startup
 
 Run (as `root`):
 
