@@ -26,4 +26,4 @@ cirranactl:
   artifacts:
     name: cirrinactl-"$CI_COMMIT_REF_NAME"
     paths:
-      - ./cirrinactl/cirrinactl
+      - ./cirrinactl/cirrinactl-freebsd-amd64
