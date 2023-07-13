@@ -17,6 +17,7 @@ cirranactl:
   tags:
     - FreeBSD
   script:
+    - env | sort
     - cd cirrinactl
     - export CGO_ENABLED=0
     - export GO_LDFLAGS="-s -w -extldflags -static"
