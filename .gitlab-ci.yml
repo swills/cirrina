@@ -18,7 +18,11 @@ cirranactl:
     - FreeBSD
   script:
     - cd cirrinactl
-    - go build .
+    - export CGO_ENABLED=0
+    - export GOARCH=amd64
+    - export GOOS=freebsd
+    - export GO_LDFLAGS="-s -w -extldflags -static"
+    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-freebsd-amd64 .
   artifacts:
     name: cirrinactl-"$CI_COMMIT_REF_NAME"
     paths:
