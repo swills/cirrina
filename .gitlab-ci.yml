@@ -22,8 +22,14 @@ cirranactl:
     - export GOARCH=amd64
     - export GOOS=freebsd
     - export GO_LDFLAGS="-s -w -extldflags -static"
-    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-freebsd-amd64 .
+    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH} .
+    - export GOARCH=386
+    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH} .
+    - export GOARCH=arm64
+    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH} .
   artifacts:
     name: cirrinactl-"$CI_COMMIT_REF_NAME"
     paths:
       - ./cirrinactl/cirrinactl-freebsd-amd64
+      - ./cirrinactl/cirrinactl-freebsd-386
+      - ./cirrinactl/cirrinactl-freebsd-arm64
