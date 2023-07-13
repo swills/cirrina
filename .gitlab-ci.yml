@@ -34,6 +34,18 @@ cirranactl:
     - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH} .
     - export GOARCH=arm64
     - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH} .
+    - export GOOS=darwin
+    - export GOARCH=amd64
+    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH} .
+    - export GOARCH=arm64
+    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH} .
+    - export GOOS=linux
+    - export GOARCH=amd64
+    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH} .
+    - export GOARCH=386
+    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH} .
+    - export GOARCH=arm64
+    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH} .
   artifacts:
     name: cirrinactl-"$CI_COMMIT_REF_NAME"
     paths:
@@ -43,3 +55,8 @@ cirranactl:
       - ./cirrinactl/cirrinactl-windows-amd64
       - ./cirrinactl/cirrinactl-windows-386
       - ./cirrinactl/cirrinactl-windows-arm64
+      - ./cirrinactl/cirrinactl-darwin-amd64
+      - ./cirrinactl/cirrinactl-darwin-arm64
+      - ./cirrinactl/cirrinactl-linux-amd64
+      - ./cirrinactl/cirrinactl-linux-386
+      - ./cirrinactl/cirrinactl-linux-arm64
