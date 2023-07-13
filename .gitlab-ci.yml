@@ -49,14 +49,14 @@ cirranactl:
   artifacts:
     name: cirrinactl-"$CI_COMMIT_REF_NAME"
     paths:
-      - ./cirrinactl/cirrinactl-freebsd-amd64
-      - ./cirrinactl/cirrinactl-freebsd-386
-      - ./cirrinactl/cirrinactl-freebsd-arm64
-      - ./cirrinactl/cirrinactl-windows-amd64
-      - ./cirrinactl/cirrinactl-windows-386
-      - ./cirrinactl/cirrinactl-windows-arm64
-      - ./cirrinactl/cirrinactl-darwin-amd64
-      - ./cirrinactl/cirrinactl-darwin-arm64
-      - ./cirrinactl/cirrinactl-linux-amd64
-      - ./cirrinactl/cirrinactl-linux-386
-      - ./cirrinactl/cirrinactl-linux-arm64
+      - ./cirrinactl/cirrinactl-freebsd-amd64-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
+      - ./cirrinactl/cirrinactl-freebsd-386-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
+      - ./cirrinactl/cirrinactl-freebsd-arm64-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
+      - ./cirrinactl/cirrinactl-windows-amd64-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
+      - ./cirrinactl/cirrinactl-windows-386-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
+      - ./cirrinactl/cirrinactl-windows-arm64-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
+      - ./cirrinactl/cirrinactl-darwin-amd64-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
+      - ./cirrinactl/cirrinactl-darwin-arm64-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
+      - ./cirrinactl/cirrinactl-linux-amd64-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
+      - ./cirrinactl/cirrinactl-linux-386-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
+      - ./cirrinactl/cirrinactl-linux-arm64-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
