@@ -51,30 +51,33 @@ type Config struct {
 	IgnoreUnknownMSR bool   `gorm:"default:True;check:ignore_unknown_msr IN (0,1)"`
 	KbdLayout        string `gorm:"default:default"`
 	AutoStart        bool   `gorm:"default:False;check:auto_start IN (0,1)"`
-	Sound            bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
+	Sound            bool   `gorm:"default:False;check:sound IN(0,1)"`
 	SoundIn          string `gorm:"default:/dev/dsp0"`
 	SoundOut         string `gorm:"default:/dev/dsp0"`
-	Com1             bool   `gorm:"default:True;check:vnc_wait IN(0,1)"`
+	Com1             bool   `gorm:"default:True;check:com1 IN(0,1)"`
 	Com1Dev          string `gorm:"default:AUTO"`
-	Com1Log          bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
-	Com2             bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
+	Com1Log          bool   `gorm:"default:False;check:com1_log IN(0,1)"`
+	Com2             bool   `gorm:"default:False;check:com2 IN(0,1)"`
 	Com2Dev          string `gorm:"default:AUTO"`
-	Com2Log          bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
-	Com3             bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
+	Com2Log          bool   `gorm:"default:False;check:com2_log IN(0,1)"`
+	Com3             bool   `gorm:"default:False;check:com3 IN(0,1)"`
 	Com3Dev          string `gorm:"default:AUTO"`
-	Com3Log          bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
-	Com4             bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
+	Com3Log          bool   `gorm:"default:False;check:com3_log IN(0,1)"`
+	Com4             bool   `gorm:"default:False;check:com4 IN(0,1)"`
 	Com4Dev          string `gorm:"default:AUTO"`
-	Com4Log          bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
+	Com4Log          bool   `gorm:"default:False;check:com4_log IN(0,1)"`
 	ExtraArgs        string
 	ISOs             string
 	Disks            string
 	Nics             string
 	Com1Speed        uint32 `gorm:"default:115200;check:com1_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
-	Com2Speed        uint32 `gorm:"default:115200;check:com1_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
-	Com3Speed        uint32 `gorm:"default:115200;check:com1_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
-	Com4Speed        uint32 `gorm:"default:115200;check:com1_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
+	Com2Speed        uint32 `gorm:"default:115200;check:com2_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
+	Com3Speed        uint32 `gorm:"default:115200;check:com3_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
+	Com4Speed        uint32 `gorm:"default:115200;check:com4_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
 	AutoStartDelay   uint32 `gorm:"default:0;check:auto_start_delay>=0"`
+	Debug            bool   `gorm:"default:False;check:debug IN(0,1)"`
+	DebugWait        bool   `gorm:"default:False;check:debug_wait IN(0,1)"`
+	DebugPort        string `gorm:"default:AUTO"`
 }
 
 type VM struct {
@@ -85,6 +88,7 @@ type VM struct {
 	Status      StatusType `gorm:"type:status_type"`
 	BhyvePid    uint32     `gorm:"check:bhyve_pid>=0"`
 	VNCPort     int32
+	DebugPort   int32
 	proc        *supervisor.Process
 	mu          sync.Mutex
 	log         slog.Logger
@@ -305,6 +309,18 @@ func GetUsedVncPorts() []int {
 	for _, vmInst := range List.VmList {
 		if vmInst.Status != STOPPED {
 			ret = append(ret, int(vmInst.VNCPort))
+		}
+	}
+	return ret
+}
+
+func GetUsedDebugPorts() []int {
+	var ret []int
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
+	for _, vmInst := range List.VmList {
+		if vmInst.Status != STOPPED {
+			ret = append(ret, int(vmInst.DebugPort))
 		}
 	}
 	return ret

@@ -194,6 +194,9 @@ func (vm *VM) Save() error {
 			"com3_speed":         &vm.Config.Com3Speed,
 			"com4_speed":         &vm.Config.Com4Speed,
 			"auto_start_delay":   &vm.Config.AutoStartDelay,
+			"debug":              &vm.Config.Debug,
+			"debug_wait":         &vm.Config.DebugWait,
+			"debug_port":         &vm.Config.DebugPort,
 		},
 		)
 
@@ -206,6 +209,7 @@ func (vm *VM) Save() error {
 		"description",
 		"net_dev",
 		"vnc_port",
+		"debug_port",
 		"com1_dev",
 		"com2_dev",
 		"com3_dev",
@@ -215,6 +219,7 @@ func (vm *VM) Save() error {
 			"name":        &vm.Name,
 			"description": &vm.Description,
 			"vnc_port":    &vm.VNCPort,
+			"debug_port":  &vm.DebugPort,
 			"com1_dev":    &vm.Com1Dev,
 			"com2_dev":    &vm.Com2Dev,
 			"com3_dev":    &vm.Com3Dev,

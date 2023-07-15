@@ -250,7 +250,23 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 			vmInst.Config.AutoStartDelay = *rc.AutostartDelay
 		}
 	}
-
+	if isOptionPassed(reflect, "debug") {
+		if *rc.Debug {
+			vmInst.Config.Debug = true
+		} else {
+			vmInst.Config.Debug = false
+		}
+	}
+	if isOptionPassed(reflect, "debug_wait") {
+		if *rc.DebugWait {
+			vmInst.Config.DebugWait = true
+		} else {
+			vmInst.Config.DebugWait = false
+		}
+	}
+	if isOptionPassed(reflect, "debug_port") {
+		vmInst.Config.DebugPort = *rc.DebugPort
+	}
 	err = vmInst.Save()
 	if err != nil {
 		return &re, err
@@ -288,7 +304,6 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Eop = &vmInst.Config.ExitOnPause
 	pvm.Dpo = &vmInst.Config.DestroyPowerOff
 	pvm.Ium = &vmInst.Config.IgnoreUnknownMSR
-	pvm.Vncport = &vmInst.Config.VNCPort
 	pvm.Keyboard = &vmInst.Config.KbdLayout
 	pvm.Autostart = &vmInst.Config.AutoStart
 	pvm.Sound = &vmInst.Config.Sound
@@ -314,6 +329,9 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	if vmInst.Config.ExtraArgs != "" {
 		pvm.ExtraArgs = &vmInst.Config.ExtraArgs
 	}
+	pvm.Debug = &vmInst.Config.Debug
+	pvm.DebugWait = &vmInst.Config.DebugWait
+	pvm.DebugPort = &vmInst.Config.DebugPort
 	return &pvm, nil
 }
 
@@ -345,12 +363,15 @@ func (s *server) GetVMState(_ context.Context, p *cirrina.VMID) (*cirrina.VMStat
 	case vm.STARTING:
 		pvm.Status = cirrina.VmStatus_STATUS_STARTING
 		pvm.VncPort = vmInst.VNCPort
+		pvm.DebugPort = vmInst.DebugPort
 	case vm.RUNNING:
 		pvm.Status = cirrina.VmStatus_STATUS_RUNNING
 		pvm.VncPort = vmInst.VNCPort
+		pvm.DebugPort = vmInst.DebugPort
 	case vm.STOPPING:
 		pvm.Status = cirrina.VmStatus_STATUS_STOPPING
 		pvm.VncPort = vmInst.VNCPort
+		pvm.DebugPort = vmInst.DebugPort
 	default:
 		return &pvm, errors.New("unknown VM state")
 	}

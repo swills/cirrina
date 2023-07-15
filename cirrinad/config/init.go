@@ -47,6 +47,10 @@ var Config = struct {
 		Ip   string `default:"0.0.0.0"`
 		Port uint   `default:"5900"`
 	}
+	Debug struct {
+		Ip   string `default:"0.0.0.0"`
+		Port uint   `default:"2828"`
+	}
 }{}
 
 func init() {

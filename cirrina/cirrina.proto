@@ -182,6 +182,9 @@ message VMConfig {
   optional uint32 com3speed = 48;
   optional uint32 com4speed = 49;
   optional uint32 autostart_delay = 50;
+  optional bool debug = 51;
+  optional bool debug_wait = 52;
+  optional string debug_port = 53;
 }
 
 message VMsQuery {
@@ -214,6 +217,7 @@ message ReqStatus {
 message VMState {
   vmStatus status = 1;
   int32 VncPort = 2;
+  int32 DebugPort = 3;
 }
 
 message ReqBool {

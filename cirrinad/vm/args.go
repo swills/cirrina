@@ -184,6 +184,43 @@ func (vm *VM) getROMArg() []string {
 	return romArg
 }
 
+func (vm *VM) getDebugArg() []string {
+	var debugArg []string
+
+	firstDebugPort := config.Config.Debug.Port
+	debugListenIP := config.Config.Debug.Ip
+	var debugListenPortInt int
+	var debugListenPort string
+	var debugWaitStr string
+	var err error
+
+	if vm.Config.DebugPort == "AUTO" {
+		usedDebugPorts := GetUsedDebugPorts()
+		debugListenPortInt, err = util.GetFreeTCPPort(int(firstDebugPort), usedDebugPorts)
+		if err != nil {
+			return []string{}
+		}
+		debugListenPort = strconv.Itoa(debugListenPortInt)
+	} else {
+		debugListenPort = vm.Config.DebugPort
+		debugListenPortInt, err = strconv.Atoi(debugListenPort)
+		if err != nil {
+			return []string{}
+		}
+	}
+	vm.DebugPort = int32(debugListenPortInt)
+	vm.setDebugPort(debugListenPortInt)
+
+	if vm.Config.DebugWait {
+		debugWaitStr = "w"
+	}
+
+	debugArg = []string{"-G",
+		debugWaitStr + debugListenIP + ":" + debugListenPort,
+	}
+	return debugArg
+}
+
 func (vm *VM) getSoundArg(slot int) ([]string, int) {
 	if !vm.Config.Sound {
 		return []string{}, slot
@@ -261,17 +298,15 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 			return []string{}, slot
 		}
 		vncListenPort = strconv.Itoa(vncListenPortInt)
-		vm.VNCPort = int32(vncListenPortInt)
-		vm.setVNCPort(vncListenPortInt)
 	} else {
 		vncListenPort = vm.Config.VNCPort
 		vncListenPortInt, err = strconv.Atoi(vncListenPort)
 		if err != nil {
 			return []string{}, slot
 		}
-		vm.VNCPort = int32(vncListenPortInt)
-		vm.setVNCPort(vncListenPortInt)
 	}
+	vm.VNCPort = int32(vncListenPortInt)
+	vm.setVNCPort(vncListenPortInt)
 
 	fbufArg := []string{"-s",
 		strconv.Itoa(slot) +
@@ -482,6 +517,7 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	msrArg := vm.getMSRArg()
 	utcArg := vm.getUTCArg()
 	romArg := vm.getROMArg()
+	debugArg := vm.getDebugArg()
 	hostBridgeArg, slot := vm.getHostBridgeArg(slot)
 	fbufArg, slot := vm.getVideoArg(slot)
 	tabletArg, slot := vm.getTabletArg(slot)
@@ -525,6 +561,7 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	args = append(args, msrArg...)
 	args = append(args, utcArg...)
 	args = append(args, romArg...)
+	args = append(args, debugArg...)
 	args = append(args, cpuArg...)
 	args = append(args, memArg...)
 	args = append(args, hostBridgeArg...)

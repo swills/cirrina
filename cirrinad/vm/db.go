@@ -77,6 +77,7 @@ func setStopped(id string) {
 	db := getVmDb()
 	vm.Status = STOPPED
 	vm.VNCPort = 0
+	vm.DebugPort = 0
 	vm.BhyvePid = 0
 	vm.Com1Dev = ""
 	vm.Com2Dev = ""
@@ -86,6 +87,7 @@ func setStopped(id string) {
 		"status",
 		"net_dev",
 		"vnc_port",
+		"debug_port",
 		"bhyve_pid",
 		"com1_dev",
 		"com2_dev",
@@ -93,13 +95,14 @@ func setStopped(id string) {
 		"com4_dev",
 	}).Model(&vm).
 		Updates(map[string]interface{}{
-			"status":    &vm.Status,
-			"vnc_port":  &vm.VNCPort,
-			"bhyve_pid": &vm.BhyvePid,
-			"com1_dev":  &vm.Com1Dev,
-			"com2_dev":  &vm.Com2Dev,
-			"com3_dev":  &vm.Com3Dev,
-			"com4_dev":  &vm.Com4Dev,
+			"status":     &vm.Status,
+			"vnc_port":   &vm.VNCPort,
+			"debug_port": &vm.DebugPort,
+			"bhyve_pid":  &vm.BhyvePid,
+			"com1_dev":   &vm.Com1Dev,
+			"com2_dev":   &vm.Com2Dev,
+			"com3_dev":   &vm.Com3Dev,
+			"com4_dev":   &vm.Com4Dev,
 		})
 	if res.Error != nil {
 		slog.Error("error saving VM stopped", "err", res.Error)
@@ -124,5 +127,11 @@ func setStopping(id string) {
 func (vm *VM) setVNCPort(port int) {
 	slog.Debug("setVNCPort", "port", port)
 	vm.VNCPort = int32(port)
+	_ = vm.Save()
+}
+
+func (vm *VM) setDebugPort(port int) {
+	slog.Debug("setDebugPort", "port", port)
+	vm.DebugPort = int32(port)
 	_ = vm.Save()
 }
