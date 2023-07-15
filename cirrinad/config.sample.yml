@@ -21,6 +21,10 @@ vnc:
   ip: 0.0.0.0
   port: 6900
 
+debug:
+  ip: 0.0.0.0
+  port: 2828
+
 rom:
   path: /usr/local/share/uefi-firmware/BHYVE_UEFI.fd
   vars:
