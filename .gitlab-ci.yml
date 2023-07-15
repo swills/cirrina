@@ -14,7 +14,7 @@ cirranad:
   artifacts:
     name: cirrinad-"$CI_COMMIT_REF_NAME"
     paths:
-      - ./cirrinad/cirrinad-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
+      - ./cirrinad/cirrinad-freebsd-amd64-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
 
 cirranactl:
   stage: build
