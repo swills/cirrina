@@ -181,6 +181,7 @@ message VMConfig {
   optional uint32 com2speed = 47;
   optional uint32 com3speed = 48;
   optional uint32 com4speed = 49;
+  optional uint32 autostart_delay = 50;
 }
 
 message VMsQuery {

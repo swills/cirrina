@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 	"os"
 	"sync"
+	"time"
 )
 
 type StatusType string
@@ -73,6 +74,7 @@ type Config struct {
 	Com2Speed        uint32 `gorm:"default:115200;check:com1_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
 	Com3Speed        uint32 `gorm:"default:115200;check:com1_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
 	Com4Speed        uint32 `gorm:"default:115200;check:com1_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
+	AutoStartDelay   uint32 `gorm:"default:0;check:auto_start_delay>=0"`
 }
 
 type VM struct {
@@ -184,14 +186,24 @@ func InitOneVm(vmInst *VM) {
 func AutoStartVMs() {
 	for _, vmInst := range List.VmList {
 		if vmInst.Config.AutoStart {
-			go func(aVmInst *VM) {
-				err := aVmInst.Start()
-				if err != nil {
-					slog.Error("auto start failed", "vm", vmInst.ID, "name", vmInst.Name, "err", err)
-				}
-			}(vmInst)
+			go doAutostart(vmInst)
 		}
 	}
+}
+
+func doAutostart(vmInst *VM) {
+	func(aVmInst *VM) {
+		slog.Debug(
+			"AutoStartVMs sleeping for auto start delay",
+			"vm", aVmInst.Name,
+			"auto_start_delay", aVmInst.Config.AutoStartDelay,
+		)
+		time.Sleep(time.Duration(aVmInst.Config.AutoStartDelay) * time.Second)
+		err := aVmInst.Start()
+		if err != nil {
+			slog.Error("auto start failed", "vm", vmInst.ID, "name", vmInst.Name, "err", err)
+		}
+	}(vmInst)
 }
 func GetAll() []*VM {
 	var result []*VM

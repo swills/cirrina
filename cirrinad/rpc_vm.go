@@ -55,7 +55,6 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	if isOptionPassed(reflect, "max_wait") {
 		vmInst.Config.MaxWait = *rc.MaxWait
 	}
-
 	if isOptionPassed(reflect, "tablet") {
 		if *rc.Tablet == true {
 			vmInst.Config.Tablet = true
@@ -63,7 +62,6 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 			vmInst.Config.Tablet = false
 		}
 	}
-
 	if isOptionPassed(reflect, "storeuefi") {
 		if *rc.Storeuefi == true {
 			vmInst.Config.StoreUEFIVars = true
@@ -71,7 +69,6 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 			vmInst.Config.StoreUEFIVars = false
 		}
 	}
-
 	if isOptionPassed(reflect, "wireguestmem") {
 		if *rc.Storeuefi == true {
 			vmInst.Config.WireGuestMem = true
@@ -79,7 +76,6 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 			vmInst.Config.WireGuestMem = false
 		}
 	}
-
 	if isOptionPassed(reflect, "restart") {
 		if *rc.Restart == true {
 			vmInst.Config.Restart = true
@@ -87,7 +83,6 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 			vmInst.Config.Restart = false
 		}
 	}
-
 	if isOptionPassed(reflect, "screen") {
 		if *rc.Screen == true {
 			vmInst.Config.Screen = true
@@ -95,7 +90,6 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 			vmInst.Config.Screen = false
 		}
 	}
-
 	if isOptionPassed(reflect, "hlt") {
 		if *rc.Hlt == true {
 			vmInst.Config.UseHLT = true
@@ -103,7 +97,6 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 			vmInst.Config.UseHLT = false
 		}
 	}
-
 	if isOptionPassed(reflect, "eop") {
 		if *rc.Eop == true {
 			vmInst.Config.ExitOnPause = true
@@ -111,7 +104,6 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 			vmInst.Config.ExitOnPause = false
 		}
 	}
-
 	if isOptionPassed(reflect, "dpo") {
 		if *rc.Dpo == true {
 			vmInst.Config.DestroyPowerOff = true
@@ -119,7 +111,6 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 			vmInst.Config.DestroyPowerOff = false
 		}
 	}
-
 	if isOptionPassed(reflect, "ium") {
 		if *rc.Ium == true {
 			vmInst.Config.IgnoreUnknownMSR = true
@@ -137,7 +128,6 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	if isOptionPassed(reflect, "restart_delay") {
 		vmInst.Config.RestartDelay = *rc.RestartDelay
 	}
-
 	if isOptionPassed(reflect, "screen_width") {
 		vmInst.Config.ScreenWidth = *rc.ScreenWidth
 	}
@@ -200,7 +190,6 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	if isOptionPassed(reflect, "com3dev") {
 		vmInst.Config.Com3Dev = *rc.Com3Dev
 	}
-
 	if isOptionPassed(reflect, "com4") {
 		if *rc.Com4 {
 			vmInst.Config.Com4 = true
@@ -253,6 +242,13 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	}
 	if isOptionPassed(reflect, "com4speed") {
 		vmInst.Config.Com4Speed = *rc.Com4Speed
+	}
+	if isOptionPassed(reflect, "autostart_delay") {
+		if *rc.AutostartDelay > 3600 {
+			vmInst.Config.AutoStartDelay = 3600
+		} else {
+			vmInst.Config.AutoStartDelay = *rc.AutostartDelay
+		}
 	}
 
 	err = vmInst.Save()
@@ -314,6 +310,7 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Com2Speed = &vmInst.Config.Com2Speed
 	pvm.Com3Speed = &vmInst.Config.Com3Speed
 	pvm.Com4Speed = &vmInst.Config.Com4Speed
+	pvm.AutostartDelay = &vmInst.Config.AutoStartDelay
 	if vmInst.Config.ExtraArgs != "" {
 		pvm.ExtraArgs = &vmInst.Config.ExtraArgs
 	}

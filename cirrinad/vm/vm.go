@@ -193,6 +193,7 @@ func (vm *VM) Save() error {
 			"com2_speed":         &vm.Config.Com2Speed,
 			"com3_speed":         &vm.Config.Com3Speed,
 			"com4_speed":         &vm.Config.Com4Speed,
+			"auto_start_delay":   &vm.Config.AutoStartDelay,
 		},
 		)
 
