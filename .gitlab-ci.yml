@@ -7,10 +7,14 @@ cirranad:
     - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mouf.net/swills/go-supervisor.git go-supervisor
     - cd cirrinad
     - go build .
+    - export GO_LDFLAGS="-s -w -extldflags -static"
+    - export GOOS=freebsd
+    - export GOARCH=amd64
+    - go build -ldflags="${GO_LDFLAGS}" -o cirrinad-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
   artifacts:
     name: cirrinad-"$CI_COMMIT_REF_NAME"
     paths:
-      - ./cirrinad/cirrinad
+      - ./cirrinad/cirrinad-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
 
 cirranactl:
   stage: build
