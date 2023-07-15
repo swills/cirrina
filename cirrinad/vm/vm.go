@@ -470,6 +470,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			vm.mu.Lock()
 			List.VmList[vm.ID].Status = STOPPED
 			List.VmList[vm.ID].VNCPort = 0
+			List.VmList[vm.ID].DebugPort = 0
 			List.VmList[vm.ID].BhyvePid = 0
 			List.VmList[vm.ID].Com1Dev = ""
 			List.VmList[vm.ID].Com2Dev = ""
