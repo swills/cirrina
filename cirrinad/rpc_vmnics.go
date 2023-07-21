@@ -14,56 +14,68 @@ func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 	var vmNicInst vm_nics.VmNic
 	var vmNicId *cirrina.VmNicId
 
-	if *v.Name == "" {
-		return vmNicId, errors.New("invalid nic name")
-	}
+	reflect := v.ProtoReflect()
 
-	vmNicInst.Name = *v.Name
-	vmNicInst.Description = *v.Description
-	vmNicInst.Mac = *v.Mac
-	vmNicInst.SwitchId = *v.Switchid
-
-	if *v.Nettype == cirrina.NetType_VIRTIONET {
-		vmNicInst.NetType = "VIRTIONET"
-	} else if *v.Nettype == cirrina.NetType_E1000 {
-		vmNicInst.NetType = "E1000"
-	} else {
-		return vmNicId, errors.New("invalid net type name")
-	}
-
-	if *v.Netdevtype == cirrina.NetDevType_TAP {
-		vmNicInst.NetDevType = "TAP"
-	} else if *v.Netdevtype == cirrina.NetDevType_VMNET {
-		vmNicInst.NetDevType = "VMNET"
-	} else if *v.Netdevtype == cirrina.NetDevType_NETGRAPH {
-		vmNicInst.NetDevType = "NETGRAPH"
-	} else {
-		return vmNicId, errors.New("invalid net dev type name")
-	}
-	if *v.Netdevtype == cirrina.NetDevType_TAP || *v.Netdevtype == cirrina.NetDevType_VMNET {
-		slog.Debug("AddVmNic", "msg", "checking rate limiting")
-		r := v.ProtoReflect()
-		if isOptionPassed(r, "ratelimit") &&
-			isOptionPassed(r, "ratein") &&
-			isOptionPassed(r, "rateout") {
-			vmNicInst.RateLimit = *v.Ratelimit
-			vmNicInst.RateIn = *v.Ratein
-			vmNicInst.RateOut = *v.Rateout
+	if isOptionPassed(reflect, "name") {
+		if *v.Name == "" {
+			return vmNicId, errors.New("invalid nic name")
 		}
+		vmNicInst.Name = *v.Name
 	}
-
-	if vmNicInst.SwitchId != "" {
-		switchInst, err := _switch.GetById(vmNicInst.SwitchId)
-		if err != nil {
-			return vmNicId, errors.New("bad switch id")
-		}
-		if vmNicInst.NetDevType == "TAP" || vmNicInst.NetDevType == "VMNET" {
-			if switchInst.Type != "IF" {
-				return vmNicId, errors.New("uplink switch has wrong type")
+	if isOptionPassed(reflect, "description") {
+		vmNicInst.Description = *v.Description
+	}
+	if isOptionPassed(reflect, "mac") {
+		// TODO - validate MAC
+		vmNicInst.Mac = *v.Mac
+	}
+	if isOptionPassed(reflect, "switchid") {
+		vmNicInst.SwitchId = *v.Switchid
+		if vmNicInst.SwitchId != "" {
+			switchInst, err := _switch.GetById(vmNicInst.SwitchId)
+			if err != nil {
+				return vmNicId, errors.New("bad switch id")
 			}
-		} else if vmNicInst.NetDevType == "NETGRAPH" {
-			if switchInst.Type != "NG" {
-				return vmNicId, errors.New("uplink switch has wrong type")
+			if vmNicInst.NetDevType == "TAP" || vmNicInst.NetDevType == "VMNET" {
+				if switchInst.Type != "IF" {
+					return vmNicId, errors.New("uplink switch has wrong type")
+				}
+			} else if vmNicInst.NetDevType == "NETGRAPH" {
+				if switchInst.Type != "NG" {
+					return vmNicId, errors.New("uplink switch has wrong type")
+				}
+			}
+		}
+	}
+
+	if isOptionPassed(reflect, "nettype") {
+		if *v.Nettype == cirrina.NetType_VIRTIONET {
+			vmNicInst.NetType = "VIRTIONET"
+		} else if *v.Nettype == cirrina.NetType_E1000 {
+			vmNicInst.NetType = "E1000"
+		} else {
+			return vmNicId, errors.New("invalid net type name")
+		}
+	}
+	if isOptionPassed(reflect, "netdevtype") {
+		if *v.Netdevtype == cirrina.NetDevType_TAP {
+			vmNicInst.NetDevType = "TAP"
+		} else if *v.Netdevtype == cirrina.NetDevType_VMNET {
+			vmNicInst.NetDevType = "VMNET"
+		} else if *v.Netdevtype == cirrina.NetDevType_NETGRAPH {
+			vmNicInst.NetDevType = "NETGRAPH"
+		} else {
+			return vmNicId, errors.New("invalid net dev type name")
+		}
+		if *v.Netdevtype == cirrina.NetDevType_TAP || *v.Netdevtype == cirrina.NetDevType_VMNET {
+			slog.Debug("AddVmNic", "msg", "checking rate limiting")
+			r := v.ProtoReflect()
+			if isOptionPassed(r, "ratelimit") &&
+				isOptionPassed(r, "ratein") &&
+				isOptionPassed(r, "rateout") {
+				vmNicInst.RateLimit = *v.Ratelimit
+				vmNicInst.RateIn = *v.Ratein
+				vmNicInst.RateOut = *v.Rateout
 			}
 		}
 	}
