@@ -83,6 +83,7 @@ message DiskInfo {
   optional string description = 2;
   optional string size = 3;
   optional DiskType disk_type = 4;
+  optional string usage = 5;
 }
 
 message NetInterfacesReq {

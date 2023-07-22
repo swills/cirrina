@@ -2,11 +2,15 @@ package main
 
 import (
 	"cirrina/cirrina"
+	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/vm"
 	"context"
 	"errors"
 	"golang.org/x/exp/slog"
+	"os"
+	"strconv"
+	"syscall"
 )
 
 func (s *server) GetDisks(_ *cirrina.DisksQuery, stream cirrina.VMInfo_GetDisksServer) error {
@@ -76,6 +80,33 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 		slog.Error("GetDiskInfo invalid disk type", "diskid", i.Value, "disktype", diskInst.Type)
 		return nil, errors.New("invalid disk type")
 	}
+	diskPath := config.Config.Disk.VM.Path.Image + "/" + diskInst.Name
+
+	diskFileStat, err := os.Stat(diskPath)
+	if err != nil {
+		slog.Error("GetDiskInfo error getting disk size", "err", err)
+		return nil, errors.New("unable to get file size")
+	}
+
+	var stat syscall.Stat_t
+	err = syscall.Stat(diskPath, &stat)
+	if err != nil {
+		return nil, errors.New("unable to stat")
+	}
+
+	diskSize := strconv.FormatInt(diskFileStat.Size(), 10)
+	// TODO figure out how to get the actual block size
+	diskBlocks := strconv.FormatInt(stat.Blocks*512, 10)
+	slog.Debug("GetDiskInfo disk info",
+		"file", diskPath,
+		"size", diskSize,
+		"blocks", stat.Blocks,
+		"usage", diskBlocks,
+	)
+
+	ic.Size = &diskSize
+	ic.Usage = &diskBlocks
+
 	return &ic, nil
 }
 
