@@ -56,6 +56,9 @@ func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskI
 
 func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.DiskInfo, error) {
 	var ic cirrina.DiskInfo
+	var stat syscall.Stat_t
+	var blockSize int64 = 512
+
 	slog.Debug("GetDiskInfo", "disk", i.Value)
 	if i.Value == "" {
 		return &ic, nil
@@ -88,24 +91,20 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 		return nil, errors.New("unable to get file size")
 	}
 
-	var stat syscall.Stat_t
 	err = syscall.Stat(diskPath, &stat)
 	if err != nil {
 		return nil, errors.New("unable to stat")
 	}
 
 	diskSize := strconv.FormatInt(diskFileStat.Size(), 10)
-	// TODO figure out how to get the actual block size
-	diskBlocks := strconv.FormatInt(stat.Blocks*512, 10)
-	slog.Debug("GetDiskInfo disk info",
-		"file", diskPath,
-		"size", diskSize,
-		"blocks", stat.Blocks,
-		"usage", diskBlocks,
-	)
+	diskBlocks := strconv.FormatInt(stat.Blocks*blockSize, 10)
+	diskSizeNum := uint64(diskFileStat.Size())
+	diskUsageNum := uint64(stat.Blocks * blockSize)
 
 	ic.Size = &diskSize
+	ic.SizeNum = &diskSizeNum
 	ic.Usage = &diskBlocks
+	ic.UsageNum = &diskUsageNum
 
 	return &ic, nil
 }

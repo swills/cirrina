@@ -84,6 +84,8 @@ message DiskInfo {
   optional string size = 3;
   optional DiskType disk_type = 4;
   optional string usage = 5;
+  optional uint64 size_num = 6;
+  optional uint64 usage_num = 7;
 }
 
 message NetInterfacesReq {
