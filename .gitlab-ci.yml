@@ -4,13 +4,14 @@ cirranad:
   tags:
     - FreeBSD
   script:
+    - export GOFLAGS="-trimpath"
     - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.mouf.net/swills/go-supervisor.git go-supervisor
     - cd cirrinad
-    - go build .
+    - go build "${GOFLAGS}" .
     - export GO_LDFLAGS="-s -w -extldflags -static"
     - export GOOS=freebsd
     - export GOARCH=amd64
-    - go build -ldflags="${GO_LDFLAGS}" -o cirrinad-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinad-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
   artifacts:
     name: cirrinad-"$CI_COMMIT_REF_NAME"
     paths:
@@ -24,32 +25,33 @@ cirranactl:
     - cd cirrinactl
     - export CGO_ENABLED=0
     - export GO_LDFLAGS="-s -w -extldflags -static"
+    - export GOFLAGS="-trimpath"
     - export GOOS=freebsd
     - export GOARCH=amd64
-    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
     - export GOARCH=386
-    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
     - export GOARCH=arm64
-    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
     - export GOOS=windows
     - export GOARCH=amd64
-    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
     - export GOARCH=386
-    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
     - export GOARCH=arm64
-    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
     - export GOOS=darwin
     - export GOARCH=amd64
-    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
     - export GOARCH=arm64
-    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
     - export GOOS=linux
     - export GOARCH=amd64
-    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
     - export GOARCH=386
-    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
     - export GOARCH=arm64
-    - go build -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_BUILD_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
   artifacts:
     name: cirrinactl-"$CI_COMMIT_REF_NAME"
     paths:
