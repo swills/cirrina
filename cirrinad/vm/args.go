@@ -194,6 +194,10 @@ func (vm *VM) getDebugArg() []string {
 	var debugWaitStr string
 	var err error
 
+	if !vm.Config.Debug {
+		return []string{}
+	}
+
 	if vm.Config.DebugPort == "AUTO" {
 		usedDebugPorts := GetUsedDebugPorts()
 		debugListenPortInt, err = util.GetFreeTCPPort(int(firstDebugPort), usedDebugPorts)
