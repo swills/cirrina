@@ -468,7 +468,16 @@ func getNmdmNum(offset int) (nmdm string, err error) {
 	}
 	sort.Strings(nmdmDevs)
 	found := false
-	num := offset
+	var lastNum int
+	if len(nmdmDevs) > 0 {
+		last := nmdmDevs[(len(nmdmDevs) - 1)]
+		lastNum, err = strconv.Atoi(last)
+		if err != nil {
+			panic("failed to convert nmdm num to int")
+		}
+		lastNum = lastNum + 1
+	}
+	num := offset + lastNum
 	for !found {
 		nmdmDev = strconv.Itoa(num)
 		if !util.ContainsStr(nmdmDevs, nmdmDev) {
@@ -533,13 +542,13 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 		nmdmOffset, com1Arg, com1Dev = getCom(vm.Config.Com1Dev, nmdmOffset, 1)
 	}
 	if vm.Config.Com2 {
-		nmdmOffset, com2Arg, com2Dev = getCom(vm.Config.Com1Dev, nmdmOffset, 2)
+		nmdmOffset, com2Arg, com2Dev = getCom(vm.Config.Com2Dev, nmdmOffset, 2)
 	}
 	if vm.Config.Com3 {
-		nmdmOffset, com3Arg, com3Dev = getCom(vm.Config.Com1Dev, nmdmOffset, 3)
+		nmdmOffset, com3Arg, com3Dev = getCom(vm.Config.Com3Dev, nmdmOffset, 3)
 	}
 	if vm.Config.Com4 {
-		nmdmOffset, com4Arg, com4Dev = getCom(vm.Config.Com1Dev, nmdmOffset, 4)
+		nmdmOffset, com4Arg, com4Dev = getCom(vm.Config.Com4Dev, nmdmOffset, 4)
 	}
 
 	vm.Com1Dev = com1Dev
