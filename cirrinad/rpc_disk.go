@@ -29,7 +29,24 @@ func (s *server) GetDisks(_ *cirrina.DisksQuery, stream cirrina.VMInfo_GetDisksS
 
 func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskId, error) {
 	var diskType string
+
+	reflect := i.ProtoReflect()
+
 	defaultDiskType := cirrina.DiskType_NVME
+	defaultDiskSize := config.Config.Disk.Default.Size
+	deafultDiskDescription := ""
+
+	if i.Name == nil {
+		return &cirrina.DiskId{}, errors.New("name not specified")
+	}
+
+	if !isOptionPassed(reflect, "size") || *i.Size == "" {
+		i.Size = &defaultDiskSize
+	}
+
+	if !isOptionPassed(reflect, "description") {
+		i.Description = &deafultDiskDescription
+	}
 
 	if i.DiskType == nil {
 		i.DiskType = &defaultDiskType

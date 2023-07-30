@@ -55,16 +55,12 @@ func parseDiskSize(size string) (sizeBytes uint64, err error) {
 	}
 	n = uint(nu)
 	r := uint64(n) * m
-	// limit disks to 128TB
-	if r > 1024*1024*1024*1024*128 {
-		r = 1024 * 1024 * 1024 * 1024 * 128
-	}
 	return r, nil
 }
 
 func Create(name string, description string, size string, diskType string) (disk *Disk, err error) {
 	var diskInst *Disk
-	if strings.Contains(name, "/") {
+	if strings.Contains(name, "/") || strings.Contains(name, ".") {
 		return diskInst, errors.New("illegal character in disk name")
 	}
 	path := config.Config.Disk.VM.Path.Image + "/" + name + ".img"
@@ -95,6 +91,17 @@ func Create(name string, description string, size string, diskType string) (disk
 		}
 	} else {
 		diskSize, err = parseDiskSize(size)
+		if diskSize == 0 || err != nil {
+			return diskInst, errors.New("invalid disk size")
+		}
+		// limit disks to min 512 bytes
+		if diskSize < 512 {
+			diskSize = 512
+		}
+		// limit disks to max 128TB
+		if diskSize > 1024*1024*1024*1024*128 {
+			diskSize = 1024 * 1024 * 1024 * 1024 * 128
+		}
 	}
 
 	if diskType != "NVME" && diskType != "AHCI-HD" && diskType != "VIRTIO-BLK" {
