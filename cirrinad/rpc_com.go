@@ -5,6 +5,8 @@ import (
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/vm"
 	"errors"
+	"fmt"
+	"github.com/google/uuid"
 	"github.com/tarm/serial"
 	"golang.org/x/exp/slog"
 	"io"
@@ -21,7 +23,12 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 		return err
 	}
 	vmid := in.GetVmId()
-	vmInst, err := vm.GetById(vmid.Value)
+	vmuuid, err := uuid.Parse(vmid.Value)
+	if err != nil {
+		errorMessage := fmt.Sprintf("invalid vm id %s", vmid)
+		return errors.New(errorMessage)
+	}
+	vmInst, err := vm.GetById(vmuuid.String())
 	if err != nil {
 		return err
 	}
@@ -30,7 +37,7 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 		return errors.New("vm not running")
 	}
 
-	return comInteractive(stream, vmInst, vmid, 1)
+	return comInteractive(stream, vmInst, 1)
 }
 
 func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) error {
@@ -42,7 +49,12 @@ func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) er
 		return err
 	}
 	vmid := in.GetVmId()
-	vmInst, err := vm.GetById(vmid.Value)
+	vmuuid, err := uuid.Parse(vmid.Value)
+	if err != nil {
+		errorMessage := fmt.Sprintf("invalid vm id %s", vmid)
+		return errors.New(errorMessage)
+	}
+	vmInst, err := vm.GetById(vmuuid.String())
 	if err != nil {
 		return err
 	}
@@ -51,7 +63,7 @@ func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) er
 		return errors.New("vm not running")
 	}
 
-	return comInteractive(stream, vmInst, vmid, 2)
+	return comInteractive(stream, vmInst, 2)
 }
 
 func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) error {
@@ -63,7 +75,12 @@ func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) er
 		return err
 	}
 	vmid := in.GetVmId()
-	vmInst, err := vm.GetById(vmid.Value)
+	vmuuid, err := uuid.Parse(vmid.Value)
+	if err != nil {
+		errorMessage := fmt.Sprintf("invalid vm id %s", vmid)
+		return errors.New(errorMessage)
+	}
+	vmInst, err := vm.GetById(vmuuid.String())
 	if err != nil {
 		return err
 	}
@@ -72,7 +89,7 @@ func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) er
 		return errors.New("vm not running")
 	}
 
-	return comInteractive(stream, vmInst, vmid, 3)
+	return comInteractive(stream, vmInst, 3)
 }
 
 func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) error {
@@ -84,7 +101,12 @@ func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) er
 		return err
 	}
 	vmid := in.GetVmId()
-	vmInst, err := vm.GetById(vmid.Value)
+	vmuuid, err := uuid.Parse(vmid.Value)
+	if err != nil {
+		errorMessage := fmt.Sprintf("invalid vm id %s", vmid)
+		return errors.New(errorMessage)
+	}
+	vmInst, err := vm.GetById(vmuuid.String())
 	if err != nil {
 		return err
 	}
@@ -93,11 +115,11 @@ func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) er
 		return errors.New("vm not running")
 	}
 
-	return comInteractive(stream, vmInst, vmid, 4)
+	return comInteractive(stream, vmInst, 4)
 }
 
 // FIXME -- cheating a bit here
-func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, vmid *cirrina.VMID, comNum int) error {
+func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, comNum int) error {
 
 	var thisCom *serial.Port
 	var thisComLog bool
@@ -176,7 +198,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 		return errors.New("com not available")
 	}
 
-	slog.Debug("ComInteractive", "vm_id", vmid.Value, "comNum", comNum)
+	slog.Debug("ComInteractive", "vm_id", vmInst.ID, "comNum", comNum)
 	// FIXME -- cheating a bit here
 	go func(vmInst *vm.VM, stream cirrina.VMInfo_Com1InteractiveServer) {
 		b := make([]byte, 1)
