@@ -7,9 +7,11 @@ import (
 	"cirrina/cirrinad/vm"
 	"context"
 	"errors"
+	"github.com/google/uuid"
 	"golang.org/x/exp/slog"
 	"os"
 	"strconv"
+	"strings"
 	"syscall"
 )
 
@@ -77,12 +79,18 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 	var blockSize int64 = 512
 
 	slog.Debug("GetDiskInfo", "disk", i.Value)
-	if i.Value == "" {
-		return &ic, nil
+
+	diskUuid, err := uuid.Parse(i.Value)
+	if err != nil {
+		return &ic, errors.New("invalid disk id")
 	}
-	diskInst, err := disk.GetById(i.Value)
+	diskInst, err := disk.GetById(diskUuid.String())
 	if err != nil {
 		slog.Error("error getting disk", "disk", i.Value, "err", err)
+	}
+	if diskInst.Name == "" {
+		slog.Debug("disk not found")
+		return &ic, errors.New("disk not found")
 	}
 	ic.Name = &diskInst.Name
 	ic.Description = &diskInst.Description
@@ -122,6 +130,10 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 	ic.SizeNum = &diskSizeNum
 	ic.Usage = &diskBlocks
 	ic.UsageNum = &diskUsageNum
+
+	if strings.HasSuffix(*ic.Name, ".img") {
+		*ic.Name = strings.TrimSuffix(*ic.Name, ".img")
+	}
 
 	return &ic, nil
 }
