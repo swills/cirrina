@@ -7,6 +7,7 @@ import (
 	"cirrina/cirrinad/vm"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"golang.org/x/exp/slog"
 	"os"
@@ -143,14 +144,19 @@ func (s *server) RemoveDisk(_ context.Context, i *cirrina.DiskId) (*cirrina.ReqB
 	re := cirrina.ReqBool{}
 	re.Success = false
 
-	if i.Value == "" {
-		return &re, errors.New("disk id must be specified")
+	diskUuid, err := uuid.Parse(i.Value)
+	if err != nil {
+		return &re, errors.New("invalid disk id")
 	}
 
-	_, err := disk.GetById(i.Value)
+	diskInst, err := disk.GetById(diskUuid.String())
 	if err != nil {
 		slog.Error("error getting disk, does not exist", "disk", i.Value, "err", err)
 		return &re, err
+	}
+	if diskInst.Name == "" {
+		slog.Debug("disk not found")
+		return &re, errors.New("disk not found")
 	}
 
 	// check that disk is not in use by a VM
@@ -162,13 +168,14 @@ func (s *server) RemoveDisk(_ context.Context, i *cirrina.DiskId) (*cirrina.ReqB
 			return &re, err
 		}
 		for _, vmDisk := range thisVmDisks {
-			if vmDisk.ID == i.Value {
-				return &re, errors.New("disk in use by VM")
+			if vmDisk.ID == diskUuid.String() {
+				errorMessage := fmt.Sprintf("disk in use by VM %s", thisVm.ID)
+				return &re, errors.New(errorMessage)
 			}
 		}
 	}
 
-	res := disk.Delete(i.Value)
+	res := disk.Delete(diskUuid.String())
 	if res != nil {
 		slog.Error("error deleting disk", "res", res)
 		return &re, errors.New("error deleting disk")
@@ -182,6 +189,11 @@ func (s *server) GetDiskVm(_ context.Context, i *cirrina.DiskId) (v *cirrina.VMI
 	slog.Debug("GetDiskVm finding VM for disk", "diskid", i.Value)
 	var pvmId cirrina.VMID
 
+	diskUuid, err := uuid.Parse(i.Value)
+	if err != nil {
+		return &pvmId, errors.New("invalid disk id")
+	}
+
 	allVMs := vm.GetAll()
 	found := false
 	for _, thisVm := range allVMs {
@@ -190,7 +202,7 @@ func (s *server) GetDiskVm(_ context.Context, i *cirrina.DiskId) (v *cirrina.VMI
 			return nil, err
 		}
 		for _, vmDisk := range thisVmDisks {
-			if vmDisk.ID == i.Value {
+			if vmDisk.ID == diskUuid.String() {
 				if found == true {
 					slog.Error("GetDiskVm disk in use by more than one VM",
 						"diskid", i.Value,
