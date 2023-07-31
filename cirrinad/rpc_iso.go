@@ -11,6 +11,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"golang.org/x/exp/slog"
 	"io"
 	"os"
@@ -28,19 +29,22 @@ func (s *server) GetISOs(_ *cirrina.ISOsQuery, stream cirrina.VMInfo_GetISOsServ
 		}
 	}
 	return nil
-
 }
 
 func (s *server) GetISOInfo(_ context.Context, i *cirrina.ISOID) (*cirrina.ISOInfo, error) {
 	var ic cirrina.ISOInfo
-	slog.Debug("GetISOInfo", "iso", i.Value)
-	if i.Value == "" {
-		return &ic, nil
-	}
-	isoInst, err := iso.GetById(i.Value)
+	isoUuid, err := uuid.Parse(i.Value)
 	if err != nil {
-		slog.Error("error getting iso", "iso", i.Value, "err", err)
-		return &ic, err
+		return &ic, errors.New("id not specified or invalid")
+	}
+	isoInst, err := iso.GetById(isoUuid.String())
+	if err != nil {
+		slog.Error("error getting iso", "id", isoUuid.String(), "err", err)
+		return &ic, errors.New("not found")
+	}
+	if isoInst.Name == "" {
+		slog.Debug("iso not found")
+		return &ic, errors.New("not found")
 	}
 	ic.Name = &isoInst.Name
 	ic.Description = &isoInst.Description
@@ -48,6 +52,13 @@ func (s *server) GetISOInfo(_ context.Context, i *cirrina.ISOID) (*cirrina.ISOIn
 }
 
 func (s *server) AddISO(_ context.Context, i *cirrina.ISOInfo) (*cirrina.ISOID, error) {
+	defaultDescription := ""
+	if i.Name == nil {
+		return &cirrina.ISOID{}, errors.New("name not specified")
+	}
+	if i.Description == nil {
+		i.Description = &defaultDescription
+	}
 	isoInst, err := iso.Create(*i.Name, *i.Description)
 	if err != nil {
 		return &cirrina.ISOID{}, err
@@ -69,10 +80,19 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 	}
 	isoUploadReq := req.GetIsouploadinfo()
 	isoId := isoUploadReq.Isoid
-	isoInst, err := iso.GetById(isoId.Value)
+
+	isoUuid, err := uuid.Parse(isoId.Value)
 	if err != nil {
-		slog.Debug("UploadIso", "err", err)
-		return err
+		return errors.New("id not specified or invalid")
+	}
+	isoInst, err := iso.GetById(isoUuid.String())
+	if err != nil {
+		slog.Error("error getting iso", "id", isoUuid.String(), "err", err)
+		return errors.New("not found")
+	}
+	if isoInst.Name == "" {
+		slog.Debug("iso not found")
+		return errors.New("not found")
 	}
 
 	slog.Debug("UploadIso",
@@ -190,14 +210,18 @@ func (s *server) RemoveISO(_ context.Context, i *cirrina.ISOID) (*cirrina.ReqBoo
 	re.Success = false
 
 	slog.Debug("GetISOInfo", "iso", i.Value)
-	if i.Value == "" {
-		return &re, errors.New("ISO id must be specified")
-	}
-
-	_, err := iso.GetById(i.Value)
+	isoUuid, err := uuid.Parse(i.Value)
 	if err != nil {
-		slog.Error("error getting iso", "iso", i.Value, "err", err)
-		return &re, err
+		return &re, errors.New("id not specified or invalid")
+	}
+	isoInst, err := iso.GetById(isoUuid.String())
+	if err != nil {
+		slog.Error("error getting iso", "id", isoUuid.String(), "err", err)
+		return &re, errors.New("not found")
+	}
+	if isoInst.Name == "" {
+		slog.Debug("iso not found")
+		return &re, errors.New("not found")
 	}
 
 	// check that iso is not in use by a VM
@@ -209,10 +233,10 @@ func (s *server) RemoveISO(_ context.Context, i *cirrina.ISOID) (*cirrina.ReqBoo
 			return &re, err
 		}
 		for _, vmISO := range thisVmISOs {
-			if vmISO.ID == i.Value {
+			if vmISO.ID == isoUuid.String() {
 				slog.Error("RemoveISO",
 					"msg", "tried to remove ISO in use by VM",
-					"isoid", i.Value,
+					"isoid", isoUuid.String(),
 					"vm", thisVm.ID,
 					"vmname", thisVm.Name,
 				)
@@ -222,7 +246,7 @@ func (s *server) RemoveISO(_ context.Context, i *cirrina.ISOID) (*cirrina.ReqBoo
 		}
 	}
 
-	res := iso.Delete(i.Value)
+	res := iso.Delete(isoUuid.String())
 	if res != nil {
 		slog.Error("error deleting iso", "res", res)
 		errorText := fmt.Sprintf("error deleting iso: %v", err)

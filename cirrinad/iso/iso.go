@@ -1,16 +1,43 @@
 package iso
 
 import (
+	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
+	"golang.org/x/exp/slog"
 	"strings"
 )
 
 func Create(name string, description string) (iso *ISO, err error) {
 	var isoInst *ISO
-	if strings.Contains(name, "/") {
-		return isoInst, errors.New("illegal character in ISO name")
+
+	if strings.Contains(name, "/") || strings.Contains(name, ".") {
+		return isoInst, errors.New("illegal character in iso name")
 	}
+
+	path := config.Config.Disk.VM.Path.Iso + "/" + name
+	isoExists, err := util.PathExists(path)
+	if err != nil {
+		slog.Error("error checking if iso exists", "path", path, "err", err)
+		message := fmt.Sprintf("error checking if iso exists: %s", err)
+		return isoInst, errors.New(message)
+	}
+	if isoExists {
+		slog.Error("iso exists", "iso", name)
+		return isoInst, errors.New("iso exists")
+	}
+	existingISO, err := GetByName(name)
+	if err != nil {
+		slog.Error("error checking db for iso", "name", name, "err", err)
+		message := fmt.Sprintf("error checking if iso exists: %s", err)
+		return isoInst, errors.New(message)
+	}
+	if existingISO.Name != "" {
+		slog.Error("iso exists", "iso", name)
+		return isoInst, errors.New("iso exists")
+	}
+
 	isoInst = &ISO{
 		Name:        name,
 		Description: description,
@@ -29,7 +56,13 @@ func GetAll() []*ISO {
 
 func GetById(id string) (result *ISO, err error) {
 	db := getIsoDb()
-	db.First(&result, "id = ?", id)
+	db.Limit(1).Find(&result, "id = ?", id)
+	return result, nil
+}
+
+func GetByName(name string) (result *ISO, err error) {
+	db := getIsoDb()
+	db.Limit(1).Find(&result, "name = ?", name)
 	return result, nil
 }
 

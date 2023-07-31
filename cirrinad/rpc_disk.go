@@ -33,8 +33,6 @@ func (s *server) GetDisks(_ *cirrina.DisksQuery, stream cirrina.VMInfo_GetDisksS
 func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskId, error) {
 	var diskType string
 
-	reflect := i.ProtoReflect()
-
 	defaultDiskType := cirrina.DiskType_NVME
 	defaultDiskSize := config.Config.Disk.Default.Size
 	deafultDiskDescription := ""
@@ -43,11 +41,11 @@ func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskI
 		return &cirrina.DiskId{}, errors.New("name not specified")
 	}
 
-	if !isOptionPassed(reflect, "size") || *i.Size == "" {
+	if i.Size == nil || *i.Size == "" {
 		i.Size = &defaultDiskSize
 	}
 
-	if !isOptionPassed(reflect, "description") {
+	if i.Description == nil {
 		i.Description = &deafultDiskDescription
 	}
 
@@ -88,10 +86,11 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 	diskInst, err := disk.GetById(diskUuid.String())
 	if err != nil {
 		slog.Error("error getting disk", "disk", i.Value, "err", err)
+		return &ic, errors.New("not found")
 	}
 	if diskInst.Name == "" {
 		slog.Debug("disk not found")
-		return &ic, errors.New("disk not found")
+		return &ic, errors.New("not found")
 	}
 	ic.Name = &diskInst.Name
 	ic.Description = &diskInst.Description
@@ -151,12 +150,12 @@ func (s *server) RemoveDisk(_ context.Context, i *cirrina.DiskId) (*cirrina.ReqB
 
 	diskInst, err := disk.GetById(diskUuid.String())
 	if err != nil {
-		slog.Error("error getting disk, does not exist", "disk", i.Value, "err", err)
-		return &re, err
+		slog.Error("error getting disk", "disk", i.Value, "err", err)
+		return &re, errors.New("not found")
 	}
 	if diskInst.Name == "" {
 		slog.Debug("disk not found")
-		return &re, errors.New("disk not found")
+		return &re, errors.New("not found")
 	}
 
 	// check that disk is not in use by a VM
@@ -214,6 +213,11 @@ func (s *server) GetDiskVm(_ context.Context, i *cirrina.DiskId) (v *cirrina.VMI
 				pvmId.Value = thisVm.ID
 			}
 		}
+	}
+
+	if pvmId.Value == "" {
+		slog.Debug("not found")
+		return &pvmId, errors.New("not found")
 	}
 	return &pvmId, nil
 }
