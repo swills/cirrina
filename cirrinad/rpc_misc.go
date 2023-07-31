@@ -6,13 +6,23 @@ import (
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm"
 	"context"
+	"errors"
+	"github.com/google/uuid"
 	"golang.org/x/exp/slog"
 )
 
 func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrina.ReqStatus, error) {
-	rs, err := requests.GetByID(r.Value)
+	reqUuid, err := uuid.Parse(r.Value)
 	if err != nil {
-		return &cirrina.ReqStatus{}, err
+		return &cirrina.ReqStatus{}, errors.New("invalid id")
+	}
+	rs, err := requests.GetByID(reqUuid.String())
+	if err != nil {
+		slog.Error("ReqStatus error getting req", "vm", r.Value, "err", err)
+		return &cirrina.ReqStatus{}, errors.New("not found")
+	}
+	if rs.ID == "" {
+		return &cirrina.ReqStatus{}, errors.New("not found")
 	}
 	res := &cirrina.ReqStatus{
 		Complete: rs.Complete,
@@ -24,10 +34,19 @@ func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrin
 func (s *server) ClearUEFIState(_ context.Context, v *cirrina.VMID) (*cirrina.ReqBool, error) {
 	re := cirrina.ReqBool{}
 	re.Success = false
-	vmInst, err := vm.GetById(v.Value)
+
+	vmUuid, err := uuid.Parse(v.Value)
+	if err != nil {
+		return &re, errors.New("invalid id")
+	}
+	vmInst, err := vm.GetById(vmUuid.String())
 	if err != nil {
 		slog.Error("ClearUEFIState error getting vm", "vm", v.Value, "err", err)
-		return &re, err
+		return &re, errors.New("not found")
+	}
+	if vmInst.Name == "" {
+		slog.Debug("vm not found")
+		return &re, errors.New("not found")
 	}
 	err = vmInst.DeleteUEFIState()
 	if err != nil {

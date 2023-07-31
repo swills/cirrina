@@ -47,9 +47,6 @@ func Create(r reqType, vmId string) (req Request, err error) {
 func GetByID(id string) (rs Request, err error) {
 	db := getReqDb()
 	db.Model(&Request{}).Limit(1).Find(&rs, &Request{ID: id})
-	if rs.ID == "" {
-		return rs, errors.New("not found")
-	}
 	return rs, nil
 }
 
