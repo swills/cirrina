@@ -5,6 +5,7 @@ import (
 	_switch "cirrina/cirrinad/switch"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"golang.org/x/exp/slog"
 	"strings"
 )
@@ -12,6 +13,20 @@ import "context"
 
 func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.SwitchId, error) {
 	var switchType string
+	defaultSwitchType := cirrina.SwitchType_IF
+	defaultSwitchDescription := ""
+
+	if i.Name == nil {
+		return &cirrina.SwitchId{}, errors.New("name not specified")
+	}
+
+	if i.Description == nil {
+		i.Description = &defaultSwitchDescription
+	}
+
+	if i.SwitchType == nil {
+		i.SwitchType = &defaultSwitchType
+	}
 
 	if *i.SwitchType == cirrina.SwitchType_IF {
 		switchType = "IF"
@@ -81,7 +96,12 @@ func (s *server) GetSwitchInfo(_ context.Context, v *cirrina.SwitchId) (*cirrina
 	slog.Debug("GetSwitchInfo", "id", v.Value)
 	var pvmswitchinfo cirrina.SwitchInfo
 
-	vmSwitch, err := _switch.GetById(v.Value)
+	switchUuid, err := uuid.Parse(v.Value)
+	if err != nil {
+		return &pvmswitchinfo, errors.New("id not specified or invalid")
+	}
+
+	vmSwitch, err := _switch.GetById(switchUuid.String())
 	if err != nil {
 		slog.Error("error getting switch info", "switch", v.Value, "err", err)
 		return &pvmswitchinfo, err
@@ -108,7 +128,12 @@ func (s *server) RemoveSwitch(_ context.Context, si *cirrina.SwitchId) (*cirrina
 	var re cirrina.ReqBool
 	re.Success = false
 
-	switchInst, err := _switch.GetById(si.Value)
+	switchUuid, err := uuid.Parse(si.Value)
+	if err != nil {
+		return &re, errors.New("id not specified or invalid")
+	}
+
+	switchInst, err := _switch.GetById(switchUuid.String())
 	if err != nil {
 		return &re, errors.New("not found")
 	}
@@ -148,10 +173,23 @@ func (s *server) RemoveSwitch(_ context.Context, si *cirrina.SwitchId) (*cirrina
 func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq) (*cirrina.ReqBool, error) {
 	var r cirrina.ReqBool
 	r.Success = false
-	thisSwitch := su.Switchid.Value
+
+	if su.Switchid == nil {
+		return &r, errors.New("id not specified or invalid")
+	}
+
+	switchUuid, err := uuid.Parse(su.Switchid.Value)
+	if err != nil {
+		return &r, errors.New("id not specified or invalid")
+	}
+
+	if su.Uplink == nil {
+		return &r, errors.New("uplink not specified")
+	}
+
 	uplink := *su.Uplink
-	slog.Debug("SetSwitchUplink", "switch", thisSwitch, "uplink", uplink)
-	switchInst, err := _switch.GetById(thisSwitch)
+	slog.Debug("SetSwitchUplink", "switch", su.Switchid.Value, "uplink", uplink)
+	switchInst, err := _switch.GetById(switchUuid.String())
 	if err != nil {
 		return &r, err
 	}
