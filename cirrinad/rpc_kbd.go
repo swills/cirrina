@@ -9,20 +9,19 @@ import (
 	"strings"
 )
 
-func (s *server) GetKeyboardLayouts(_ *cirrina.KbdQuery, stream cirrina.VMInfo_GetKeyboardLayoutsServer) error {
-	var kbdlayoutpath = "/usr/share/bhyve/kbdlayout"
-	var layout cirrina.KbdLayout
+const kbdlayoutpath = "/usr/share/bhyve/kbdlayout"
 
-	files, err := util.OSReadDir(kbdlayoutpath)
-	if err != nil {
-		panic(err)
-	}
+func (s *server) GetKeyboardLayouts(_ *cirrina.KbdQuery, stream cirrina.VMInfo_GetKeyboardLayoutsServer) error {
+	var layout cirrina.KbdLayout
+	var err error
+
+	files := GetKbdLayoutNames()
 	for _, file := range files {
 		layout.Name = file
 		if file == "default" {
 			layout.Description = "default"
 		} else {
-			layout.Description, err = getKbdDescription(kbdlayoutpath + "/" + file)
+			layout.Description, err = GetKbdDescription(kbdlayoutpath + "/" + file)
 			if err != nil {
 				return err
 			}
@@ -35,7 +34,13 @@ func (s *server) GetKeyboardLayouts(_ *cirrina.KbdQuery, stream cirrina.VMInfo_G
 	return nil
 }
 
-func getKbdDescription(path string) (description string, err error) {
+func GetKbdLayoutNames() (kbdlayouts []string) {
+	// ignore errors and just return empty list if err
+	kbdlayouts, _ = util.OSReadDir(kbdlayoutpath)
+	return kbdlayouts
+}
+
+func GetKbdDescription(path string) (description string, err error) {
 	file, err := os.Open(path)
 	if err != nil {
 		fmt.Println(err)

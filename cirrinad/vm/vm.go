@@ -34,6 +34,9 @@ func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, er
 	if strings.Contains(name, "/") {
 		return vmInst, errors.New("illegal character in vm name")
 	}
+	if _, err := GetByName(name); err == nil {
+		return vmInst, errors.New(fmt.Sprintf("%v already exists", name))
+	}
 	vmInst = &VM{
 		Name:        name,
 		Status:      STOPPED,
@@ -551,6 +554,50 @@ func (vm *VM) DeleteUEFIState() error {
 	return nil
 }
 
+func (vm *VM) AttachIsos(isoIds []string) error {
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
+	if vm.Status != STOPPED {
+		return errors.New("VM must be stopped before adding isos(s)")
+	}
+
+	for _, aIso := range isoIds {
+		slog.Debug("checking iso exists", "iso", aIso)
+
+		isoUuid, err := uuid.Parse(aIso)
+		if err != nil {
+			return errors.New("iso id not specified or invalid")
+		}
+
+		thisIso, err := iso.GetById(isoUuid.String())
+		if err != nil {
+			slog.Error("error getting disk", "disk", aIso, "err", err)
+			return errors.New("iso not found")
+		}
+		if thisIso.Name == "" {
+			return errors.New("iso not found")
+		}
+	}
+
+	var isoConfigVal string
+	count := 0
+
+	for _, isoId := range isoIds {
+		if count > 0 {
+			isoConfigVal += ","
+		}
+		isoConfigVal += isoId
+		count += 1
+	}
+	vm.Config.ISOs = isoConfigVal
+	err := vm.Save()
+	if err != nil {
+		slog.Error("error saving VM", "err", err)
+		return err
+	}
+	return nil
+}
+
 func (vm *VM) AttachNics(nicIds []string) error {
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
@@ -563,17 +610,26 @@ func (vm *VM) AttachNics(nicIds []string) error {
 	for _, aNic := range nicIds {
 		slog.Debug("checking vm nic exists", "vmnic", aNic)
 
+		nicUuid, err := uuid.Parse(aNic)
+		if err != nil {
+			return errors.New("nic id not specified or invalid")
+		}
+
+		thisNic, err := vm_nics.GetById(nicUuid.String())
+		if err != nil {
+			slog.Error("error getting nic", "nic", aNic, "err", err)
+			return errors.New("nic not found")
+		}
+		if thisNic.Name == "" {
+			return errors.New("nic not found")
+		}
+
 		if occurred[aNic] != true {
 			occurred[aNic] = true
 			result = append(result, aNic)
 		} else {
 			slog.Error("duplicate nic id", "nic", aNic)
 			return errors.New("nic may only be added once")
-		}
-
-		_, err := vm_nics.GetById(aNic)
-		if err != nil {
-			return err
 		}
 
 		slog.Debug("checking if nic is attached to another VM", "nic", aNic)
@@ -594,11 +650,11 @@ func (vm *VM) AttachNics(nicIds []string) error {
 
 	var nicsConfigVal string
 	count := 0
-	for _, diskId := range nicIds {
+	for _, nicId := range nicIds {
 		if count > 0 {
 			nicsConfigVal += ","
 		}
-		nicsConfigVal += diskId
+		nicsConfigVal += nicId
 		count += 1
 	}
 	vm.Config.Nics = nicsConfigVal
@@ -623,17 +679,29 @@ func (vm *VM) AttachDisks(diskids []string) error {
 	for _, aDisk := range diskids {
 		slog.Debug("checking disk exists", "disk", aDisk)
 
+		diskUuid, err := uuid.Parse(aDisk)
+		if err != nil {
+			return errors.New("disk id not specified or invalid")
+		}
+
+		thisDisk, err := disk.GetById(diskUuid.String())
+		if err != nil {
+			return err
+		}
+		if err != nil {
+			slog.Error("error getting disk", "disk", aDisk, "err", err)
+			return errors.New("disk not found")
+		}
+		if thisDisk.Name == "" {
+			return errors.New("disk not found")
+		}
+
 		if occurred[aDisk] != true {
 			occurred[aDisk] = true
 			result = append(result, aDisk)
 		} else {
 			slog.Error("duplicate disk id", "disk", aDisk)
 			return errors.New("disk may only be added once")
-		}
-
-		_, err := disk.GetById(aDisk)
-		if err != nil {
-			return err
 		}
 
 		slog.Debug("checking if disk is attached to another VM", "disk", aDisk)
