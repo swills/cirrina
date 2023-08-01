@@ -5,6 +5,7 @@ import (
 	"cirrina/cirrinad/config"
 	"golang.org/x/exp/slog"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"net"
 	"strconv"
@@ -29,6 +30,8 @@ func rpcServer() {
 		slog.Error("failed to listen for rpc", "listenAddress", listenAddress, "err", err)
 	}
 	s := grpc.NewServer()
+	// Register reflection service on gRPC server.
+	reflection.Register(s)
 	cirrina.RegisterVMInfoServer(s, &server{})
 	if err := s.Serve(lis); err != nil {
 		slog.Error("failed to serve rpc", "err", err)
