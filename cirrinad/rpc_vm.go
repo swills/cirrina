@@ -472,6 +472,10 @@ func (s *server) AddVM(_ context.Context, v *cirrina.VMConfig) (*cirrina.VMID, e
 	if v.Name == nil {
 		return &cirrina.VMID{}, errors.New("name not specified")
 	}
+	if strings.Contains(*v.Name, "/") {
+		return &cirrina.VMID{}, errors.New("illegal character in vm name")
+	}
+
 	if v.Description == nil {
 		v.Description = &defaultVmDescription
 	}

@@ -230,3 +230,9 @@ func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq)
 	r.Success = true
 	return &r, nil
 }
+
+func (s *server) SetSwitchInfo(context.Context, *cirrina.SwitchInfoUpdate) (*cirrina.ReqBool, error) {
+	var re cirrina.ReqBool
+	re.Success = false
+	return &re, errors.New("not implemented yet")
+}

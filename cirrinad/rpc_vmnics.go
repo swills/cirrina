@@ -7,7 +7,10 @@ import (
 	"cirrina/cirrinad/vm_nics"
 	"context"
 	"errors"
+	"github.com/google/uuid"
 	"golang.org/x/exp/slog"
+	"net"
+	"strings"
 )
 
 func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmNicId, error) {
@@ -16,25 +19,42 @@ func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 
 	reflect := v.ProtoReflect()
 
-	if isOptionPassed(reflect, "name") {
-		if *v.Name == "" {
-			return vmNicId, errors.New("invalid nic name")
-		}
-		vmNicInst.Name = *v.Name
+	if v.Name == nil || *v.Name == "" || strings.Contains(*v.Name, "/") {
+		return vmNicId, errors.New("invalid name")
 	}
+	vmNicInst.Name = *v.Name
 	if isOptionPassed(reflect, "description") {
 		vmNicInst.Description = *v.Description
 	}
 	if isOptionPassed(reflect, "mac") {
-		// TODO - validate MAC
-		vmNicInst.Mac = *v.Mac
+		if *v.Mac == "AUTO" {
+			vmNicInst.Mac = *v.Mac
+		} else {
+			newMac, err := net.ParseMAC(*v.Mac)
+			if err != nil {
+				return vmNicId, errors.New("invalid MAC address")
+			}
+			vmNicInst.Mac = newMac.String()
+		}
 	}
 	if isOptionPassed(reflect, "switchid") {
-		vmNicInst.SwitchId = *v.Switchid
-		if vmNicInst.SwitchId != "" {
-			switchInst, err := _switch.GetById(vmNicInst.SwitchId)
+		if *v.Switchid == "" {
+			vmNicInst.SwitchId = ""
+		} else {
+			switchUuid, err := uuid.Parse(*v.Switchid)
 			if err != nil {
-				return vmNicId, errors.New("bad switch id")
+				return vmNicId, errors.New("switch id invalid")
+			}
+			switchInst, err := _switch.GetById(switchUuid.String())
+			if err != nil {
+				slog.Debug("error getting switch id",
+					"id", vmNicInst.SwitchId,
+					"err", err,
+				)
+				return vmNicId, errors.New("switch id invalid")
+			}
+			if switchInst.Name == "" {
+				return vmNicId, errors.New("switch id invalid")
 			}
 			if vmNicInst.NetDevType == "TAP" || vmNicInst.NetDevType == "VMNET" {
 				if switchInst.Type != "IF" {
@@ -45,6 +65,7 @@ func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 					return vmNicId, errors.New("uplink switch has wrong type")
 				}
 			}
+			vmNicInst.SwitchId = switchUuid.String()
 		}
 	}
 
@@ -109,10 +130,18 @@ func (s *server) GetVmNicsAll(_ *cirrina.VmNicsQuery, stream cirrina.VMInfo_GetV
 
 func (s *server) GetVmNicInfo(_ context.Context, v *cirrina.VmNicId) (*cirrina.VmNicInfo, error) {
 	var pvmnicinfo cirrina.VmNicInfo
-	vmNic, err := vm_nics.GetById(v.Value)
+
+	nicUuid, err := uuid.Parse(v.Value)
 	if err != nil {
-		slog.Error("GetVmNicInfo error getting vmnic", "vm", v.Value, "err", err)
-		return &pvmnicinfo, err
+		return &pvmnicinfo, errors.New("id not specified or invalid")
+	}
+	vmNic, err := vm_nics.GetById(nicUuid.String())
+	if err != nil {
+		slog.Error("error getting nic", "vm", v.Value, "err", err)
+		return &pvmnicinfo, errors.New("not found")
+	}
+	if vmNic.Name == "" {
+		return &pvmnicinfo, errors.New("not found")
 	}
 
 	NetTypeVIRTIONET := cirrina.NetType_VIRTIONET
@@ -157,22 +186,46 @@ func (s *server) SetVmNicSwitch(_ context.Context, v *cirrina.SetVmNicSwitchReq)
 	var r cirrina.ReqBool
 	r.Success = false
 
-	if v.Vmnicid.Value == "" {
-		return &r, errors.New("nic ID not specified")
+	if v.Vmnicid == nil || v.Vmnicid.Value == "" {
+		return &r, errors.New("nic id not specified or invalid")
 	}
-	if v.Switchid.Value == "" {
-		return &r, errors.New("switch ID not specified")
+	nicUuid, err := uuid.Parse(v.Vmnicid.Value)
+	if err != nil {
+		return &r, errors.New("nic id not specified or invalid")
+	}
+	vmNic, err := vm_nics.GetById(nicUuid.String())
+	if err != nil {
+		slog.Error("error getting nic", "vm", v.Vmnicid.Value, "err", err)
+		return &r, errors.New("nic not found")
+	}
+	if vmNic.Name == "" {
+		return &r, errors.New("nic not found")
 	}
 
-	vmNic, err := vm_nics.GetById(v.Vmnicid.Value)
-	if err != nil {
-		return &r, err
+	if v.Switchid == nil {
+		return &r, errors.New("switch id not specified or invalid")
 	}
-	_, err = _switch.GetById(v.Switchid.Value)
-	if err != nil {
-		return &r, err
+
+	var switchId string
+	if v.Switchid.Value == "" {
+		switchId = ""
+	} else {
+		switchUuid, err := uuid.Parse(v.Switchid.Value)
+		if err != nil {
+			return &r, errors.New("id not specified or invalid")
+		}
+		vmSwitch, err := _switch.GetById(switchUuid.String())
+		if err != nil {
+			slog.Error("error getting switch info", "switch", v.Switchid.Value, "err", err)
+			return &r, errors.New("switch not found")
+		}
+		if vmSwitch.Name == "" {
+			return &r, errors.New("switch not found")
+		}
+		switchId = vmSwitch.ID
 	}
-	err = vmNic.SetSwitch(v.Switchid.Value)
+
+	err = vmNic.SetSwitch(switchId)
 	if err != nil {
 		return &r, err
 	}
@@ -185,6 +238,19 @@ func (s *server) RemoveVmNic(_ context.Context, vn *cirrina.VmNicId) (*cirrina.R
 	re.Success = false
 	slog.Debug("RemoveVmNic", "vmnic", vn.Value)
 
+	nicUuid, err := uuid.Parse(vn.Value)
+	if err != nil {
+		return &re, errors.New("id not specified or invalid")
+	}
+	vmNic, err := vm_nics.GetById(nicUuid.String())
+	if err != nil {
+		slog.Error("error getting nic", "vm", vn.Value, "err", err)
+		return &re, errors.New("not found")
+	}
+	if vmNic.Name == "" {
+		return &re, errors.New("not found")
+	}
+
 	allVms := vm.GetAll()
 	for _, aVm := range allVms {
 		nics, err := aVm.GetNics()
@@ -192,16 +258,12 @@ func (s *server) RemoveVmNic(_ context.Context, vn *cirrina.VmNicId) (*cirrina.R
 			return &re, nil
 		}
 		for _, aNic := range nics {
-			if aNic.ID == vn.Value {
+			if aNic.ID == nicUuid.String() {
 				return &re, errors.New("nic in use")
 			}
 		}
 	}
 
-	vmNic, err := vm_nics.GetById(vn.Value)
-	if err != nil {
-		return &re, err
-	}
 	err = vmNic.Delete()
 	if err != nil {
 		return &re, err
@@ -214,6 +276,19 @@ func (s *server) GetVmNicVm(_ context.Context, i *cirrina.VmNicId) (v *cirrina.V
 	slog.Debug("GetVmNicVm finding VM for nic", "nicid", i.Value)
 	var pvmId cirrina.VMID
 
+	nicUuid, err := uuid.Parse(i.Value)
+	if err != nil {
+		return &pvmId, errors.New("id not specified or invalid")
+	}
+	vmNic, err := vm_nics.GetById(nicUuid.String())
+	if err != nil {
+		slog.Error("error getting nic", "vm", i.Value, "err", err)
+		return &pvmId, errors.New("not found")
+	}
+	if vmNic.Name == "" {
+		return &pvmId, errors.New("not found")
+	}
+
 	allVMs := vm.GetAll()
 	found := false
 	for _, thisVm := range allVMs {
@@ -222,10 +297,10 @@ func (s *server) GetVmNicVm(_ context.Context, i *cirrina.VmNicId) (v *cirrina.V
 			return nil, err
 		}
 		for _, vmNic := range thisVmNics {
-			if vmNic.ID == i.Value {
+			if vmNic.ID == nicUuid.String() {
 				if found == true {
 					slog.Error("GetVmNicVm nic in use by more than one VM",
-						"nicid", i.Value,
+						"nicid", nicUuid.String(),
 						"vmid", thisVm.ID,
 					)
 					return nil, errors.New("nic in use by more than one VM")
