@@ -4,8 +4,10 @@ import (
 	"cirrina/cirrina"
 	"context"
 	"fmt"
+	"github.com/jedib0t/go-pretty/table"
 	"io"
 	"log"
+	"os"
 )
 
 func addSwitch(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string, switchTypePtr *string) {
@@ -107,6 +109,13 @@ func getSwitch(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 
 func getSwitches(c cirrina.VMInfoClient, ctx context.Context) {
 	res, err := c.GetSwitches(ctx, &cirrina.SwitchesQuery{})
+
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+
+	t.AppendHeader(table.Row{"NAME", "UUID", "TYPE", "UPLINK", "DESCRIPTION"})
+	t.SetStyle(myTableStyle)
+
 	if err != nil {
 		log.Fatalf("could not get Switches: %v", err)
 		return
@@ -119,8 +128,19 @@ func getSwitches(c cirrina.VMInfoClient, ctx context.Context) {
 		if err != nil {
 			log.Fatalf("GetSwitches failed: %v", err)
 		}
-		fmt.Printf("Switch: id: %v\n", VmSwitch.Value)
+		res2, err := c.GetSwitchInfo(ctx, &cirrina.SwitchId{Value: VmSwitch.Value})
+		if err != nil {
+			log.Fatalf("could not get VM: %v", err)
+		}
+		switchType := "Unknown"
+		if *res2.SwitchType == cirrina.SwitchType_IF {
+			switchType = "bridge"
+		} else if *res2.SwitchType == cirrina.SwitchType_NG {
+			switchType = "netgraph"
+		}
+		t.AppendRow(table.Row{*res2.Name, VmSwitch.Value, switchType, *res2.Uplink, *res2.Description})
 	}
+	t.Render()
 }
 
 func setVmNicSwitch(c cirrina.VMInfoClient, ctx context.Context, vmNicId string, switchId string) {
