@@ -34,7 +34,7 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	reflect := rc.ProtoReflect()
 
 	if isOptionPassed(reflect, "name") {
-		if strings.Contains(*rc.Name, "/") {
+		if strings.Contains(*rc.Name, "/") || *rc.Name == "" {
 			return &re, errors.New("illegal character in vm name")
 		}
 		if _, err := vm.GetByName(*rc.Name); err == nil {
