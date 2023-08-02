@@ -4,8 +4,12 @@ import (
 	"cirrina/cirrina"
 	"context"
 	"fmt"
+	"github.com/fatih/color"
+	"github.com/jedib0t/go-pretty/table"
+	"github.com/jedib0t/go-pretty/text"
 	"io"
 	"log"
+	"os"
 )
 
 func addVM(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string, cpuPtr *uint32, memPtr *uint32) {
@@ -138,9 +142,63 @@ func getVmIds(c cirrina.VMInfoClient, ctx context.Context) (ids []string) {
 
 func getVMs(c cirrina.VMInfoClient, ctx context.Context) {
 	ids := getVmIds(c, ctx)
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+
+	t.AppendHeader(table.Row{"NAME", "UUID", "CPUS", "MEMORY", "STATE", "DESCRIPTION"})
+	t.SetStyle(table.Style{
+		Name: "myNewStyle",
+		Box: table.BoxStyle{
+			MiddleHorizontal: "-", // bug in go-pretty causes panic if this is empty
+			PaddingRight:     "  ",
+		},
+		Format: table.FormatOptions{
+			Footer: text.FormatUpper,
+			Header: text.FormatUpper,
+			Row:    text.FormatDefault,
+		},
+		Options: table.Options{
+			DrawBorder:      false,
+			SeparateColumns: false,
+			SeparateFooter:  false,
+			SeparateHeader:  false,
+			SeparateRows:    false,
+		},
+	})
 	for _, id := range ids {
-		fmt.Printf("VM: id: %v\n", id)
+		res, err := c.GetVMConfig(ctx, &cirrina.VMID{Value: id})
+		if err != nil {
+			log.Fatalf("could not get VM: %v", err)
+			return
+		}
+		res2, err := c.GetVMState(ctx, &cirrina.VMID{Value: id})
+		if err != nil {
+			log.Fatalf("could not get VM: %v", err)
+			return
+		}
+
+		status := "Unknown"
+		if res2.Status == cirrina.VmStatus_STATUS_STOPPED {
+			status = color.RedString("STOPPED")
+		} else if res2.Status == cirrina.VmStatus_STATUS_STARTING {
+			status = color.YellowString("STARTING")
+		} else if res2.Status == cirrina.VmStatus_STATUS_RUNNING {
+			status = color.GreenString("RUNNING")
+		} else if res2.Status == cirrina.VmStatus_STATUS_STOPPING {
+			status = color.YellowString("STOPPING")
+		}
+
+		t.AppendRow(table.Row{
+			*res.Name,
+			id,
+			*res.Cpu,
+			*res.Mem,
+			status,
+			*res.Description,
+		})
 	}
+
+	t.Render()
 }
 
 func Reconfig(idPtr *string, err error, namePtr *string, descrPtr *string, cpuPtr *uint, memPtr *uint, autoStartPtr *bool, c cirrina.VMInfoClient, ctx context.Context) {
