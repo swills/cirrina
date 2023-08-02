@@ -4,8 +4,10 @@ import (
 	"cirrina/cirrina"
 	"context"
 	"fmt"
+	"github.com/jedib0t/go-pretty/table"
 	"io"
 	"log"
+	"os"
 )
 
 func addVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrptr *string, nettypeptr *string, netdevtypeptr *string, macPtr *string, switchIdPtr *string) {
@@ -66,7 +68,6 @@ func rmVmNic(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 }
 
 func getVmNics(c cirrina.VMInfoClient, ctx context.Context, idPtr *string) {
-
 	if *idPtr == "" {
 		getVmNicsAll(c, ctx)
 	} else {
@@ -100,6 +101,13 @@ func getVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 		log.Fatalf("could not get VmNics: %v", err)
 		return
 	}
+
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+
+	t.AppendHeader(table.Row{"NAME", "UUID", "NETDEVTYPE", "NETTYPE", "RATELIMITED", "DESCRIPTION"})
+	t.SetStyle(myTableStyle)
+
 	for {
 		VMNicId, err := res.Recv()
 		if err == io.EOF {
@@ -108,8 +116,44 @@ func getVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 		if err != nil {
 			log.Fatalf("GetVmNiss failed: %v", err)
 		}
-		fmt.Printf("VmNic: id: %v\n", VMNicId.Value)
+		res2, err := c.GetVmNicInfo(ctx, &cirrina.VmNicId{Value: VMNicId.Value})
+		if err != nil {
+			log.Fatalf("could not get VM: %v", err)
+		}
+
+		netDevType := "unknown"
+		if *res2.Netdevtype == cirrina.NetDevType_TAP {
+			netDevType = "tap"
+		} else if *res2.Netdevtype == cirrina.NetDevType_VMNET {
+			netDevType = "vmnet"
+		} else if *res2.Netdevtype == cirrina.NetDevType_NETGRAPH {
+			netDevType = "netgraph"
+		}
+
+		netType := "unknown"
+		if *res2.Nettype == cirrina.NetType_VIRTIONET {
+			netType = "virtio-net"
+		} else if *res2.Nettype == cirrina.NetType_E1000 {
+			netType = "e1000"
+		}
+
+		rateLimited := "unknown"
+		if *res2.Ratelimit {
+			rateLimited = "yes"
+		} else {
+			rateLimited = "no"
+		}
+
+		t.AppendRow(table.Row{
+			*res2.Name,
+			VMNicId.Value,
+			netDevType,
+			netType,
+			rateLimited,
+			*res2.Description,
+		})
 	}
+	t.Render()
 }
 
 func getVmNic(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
