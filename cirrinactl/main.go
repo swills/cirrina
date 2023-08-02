@@ -46,7 +46,7 @@ func isFlagPassed(name string) bool {
 
 func printActionHelp() {
 	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, " +
-		"addISO, addDisk, addSwitch, addVmNic, getSwitches, getVmNics, getSwitch, getVmNic, setVmNicVm, " +
+		"addISO, addDisk, addSwitch, addVmNic, getSwitches, getDisks, getVmNics, getSwitch, getVmNic, setVmNicVm, " +
 		"setVmNicSwitch, rmSwitch, getHostNics, setSwitchUplink, uploadIso, useCom1, useCom2, useCom3, useCom4, tui")
 }
 
@@ -114,6 +114,8 @@ func main() {
 		getVmNic(idPtr, c, ctx)
 	case "getVMs":
 		getVMs(c, ctx)
+	case "getDisks":
+		getDisks(c, ctx)
 	case "getSwitches":
 		getSwitches(c, ctx)
 	case "getVmNics":
