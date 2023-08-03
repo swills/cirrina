@@ -101,6 +101,43 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
+	arg0 := flag.Arg(0)
+	switch arg0 {
+	case "list":
+		getVMs(c, ctx)
+		return
+	case "switch":
+		arg1 := flag.Arg(1)
+		switch arg1 {
+		case "list":
+			getSwitches(c, ctx)
+			return
+		}
+	case "nic":
+		arg1 := flag.Arg(1)
+		switch arg1 {
+		case "list":
+			getVmNicsAll(c, ctx)
+			return
+		}
+	case "disk":
+		arg1 := flag.Arg(1)
+		switch arg1 {
+		case "list":
+			getDisks(c, ctx)
+		}
+	case "start":
+		arg1 := flag.Arg(1)
+		switch arg1 {
+
+		}
+	case "stop":
+		arg1 := flag.Arg(1)
+		switch arg1 {
+
+		}
+	}
+
 	switch *actionPtr {
 	case "":
 		log.Fatalf("Action not specified, try \"help\"")
