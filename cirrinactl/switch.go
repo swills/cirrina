@@ -3,6 +3,7 @@ package main
 import (
 	"cirrina/cirrina"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/jedib0t/go-pretty/table"
 	"io"
@@ -44,10 +45,9 @@ func addSwitch(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, des
 	fmt.Printf("Created switch %v\n", res.Value)
 }
 
-func setSwitchUplink(c cirrina.VMInfoClient, ctx context.Context, switchIdPtr *string, uplinkNamePtr *string) {
+func setSwitchUplink(c cirrina.VMInfoClient, ctx context.Context, switchIdPtr *string, uplinkNamePtr *string) error {
 	if *switchIdPtr == "" {
-		log.Fatalf("switch id not specified")
-		return
+		return errors.New("switch id not specified")
 	}
 
 	req := &cirrina.SwitchUplinkReq{}
@@ -56,16 +56,12 @@ func setSwitchUplink(c cirrina.VMInfoClient, ctx context.Context, switchIdPtr *s
 	req.Switchid = si
 	req.Uplink = uplinkNamePtr
 
-	res, err := c.SetSwitchUplink(ctx, req)
+	_, err := c.SetSwitchUplink(ctx, req)
 	if err != nil {
-		log.Fatalf("could not set switch uplink: %v", err)
+		em := fmt.Sprintf("could not set switch uplink: %s", err.Error())
+		return errors.New(em)
 	}
-	if res.Success {
-		fmt.Printf("Switch uplink set successful")
-	} else {
-		fmt.Printf("Switch uplink set failed")
-	}
-
+	return nil
 }
 
 func rmSwitch(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
@@ -105,6 +101,30 @@ func getSwitch(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 		*res.Uplink,
 	)
 
+}
+
+func getSwitchIds(c cirrina.VMInfoClient, ctx context.Context) ([]string, error) {
+	var rv []string
+
+	res, err := c.GetSwitches(ctx, &cirrina.SwitchesQuery{})
+	if err != nil {
+		em := fmt.Sprintf("could not get switches %s", err.Error())
+		return []string{}, errors.New(em)
+	}
+
+	for {
+		VmSwitch, err := res.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			em := fmt.Sprintf("error getting switches: %s", err.Error())
+			return []string{}, errors.New(em)
+		}
+		rv = append(rv, VmSwitch.Value)
+	}
+
+	return rv, nil
 }
 
 func getSwitches(c cirrina.VMInfoClient, ctx context.Context) {
@@ -172,4 +192,34 @@ func setVmNicSwitch(c cirrina.VMInfoClient, ctx context.Context, vmNicId string,
 	} else {
 		log.Printf("Failed to set vmNic switch")
 	}
+}
+
+func getSwitchByName(s *string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
+	rv := ""
+
+	switchIds, err := getSwitchIds(c, ctx)
+	if err != nil {
+		em := fmt.Sprintf("error getting switches: %s", err.Error())
+		return "", errors.New(em)
+	}
+	found := false
+
+	for _, switchId := range switchIds {
+		res2, err := c.GetSwitchInfo(ctx, &cirrina.SwitchId{Value: switchId})
+		if err != nil {
+			em := fmt.Sprintf("error getting switches: %s", err.Error())
+			return "", errors.New(em)
+		}
+		if *res2.Name == *s {
+			if found {
+				return "", errors.New("duplicate switch found")
+			} else {
+				found = true
+				rv = switchId
+			}
+		}
+
+	}
+
+	return rv, nil
 }

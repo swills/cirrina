@@ -3,7 +3,6 @@ package main
 import (
 	pb "cirrina/cirrina"
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"github.com/jedib0t/go-pretty/table"
@@ -110,9 +109,36 @@ func main() {
 		return
 	case "switch":
 		arg1 := flag.Arg(1)
+		if arg1 == "" {
+			fmt.Printf("error: missing subcommand\n")
+			switchUsage()
+			return
+		}
 		switch arg1 {
 		case "list":
 			getSwitches(c, ctx)
+			return
+		case "set-uplink":
+			switchName := flag.Arg(2)
+			uplinkName := flag.Arg(3)
+			if switchName == "" {
+				fmt.Printf("error: bad arguments\n")
+				fmt.Printf("usage: set-uplink <switch> <uplink>\n")
+				switchUsage()
+				return
+			}
+
+			switchId, err := getSwitchByName(&switchName, c, ctx)
+			if err != nil || switchId == "" {
+				fmt.Printf("error: could not find switch: no switch with the given name found\n")
+				return
+			}
+			err = setSwitchUplink(c, ctx, &switchId, &uplinkName)
+			if err != nil {
+				fmt.Printf("error: could not set switch uplink: %s\n", err.Error())
+				return
+			}
+
 			return
 		}
 	case "nic":
@@ -121,16 +147,26 @@ func main() {
 		case "list":
 			getVmNicsAll(c, ctx)
 			return
+		case "create":
+			fmt.Printf("TODO :D")
+			return
 		}
 	case "disk":
 		arg1 := flag.Arg(1)
 		switch arg1 {
 		case "list":
 			getDisks(c, ctx)
+		case "create":
+			fmt.Printf("TODO :D")
+			return
+		case "destroy":
+			fmt.Printf("TODO :D")
+			return
 		}
 	case "start":
 		arg1 := flag.Arg(1)
 		if arg1 == "" {
+			fmt.Printf("error: stray arguments or missing VM name\n")
 			usage()
 			return
 		}
@@ -139,6 +175,7 @@ func main() {
 	case "stop":
 		arg1 := flag.Arg(1)
 		if &arg1 == nil {
+			fmt.Printf("error: stray arguments or missing VM name\n")
 			usage()
 			return
 		}
@@ -206,7 +243,12 @@ func main() {
 	case "getHostNics":
 		getHostNics(c, ctx)
 	case "setSwitchUplink":
-		setSwitchUplink(c, ctx, switchIdPtr, uplinkNamePtr)
+		err = setSwitchUplink(c, ctx, switchIdPtr, uplinkNamePtr)
+		if err == nil {
+			fmt.Printf("Switch uplink set successful")
+		} else {
+			fmt.Printf("Switch uplink set failed")
+		}
 	case "uploadIso":
 		timeout := time.Hour
 		longCtx, longCancel := context.WithTimeout(context.Background(), timeout)
@@ -271,35 +313,32 @@ func stopVM(arg1 string, c pb.VMInfoClient, ctx context.Context, err error) bool
 	return false
 }
 
-func getVmIdByName(s *string, c pb.VMInfoClient, ctx context.Context) (string, error) {
-	vmList, err := getVmIds(c, ctx)
-	if err != nil {
-		fmt.Printf(err.Error())
-	}
-	found := false
-	rv := ""
+func usage() {
+	usageString := `usage: cirvmctl [global options] [subcommand]
+OPTIONS:
+  -h <host>       Connect to the given host [localhost]
+  -p <port>       Connect to the given port [50051]
+  -c <config>     Read a config from the given file
 
-	for _, id := range vmList {
-		res, err := c.GetVMConfig(ctx, &pb.VMID{Value: id})
-		if err != nil {
-			em := fmt.Sprintf("could not get VM: %s", err)
-			return rv, errors.New(em)
-		}
-		if *res.Name == *s {
-			if found {
-				em := fmt.Sprintf("duplicate names found")
-				return rv, errors.New(em)
-			} else {
-				found = true
-				rv = id
-			}
-		}
-
-	}
-
-	return rv, nil
+SUBCOMMANDS:
+   list           List VMs
+   switch         Inspect, create, update and delete switches
+   nic            Inspect, create, update and delete NICs
+   disk           Inspect, create, update and delete virtual disks
+   start          Start a VM
+   stop           Stop a VM
+`
+	fmt.Printf(usageString)
 }
 
-func usage() {
-	fmt.Printf("Usage: %s", "todo")
+func switchUsage() {
+	usageString := `usage: cirvmctl switch [subcommand]
+OPTIONS:
+   None.
+
+SUBCOMMANDS:
+   list           List switches
+   set-uplink     Set a switch uplink interface
+`
+	fmt.Printf(usageString)
 }

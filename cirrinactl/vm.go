@@ -289,3 +289,32 @@ func vmNameToId(name string, c cirrina.VMInfoClient, ctx context.Context) (rid s
 	}
 	return rid
 }
+
+func getVmIdByName(s *string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
+	vmList, err := getVmIds(c, ctx)
+	if err != nil {
+		fmt.Printf(err.Error())
+	}
+	found := false
+	rv := ""
+
+	for _, id := range vmList {
+		res, err := c.GetVMConfig(ctx, &cirrina.VMID{Value: id})
+		if err != nil {
+			em := fmt.Sprintf("could not get VM: %s", err)
+			return rv, errors.New(em)
+		}
+		if *res.Name == *s {
+			if found {
+				em := fmt.Sprintf("duplicate names found")
+				return rv, errors.New(em)
+			} else {
+				found = true
+				rv = id
+			}
+		}
+
+	}
+
+	return rv, nil
+}
