@@ -3,6 +3,7 @@ package main
 import (
 	"cirrina/cirrina"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/table"
@@ -42,28 +43,27 @@ func DeleteVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 	fmt.Printf("Deleted request created, reqid: %v\n", reqId.Value)
 }
 
-func stopVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
+func rpcStopVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
 	if *idPtr == "" {
-		log.Fatalf("ID not specified")
-		return
+		return "", errors.New("id not specified")
 	}
 	reqId, err := c.StopVM(ctx, &cirrina.VMID{Value: *idPtr})
 	if err != nil {
-		log.Fatalf("could not stop VM: %v", err)
+		return "", err
 	}
-	fmt.Printf("Stopping request created, reqid: %v\n", reqId.Value)
+	return reqId.Value, nil
 }
 
-func startVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
+func rpcStartVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
 	if *idPtr == "" {
-		log.Fatalf("ID not specified")
-		return
+		return "", errors.New("id not specified")
 	}
 	reqId, err := c.StartVM(ctx, &cirrina.VMID{Value: *idPtr})
 	if err != nil {
 		log.Fatalf("could not start VM: %v", err)
+		return "", err
 	}
-	fmt.Printf("Started request created, reqid: %v\n", reqId.Value)
+	return reqId.Value, nil
 }
 
 func getVMConfig(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (res *cirrina.VMConfig) {
@@ -121,11 +121,11 @@ func getVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 	)
 }
 
-func getVmIds(c cirrina.VMInfoClient, ctx context.Context) (ids []string) {
+func getVmIds(c cirrina.VMInfoClient, ctx context.Context) (ids []string, err error) {
 	res, err := c.GetVMs(ctx, &cirrina.VMsQuery{})
 	if err != nil {
-		log.Fatalf("could not get VMs: %v", err)
-		return ids
+		em := fmt.Sprintf("error: could not fetch list of VMs: %s", err)
+		return ids, errors.New(em)
 	}
 	for {
 		VM, err := res.Recv()
@@ -137,11 +137,14 @@ func getVmIds(c cirrina.VMInfoClient, ctx context.Context) (ids []string) {
 		}
 		ids = append(ids, VM.Value)
 	}
-	return ids
+	return ids, nil
 }
 
 func getVMs(c cirrina.VMInfoClient, ctx context.Context) {
-	ids := getVmIds(c, ctx)
+	ids, err := getVmIds(c, ctx)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 
@@ -269,7 +272,10 @@ func getVMState(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 
 func vmNameToId(name string, c cirrina.VMInfoClient, ctx context.Context) (rid string) {
 	found := false
-	ids := getVmIds(c, ctx)
+	ids, err := getVmIds(c, ctx)
+	if err != nil {
+		log.Fatalf("failed to get vm")
+	}
 	for _, id := range ids {
 		res := getVMConfig(&id, c, ctx)
 		if *res.Name == name {

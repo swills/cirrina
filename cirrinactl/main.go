@@ -3,7 +3,9 @@ package main
 import (
 	pb "cirrina/cirrina"
 	"context"
+	"errors"
 	"flag"
+	"fmt"
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/jedib0t/go-pretty/text"
 	"google.golang.org/grpc"
@@ -128,14 +130,20 @@ func main() {
 		}
 	case "start":
 		arg1 := flag.Arg(1)
-		switch arg1 {
-
+		if arg1 == "" {
+			usage()
+			return
 		}
+		startVM(arg1, c, ctx, err)
+		return
 	case "stop":
 		arg1 := flag.Arg(1)
-		switch arg1 {
-
+		if &arg1 == nil {
+			usage()
+			return
 		}
+		stopVM(arg1, c, ctx, err)
+		return
 	}
 
 	switch *actionPtr {
@@ -184,9 +192,17 @@ func main() {
 	case "reqStat":
 		ReqStat(idPtr, c, ctx)
 	case "startVM":
-		startVM(idPtr, c, ctx)
+		reqId, err := rpcStartVM(idPtr, c, ctx)
+		if err != nil {
+			log.Fatalf("could not start VM: %v", err)
+		}
+		fmt.Printf("Started request created, reqid: %v\n", reqId)
 	case "stopVM":
-		stopVM(idPtr, c, ctx)
+		reqId, err := rpcStopVM(idPtr, c, ctx)
+		if err != nil {
+			log.Fatalf("could not stop VM: %v", err)
+		}
+		fmt.Printf("Stopping request created, reqid: %v\n", reqId)
 	case "getHostNics":
 		getHostNics(c, ctx)
 	case "setSwitchUplink":
@@ -209,4 +225,81 @@ func main() {
 	default:
 		log.Fatalf("Action %v unknown", *actionPtr)
 	}
+}
+
+func startVM(arg1 string, c pb.VMInfoClient, ctx context.Context, err error) string {
+	vmId, err := getVmIdByName(&arg1, c, ctx)
+	if err != nil || vmId == "" {
+		fmt.Printf("error: could not find VM »%s«: %s\n", arg1, err)
+		return ""
+	}
+	res2, err := c.GetVMState(ctx, &pb.VMID{Value: vmId})
+	if err != nil {
+		log.Fatalf("could not get VM state: %v", err)
+		return ""
+	}
+
+	if res2.Status != pb.VmStatus_STATUS_STOPPED {
+		fmt.Printf("error: request to start VM »%s« failed: VM must be stopped in order to be started\n", arg1)
+		return ""
+	}
+	reqId, err := rpcStartVM(&vmId, c, ctx)
+	return reqId
+}
+
+func stopVM(arg1 string, c pb.VMInfoClient, ctx context.Context, err error) bool {
+	vmId, err := getVmIdByName(&arg1, c, ctx)
+	if err != nil || vmId == "" {
+		fmt.Printf("error: could not find VM »%s«: %s", arg1, err)
+		return true
+	}
+	res2, err := c.GetVMState(ctx, &pb.VMID{Value: vmId})
+	if err != nil {
+		log.Fatalf("could not get VM state: %v", err)
+		return true
+	}
+
+	if res2.Status != pb.VmStatus_STATUS_RUNNING {
+		fmt.Printf("error: request to stop VM »%s« failed: VM must be running in order to be stopped\n", arg1)
+		return true
+	}
+	_, err = rpcStopVM(&vmId, c, ctx)
+	if err != nil {
+		fmt.Printf("error: could not find VM »%s«: %s", arg1, err)
+	}
+
+	return false
+}
+
+func getVmIdByName(s *string, c pb.VMInfoClient, ctx context.Context) (string, error) {
+	vmList, err := getVmIds(c, ctx)
+	if err != nil {
+		fmt.Printf(err.Error())
+	}
+	found := false
+	rv := ""
+
+	for _, id := range vmList {
+		res, err := c.GetVMConfig(ctx, &pb.VMID{Value: id})
+		if err != nil {
+			em := fmt.Sprintf("could not get VM: %s", err)
+			return rv, errors.New(em)
+		}
+		if *res.Name == *s {
+			if found {
+				em := fmt.Sprintf("duplicate names found")
+				return rv, errors.New(em)
+			} else {
+				found = true
+				rv = id
+			}
+		}
+
+	}
+
+	return rv, nil
+}
+
+func usage() {
+	fmt.Printf("Usage: %s", "todo")
 }
