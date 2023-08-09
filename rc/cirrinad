@@ -1,0 +1,32 @@
+#!/bin/sh
+
+# PROVIDE: cirrinad
+# REQUIRE: NETWORKING SERVERS DAEMON
+# KEYWORD: shutdown
+#
+# Add the following lines to /etc/rc.conf.local or /etc/rc.conf
+# to enable this service:
+#
+# cirrinad_enable (bool):       Set to NO by default.
+#                               Set it to YES to enable cirrinad.
+# cirrinad_config (str):        Configuration file.
+#                               Default is "${LOCALBASE}/etc/cirrinad/config.yml"
+
+. /etc/rc.subr
+
+name=cirrinad
+rcvar=cirrinad_enable
+
+load_rc_config $name
+
+: ${cirrinad_enable:="NO"}
+: ${cirrinad_config:="/usr/local/etc/cirrinad/config.yml"}
+: ${cirrinad_args:="-config ${cirrinad_config}"}
+
+pidfile=/var/run/cirrinad.pid
+required_files="${cirrinad_config}"
+procname="/usr/local/bin/cirrinad"
+command="/usr/sbin/daemon"
+command_args="-S -T cirrinad -s info -m 3 -f -p ${pidfile} /usr/bin/env ${cirrinad_env} ${procname} ${cirrinad_args}"
+
+run_rc_command "$1"
