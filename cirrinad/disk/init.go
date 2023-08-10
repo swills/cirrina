@@ -23,6 +23,6 @@ func init() {
 	db := getDiskDb()
 	err := db.AutoMigrate(&Disk{})
 	if err != nil {
-		panic("failed to auto-migrate ISO")
+		panic("failed to auto-migrate disk")
 	}
 }

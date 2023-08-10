@@ -121,7 +121,6 @@ and add:
   * Ensuring no crashes
   * Fixing race conditions
   * Fetching logs from server to client
-  * Add auto-start delay
   * Implement VM rename - High Priority
   * Switch from polling to streaming for VM status
 * Booting
