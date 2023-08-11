@@ -219,8 +219,6 @@ func GetAll() []*VM {
 }
 
 func GetByName(name string) (v *VM, err error) {
-	defer List.Mu.Unlock()
-	List.Mu.Lock()
 	for _, t := range List.VmList {
 		if t.Name == name {
 			return t, nil
