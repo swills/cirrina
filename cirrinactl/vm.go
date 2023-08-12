@@ -318,3 +318,47 @@ func getVmIdByName(s *string, c cirrina.VMInfoClient, ctx context.Context) (stri
 
 	return rv, nil
 }
+
+func startVM(arg1 string, c cirrina.VMInfoClient, ctx context.Context, err error) string {
+	vmId, err := getVmIdByName(&arg1, c, ctx)
+	if err != nil || vmId == "" {
+		fmt.Printf("error: could not find VM »%s«: %s\n", arg1, err)
+		return ""
+	}
+	res2, err := c.GetVMState(ctx, &cirrina.VMID{Value: vmId})
+	if err != nil {
+		log.Fatalf("could not get VM state: %v", err)
+		return ""
+	}
+
+	if res2.Status != cirrina.VmStatus_STATUS_STOPPED {
+		fmt.Printf("error: request to start VM »%s« failed: VM must be stopped in order to be started\n", arg1)
+		return ""
+	}
+	reqId, err := rpcStartVM(&vmId, c, ctx)
+	return reqId
+}
+
+func stopVM(arg1 string, c cirrina.VMInfoClient, ctx context.Context, err error) bool {
+	vmId, err := getVmIdByName(&arg1, c, ctx)
+	if err != nil || vmId == "" {
+		fmt.Printf("error: could not find VM »%s«: %s", arg1, err)
+		return true
+	}
+	res2, err := c.GetVMState(ctx, &cirrina.VMID{Value: vmId})
+	if err != nil {
+		log.Fatalf("could not get VM state: %v", err)
+		return true
+	}
+
+	if res2.Status != cirrina.VmStatus_STATUS_RUNNING {
+		fmt.Printf("error: request to stop VM »%s« failed: VM must be running in order to be stopped\n", arg1)
+		return true
+	}
+	_, err = rpcStopVM(&vmId, c, ctx)
+	if err != nil {
+		fmt.Printf("error: could not find VM »%s«: %s", arg1, err)
+	}
+
+	return false
+}

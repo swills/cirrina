@@ -144,17 +144,17 @@ func main() {
 		}
 	case "nic":
 		arg1 := flag.Arg(1)
-		name := ""
-		description := ""
-		nettype := "virtio-net"
-		netdevtype := "tap"
-		mac := "AUTO"
-		switchId := ""
 		switch arg1 {
 		case "list":
 			getVmNicsAll(c, ctx)
 			return
 		case "create":
+			name := ""
+			description := ""
+			nettype := "virtio-net"
+			netdevtype := "tap"
+			mac := "AUTO"
+			switchId := ""
 			argCount := flag.NArg()
 			for argNum, argval := range flag.Args() {
 				if argNum < 2 {
@@ -237,7 +237,64 @@ func main() {
 		case "list":
 			getDisks(c, ctx)
 		case "create":
-			fmt.Printf("TODO :D")
+			name := ""
+			description := ""
+			diskType := "nvme"
+			diskSize := "1G"
+			argCount := flag.NArg()
+			for argNum, argval := range flag.Args() {
+				if argNum < 2 {
+					continue
+				}
+				switch argval {
+				case "--name":
+					fallthrough
+				case "-n":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					name = flag.Arg(argNum)
+					if name == "" {
+						fmt.Printf("name cannot be empty\n")
+						return
+					}
+				case "--description":
+					fallthrough
+				case "-d":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					description = flag.Arg(argNum)
+				case "--type":
+					fallthrough
+				case "-t":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					diskType = flag.Arg(argNum)
+				case "--size":
+					fallthrough
+				case "-s":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					diskSize = flag.Arg(argNum)
+				}
+			}
+			_, err := addDisk(&name, c, ctx, &description, &diskSize, &diskType)
+			if err != nil {
+				s := status.Convert(err)
+				fmt.Printf("error: could not create a new disk: %s\n", s.Message())
+				return
+			}
 			return
 		case "destroy":
 			fmt.Printf("TODO :D")
@@ -293,7 +350,11 @@ func main() {
 	case "addISO":
 		addISO(namePtr, c, ctx, descrPtr)
 	case "addDisk":
-		addDisk(namePtr, c, ctx, descrPtr, sizePtr, diskTypePtr)
+		diskId, err := addDisk(namePtr, c, ctx, descrPtr, sizePtr, diskTypePtr)
+		if err != nil {
+			fmt.Printf("failed to create disk: %s", err)
+		}
+		fmt.Printf("Created Disk %v\n", diskId)
 	case "addSwitch":
 		addSwitch(namePtr, c, ctx, descrPtr, switchTypePtr)
 	case "rmSwitch":
@@ -351,50 +412,6 @@ func main() {
 	default:
 		log.Fatalf("Action %v unknown", *actionPtr)
 	}
-}
-
-func startVM(arg1 string, c pb.VMInfoClient, ctx context.Context, err error) string {
-	vmId, err := getVmIdByName(&arg1, c, ctx)
-	if err != nil || vmId == "" {
-		fmt.Printf("error: could not find VM »%s«: %s\n", arg1, err)
-		return ""
-	}
-	res2, err := c.GetVMState(ctx, &pb.VMID{Value: vmId})
-	if err != nil {
-		log.Fatalf("could not get VM state: %v", err)
-		return ""
-	}
-
-	if res2.Status != pb.VmStatus_STATUS_STOPPED {
-		fmt.Printf("error: request to start VM »%s« failed: VM must be stopped in order to be started\n", arg1)
-		return ""
-	}
-	reqId, err := rpcStartVM(&vmId, c, ctx)
-	return reqId
-}
-
-func stopVM(arg1 string, c pb.VMInfoClient, ctx context.Context, err error) bool {
-	vmId, err := getVmIdByName(&arg1, c, ctx)
-	if err != nil || vmId == "" {
-		fmt.Printf("error: could not find VM »%s«: %s", arg1, err)
-		return true
-	}
-	res2, err := c.GetVMState(ctx, &pb.VMID{Value: vmId})
-	if err != nil {
-		log.Fatalf("could not get VM state: %v", err)
-		return true
-	}
-
-	if res2.Status != pb.VmStatus_STATUS_RUNNING {
-		fmt.Printf("error: request to stop VM »%s« failed: VM must be running in order to be stopped\n", arg1)
-		return true
-	}
-	_, err = rpcStopVM(&vmId, c, ctx)
-	if err != nil {
-		fmt.Printf("error: could not find VM »%s«: %s", arg1, err)
-	}
-
-	return false
 }
 
 func usage() {

@@ -3,7 +3,7 @@ package main
 import (
 	"cirrina/cirrina"
 	"context"
-	"fmt"
+	"errors"
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/jedib0t/go-pretty/text"
 	"io"
@@ -11,27 +11,25 @@ import (
 	"os"
 )
 
-func addDisk(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string, sizePtr *string, diskTypePtr *string) {
+func addDisk(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string, sizePtr *string, diskTypePtr *string) (diskId string, err error) {
 	var thisDiskType cirrina.DiskType
 
 	if *namePtr == "" {
-		log.Fatalf("Name not specified")
-		return
+		return "", errors.New("name not specified")
 	}
 
 	if *diskTypePtr == "" {
-		log.Fatalf("Disk type not specified")
-		return
+		return "", errors.New("disk type not specified")
 	}
-	if *diskTypePtr == "NVME" {
+
+	if *diskTypePtr == "NVME" || *diskTypePtr == "nvme" {
 		thisDiskType = cirrina.DiskType_NVME
-	} else if *diskTypePtr == "AHCI" {
+	} else if *diskTypePtr == "AHCI" || *diskTypePtr == "ahci" || *diskTypePtr == "ahcihd" {
 		thisDiskType = cirrina.DiskType_AHCIHD
-	} else if *diskTypePtr == "VIRTIOBLK" {
+	} else if *diskTypePtr == "VIRTIOBLK" || *diskTypePtr == "virtioblk" || *diskTypePtr == "virtio-blk" {
 		thisDiskType = cirrina.DiskType_VIRTIOBLK
 	} else {
-		log.Fatalf("Invalid disk type specified")
-		return
+		return "", errors.New("invalid disk type specified")
 	}
 
 	res, err := c.AddDisk(ctx, &cirrina.DiskInfo{
@@ -41,11 +39,9 @@ func addDisk(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descr
 		DiskType:    &thisDiskType,
 	})
 	if err != nil {
-		log.Fatalf("could not create Disk: %v", err)
-		return
+		return "", err
 	}
-	fmt.Printf("Created Disk %v\n", res.Value)
-
+	return res.Value, nil
 }
 
 func getDisks(c cirrina.VMInfoClient, ctx context.Context) {
