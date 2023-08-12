@@ -9,6 +9,7 @@ import (
 	"github.com/jedib0t/go-pretty/text"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 	"log"
 	"time"
 )
@@ -143,12 +144,91 @@ func main() {
 		}
 	case "nic":
 		arg1 := flag.Arg(1)
+		name := ""
+		description := ""
+		nettype := "virtio-net"
+		netdevtype := "tap"
+		mac := "AUTO"
+		switchId := ""
 		switch arg1 {
 		case "list":
 			getVmNicsAll(c, ctx)
 			return
 		case "create":
-			fmt.Printf("TODO :D")
+			argCount := flag.NArg()
+			for argNum, argval := range flag.Args() {
+				if argNum < 2 {
+					continue
+				}
+				switch argval {
+				case "--name":
+					fallthrough
+				case "-n":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					name = flag.Arg(argNum)
+					if name == "" {
+						fmt.Printf("name cannot be empty\n")
+						return
+					}
+				case "--description":
+					fallthrough
+				case "-d":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					description = flag.Arg(argNum)
+				case "--nettype":
+					fallthrough
+				case "-t":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					nettype = flag.Arg(argNum)
+					if nettype != "e1000" && nettype != "virtio-net" {
+						fmt.Printf("error: invalid nettype. expected one of the following:\n" +
+							"\t- e1000\n\t- virtio-net\n")
+						return
+					}
+				case "--netdevtype":
+					fallthrough
+				case "-v":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					netdevtype = flag.Arg(argNum)
+					if netdevtype != "netgraph" && netdevtype != "vmnet" && netdevtype != "tap" {
+						fmt.Printf("error: invalid netdevtype. expected one of the following:\n" +
+							"\t- netgraph\n\t- vmnet\n\t- tap\n")
+						return
+					}
+				case "--mac":
+					fallthrough
+				case "-m":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					mac = flag.Arg(argNum)
+				}
+
+			}
+			_, err := addVmNic(&name, c, ctx, &description, &nettype, &netdevtype, &mac, &switchId)
+			if err != nil {
+				s := status.Convert(err)
+				fmt.Printf("error: could not create a new NIC: %s\n", s.Message())
+				return
+			}
 			return
 		}
 	case "disk":
@@ -219,7 +299,11 @@ func main() {
 	case "rmSwitch":
 		rmSwitch(idPtr, c, ctx)
 	case "addVmNic":
-		addVmNic(namePtr, c, ctx, descrPtr, netTypePtr, netDevTypePtr, macPtr, switchIdPtr)
+		nicId, err := addVmNic(namePtr, c, ctx, descrPtr, netTypePtr, netDevTypePtr, macPtr, switchIdPtr)
+		if err != nil {
+			fmt.Printf("could not create nic: %v\n", err)
+		}
+		fmt.Printf("Created vmnic %v\n", nicId)
 	case "rmVmNic":
 		rmVmNic(idPtr, c, ctx)
 	case "reConfig":

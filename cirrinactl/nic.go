@@ -3,6 +3,7 @@ package main
 import (
 	"cirrina/cirrina"
 	"context"
+	"errors"
 	"fmt"
 	"github.com/jedib0t/go-pretty/table"
 	"io"
@@ -10,7 +11,7 @@ import (
 	"os"
 )
 
-func addVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrptr *string, nettypeptr *string, netdevtypeptr *string, macPtr *string, switchIdPtr *string) {
+func addVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrptr *string, nettypeptr *string, netdevtypeptr *string, macPtr *string, switchIdPtr *string) (nicId string, err error) {
 	var thisVmNic cirrina.VmNicInfo
 	var thisNetType cirrina.NetType
 	var thisNetDevType cirrina.NetDevType
@@ -20,23 +21,21 @@ func addVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrpt
 	thisVmNic.Mac = macPtr
 	thisVmNic.Switchid = switchIdPtr
 
-	if *nettypeptr == "VIRTIONET" {
+	if *nettypeptr == "VIRTIONET" || *nettypeptr == "virtio-net" {
 		thisNetType = cirrina.NetType_VIRTIONET
-	} else if *nettypeptr == "E1000" {
+	} else if *nettypeptr == "E1000" || *nettypeptr == "e1000" {
 		thisNetType = cirrina.NetType_E1000
 	} else {
-		log.Fatalf("Net type must be either \"VIRTIONET\" or \"E1000\"")
-		return
+		return "", errors.New("net type must be either VIRTIONET or E1000")
 	}
-	if *netdevtypeptr == "TAP" {
+	if *netdevtypeptr == "TAP" || *netdevtypeptr == "tap" {
 		thisNetDevType = cirrina.NetDevType_TAP
-	} else if *nettypeptr == "VMNET" {
+	} else if *nettypeptr == "VMNET" || *nettypeptr == "vmnet" {
 		thisNetDevType = cirrina.NetDevType_VMNET
-	} else if *nettypeptr == "NETGRAPH" {
+	} else if *nettypeptr == "NETGRAPH" || *nettypeptr == "netgraph" {
 		thisNetDevType = cirrina.NetDevType_NETGRAPH
 	} else {
-		log.Fatalf("Net dev type must be either \"TAP\" or \"VMNET\" or \"NETGRAPH\"")
-		return
+		return "", errors.New("net dev type must be either TAP or VMNET or NETGRAPH")
 	}
 
 	thisVmNic.Nettype = &thisNetType
@@ -44,11 +43,9 @@ func addVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrpt
 
 	res, err := c.AddVmNic(ctx, &thisVmNic)
 	if err != nil {
-		log.Fatalf("could not create nic: %v", err)
-		return
+		return "", err
 	}
-	fmt.Printf("Created vmnic %v\n", res.Value)
-
+	return res.Value, nil
 }
 
 func rmVmNic(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
