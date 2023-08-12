@@ -5,7 +5,7 @@ cirranad:
     - FreeBSD
   script:
     - export GOFLAGS="-trimpath"
-    - git clone https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/swills/go-supervisor.git go-supervisor
+    - git clone -b swillsv2 https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/swills/go-supervisor.git go-supervisor
     - cd cirrinad
     - export GO_LDFLAGS="-s -w -extldflags -static -buildid=${CI_COMMIT_SHA}"
     - export GOOS=freebsd
