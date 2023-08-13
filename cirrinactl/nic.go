@@ -205,3 +205,73 @@ func getVmNic(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 func setVmNicVm(_ cirrina.VMInfoClient, _ context.Context) {
 
 }
+
+func deleteNic(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (err error) {
+	if idPtr == nil || *idPtr == "" {
+		return errors.New("disk id not specified")
+	}
+	_, err = c.RemoveVmNic(ctx, &cirrina.VmNicId{Value: *idPtr})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getNicIds(c cirrina.VMInfoClient, ctx context.Context) (ids []string, err error) {
+	res, err := c.GetVmNicsAll(ctx, &cirrina.VmNicsQuery{})
+	if err != nil {
+		return []string{}, err
+	}
+	for {
+		aNic, err := res.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return []string{}, err
+		}
+		ids = append(ids, aNic.Value)
+	}
+	return ids, nil
+}
+
+func getNicInfo(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (aNic *cirrina.VmNicInfo, err error) {
+	if idPtr == nil || *idPtr == "" {
+		return &cirrina.VmNicInfo{}, errors.New("nic id not specified")
+	}
+	res, err := c.GetVmNicInfo(ctx, &cirrina.VmNicId{Value: *idPtr})
+	if err != nil {
+		return &cirrina.VmNicInfo{}, err
+	}
+	return res, nil
+}
+
+func getNicByName(namePtr *string, c cirrina.VMInfoClient, ctx context.Context) (nicId string, err error) {
+	if namePtr == nil || *namePtr == "" {
+		return "", errors.New("disk name not specified")
+	}
+
+	nicIds, err := getNicIds(c, ctx)
+	if err != nil {
+		return "", err
+	}
+
+	found := false
+	for _, aNicId := range nicIds {
+		res, err := getNicInfo(&aNicId, c, ctx)
+		if err != nil {
+			return "", err
+		}
+		if *res.Name == *namePtr {
+			if found {
+				return "", errors.New("duplicate nic found")
+			}
+			found = true
+			nicId = aNicId
+		}
+	}
+	if !found {
+		return "", errors.New("disk not found")
+	}
+	return nicId, nil
+}

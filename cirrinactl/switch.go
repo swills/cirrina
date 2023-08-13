@@ -11,26 +11,22 @@ import (
 	"os"
 )
 
-func addSwitch(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string, switchTypePtr *string) {
+func addSwitch(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string, switchTypePtr *string) (switchId string, err error) {
 	var thisSwitchType cirrina.SwitchType
 	if *namePtr == "" {
 		log.Fatalf("Name not specified")
 		return
 	}
 	if *switchTypePtr == "" {
-		log.Fatalf("Switch type not specified")
-		return
+		return "", errors.New("switch type not specified")
 	}
-	if *switchTypePtr == "IF" {
+	if *switchTypePtr == "IF" || *switchTypePtr == "bridge" {
 		thisSwitchType = cirrina.SwitchType_IF
-	} else if *switchTypePtr == "NG" {
+	} else if *switchTypePtr == "NG" || *switchTypePtr == "netgraph" {
 		thisSwitchType = cirrina.SwitchType_NG
 	} else {
-		log.Fatalf("Switch type must be either \"IF\" or \"NG\"")
-		return
+		return "", errors.New("switch type must be one of: IF, bridge, NG, netgraph")
 	}
-
-	log.Printf("Creating switch %v type %v", *namePtr, *switchTypePtr)
 
 	var thisSwitchInfo cirrina.SwitchInfo
 	thisSwitchInfo.Name = namePtr
@@ -39,10 +35,9 @@ func addSwitch(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, des
 
 	res, err := c.AddSwitch(ctx, &thisSwitchInfo)
 	if err != nil {
-		log.Fatalf("could not create switch: %v", err)
-		return
+		return "", err
 	}
-	fmt.Printf("Created switch %v\n", res.Value)
+	return res.Value, nil
 }
 
 func setSwitchUplink(c cirrina.VMInfoClient, ctx context.Context, switchIdPtr *string, uplinkNamePtr *string) error {
@@ -64,43 +59,29 @@ func setSwitchUplink(c cirrina.VMInfoClient, ctx context.Context, switchIdPtr *s
 	return nil
 }
 
-func rmSwitch(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
+func rmSwitch(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (err error) {
 	if *idPtr == "" {
-		log.Fatalf("ID not specified")
-		return
+		return errors.New("id not specified")
 	}
 	reqId, err := c.RemoveSwitch(ctx, &cirrina.SwitchId{Value: *idPtr})
 	if err != nil {
-		log.Fatalf("could not delete switch: %v", err)
+		return err
 	}
-	if reqId.Success {
-		fmt.Printf("Deleted successful")
-	} else {
-		fmt.Printf("Delete failed")
+	if !reqId.Success {
+		return errors.New("failed to delete switch")
 	}
+	return nil
 }
 
-func getSwitch(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
+func getSwitch(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (switchInfo *cirrina.SwitchInfo, err error) {
 	if *idPtr == "" {
-		log.Fatalf("ID not specified")
-		return
+		return &cirrina.SwitchInfo{}, errors.New("id not specified")
 	}
 	res, err := c.GetSwitchInfo(ctx, &cirrina.SwitchId{Value: *idPtr})
 	if err != nil {
-		log.Fatalf("could not get VM: %v", err)
+		return &cirrina.SwitchInfo{}, err
 	}
-	fmt.Printf(
-		"name: %v "+
-			"description: %v "+
-			"type: %v "+
-			"uplink: %v"+
-			"\n",
-		*res.Name,
-		*res.Description,
-		*res.SwitchType,
-		*res.Uplink,
-	)
-
+	return res, nil
 }
 
 func getSwitchIds(c cirrina.VMInfoClient, ctx context.Context) ([]string, error) {

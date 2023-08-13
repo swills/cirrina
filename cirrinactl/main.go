@@ -98,11 +98,11 @@ func main() {
 	}(conn)
 	c := pb.NewVMInfoClient(conn)
 
-	// Contact the server and print out its response.
 	timeout := time.Second
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
+	// new style arg parsing
 	arg0 := flag.Arg(0)
 	switch arg0 {
 	case "list":
@@ -142,10 +142,109 @@ func main() {
 
 			return
 		case "create":
-			fmt.Printf("TODO :D")
+			name := ""
+			description := ""
+			switchType := "IF"
+			//uplink := ""
+			argCount := flag.NArg()
+			for argNum, argval := range flag.Args() {
+				if argNum < 2 {
+					continue
+				}
+				switch argval {
+				case "--name":
+					fallthrough
+				case "-n":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					name = flag.Arg(argNum)
+					if name == "" {
+						fmt.Printf("name cannot be empty\n")
+						return
+					}
+				case "--description":
+					fallthrough
+				case "-d":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					description = flag.Arg(argNum)
+				case "--type":
+					fallthrough
+				case "-t":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					switchType = flag.Arg(argNum)
+					if switchType != "bridge" && switchType != "netgraph" {
+						fmt.Printf("error: invalid nettype. expected one of the following:\n" +
+							"\t- e1000\n\t- virtio-net\n")
+						return
+					}
+					//case "--uplink":
+					//	fallthrough
+					//case "-u":
+					//	argNum = argNum + 1
+					//	if argCount < argNum+1 {
+					//		fmt.Printf("option requires an argument -- %s\n", argval)
+					//		return
+					//	}
+					//	uplink = flag.Arg(argNum)
+				}
+			}
+			_, err := addSwitch(&name, c, ctx, &description, &switchType)
+			if err != nil {
+				s := status.Convert(err)
+				fmt.Printf("error: could not create a new switch: %s\n", s.Message())
+				return
+			}
 			return
 		case "destroy":
-			fmt.Printf("TODO :D")
+			name := ""
+			argCount := flag.NArg()
+			for argNum, argval := range flag.Args() {
+				if argNum < 2 {
+					continue
+				}
+				switch argval {
+				case "--name":
+					fallthrough
+				case "-n":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					name = flag.Arg(argNum)
+					if name == "" {
+						fmt.Printf("name cannot be empty\n")
+						return
+					}
+				}
+			}
+			switchId, err := getSwitchByName(&name, c, ctx)
+			if err != nil {
+				s := status.Convert(err)
+				fmt.Printf("error: could not delete switch: %s\n", s.Message())
+				return
+			}
+			if switchId == "" {
+				fmt.Printf("error: could not find switch: no switch with the given name found\n")
+				return
+			}
+			err = rmSwitch(&switchId, c, ctx)
+			if err != nil {
+				s := status.Convert(err)
+				fmt.Printf("error: could not delete switch: %s\n", s.Message())
+				return
+			}
 			return
 		}
 	case "nic":
@@ -237,7 +336,40 @@ func main() {
 			}
 			return
 		case "destroy":
-			fmt.Printf("TODO :D")
+			name := ""
+			argCount := flag.NArg()
+			for argNum, argval := range flag.Args() {
+				if argNum < 2 {
+					continue
+				}
+				switch argval {
+				case "--name":
+					fallthrough
+				case "-n":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					name = flag.Arg(argNum)
+					if name == "" {
+						fmt.Printf("name cannot be empty\n")
+						return
+					}
+				}
+			}
+			nicId, err := getNicByName(&name, c, ctx)
+			if err != nil {
+				s := status.Convert(err)
+				fmt.Printf("error: could not delete nic: %s\n", s.Message())
+				return
+			}
+			err = deleteNic(&nicId, c, ctx)
+			if err != nil {
+				s := status.Convert(err)
+				fmt.Printf("error: could not delete nic: %s\n", s.Message())
+				return
+			}
 			return
 		}
 	case "disk":
@@ -361,61 +493,22 @@ func main() {
 		}
 		stopVM(arg1, c, ctx, err)
 		return
+	case "help":
+		usage()
 	}
 
+	// old style arg parsing
 	switch *actionPtr {
 	case "":
 		log.Fatalf("Action not specified, try \"help\"")
 	case "help":
 		printActionHelp()
-	case "getVM":
-		getVM(idPtr, c, ctx)
-	case "getSwitch":
-		getSwitch(idPtr, c, ctx)
-	case "getVmNic":
-		getVmNic(idPtr, c, ctx)
-	case "getVMs":
-		getVMs(c, ctx)
-	case "getDisks":
-		getDisks(c, ctx)
-	case "getSwitches":
-		getSwitches(c, ctx)
-	case "getVmNics":
-		getVmNics(c, ctx, idPtr)
-	case "setVmNicVm":
-		setVmNicVm(c, ctx)
-	case "setVmNicSwitch":
-		setVmNicSwitch(c, ctx, *nicIdPtr, *switchIdPtr)
-	case "getVMState":
-		getVMState(idPtr, c, ctx)
+
+	// VMs
 	case "addVM":
 		addVM(namePtr, c, ctx, descrPtr, cpu32Ptr, mem32Ptr)
-	case "addISO":
-		addISO(namePtr, c, ctx, descrPtr)
-	case "addDisk":
-		diskId, err := addDisk(namePtr, c, ctx, descrPtr, sizePtr, diskTypePtr)
-		if err != nil {
-			fmt.Printf("failed to create disk: %s", err)
-		}
-		fmt.Printf("Created Disk %v\n", diskId)
-	case "addSwitch":
-		addSwitch(namePtr, c, ctx, descrPtr, switchTypePtr)
-	case "rmSwitch":
-		rmSwitch(idPtr, c, ctx)
-	case "addVmNic":
-		nicId, err := addVmNic(namePtr, c, ctx, descrPtr, netTypePtr, netDevTypePtr, macPtr, switchIdPtr)
-		if err != nil {
-			fmt.Printf("could not create nic: %v\n", err)
-		}
-		fmt.Printf("Created vmnic %v\n", nicId)
-	case "rmVmNic":
-		rmVmNic(idPtr, c, ctx)
-	case "reConfig":
-		Reconfig(idPtr, err, namePtr, descrPtr, cpuPtr, memPtr, autoStartPtr, c, ctx)
 	case "deleteVM":
 		DeleteVM(idPtr, c, ctx)
-	case "reqStat":
-		ReqStat(idPtr, c, ctx)
 	case "startVM":
 		reqId, err := rpcStartVM(idPtr, c, ctx)
 		if err != nil {
@@ -428,8 +521,86 @@ func main() {
 			log.Fatalf("could not stop VM: %v", err)
 		}
 		fmt.Printf("Stopping request created, reqid: %v\n", reqId)
+	case "getVM":
+		getVM(idPtr, c, ctx)
+	case "getVMs":
+		getVMs(c, ctx)
+	case "getVMState":
+		getVMState(idPtr, c, ctx)
+	case "reConfig":
+		Reconfig(idPtr, err, namePtr, descrPtr, cpuPtr, memPtr, autoStartPtr, c, ctx)
+
+	// Disks
+	case "getDisks":
+		getDisks(c, ctx)
+	case "addDisk":
+		diskId, err := addDisk(namePtr, c, ctx, descrPtr, sizePtr, diskTypePtr)
+		if err != nil {
+			fmt.Printf("failed to create disk: %s", err)
+		}
+		fmt.Printf("Created Disk %v\n", diskId)
+
+	// CDs
+	case "addISO":
+		addISO(namePtr, c, ctx, descrPtr)
+	case "uploadIso":
+		timeout := time.Hour
+		longCtx, longCancel := context.WithTimeout(context.Background(), timeout)
+		defer longCancel()
+		uploadIso(c, longCtx, idPtr, filePathPtr)
+
+	// NICs
+	case "addVmNic":
+		nicId, err := addVmNic(namePtr, c, ctx, descrPtr, netTypePtr, netDevTypePtr, macPtr, switchIdPtr)
+		if err != nil {
+			fmt.Printf("could not create nic: %v\n", err)
+		}
+		fmt.Printf("Created vmnic %v\n", nicId)
+	case "rmVmNic":
+		rmVmNic(idPtr, c, ctx)
 	case "getHostNics":
 		getHostNics(c, ctx)
+	case "getVmNic":
+		getVmNic(idPtr, c, ctx)
+	case "getVmNics":
+		getVmNics(c, ctx, idPtr)
+	case "setVmNicVm":
+		setVmNicVm(c, ctx)
+	case "setVmNicSwitch":
+		setVmNicSwitch(c, ctx, *nicIdPtr, *switchIdPtr)
+
+	// Switches
+	case "addSwitch":
+		res, err := addSwitch(namePtr, c, ctx, descrPtr, switchTypePtr)
+		if err != nil {
+			log.Fatalf("could not create switch: %v", err)
+		}
+		fmt.Printf("Created switch %v\n", res)
+	case "getSwitch":
+		res, err := getSwitch(idPtr, c, ctx)
+		if err != nil {
+			log.Fatalf("could not get switch: %v", err)
+		}
+		fmt.Printf(
+			"name: %v "+
+				"description: %v "+
+				"type: %v "+
+				"uplink: %v"+
+				"\n",
+			*res.Name,
+			*res.Description,
+			*res.SwitchType,
+			*res.Uplink,
+		)
+	case "getSwitches":
+		getSwitches(c, ctx)
+	case "rmSwitch":
+		err := rmSwitch(idPtr, c, ctx)
+		if err == nil {
+			fmt.Printf("Delete successful")
+		} else {
+			fmt.Printf("Delete failed")
+		}
 	case "setSwitchUplink":
 		err = setSwitchUplink(c, ctx, switchIdPtr, uplinkNamePtr)
 		if err == nil {
@@ -437,11 +608,8 @@ func main() {
 		} else {
 			fmt.Printf("Switch uplink set failed")
 		}
-	case "uploadIso":
-		timeout := time.Hour
-		longCtx, longCancel := context.WithTimeout(context.Background(), timeout)
-		defer longCancel()
-		uploadIso(c, longCtx, idPtr, filePathPtr)
+
+	// Serial ports
 	case "useCom1":
 		useCom(c, idPtr, 1)
 	case "useCom2":
@@ -450,15 +618,20 @@ func main() {
 		useCom(c, idPtr, 3)
 	case "useCom4":
 		useCom(c, idPtr, 4)
+
+	// Misc
+	case "reqStat":
+		ReqStat(idPtr, c, ctx)
 	case "tui":
 		startTui()
+
 	default:
 		log.Fatalf("Action %v unknown", *actionPtr)
 	}
 }
 
 func usage() {
-	usageString := `usage: cirvmctl [global options] [subcommand]
+	usageString := `usage: cirrinactl [global options] [subcommand]
 OPTIONS:
   -h <host>       Connect to the given host [localhost]
   -p <port>       Connect to the given port [50051]
@@ -476,7 +649,7 @@ SUBCOMMANDS:
 }
 
 func switchUsage() {
-	usageString := `usage: cirvmctl switch [subcommand]
+	usageString := `usage: cirrinactl switch [subcommand]
 OPTIONS:
    None.
 

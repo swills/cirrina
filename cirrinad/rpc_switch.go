@@ -15,6 +15,7 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 	var switchType string
 	defaultSwitchType := cirrina.SwitchType_IF
 	defaultSwitchDescription := ""
+	// TODO handle uplink (i.Uplink)
 
 	if i.Name == nil {
 		return &cirrina.SwitchId{}, errors.New("name not specified")
