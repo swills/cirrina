@@ -141,6 +141,12 @@ func main() {
 			}
 
 			return
+		case "create":
+			fmt.Printf("TODO :D")
+			return
+		case "destroy":
+			fmt.Printf("TODO :D")
+			return
 		}
 	case "nic":
 		arg1 := flag.Arg(1)
@@ -230,12 +236,16 @@ func main() {
 				return
 			}
 			return
+		case "destroy":
+			fmt.Printf("TODO :D")
+			return
 		}
 	case "disk":
 		arg1 := flag.Arg(1)
 		switch arg1 {
 		case "list":
 			getDisks(c, ctx)
+			return
 		case "create":
 			name := ""
 			description := ""
@@ -297,7 +307,40 @@ func main() {
 			}
 			return
 		case "destroy":
-			fmt.Printf("TODO :D")
+			name := ""
+			argCount := flag.NArg()
+			for argNum, argval := range flag.Args() {
+				if argNum < 2 {
+					continue
+				}
+				switch argval {
+				case "--name":
+					fallthrough
+				case "-n":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					name = flag.Arg(argNum)
+					if name == "" {
+						fmt.Printf("name cannot be empty\n")
+						return
+					}
+				}
+			}
+			diskId, err := getDiskByName(&name, c, ctx)
+			if err != nil {
+				s := status.Convert(err)
+				fmt.Printf("error: could not delete disk: %s\n", s.Message())
+				return
+			}
+			err = deleteDisk(&diskId, c, ctx)
+			if err != nil {
+				s := status.Convert(err)
+				fmt.Printf("error: could not delete disk: %s\n", s.Message())
+				return
+			}
 			return
 		}
 	case "start":
