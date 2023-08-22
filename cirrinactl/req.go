@@ -3,19 +3,16 @@ package main
 import (
 	"cirrina/cirrina"
 	"context"
-	"fmt"
-	"log"
+	"errors"
 )
 
-func ReqStat(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
+func ReqStat(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (r *cirrina.ReqStatus, err error) {
 	if *idPtr == "" {
-		log.Fatalf("ID not specified")
-		return
+		return &cirrina.ReqStatus{}, errors.New("id not specified")
 	}
 	res, err := c.RequestStatus(ctx, &cirrina.RequestID{Value: *idPtr})
 	if err != nil {
-		log.Fatalf("could not get req: %v", err)
+		return &cirrina.ReqStatus{}, err
 	}
-	fmt.Printf("complete: %v status: %v\n", res.Complete, res.Success)
-
+	return res, nil
 }

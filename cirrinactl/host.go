@@ -3,16 +3,13 @@ package main
 import (
 	"cirrina/cirrina"
 	"context"
-	"fmt"
 	"io"
-	"log"
 )
 
-func getHostNics(c cirrina.VMInfoClient, ctx context.Context) {
+func getHostNics(c cirrina.VMInfoClient, ctx context.Context) (rv []*cirrina.NetIf, err error) {
 	res, err := c.GetNetInterfaces(ctx, &cirrina.NetInterfacesReq{})
 	if err != nil {
-		log.Fatalf("could not get host nics: %v", err)
-		return
+		return []*cirrina.NetIf{}, err
 	}
 	for {
 		hostNic, err := res.Recv()
@@ -20,9 +17,9 @@ func getHostNics(c cirrina.VMInfoClient, ctx context.Context) {
 			break
 		}
 		if err != nil {
-			log.Fatalf("GetNetInterfaces failed: %v", err)
+			return []*cirrina.NetIf{}, err
 		}
-		fmt.Printf("nic: name: %v\n", hostNic.InterfaceName)
+		rv = append(rv, hostNic)
 	}
-
+	return rv, nil
 }

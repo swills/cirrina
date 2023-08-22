@@ -76,6 +76,18 @@ func sigHandler(signal os.Signal) {
 	}
 }
 
+func cleanUpVms() {
+	vmList := vm.GetAll()
+	for _, aVm := range vmList {
+		if aVm.Status != vm.STOPPED {
+			// check /dev/vmm entry
+			// check pid
+			// if neither, set stopped and no pid etc. in db
+			// if /dev/vmm entry but no pid, bhyvectl destroy it, then set stopped, no pid, etc in db
+		}
+	}
+}
+
 func main() {
 	signals := make(chan os.Signal)
 	signal.Notify(signals, os.Interrupt, syscall.SIGINFO)
@@ -107,6 +119,8 @@ func main() {
 	slog.Info("Creating bridges")
 	_switch.CreateBridges()
 	slog.Info("Starting Daemon")
+
+	cleanUpVms()
 
 	go vm.AutoStartVMs()
 	go rpcServer()

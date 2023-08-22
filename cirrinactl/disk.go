@@ -7,7 +7,6 @@ import (
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/jedib0t/go-pretty/text"
 	"io"
-	"log"
 	"os"
 )
 
@@ -44,11 +43,10 @@ func addDisk(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descr
 	return res.Value, nil
 }
 
-func getDisks(c cirrina.VMInfoClient, ctx context.Context) {
+func getDisks(c cirrina.VMInfoClient, ctx context.Context) (err error) {
 	res, err := c.GetDisks(ctx, &cirrina.DisksQuery{})
 	if err != nil {
-		log.Fatalf("could not get disks: %v", err)
-		return
+		return err
 	}
 
 	t := table.NewWriter()
@@ -66,8 +64,7 @@ func getDisks(c cirrina.VMInfoClient, ctx context.Context) {
 		}
 		res2, err := c.GetDiskInfo(ctx, &cirrina.DiskId{Value: VmDisk.Value})
 		if err != nil {
-			log.Fatalf("could not get disks: %v", err)
-			return
+			return err
 		}
 
 		diskType := "unknown"
@@ -88,6 +85,7 @@ func getDisks(c cirrina.VMInfoClient, ctx context.Context) {
 		})
 	}
 	t.Render()
+	return nil
 }
 
 func deleteDisk(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (err error) {

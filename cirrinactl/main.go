@@ -105,9 +105,262 @@ func main() {
 	// new style arg parsing
 	arg0 := flag.Arg(0)
 	switch arg0 {
+	// VMs
 	case "list":
 		getVMs(c, ctx)
 		return
+	case "start":
+		arg1 := flag.Arg(1)
+		if arg1 == "" {
+			fmt.Printf("error: stray arguments or missing VM name\n")
+			usage()
+			return
+		}
+		startVM(arg1, c, ctx, err)
+		return
+	case "stop":
+		arg1 := flag.Arg(1)
+		if &arg1 == nil {
+			fmt.Printf("error: stray arguments or missing VM name\n")
+			usage()
+			return
+		}
+		stopVM(arg1, c, ctx, err)
+		return
+	// Disks
+	case "disk":
+		arg1 := flag.Arg(1)
+		switch arg1 {
+		case "list":
+			err := getDisks(c, ctx)
+			if err != nil {
+				log.Printf("error getting disks: %s\n", err)
+			}
+			return
+		case "create":
+			name := ""
+			description := ""
+			diskType := "nvme"
+			diskSize := "1G"
+			argCount := flag.NArg()
+			for argNum, argval := range flag.Args() {
+				if argNum < 2 {
+					continue
+				}
+				switch argval {
+				case "--name":
+					fallthrough
+				case "-n":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					name = flag.Arg(argNum)
+					if name == "" {
+						fmt.Printf("name cannot be empty\n")
+						return
+					}
+				case "--description":
+					fallthrough
+				case "-d":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					description = flag.Arg(argNum)
+				case "--type":
+					fallthrough
+				case "-t":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					diskType = flag.Arg(argNum)
+				case "--size":
+					fallthrough
+				case "-s":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					diskSize = flag.Arg(argNum)
+				}
+			}
+			_, err := addDisk(&name, c, ctx, &description, &diskSize, &diskType)
+			if err != nil {
+				s := status.Convert(err)
+				fmt.Printf("error: could not create a new disk: %s\n", s.Message())
+				return
+			}
+			return
+		case "destroy":
+			name := ""
+			argCount := flag.NArg()
+			for argNum, argval := range flag.Args() {
+				if argNum < 2 {
+					continue
+				}
+				switch argval {
+				case "--name":
+					fallthrough
+				case "-n":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					name = flag.Arg(argNum)
+					if name == "" {
+						fmt.Printf("name cannot be empty\n")
+						return
+					}
+				}
+			}
+			diskId, err := getDiskByName(&name, c, ctx)
+			if err != nil {
+				s := status.Convert(err)
+				fmt.Printf("error: could not delete disk: %s\n", s.Message())
+				return
+			}
+			err = deleteDisk(&diskId, c, ctx)
+			if err != nil {
+				s := status.Convert(err)
+				fmt.Printf("error: could not delete disk: %s\n", s.Message())
+				return
+			}
+			return
+		}
+	// NICs
+	case "nic":
+		arg1 := flag.Arg(1)
+		switch arg1 {
+		case "list":
+			getVmNicsAll(c, ctx)
+			return
+		case "create":
+			name := ""
+			description := ""
+			nettype := "virtio-net"
+			netdevtype := "tap"
+			mac := "AUTO"
+			switchId := ""
+			argCount := flag.NArg()
+			for argNum, argval := range flag.Args() {
+				if argNum < 2 {
+					continue
+				}
+				switch argval {
+				case "--name":
+					fallthrough
+				case "-n":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					name = flag.Arg(argNum)
+					if name == "" {
+						fmt.Printf("name cannot be empty\n")
+						return
+					}
+				case "--description":
+					fallthrough
+				case "-d":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					description = flag.Arg(argNum)
+				case "--nettype":
+					fallthrough
+				case "-t":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					nettype = flag.Arg(argNum)
+					if nettype != "e1000" && nettype != "virtio-net" {
+						fmt.Printf("error: invalid nettype. expected one of the following:\n" +
+							"\t- e1000\n\t- virtio-net\n")
+						return
+					}
+				case "--netdevtype":
+					fallthrough
+				case "-v":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					netdevtype = flag.Arg(argNum)
+					if netdevtype != "netgraph" && netdevtype != "vmnet" && netdevtype != "tap" {
+						fmt.Printf("error: invalid netdevtype. expected one of the following:\n" +
+							"\t- netgraph\n\t- vmnet\n\t- tap\n")
+						return
+					}
+				case "--mac":
+					fallthrough
+				case "-m":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					mac = flag.Arg(argNum)
+				}
+
+			}
+			_, err := addVmNic(&name, c, ctx, &description, &nettype, &netdevtype, &mac, &switchId)
+			if err != nil {
+				s := status.Convert(err)
+				fmt.Printf("error: could not create a new NIC: %s\n", s.Message())
+				return
+			}
+			return
+		case "destroy":
+			name := ""
+			argCount := flag.NArg()
+			for argNum, argval := range flag.Args() {
+				if argNum < 2 {
+					continue
+				}
+				switch argval {
+				case "--name":
+					fallthrough
+				case "-n":
+					argNum = argNum + 1
+					if argCount < argNum+1 {
+						fmt.Printf("option requires an argument -- %s\n", argval)
+						return
+					}
+					name = flag.Arg(argNum)
+					if name == "" {
+						fmt.Printf("name cannot be empty\n")
+						return
+					}
+				}
+			}
+			nicId, err := getNicByName(&name, c, ctx)
+			if err != nil {
+				s := status.Convert(err)
+				fmt.Printf("error: could not delete nic: %s\n", s.Message())
+				return
+			}
+			err = deleteNic(&nicId, c, ctx)
+			if err != nil {
+				s := status.Convert(err)
+				fmt.Printf("error: could not delete nic: %s\n", s.Message())
+				return
+			}
+			return
+		}
+	// Switches
 	case "switch":
 		arg1 := flag.Arg(1)
 		if arg1 == "" {
@@ -247,252 +500,6 @@ func main() {
 			}
 			return
 		}
-	case "nic":
-		arg1 := flag.Arg(1)
-		switch arg1 {
-		case "list":
-			getVmNicsAll(c, ctx)
-			return
-		case "create":
-			name := ""
-			description := ""
-			nettype := "virtio-net"
-			netdevtype := "tap"
-			mac := "AUTO"
-			switchId := ""
-			argCount := flag.NArg()
-			for argNum, argval := range flag.Args() {
-				if argNum < 2 {
-					continue
-				}
-				switch argval {
-				case "--name":
-					fallthrough
-				case "-n":
-					argNum = argNum + 1
-					if argCount < argNum+1 {
-						fmt.Printf("option requires an argument -- %s\n", argval)
-						return
-					}
-					name = flag.Arg(argNum)
-					if name == "" {
-						fmt.Printf("name cannot be empty\n")
-						return
-					}
-				case "--description":
-					fallthrough
-				case "-d":
-					argNum = argNum + 1
-					if argCount < argNum+1 {
-						fmt.Printf("option requires an argument -- %s\n", argval)
-						return
-					}
-					description = flag.Arg(argNum)
-				case "--nettype":
-					fallthrough
-				case "-t":
-					argNum = argNum + 1
-					if argCount < argNum+1 {
-						fmt.Printf("option requires an argument -- %s\n", argval)
-						return
-					}
-					nettype = flag.Arg(argNum)
-					if nettype != "e1000" && nettype != "virtio-net" {
-						fmt.Printf("error: invalid nettype. expected one of the following:\n" +
-							"\t- e1000\n\t- virtio-net\n")
-						return
-					}
-				case "--netdevtype":
-					fallthrough
-				case "-v":
-					argNum = argNum + 1
-					if argCount < argNum+1 {
-						fmt.Printf("option requires an argument -- %s\n", argval)
-						return
-					}
-					netdevtype = flag.Arg(argNum)
-					if netdevtype != "netgraph" && netdevtype != "vmnet" && netdevtype != "tap" {
-						fmt.Printf("error: invalid netdevtype. expected one of the following:\n" +
-							"\t- netgraph\n\t- vmnet\n\t- tap\n")
-						return
-					}
-				case "--mac":
-					fallthrough
-				case "-m":
-					argNum = argNum + 1
-					if argCount < argNum+1 {
-						fmt.Printf("option requires an argument -- %s\n", argval)
-						return
-					}
-					mac = flag.Arg(argNum)
-				}
-
-			}
-			_, err := addVmNic(&name, c, ctx, &description, &nettype, &netdevtype, &mac, &switchId)
-			if err != nil {
-				s := status.Convert(err)
-				fmt.Printf("error: could not create a new NIC: %s\n", s.Message())
-				return
-			}
-			return
-		case "destroy":
-			name := ""
-			argCount := flag.NArg()
-			for argNum, argval := range flag.Args() {
-				if argNum < 2 {
-					continue
-				}
-				switch argval {
-				case "--name":
-					fallthrough
-				case "-n":
-					argNum = argNum + 1
-					if argCount < argNum+1 {
-						fmt.Printf("option requires an argument -- %s\n", argval)
-						return
-					}
-					name = flag.Arg(argNum)
-					if name == "" {
-						fmt.Printf("name cannot be empty\n")
-						return
-					}
-				}
-			}
-			nicId, err := getNicByName(&name, c, ctx)
-			if err != nil {
-				s := status.Convert(err)
-				fmt.Printf("error: could not delete nic: %s\n", s.Message())
-				return
-			}
-			err = deleteNic(&nicId, c, ctx)
-			if err != nil {
-				s := status.Convert(err)
-				fmt.Printf("error: could not delete nic: %s\n", s.Message())
-				return
-			}
-			return
-		}
-	case "disk":
-		arg1 := flag.Arg(1)
-		switch arg1 {
-		case "list":
-			getDisks(c, ctx)
-			return
-		case "create":
-			name := ""
-			description := ""
-			diskType := "nvme"
-			diskSize := "1G"
-			argCount := flag.NArg()
-			for argNum, argval := range flag.Args() {
-				if argNum < 2 {
-					continue
-				}
-				switch argval {
-				case "--name":
-					fallthrough
-				case "-n":
-					argNum = argNum + 1
-					if argCount < argNum+1 {
-						fmt.Printf("option requires an argument -- %s\n", argval)
-						return
-					}
-					name = flag.Arg(argNum)
-					if name == "" {
-						fmt.Printf("name cannot be empty\n")
-						return
-					}
-				case "--description":
-					fallthrough
-				case "-d":
-					argNum = argNum + 1
-					if argCount < argNum+1 {
-						fmt.Printf("option requires an argument -- %s\n", argval)
-						return
-					}
-					description = flag.Arg(argNum)
-				case "--type":
-					fallthrough
-				case "-t":
-					argNum = argNum + 1
-					if argCount < argNum+1 {
-						fmt.Printf("option requires an argument -- %s\n", argval)
-						return
-					}
-					diskType = flag.Arg(argNum)
-				case "--size":
-					fallthrough
-				case "-s":
-					argNum = argNum + 1
-					if argCount < argNum+1 {
-						fmt.Printf("option requires an argument -- %s\n", argval)
-						return
-					}
-					diskSize = flag.Arg(argNum)
-				}
-			}
-			_, err := addDisk(&name, c, ctx, &description, &diskSize, &diskType)
-			if err != nil {
-				s := status.Convert(err)
-				fmt.Printf("error: could not create a new disk: %s\n", s.Message())
-				return
-			}
-			return
-		case "destroy":
-			name := ""
-			argCount := flag.NArg()
-			for argNum, argval := range flag.Args() {
-				if argNum < 2 {
-					continue
-				}
-				switch argval {
-				case "--name":
-					fallthrough
-				case "-n":
-					argNum = argNum + 1
-					if argCount < argNum+1 {
-						fmt.Printf("option requires an argument -- %s\n", argval)
-						return
-					}
-					name = flag.Arg(argNum)
-					if name == "" {
-						fmt.Printf("name cannot be empty\n")
-						return
-					}
-				}
-			}
-			diskId, err := getDiskByName(&name, c, ctx)
-			if err != nil {
-				s := status.Convert(err)
-				fmt.Printf("error: could not delete disk: %s\n", s.Message())
-				return
-			}
-			err = deleteDisk(&diskId, c, ctx)
-			if err != nil {
-				s := status.Convert(err)
-				fmt.Printf("error: could not delete disk: %s\n", s.Message())
-				return
-			}
-			return
-		}
-	case "start":
-		arg1 := flag.Arg(1)
-		if arg1 == "" {
-			fmt.Printf("error: stray arguments or missing VM name\n")
-			usage()
-			return
-		}
-		startVM(arg1, c, ctx, err)
-		return
-	case "stop":
-		arg1 := flag.Arg(1)
-		if &arg1 == nil {
-			fmt.Printf("error: stray arguments or missing VM name\n")
-			usage()
-			return
-		}
-		stopVM(arg1, c, ctx, err)
-		return
 	case "help":
 		usage()
 	}
@@ -532,7 +539,10 @@ func main() {
 
 	// Disks
 	case "getDisks":
-		getDisks(c, ctx)
+		err := getDisks(c, ctx)
+		if err != nil {
+			log.Printf("error getting disks: %s\n", err)
+		}
 	case "addDisk":
 		diskId, err := addDisk(namePtr, c, ctx, descrPtr, sizePtr, diskTypePtr)
 		if err != nil {
@@ -559,7 +569,13 @@ func main() {
 	case "rmVmNic":
 		rmVmNic(idPtr, c, ctx)
 	case "getHostNics":
-		getHostNics(c, ctx)
+		res, err := getHostNics(c, ctx)
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+		for _, nic := range res {
+			fmt.Printf("nic: name: %v\n", nic.InterfaceName)
+		}
 	case "getVmNic":
 		getVmNic(idPtr, c, ctx)
 	case "getVmNics":
@@ -611,17 +627,45 @@ func main() {
 
 	// Serial ports
 	case "useCom1":
-		useCom(c, idPtr, 1)
+		fmt.Print("starting terminal session, press ctrl-\\ to quit\n")
+		time.Sleep(1 * time.Second)
+
+		err := useCom(c, idPtr, 1)
+		if err != nil {
+			log.Fatalf("failed to get stream: %v", err)
+		}
 	case "useCom2":
-		useCom(c, idPtr, 2)
+		fmt.Print("starting terminal session, press ctrl-\\ to quit\n")
+		time.Sleep(1 * time.Second)
+
+		err := useCom(c, idPtr, 2)
+		if err != nil {
+			log.Fatalf("failed to get stream: %v", err)
+		}
 	case "useCom3":
-		useCom(c, idPtr, 3)
+		fmt.Print("starting terminal session, press ctrl-\\ to quit\n")
+		time.Sleep(1 * time.Second)
+
+		err := useCom(c, idPtr, 3)
+		if err != nil {
+			log.Fatalf("failed to get stream: %v", err)
+		}
 	case "useCom4":
-		useCom(c, idPtr, 4)
+		fmt.Print("starting terminal session, press ctrl-\\ to quit\n")
+		time.Sleep(1 * time.Second)
+
+		err := useCom(c, idPtr, 4)
+		if err != nil {
+			log.Fatalf("failed to get stream: %v", err)
+		}
 
 	// Misc
 	case "reqStat":
-		ReqStat(idPtr, c, ctx)
+		res, err := ReqStat(idPtr, c, ctx)
+		if err != nil {
+			log.Fatalf(err.Error())
+		}
+		fmt.Printf("complete: %v status: %v\n", res.Complete, res.Success)
 	case "tui":
 		startTui()
 

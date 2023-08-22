@@ -3,21 +3,19 @@ package main
 import (
 	"cirrina/cirrina"
 	"context"
+	"errors"
 	"fmt"
 	"golang.org/x/term"
-	"log"
 	"os"
 	"time"
 )
 
-func useCom(c cirrina.VMInfoClient, idPtr *string, comNum int) {
+func useCom(c cirrina.VMInfoClient, idPtr *string, comNum int) (err error) {
 	if *idPtr == "" {
-		log.Fatalf("ID not specified")
-		return
+		return errors.New("id not specified")
 	}
 	ctx, ctxCancel := context.WithCancel(context.Background())
 	defer ctxCancel()
-	var err error
 	var stream cirrina.VMInfo_Com1InteractiveClient
 
 	switch comNum {
@@ -31,8 +29,7 @@ func useCom(c cirrina.VMInfoClient, idPtr *string, comNum int) {
 		stream, err = c.Com4Interactive(ctx)
 	}
 	if err != nil {
-		log.Fatalf("failed to get stream: %v", err)
-		return
+		return err
 	}
 
 	vmId := &cirrina.VMID{Value: *idPtr}
@@ -44,16 +41,12 @@ func useCom(c cirrina.VMInfoClient, idPtr *string, comNum int) {
 
 	err = stream.Send(req)
 	if err != nil {
-		fmt.Printf("streaming com failed: %v\n", err)
+		return err
 	}
-
-	fmt.Print("starting terminal session, press ctrl-\\ to quit\n")
-	time.Sleep(1 * time.Second)
 
 	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 	defer func(fd int, oldState *term.State) {
 		_ = term.Restore(fd, oldState)
@@ -75,9 +68,6 @@ func useCom(c cirrina.VMInfoClient, idPtr *string, comNum int) {
 				b := make([]byte, 1)
 				_, err = os.Stdin.Read(b)
 				if err != nil {
-					if err.Error() != "EOF" {
-						fmt.Println(err)
-					}
 					quitChan <- true
 					_ = stream.CloseSend()
 					ctxCancel()
@@ -118,12 +108,6 @@ func useCom(c cirrina.VMInfoClient, idPtr *string, comNum int) {
 					_ = stream.CloseSend()
 					ctxCancel()
 					_ = term.Restore(int(os.Stdin.Fd()), oldState)
-					code := err.Error()
-					if code == "EOF" {
-						fmt.Printf("connection closed\n")
-					} else if code != "rpc error: code = Canceled desc = context canceled" {
-						fmt.Printf("error receiving from com: %v\n", err)
-					}
 					return
 				}
 				fmt.Print(string(out.ComOutBytes))
@@ -139,14 +123,14 @@ func useCom(c cirrina.VMInfoClient, idPtr *string, comNum int) {
 			_ = stream.CloseSend()
 			ctxCancel()
 			_ = term.Restore(int(os.Stdin.Fd()), oldState)
-			return
+			return nil
 		default:
 			res, err := c.GetVMState(ctx, &cirrina.VMID{Value: *idPtr})
 			if err != nil {
 				_ = stream.CloseSend()
 				ctxCancel()
 				_ = term.Restore(int(os.Stdin.Fd()), oldState)
-				return
+				return nil
 			}
 
 			if res.Status != cirrina.VmStatus_STATUS_RUNNING {
