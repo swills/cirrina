@@ -2,13 +2,13 @@ package main
 
 import (
 	pb "cirrina/cirrina"
+	"cirrina/cirrinactl/rpc"
 	"context"
 	"fmt"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"io"
 	"log"
 	"sort"
 	"time"
@@ -43,24 +43,13 @@ func getVmItems(addr string) []vmItem {
 	}(conn)
 	defer cancel()
 
-	res, err := c.GetVMs(ctx, &pb.VMsQuery{})
+	vmIds, err = rpc.GetVmIds(c, ctx)
 	if err != nil {
 		return vmItems
 	}
 
-	for {
-		VM, err := res.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("GetVMs failed: %v", err)
-		}
-		vmIds = append(vmIds, VM.Value)
-	}
-
 	for _, vmId := range vmIds {
-		res, err := c.GetVMConfig(ctx, &pb.VMID{Value: vmId})
+		res, err := rpc.GetVMConfig(&vmId, c, ctx)
 		if err != nil {
 			log.Fatalf("could not get VM: %v", err)
 		}
@@ -151,11 +140,14 @@ func vmStartFunc(name string) {
 	}(conn)
 	defer cancel()
 
-	vmId := vmNameToId(name, c, ctx)
+	vmId, err := rpc.VmNameToId(name, c, ctx)
+	if err != nil {
+		log.Fatalf("failed to get vm")
+	}
 	if vmId == "" {
 		return
 	}
-	_, _ = c.StartVM(ctx, &pb.VMID{Value: vmId})
+	_, _ = rpc.StartVM(&vmId, c, ctx)
 }
 
 func vmStopFunc(name string) {
@@ -171,8 +163,11 @@ func vmStopFunc(name string) {
 	}(conn)
 	defer cancel()
 
-	vmId := vmNameToId(name, c, ctx)
-	_, _ = c.StopVM(ctx, &pb.VMID{Value: vmId})
+	vmId, err := rpc.VmNameToId(name, c, ctx)
+	if err != nil {
+		log.Fatalf("failed to get vm")
+	}
+	_, _ = rpc.StopVM(&vmId, c, ctx)
 }
 
 func vmChangedFunc(index int, name string, _ string, _ rune) {

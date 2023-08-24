@@ -2,11 +2,11 @@ package main
 
 import (
 	"cirrina/cirrina"
+	"cirrina/cirrinactl/rpc"
 	"context"
 	"errors"
 	"fmt"
 	"github.com/jedib0t/go-pretty/table"
-	"io"
 	"log"
 	"os"
 )
@@ -41,7 +41,7 @@ func addVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrpt
 	thisVmNic.Nettype = &thisNetType
 	thisVmNic.Netdevtype = &thisNetDevType
 
-	res, err := c.AddVmNic(ctx, &thisVmNic)
+	res, err := rpc.AddNic(c, ctx, &thisVmNic)
 	if err != nil {
 		return "", err
 	}
@@ -49,15 +49,11 @@ func addVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrpt
 }
 
 func rmVmNic(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
-	if *idPtr == "" {
-		log.Fatalf("ID not specified")
-		return
-	}
-	reqId, err := c.RemoveVmNic(ctx, &cirrina.VmNicId{Value: *idPtr})
+	res, err := rpc.RmNic(idPtr, c, ctx)
 	if err != nil {
 		log.Fatalf("could not delete switch: %v", err)
 	}
-	if reqId.Success {
+	if res {
 		fmt.Printf("Deleted successful")
 	} else {
 		fmt.Printf("Delete failed")
@@ -70,30 +66,19 @@ func getVmNics(c cirrina.VMInfoClient, ctx context.Context, idPtr *string) {
 	} else {
 		getVmNicsOne(c, ctx, idPtr)
 	}
-
 }
 
 func getVmNicsOne(c cirrina.VMInfoClient, ctx context.Context, idPtr *string) {
-	res, err := c.GetVmNics(ctx, &cirrina.VMID{Value: *idPtr})
+	res, err := rpc.GetVmNicOne(idPtr, c, ctx)
 	if err != nil {
-		log.Fatalf("could not get VmNics: %v", err)
+		log.Fatalf("could not get Nic: %v", err)
 		return
 	}
-	for {
-		VMNicId, err := res.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("GetVmNiss failed: %v", err)
-		}
-		fmt.Printf("VmNic: id: %v\n", VMNicId.Value)
-	}
-
+	fmt.Printf("VmNic: id: %v\n", res)
 }
 
 func getVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
-	res, err := c.GetVmNicsAll(ctx, &cirrina.VmNicsQuery{})
+	res, err := rpc.GetVmNicsAll(c, ctx)
 	if err != nil {
 		log.Fatalf("could not get VmNics: %v", err)
 		return
@@ -105,17 +90,11 @@ func getVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 	t.AppendHeader(table.Row{"NAME", "UUID", "NETDEVTYPE", "NETTYPE", "RATELIMITED", "DESCRIPTION"})
 	t.SetStyle(myTableStyle)
 
-	for {
-		VMNicId, err := res.Recv()
-		if err == io.EOF {
-			break
-		}
+	for _, r := range res {
+		res2, err := rpc.GetVmNicInfo(&r, c, ctx)
 		if err != nil {
-			log.Fatalf("GetVmNiss failed: %v", err)
-		}
-		res2, err := c.GetVmNicInfo(ctx, &cirrina.VmNicId{Value: VMNicId.Value})
-		if err != nil {
-			log.Fatalf("could not get VM: %v", err)
+			log.Fatalf("could not get VmNics: %v", err)
+			return
 		}
 
 		netDevType := "unknown"
@@ -143,7 +122,7 @@ func getVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 
 		t.AppendRow(table.Row{
 			*res2.Name,
-			VMNicId.Value,
+			r,
 			netDevType,
 			netType,
 			rateLimited,
@@ -162,7 +141,7 @@ func getVmNic(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 		log.Fatalf("ID not specified")
 		return
 	}
-	res, err := c.GetVmNicInfo(ctx, &cirrina.VmNicId{Value: *idPtr})
+	res, err := rpc.GetVmNicInfo(idPtr, c, ctx)
 	if err != nil {
 		log.Fatalf("could not get VM: %v", err)
 	}
@@ -204,74 +183,4 @@ func getVmNic(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 
 func setVmNicVm(_ cirrina.VMInfoClient, _ context.Context) {
 
-}
-
-func deleteNic(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (err error) {
-	if idPtr == nil || *idPtr == "" {
-		return errors.New("disk id not specified")
-	}
-	_, err = c.RemoveVmNic(ctx, &cirrina.VmNicId{Value: *idPtr})
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func getNicIds(c cirrina.VMInfoClient, ctx context.Context) (ids []string, err error) {
-	res, err := c.GetVmNicsAll(ctx, &cirrina.VmNicsQuery{})
-	if err != nil {
-		return []string{}, err
-	}
-	for {
-		aNic, err := res.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return []string{}, err
-		}
-		ids = append(ids, aNic.Value)
-	}
-	return ids, nil
-}
-
-func getNicInfo(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (aNic *cirrina.VmNicInfo, err error) {
-	if idPtr == nil || *idPtr == "" {
-		return &cirrina.VmNicInfo{}, errors.New("nic id not specified")
-	}
-	res, err := c.GetVmNicInfo(ctx, &cirrina.VmNicId{Value: *idPtr})
-	if err != nil {
-		return &cirrina.VmNicInfo{}, err
-	}
-	return res, nil
-}
-
-func getNicByName(namePtr *string, c cirrina.VMInfoClient, ctx context.Context) (nicId string, err error) {
-	if namePtr == nil || *namePtr == "" {
-		return "", errors.New("disk name not specified")
-	}
-
-	nicIds, err := getNicIds(c, ctx)
-	if err != nil {
-		return "", err
-	}
-
-	found := false
-	for _, aNicId := range nicIds {
-		res, err := getNicInfo(&aNicId, c, ctx)
-		if err != nil {
-			return "", err
-		}
-		if *res.Name == *namePtr {
-			if found {
-				return "", errors.New("duplicate nic found")
-			}
-			found = true
-			nicId = aNicId
-		}
-	}
-	if !found {
-		return "", errors.New("disk not found")
-	}
-	return nicId, nil
 }

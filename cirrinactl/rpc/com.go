@@ -1,4 +1,4 @@
-package main
+package rpc
 
 import (
 	"cirrina/cirrina"
@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func useCom(c cirrina.VMInfoClient, idPtr *string, comNum int) (err error) {
+func UseCom(c cirrina.VMInfoClient, idPtr *string, comNum int) (err error) {
 	if *idPtr == "" {
 		return errors.New("id not specified")
 	}
@@ -125,7 +125,7 @@ func useCom(c cirrina.VMInfoClient, idPtr *string, comNum int) (err error) {
 			_ = term.Restore(int(os.Stdin.Fd()), oldState)
 			return nil
 		default:
-			res, err := c.GetVMState(ctx, &cirrina.VMID{Value: *idPtr})
+			res, err := GetVMState(idPtr, c, ctx)
 			if err != nil {
 				_ = stream.CloseSend()
 				ctxCancel()
@@ -133,7 +133,7 @@ func useCom(c cirrina.VMInfoClient, idPtr *string, comNum int) (err error) {
 				return nil
 			}
 
-			if res.Status != cirrina.VmStatus_STATUS_RUNNING {
+			if res != "running" {
 				_ = stream.CloseSend()
 				ctxCancel()
 				_ = term.Restore(int(os.Stdin.Fd()), oldState)

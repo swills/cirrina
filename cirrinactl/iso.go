@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"cirrina/cirrina"
+	"cirrina/cirrinactl/rpc"
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
@@ -17,15 +18,18 @@ func addISO(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrP
 		log.Fatalf("Name not specified")
 		return
 	}
-	res, err := c.AddISO(ctx, &cirrina.ISOInfo{
+
+	j := &cirrina.ISOInfo{
 		Name:        namePtr,
 		Description: descrPtr,
-	})
+	}
+
+	res, err := rpc.AddIso(j, c, ctx)
 	if err != nil {
 		log.Fatalf("could not create ISO: %v", err)
 		return
 	}
-	fmt.Printf("Created ISO %v\n", res.Value)
+	fmt.Printf("Created ISO %v\n", res)
 }
 
 func uploadIso(c cirrina.VMInfoClient, ctx context.Context, idPtr *string, filePathPtr *string) {

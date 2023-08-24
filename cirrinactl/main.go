@@ -2,6 +2,7 @@ package main
 
 import (
 	pb "cirrina/cirrina"
+	"cirrina/cirrinactl/rpc"
 	"context"
 	"flag"
 	"fmt"
@@ -50,6 +51,36 @@ func printActionHelp() {
 	println("Actions: getVM, getVMs, getVMState, addVM, reConfig, deleteVM, reqStat, startVM, stopVM, " +
 		"addISO, addDisk, addSwitch, addVmNic, getSwitches, getDisks, getVmNics, getSwitch, getVmNic, setVmNicVm, " +
 		"setVmNicSwitch, rmSwitch, getHostNics, setSwitchUplink, uploadIso, useCom1, useCom2, useCom3, useCom4, tui")
+}
+
+func usage() {
+	usageString := `usage: cirrinactl [global options] [subcommand]
+OPTIONS:
+  -h <host>       Connect to the given host [localhost]
+  -p <port>       Connect to the given port [50051]
+  -c <config>     Read a config from the given file
+
+SUBCOMMANDS:
+   list           List VMs
+   switch         Inspect, create, update and delete switches
+   nic            Inspect, create, update and delete NICs
+   disk           Inspect, create, update and delete virtual disks
+   start          Start a VM
+   stop           Stop a VM
+`
+	fmt.Printf(usageString)
+}
+
+func switchUsage() {
+	usageString := `usage: cirrinactl switch [subcommand]
+OPTIONS:
+   None.
+
+SUBCOMMANDS:
+   list           List switches
+   set-uplink     Set a switch uplink interface
+`
+	fmt.Printf(usageString)
 }
 
 func main() {
@@ -220,13 +251,13 @@ func main() {
 					}
 				}
 			}
-			diskId, err := getDiskByName(&name, c, ctx)
+			diskId, err := rpc.GetDiskByName(&name, c, ctx)
 			if err != nil {
 				s := status.Convert(err)
 				fmt.Printf("error: could not delete disk: %s\n", s.Message())
 				return
 			}
-			err = deleteDisk(&diskId, c, ctx)
+			_, err = rpc.RmDisk(&diskId, c, ctx)
 			if err != nil {
 				s := status.Convert(err)
 				fmt.Printf("error: could not delete disk: %s\n", s.Message())
@@ -314,7 +345,6 @@ func main() {
 					}
 					mac = flag.Arg(argNum)
 				}
-
 			}
 			_, err := addVmNic(&name, c, ctx, &description, &nettype, &netdevtype, &mac, &switchId)
 			if err != nil {
@@ -346,13 +376,13 @@ func main() {
 					}
 				}
 			}
-			nicId, err := getNicByName(&name, c, ctx)
+			nicId, err := rpc.GetNicByName(&name, c, ctx)
 			if err != nil {
 				s := status.Convert(err)
 				fmt.Printf("error: could not delete nic: %s\n", s.Message())
 				return
 			}
-			err = deleteNic(&nicId, c, ctx)
+			_, err = rpc.RmNic(&nicId, c, ctx)
 			if err != nil {
 				s := status.Convert(err)
 				fmt.Printf("error: could not delete nic: %s\n", s.Message())
@@ -370,7 +400,7 @@ func main() {
 		}
 		switch arg1 {
 		case "list":
-			getSwitches(c, ctx)
+			GetSwitches(c, ctx)
 			return
 		case "set-uplink":
 			switchName := flag.Arg(2)
@@ -381,18 +411,7 @@ func main() {
 				switchUsage()
 				return
 			}
-
-			switchId, err := getSwitchByName(&switchName, c, ctx)
-			if err != nil || switchId == "" {
-				fmt.Printf("error: could not find switch: no switch with the given name found\n")
-				return
-			}
-			err = setSwitchUplink(c, ctx, &switchId, &uplinkName)
-			if err != nil {
-				fmt.Printf("error: could not set switch uplink: %s\n", err.Error())
-				return
-			}
-
+			SetUplink(switchName, c, ctx, uplinkName)
 			return
 		case "create":
 			name := ""
@@ -452,12 +471,7 @@ func main() {
 					//	uplink = flag.Arg(argNum)
 				}
 			}
-			_, err := addSwitch(&name, c, ctx, &description, &switchType)
-			if err != nil {
-				s := status.Convert(err)
-				fmt.Printf("error: could not create a new switch: %s\n", s.Message())
-				return
-			}
+			AddSwitch(name, c, ctx, description, switchType)
 			return
 		case "destroy":
 			name := ""
@@ -482,7 +496,7 @@ func main() {
 					}
 				}
 			}
-			switchId, err := getSwitchByName(&name, c, ctx)
+			switchId, err := rpc.SwitchNameToId(&name, c, ctx)
 			if err != nil {
 				s := status.Convert(err)
 				fmt.Printf("error: could not delete switch: %s\n", s.Message())
@@ -492,7 +506,7 @@ func main() {
 				fmt.Printf("error: could not find switch: no switch with the given name found\n")
 				return
 			}
-			err = rmSwitch(&switchId, c, ctx)
+			err = rpc.RemoveSwitch(&switchId, c, ctx)
 			if err != nil {
 				s := status.Convert(err)
 				fmt.Printf("error: could not delete switch: %s\n", s.Message())
@@ -513,17 +527,26 @@ func main() {
 
 	// VMs
 	case "addVM":
-		addVM(namePtr, c, ctx, descrPtr, cpu32Ptr, mem32Ptr)
+		vm, err := rpc.AddVM(namePtr, c, ctx, descrPtr, cpu32Ptr, mem32Ptr)
+		if err != nil {
+			log.Fatalf("could not create VM: %v", err)
+			return
+		}
+		fmt.Printf("Created VM %s\n", vm)
 	case "deleteVM":
-		DeleteVM(idPtr, c, ctx)
+		reqId, err := rpc.DeleteVM(idPtr, c, ctx)
+		if err != nil {
+			log.Fatalf("could not delete VM: %s", err.Error())
+		}
+		fmt.Printf("Deleted request created, reqid: %s\n", reqId)
 	case "startVM":
-		reqId, err := rpcStartVM(idPtr, c, ctx)
+		reqId, err := rpc.StartVM(idPtr, c, ctx)
 		if err != nil {
 			log.Fatalf("could not start VM: %v", err)
 		}
 		fmt.Printf("Started request created, reqid: %v\n", reqId)
 	case "stopVM":
-		reqId, err := rpcStopVM(idPtr, c, ctx)
+		reqId, err := rpc.StopVM(idPtr, c, ctx)
 		if err != nil {
 			log.Fatalf("could not stop VM: %v", err)
 		}
@@ -533,9 +556,13 @@ func main() {
 	case "getVMs":
 		getVMs(c, ctx)
 	case "getVMState":
-		getVMState(idPtr, c, ctx)
+		state, err := rpc.GetVMState(idPtr, c, ctx)
+		if err != nil {
+			log.Fatalf("could not get state: %v", err)
+		}
+		fmt.Printf("vm id: %v state: %v\n", *idPtr, state)
 	case "reConfig":
-		Reconfig(idPtr, err, namePtr, descrPtr, cpuPtr, memPtr, autoStartPtr, c, ctx)
+		reConfig(idPtr, err, namePtr, descrPtr, cpuPtr, memPtr, autoStartPtr, c, ctx)
 
 	// Disks
 	case "getDisks":
@@ -569,7 +596,7 @@ func main() {
 	case "rmVmNic":
 		rmVmNic(idPtr, c, ctx)
 	case "getHostNics":
-		res, err := getHostNics(c, ctx)
+		res, err := rpc.GetHostNics(c, ctx)
 		if err != nil {
 			log.Fatalf(err.Error())
 		}
@@ -583,17 +610,25 @@ func main() {
 	case "setVmNicVm":
 		setVmNicVm(c, ctx)
 	case "setVmNicSwitch":
-		setVmNicSwitch(c, ctx, *nicIdPtr, *switchIdPtr)
+		res, err := rpc.SetVmNicSwitch(c, ctx, *nicIdPtr, *switchIdPtr)
+		if err != nil {
+			log.Fatalf("could not set vm nic switch: %v", err)
+		}
+		if res {
+			log.Printf("Set VM Nic switch connection")
+		} else {
+			log.Printf("Failed to set vmNic switch")
+		}
 
 	// Switches
 	case "addSwitch":
-		res, err := addSwitch(namePtr, c, ctx, descrPtr, switchTypePtr)
+		res, err := rpc.AddSwitch(namePtr, c, ctx, descrPtr, switchTypePtr)
 		if err != nil {
 			log.Fatalf("could not create switch: %v", err)
 		}
 		fmt.Printf("Created switch %v\n", res)
 	case "getSwitch":
-		res, err := getSwitch(idPtr, c, ctx)
+		res, err := rpc.GetSwitch(idPtr, c, ctx)
 		if err != nil {
 			log.Fatalf("could not get switch: %v", err)
 		}
@@ -609,16 +644,16 @@ func main() {
 			*res.Uplink,
 		)
 	case "getSwitches":
-		getSwitches(c, ctx)
+		GetSwitches(c, ctx)
 	case "rmSwitch":
-		err := rmSwitch(idPtr, c, ctx)
+		err := rpc.RemoveSwitch(idPtr, c, ctx)
 		if err == nil {
 			fmt.Printf("Delete successful")
 		} else {
 			fmt.Printf("Delete failed")
 		}
 	case "setSwitchUplink":
-		err = setSwitchUplink(c, ctx, switchIdPtr, uplinkNamePtr)
+		err = rpc.SetSwitchUplink(c, ctx, switchIdPtr, uplinkNamePtr)
 		if err == nil {
 			fmt.Printf("Switch uplink set successful")
 		} else {
@@ -630,7 +665,7 @@ func main() {
 		fmt.Print("starting terminal session, press ctrl-\\ to quit\n")
 		time.Sleep(1 * time.Second)
 
-		err := useCom(c, idPtr, 1)
+		err := rpc.UseCom(c, idPtr, 1)
 		if err != nil {
 			log.Fatalf("failed to get stream: %v", err)
 		}
@@ -638,7 +673,7 @@ func main() {
 		fmt.Print("starting terminal session, press ctrl-\\ to quit\n")
 		time.Sleep(1 * time.Second)
 
-		err := useCom(c, idPtr, 2)
+		err := rpc.UseCom(c, idPtr, 2)
 		if err != nil {
 			log.Fatalf("failed to get stream: %v", err)
 		}
@@ -646,7 +681,7 @@ func main() {
 		fmt.Print("starting terminal session, press ctrl-\\ to quit\n")
 		time.Sleep(1 * time.Second)
 
-		err := useCom(c, idPtr, 3)
+		err := rpc.UseCom(c, idPtr, 3)
 		if err != nil {
 			log.Fatalf("failed to get stream: %v", err)
 		}
@@ -654,14 +689,14 @@ func main() {
 		fmt.Print("starting terminal session, press ctrl-\\ to quit\n")
 		time.Sleep(1 * time.Second)
 
-		err := useCom(c, idPtr, 4)
+		err := rpc.UseCom(c, idPtr, 4)
 		if err != nil {
 			log.Fatalf("failed to get stream: %v", err)
 		}
 
 	// Misc
 	case "reqStat":
-		res, err := ReqStat(idPtr, c, ctx)
+		res, err := rpc.ReqStat(idPtr, c, ctx)
 		if err != nil {
 			log.Fatalf(err.Error())
 		}
@@ -672,34 +707,4 @@ func main() {
 	default:
 		log.Fatalf("Action %v unknown", *actionPtr)
 	}
-}
-
-func usage() {
-	usageString := `usage: cirrinactl [global options] [subcommand]
-OPTIONS:
-  -h <host>       Connect to the given host [localhost]
-  -p <port>       Connect to the given port [50051]
-  -c <config>     Read a config from the given file
-
-SUBCOMMANDS:
-   list           List VMs
-   switch         Inspect, create, update and delete switches
-   nic            Inspect, create, update and delete NICs
-   disk           Inspect, create, update and delete virtual disks
-   start          Start a VM
-   stop           Stop a VM
-`
-	fmt.Printf(usageString)
-}
-
-func switchUsage() {
-	usageString := `usage: cirrinactl switch [subcommand]
-OPTIONS:
-   None.
-
-SUBCOMMANDS:
-   list           List switches
-   set-uplink     Set a switch uplink interface
-`
-	fmt.Printf(usageString)
 }
