@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"golang.org/x/exp/slog"
+	"strconv"
 	"strings"
 )
 import "context"
@@ -34,7 +35,21 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 		// TODO check that same uplink isn't used for another switch of same type
 		if !strings.HasPrefix(*i.Name, "bridge") {
 			slog.Error("invalid bridge name", "name", *i.Name)
-			return &cirrina.SwitchId{Value: ""}, errors.New("invalid bridge name, bridge name must start with \"bridge\"")
+			return &cirrina.SwitchId{Value: ""}, errors.New("invalid bridge name")
+		}
+
+		bridgeNumStr := strings.TrimPrefix(*i.Name, "bridge")
+		bridgeNum, err := strconv.Atoi(bridgeNumStr)
+		if err != nil {
+			slog.Error("invalid bridge name", "name", *i.Name)
+			return &cirrina.SwitchId{Value: ""}, errors.New("invalid bridge name")
+
+		}
+		bridgeNumFormattedString := strconv.FormatInt(int64(bridgeNum), 10)
+		// Check for silly things like "0123"
+		if bridgeNumStr != bridgeNumFormattedString {
+			slog.Error("invalid bridge name", "name", *i.Name)
+			return &cirrina.SwitchId{Value: ""}, errors.New("invalid bridge name")
 		}
 
 	} else if *i.SwitchType == cirrina.SwitchType_NG {
