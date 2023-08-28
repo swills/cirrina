@@ -479,10 +479,10 @@ func (s *server) AddVM(_ context.Context, v *cirrina.VMConfig) (*cirrina.VMID, e
 	if v.Description == nil {
 		v.Description = &defaultVmDescription
 	}
-	if v.Cpu == nil {
+	if v.Cpu == nil || *v.Cpu < 1 || *v.Cpu > 16 {
 		v.Cpu = &defaultVmCpuCount
 	}
-	if v.Mem == nil {
+	if v.Mem == nil || *v.Mem < 128 {
 		v.Mem = &defaultVmMemCount
 	}
 	defer vm.List.Mu.Unlock()
