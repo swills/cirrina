@@ -12,7 +12,7 @@ import (
 func Create(name string, description string) (iso *ISO, err error) {
 	var isoInst *ISO
 
-	if strings.Contains(name, "/") || strings.Contains(name, ".") {
+	if strings.Contains(name, "/") || strings.Contains(name, "..") {
 		return isoInst, errors.New("illegal character in iso name")
 	}
 
