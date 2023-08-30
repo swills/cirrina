@@ -29,6 +29,53 @@ func RmNic(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (bool, er
 	}
 }
 
+func GetVmNicInfo(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (*cirrina.VmNicInfo, error) {
+	res, err := c.GetVmNicInfo(ctx, &cirrina.VmNicId{Value: *idPtr})
+	if err != nil {
+		return &cirrina.VmNicInfo{}, err
+	}
+	return res, nil
+}
+
+func NicNameToId(namePtr *string, c cirrina.VMInfoClient, ctx context.Context) (nicId string, err error) {
+	if namePtr == nil || *namePtr == "" {
+		return "", errors.New("nic name not specified")
+	}
+
+	nicIds, err := GetVmNicsAll(c, ctx)
+	if err != nil {
+		return "", err
+	}
+
+	found := false
+	for _, aNicId := range nicIds {
+		res, err := GetVmNicInfo(&aNicId, c, ctx)
+		if err != nil {
+			return "", err
+		}
+		if *res.Name == *namePtr {
+			if found {
+				return "", errors.New("duplicate nic found")
+			}
+			found = true
+			nicId = aNicId
+		}
+	}
+	if !found {
+		return "", errors.New("nic not found")
+	}
+	return nicId, nil
+}
+
+func NicIdToName(s string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
+	res, err := c.GetVmNicInfo(ctx, &cirrina.VmNicId{Value: s})
+	print("")
+	if err != nil {
+		return "", err
+	}
+	return *res.Name, nil
+}
+
 func GetVmNicOne(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
 	var rv string
 	res, err := c.GetVmNics(ctx, &cirrina.VMID{Value: *idPtr})
@@ -73,42 +120,4 @@ func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) ([]string, error)
 		rv = append(rv, VMNicId.Value)
 	}
 	return rv, nil
-}
-
-func GetVmNicInfo(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (*cirrina.VmNicInfo, error) {
-	res, err := c.GetVmNicInfo(ctx, &cirrina.VmNicId{Value: *idPtr})
-	if err != nil {
-		return &cirrina.VmNicInfo{}, err
-	}
-	return res, nil
-}
-
-func GetNicByName(namePtr *string, c cirrina.VMInfoClient, ctx context.Context) (nicId string, err error) {
-	if namePtr == nil || *namePtr == "" {
-		return "", errors.New("nic name not specified")
-	}
-
-	nicIds, err := GetVmNicsAll(c, ctx)
-	if err != nil {
-		return "", err
-	}
-
-	found := false
-	for _, aNicId := range nicIds {
-		res, err := GetVmNicInfo(&aNicId, c, ctx)
-		if err != nil {
-			return "", err
-		}
-		if *res.Name == *namePtr {
-			if found {
-				return "", errors.New("duplicate nic found")
-			}
-			found = true
-			nicId = aNicId
-		}
-	}
-	if !found {
-		return "", errors.New("disk not found")
-	}
-	return nicId, nil
 }

@@ -52,7 +52,7 @@ func RmDisk(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (bool, e
 	return res.Success, err
 }
 
-func GetDiskByName(namePtr *string, c cirrina.VMInfoClient, ctx context.Context) (diskId string, err error) {
+func DiskNameToId(namePtr *string, c cirrina.VMInfoClient, ctx context.Context) (diskId string, err error) {
 	if namePtr == nil || *namePtr == "" {
 		return "", errors.New("disk name not specified")
 	}

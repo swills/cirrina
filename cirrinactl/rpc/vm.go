@@ -11,12 +11,24 @@ func AddVM(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPt
 	if *namePtr == "" {
 		return "", errors.New("name not specified")
 	}
-	res, err := c.AddVM(ctx, &cirrina.VMConfig{
-		Name:        namePtr,
-		Description: descrPtr,
-		Cpu:         cpuPtr,
-		Mem:         memPtr,
-	})
+
+	VmConfig := &cirrina.VMConfig{
+		Name: namePtr,
+	}
+
+	if descrPtr != nil {
+		VmConfig.Description = descrPtr
+	}
+
+	if cpuPtr != nil {
+		VmConfig.Cpu = cpuPtr
+	}
+
+	if memPtr != nil {
+		VmConfig.Mem = memPtr
+	}
+
+	res, err := c.AddVM(ctx, VmConfig)
 	if err != nil {
 		return "", err
 	}
@@ -153,7 +165,106 @@ func VmNameToId(name string, c cirrina.VMInfoClient, ctx context.Context) (rid s
 	return rid, nil
 }
 
+func VmIdToName(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
+	res, err := GetVMConfig(idPtr, c, ctx)
+	if err != nil {
+		return "", err
+	}
+	return *res.Name, nil
+
+}
+
 func UpdateVMConfig(newConfig *cirrina.VMConfig, c cirrina.VMInfoClient, ctx context.Context) error {
 	_, err := c.UpdateVM(ctx, newConfig)
 	return err
+}
+
+func GetVmDisks(id string, c cirrina.VMInfoClient, ctx context.Context) (rv []string, err error) {
+	res, err := c.GetVmDisks(ctx, &cirrina.VMID{Value: id})
+	if err != nil {
+		return []string{}, err
+	}
+	for {
+		r2, err := res.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return []string{}, err
+		}
+		rv = append(rv, r2.Value)
+	}
+	return rv, nil
+}
+
+func VmSetDisks(id string, diskIds []string, c cirrina.VMInfoClient, ctx context.Context) (rv bool, err error) {
+	j := cirrina.SetDiskReq{
+		Id:     id,
+		Diskid: diskIds,
+	}
+	res, err := c.SetVmDisks(ctx, &j)
+	if err != nil {
+		return false, err
+	}
+	return res.Success, nil
+}
+
+func GetVmIsos(id string, c cirrina.VMInfoClient, ctx context.Context) (rv []string, err error) {
+	res, err := c.GetVmISOs(ctx, &cirrina.VMID{Value: id})
+	if err != nil {
+		return []string{}, err
+	}
+	for {
+		r2, err := res.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return []string{}, err
+		}
+		rv = append(rv, r2.Value)
+	}
+	return rv, nil
+}
+
+func VmSetIsos(id string, isoIds []string, c cirrina.VMInfoClient, ctx context.Context) (rv bool, err error) {
+	j := cirrina.SetISOReq{
+		Id:    id,
+		Isoid: isoIds,
+	}
+	res, err := c.SetVmISOs(ctx, &j)
+	if err != nil {
+		return false, err
+	}
+	return res.Success, nil
+}
+
+func GetVmNics(id string, c cirrina.VMInfoClient, ctx context.Context) (rv []string, err error) {
+	res, err := c.GetVmNics(ctx, &cirrina.VMID{Value: id})
+	if err != nil {
+		return []string{}, err
+	}
+	for {
+		r2, err := res.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return []string{}, err
+		}
+		rv = append(rv, r2.Value)
+	}
+	return rv, nil
+}
+
+func VmSetNics(id string, nicIds []string, c cirrina.VMInfoClient, ctx context.Context) (bool, error) {
+	j := cirrina.SetNicReq{
+		Vmid:    id,
+		Vmnicid: nicIds,
+	}
+	res, err := c.SetVmNics(ctx, &j)
+	if err != nil {
+		return false, err
+	}
+	return res.Success, nil
 }

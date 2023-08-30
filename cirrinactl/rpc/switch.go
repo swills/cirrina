@@ -52,10 +52,16 @@ func SwitchNameToId(s *string, c cirrina.VMInfoClient, ctx context.Context) (str
 				rv = switchId
 			}
 		}
-
 	}
-
 	return rv, nil
+}
+
+func SwitchIdToName(s string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
+	res, err := c.GetSwitchInfo(ctx, &cirrina.SwitchId{Value: s})
+	if err != nil {
+		return "", err
+	}
+	return *res.Name, nil
 }
 
 func GetSwitches(c cirrina.VMInfoClient, ctx context.Context) (cirrina.VMInfo_GetSwitchesClient, error) {
@@ -140,10 +146,7 @@ func SetVmNicSwitch(c cirrina.VMInfoClient, ctx context.Context, vmNicId string,
 	var vmswitchid cirrina.SwitchId
 
 	if vmNicId == "" {
-		return false, errors.New("vm NIC ID not specified")
-	}
-	if switchId == "" {
-		return false, errors.New("switch ID not specified")
+		return false, errors.New("nic id not specified")
 	}
 
 	vmnicid.Value = vmNicId

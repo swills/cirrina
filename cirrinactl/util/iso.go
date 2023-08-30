@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"bufio"
@@ -8,20 +8,25 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
+	"github.com/jedib0t/go-pretty/table"
+	"github.com/jedib0t/go-pretty/text"
 	"io"
 	"log"
 	"os"
 )
 
-func addISO(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string) {
+func AddISO(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string) {
 	if *namePtr == "" {
 		log.Fatalf("Name not specified")
 		return
 	}
 
 	j := &cirrina.ISOInfo{
-		Name:        namePtr,
-		Description: descrPtr,
+		Name: namePtr,
+	}
+
+	if descrPtr != nil {
+		j.Description = descrPtr
 	}
 
 	res, err := rpc.AddIso(j, c, ctx)
@@ -32,7 +37,7 @@ func addISO(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrP
 	fmt.Printf("Created ISO %v\n", res)
 }
 
-func uploadIso(c cirrina.VMInfoClient, ctx context.Context, idPtr *string, filePathPtr *string) {
+func UploadIso(c cirrina.VMInfoClient, ctx context.Context, idPtr *string, filePathPtr *string) {
 	if *idPtr == "" {
 		log.Fatalf("ID not specified")
 		return
@@ -138,4 +143,50 @@ func uploadIso(c cirrina.VMInfoClient, ctx context.Context, idPtr *string, fileP
 		fmt.Printf("cannot receive response: %v\n", err)
 	}
 	fmt.Printf("ISO Upload complete: %v\n", reply)
+}
+
+func ListIsos(c cirrina.VMInfoClient, ctx context.Context) {
+	ids, err := rpc.GetIsoIds(c, ctx)
+	if err != nil {
+		fmt.Printf("failed to get iso IDs: %s\n", err.Error())
+		return
+	}
+
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+
+	t.AppendHeader(table.Row{"NAME", "UUID", "DESCRIPTION"})
+	t.SetStyle(table.Style{
+		Name: "myNewStyle",
+		Box: table.BoxStyle{
+			MiddleHorizontal: "-", // bug in go-pretty causes panic if this is empty
+			PaddingRight:     "  ",
+		},
+		Format: table.FormatOptions{
+			Footer: text.FormatUpper,
+			Header: text.FormatUpper,
+			Row:    text.FormatDefault,
+		},
+		Options: table.Options{
+			DrawBorder:      false,
+			SeparateColumns: false,
+			SeparateFooter:  false,
+			SeparateHeader:  false,
+			SeparateRows:    false,
+		},
+	})
+	for _, id := range ids {
+		res, err := rpc.GetIsoInfo(&id, c, ctx)
+		if err != nil {
+			log.Fatalf("could not get VM: %v", err)
+			return
+		}
+		t.AppendRow(table.Row{
+			*res.Name,
+			id,
+			*res.Description,
+		})
+	}
+
+	t.Render()
 }

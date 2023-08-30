@@ -1,16 +1,18 @@
-package main
+package util
 
 import (
 	"cirrina/cirrina"
 	"cirrina/cirrinactl/rpc"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/jedib0t/go-pretty/text"
+	"google.golang.org/grpc/status"
 	"os"
 )
 
-func addDisk(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string, sizePtr *string, diskTypePtr *string) (diskId string, err error) {
+func AddDisk(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string, sizePtr *string, diskTypePtr *string) (diskId string, err error) {
 	var thisDiskType cirrina.DiskType
 
 	if *namePtr == "" {
@@ -42,7 +44,7 @@ func addDisk(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descr
 	return res, err
 }
 
-func getDisks(c cirrina.VMInfoClient, ctx context.Context) (err error) {
+func GetDisks(c cirrina.VMInfoClient, ctx context.Context) (err error) {
 	res, err := rpc.GetDisks(c, ctx)
 	if err != nil {
 		return err
@@ -82,4 +84,19 @@ func getDisks(c cirrina.VMInfoClient, ctx context.Context) (err error) {
 	}
 	t.Render()
 	return nil
+}
+
+func RmDisk(name string, c cirrina.VMInfoClient, ctx context.Context) {
+	diskId, err := rpc.DiskNameToId(&name, c, ctx)
+	if err != nil {
+		s := status.Convert(err)
+		fmt.Printf("error: could not delete disk: %s\n", s.Message())
+		return
+	}
+	_, err = rpc.RmDisk(&diskId, c, ctx)
+	if err != nil {
+		s := status.Convert(err)
+		fmt.Printf("error: could not delete disk: %s\n", s.Message())
+		return
+	}
 }

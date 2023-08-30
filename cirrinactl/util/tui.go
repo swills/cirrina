@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	pb "cirrina/cirrina"
@@ -19,6 +19,7 @@ type vmItem struct {
 	desc string
 }
 
+var serverAddr string
 var app *tview.Application
 var mainFlex *tview.Flex
 var infoFlex *tview.Flex
@@ -216,7 +217,8 @@ func vmSelectedFunc(_ int, _ string, _ string, _ rune) {
 	app.SetFocus(infoFlex)
 }
 
-func startTui() {
+func StartTui(STserverAddr string) {
+	serverAddr = STserverAddr
 	title := fmt.Sprintf(" cirrinactl - %v ", serverAddr)
 
 	vmList = tview.NewList()

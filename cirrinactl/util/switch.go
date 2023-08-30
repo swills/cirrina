@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"cirrina/cirrina"
@@ -70,4 +70,23 @@ func AddSwitch(name string, c cirrina.VMInfoClient, ctx context.Context, descrip
 		return true
 	}
 	return false
+}
+
+func RmSwitch(name string, c cirrina.VMInfoClient, ctx context.Context) {
+	switchId, err := rpc.SwitchNameToId(&name, c, ctx)
+	if err != nil {
+		s := status.Convert(err)
+		fmt.Printf("error: could not delete switch: %s\n", s.Message())
+		return
+	}
+	if switchId == "" {
+		fmt.Printf("error: could not find switch: no switch with the given name found\n")
+		return
+	}
+	err = rpc.RemoveSwitch(&switchId, c, ctx)
+	if err != nil {
+		s := status.Convert(err)
+		fmt.Printf("error: could not delete switch: %s\n", s.Message())
+	}
+	return
 }

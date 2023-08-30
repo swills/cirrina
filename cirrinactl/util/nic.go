@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"cirrina/cirrina"
@@ -7,11 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/jedib0t/go-pretty/table"
+	"google.golang.org/grpc/status"
 	"log"
 	"os"
 )
 
-func addVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrptr *string, nettypeptr *string, netdevtypeptr *string, macPtr *string, switchIdPtr *string) (nicId string, err error) {
+func AddVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrptr *string, nettypeptr *string, netdevtypeptr *string, macPtr *string, switchIdPtr *string) (nicId string, err error) {
 	var thisVmNic cirrina.VmNicInfo
 	var thisNetType cirrina.NetType
 	var thisNetDevType cirrina.NetDevType
@@ -48,27 +49,23 @@ func addVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrpt
 	return res.Value, nil
 }
 
-func rmVmNic(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
-	res, err := rpc.RmNic(idPtr, c, ctx)
+func RmVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context) {
+	nicId, err := rpc.NicNameToId(name, c, ctx)
+	if err != nil {
+		s := status.Convert(err)
+		fmt.Printf("error: could not delete nic: %s\n", s.Message())
+		return
+	}
+	res, err := rpc.RmNic(&nicId, c, ctx)
 	if err != nil {
 		log.Fatalf("could not delete switch: %v", err)
 	}
-	if res {
-		fmt.Printf("Deleted successful")
-	} else {
-		fmt.Printf("Delete failed")
+	if !res {
+		fmt.Printf("Delete failed\n")
 	}
 }
 
-func getVmNics(c cirrina.VMInfoClient, ctx context.Context, idPtr *string) {
-	if *idPtr == "" {
-		getVmNicsAll(c, ctx)
-	} else {
-		getVmNicsOne(c, ctx, idPtr)
-	}
-}
-
-func getVmNicsOne(c cirrina.VMInfoClient, ctx context.Context, idPtr *string) {
+func GetVmNicsOne(c cirrina.VMInfoClient, ctx context.Context, idPtr *string) {
 	res, err := rpc.GetVmNicOne(idPtr, c, ctx)
 	if err != nil {
 		log.Fatalf("could not get Nic: %v", err)
@@ -77,7 +74,7 @@ func getVmNicsOne(c cirrina.VMInfoClient, ctx context.Context, idPtr *string) {
 	fmt.Printf("VmNic: id: %v\n", res)
 }
 
-func getVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
+func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 	res, err := rpc.GetVmNicsAll(c, ctx)
 	if err != nil {
 		log.Fatalf("could not get VmNics: %v", err)
@@ -132,7 +129,7 @@ func getVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 	t.Render()
 }
 
-func getVmNic(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
+func GetVmNic(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 	var netTypeString string
 	var netDevTypeString string
 	var descriptionStr string
@@ -181,6 +178,15 @@ func getVmNic(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 	)
 }
 
-func setVmNicVm(_ cirrina.VMInfoClient, _ context.Context) {
-
+func NicSetSwitch(nicId string, switchId string, c cirrina.VMInfoClient, ctx context.Context) {
+	res, err := rpc.SetVmNicSwitch(c, ctx, nicId, switchId)
+	if err != nil {
+		s := status.Convert(err)
+		fmt.Printf("error111: could not add nic to switch: %s\n", s.Message())
+	}
+	if res {
+		fmt.Printf("Added NIC to switch\n")
+	} else {
+		fmt.Printf("Failed to add NIC to switch\n")
+	}
 }
