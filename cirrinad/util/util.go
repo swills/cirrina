@@ -150,6 +150,9 @@ func GetHostInterfaces() []string {
 		if strings.HasPrefix(inter.Name, "tap") {
 			continue
 		}
+		if strings.HasPrefix(inter.Name, "epair") {
+			continue
+		}
 		if inter.HardwareAddr.String() == "" {
 			continue
 		}
