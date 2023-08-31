@@ -150,9 +150,10 @@ func GetHostInterfaces() []string {
 		if strings.HasPrefix(inter.Name, "tap") {
 			continue
 		}
-		if strings.HasPrefix(inter.Name, "epair") {
-			continue
-		}
+		// include epair for now, need to exclude ones created by cirrinad, but list ones the user may have created
+		//if strings.HasPrefix(inter.Name, "epair") {
+		//	continue
+		//}
 		if inter.HardwareAddr.String() == "" {
 			continue
 		}
