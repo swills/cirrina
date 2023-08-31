@@ -22,7 +22,6 @@ func AddVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrpt
 	thisVmNic.Mac = macPtr
 	thisVmNic.Switchid = switchIdPtr
 
-	fmt.Printf("net type: %s, net dev type: %s\n", *nettypeptr, *netdevtypeptr)
 	if *nettypeptr == "VIRTIONET" || *nettypeptr == "virtio-net" {
 		thisNetType = cirrina.NetType_VIRTIONET
 	} else if *nettypeptr == "E1000" || *nettypeptr == "e1000" {
