@@ -34,11 +34,11 @@ cirranactl:
     - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
     - export GOOS=windows
     - export GOARCH=amd64
-    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}.exe .
     - export GOARCH=386
-    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}.exe .
     - export GOARCH=arm64
-    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}.exe .
     - export GOOS=darwin
     - export GOARCH=amd64
     - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
@@ -57,9 +57,9 @@ cirranactl:
       - ./cirrinactl/cirrinactl-freebsd-amd64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
       - ./cirrinactl/cirrinactl-freebsd-386-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
       - ./cirrinactl/cirrinactl-freebsd-arm64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
-      - ./cirrinactl/cirrinactl-windows-amd64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
-      - ./cirrinactl/cirrinactl-windows-386-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
-      - ./cirrinactl/cirrinactl-windows-arm64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
+      - ./cirrinactl/cirrinactl-windows-amd64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}.exe
+      - ./cirrinactl/cirrinactl-windows-386-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}.exe
+      - ./cirrinactl/cirrinactl-windows-arm64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}.exe
       - ./cirrinactl/cirrinactl-darwin-amd64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
       - ./cirrinactl/cirrinactl-darwin-arm64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
       - ./cirrinactl/cirrinactl-linux-amd64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
