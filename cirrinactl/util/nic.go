@@ -22,6 +22,7 @@ func AddVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrpt
 	thisVmNic.Mac = macPtr
 	thisVmNic.Switchid = switchIdPtr
 
+	fmt.Printf("net type: %s, net dev type: %s\n", *nettypeptr, *netdevtypeptr)
 	if *nettypeptr == "VIRTIONET" || *nettypeptr == "virtio-net" {
 		thisNetType = cirrina.NetType_VIRTIONET
 	} else if *nettypeptr == "E1000" || *nettypeptr == "e1000" {
@@ -31,12 +32,12 @@ func AddVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrpt
 	}
 	if *netdevtypeptr == "TAP" || *netdevtypeptr == "tap" {
 		thisNetDevType = cirrina.NetDevType_TAP
-	} else if *nettypeptr == "VMNET" || *nettypeptr == "vmnet" {
+	} else if *netdevtypeptr == "VMNET" || *netdevtypeptr == "vmnet" {
 		thisNetDevType = cirrina.NetDevType_VMNET
-	} else if *nettypeptr == "NETGRAPH" || *nettypeptr == "netgraph" {
+	} else if *netdevtypeptr == "NETGRAPH" || *netdevtypeptr == "netgraph" {
 		thisNetDevType = cirrina.NetDevType_NETGRAPH
 	} else {
-		return "", errors.New("net dev type must be either TAP or VMNET or NETGRAPH")
+		return "", errors.New("net dev type must be one of TAP or VMNET or NETGRAPH")
 	}
 
 	thisVmNic.Nettype = &thisNetType
