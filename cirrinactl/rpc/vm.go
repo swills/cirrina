@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"strconv"
 )
 
 func AddVM(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string, cpuPtr *uint32, memPtr *uint32) (reqId string, err error) {
@@ -97,13 +98,13 @@ func GetVmIds(c cirrina.VMInfoClient, ctx context.Context) (ids []string, err er
 	return ids, nil
 }
 
-func GetVMState(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
+func GetVMState(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (string, string, string, error) {
 	if *idPtr == "" {
-		return "", errors.New("id not specified")
+		return "", "", "", errors.New("id not specified")
 	}
 	res, err := c.GetVMState(ctx, &cirrina.VMID{Value: *idPtr})
 	if err != nil {
-		return "", err
+		return "", "", "", err
 	}
 	var vmstate string
 	switch res.Status {
@@ -116,11 +117,11 @@ func GetVMState(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (str
 	case cirrina.VmStatus_STATUS_STOPPING:
 		vmstate = "stopping"
 	}
-	return vmstate, nil
+	return vmstate, strconv.FormatInt(int64(res.VncPort), 10), strconv.FormatInt(int64(res.DebugPort), 10), nil
 }
 
 func VmRunning(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (bool, error) {
-	r, err := GetVMState(idPtr, c, ctx)
+	r, _, _, err := GetVMState(idPtr, c, ctx)
 	if err != nil {
 		return false, err
 	}
@@ -131,7 +132,7 @@ func VmRunning(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (bool
 }
 
 func VmStopped(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (bool, error) {
-	r, err := GetVMState(idPtr, c, ctx)
+	r, _, _, err := GetVMState(idPtr, c, ctx)
 	if err != nil {
 		return false, err
 	}

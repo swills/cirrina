@@ -17,6 +17,12 @@ func GetVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 	if err != nil {
 		log.Fatalf("Error getting VM: %v\n", err.Error())
 	}
+
+	res2, vncPort, debugPort, err := rpc.GetVMState(idPtr, c, ctx)
+	if err != nil {
+		log.Fatalf("Error getting VM: %v\n", err.Error())
+	}
+
 	// TODO JSON output
 	fmt.Printf(
 		"name: %v "+
@@ -55,6 +61,7 @@ func GetVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 		*res.Vncport,
 		*res.Autostart,
 	)
+	fmt.Printf("status: %s\nvnc port: %s\ndebug port: %s\n", res2, vncPort, debugPort)
 }
 
 func GetVMs(c cirrina.VMInfoClient, ctx context.Context) {
@@ -91,7 +98,7 @@ func GetVMs(c cirrina.VMInfoClient, ctx context.Context) {
 			log.Fatalf("could not get VM: %v", err)
 			return
 		}
-		status, err := rpc.GetVMState(&id, c, ctx)
+		status, _, _, err := rpc.GetVMState(&id, c, ctx)
 		if err != nil {
 			log.Fatalf("could not get VM: %v", err)
 			return

@@ -125,7 +125,7 @@ func UseCom(c cirrina.VMInfoClient, idPtr *string, comNum int) (err error) {
 			_ = term.Restore(int(os.Stdin.Fd()), oldState)
 			return nil
 		default:
-			res, err := GetVMState(idPtr, c, ctx)
+			res, _, _, err := GetVMState(idPtr, c, ctx)
 			if err != nil {
 				_ = stream.CloseSend()
 				ctxCancel()
