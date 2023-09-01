@@ -16,6 +16,10 @@ var CpusChanged bool
 var DescriptionChanged bool
 var Mem uint32
 var MemChanged bool
+var Debug bool
+var DebugChanged bool
+var DebugWait bool
+var DebugWaitChanged bool
 
 var VmCreateCmd = &cobra.Command{
 	Use:   "create",
@@ -184,6 +188,8 @@ var VmConfigCmd = &cobra.Command{
 		CpusChanged = cmd.Flags().Changed("cpus")
 		MemChanged = cmd.Flags().Changed("mem")
 		AutoStartChanged = cmd.Flags().Changed("autostart")
+		DebugChanged = cmd.Flags().Changed("debug")
+		DebugWaitChanged = cmd.Flags().Changed("debug-wait")
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -243,6 +249,61 @@ var VmConfigCmd = &cobra.Command{
 		if AutoStartChanged {
 			newConfig.Autostart = &AutoStart
 		}
+
+		if DebugChanged {
+			newConfig.Debug = &Debug
+		}
+		if DebugWaitChanged {
+			newConfig.DebugWait = &DebugWait
+		}
+
+		//	AutostartDelay *uint32 `protobuf:"varint,50,opt,name=autostart_delay,json=autostartDelay,proto3,oneof" json:"autostart_delay,omitempty"`
+		//	Restart        *bool   `protobuf:"varint,7,opt,name=restart,proto3,oneof" json:"restart,omitempty"`
+		//	RestartDelay   *uint32 `protobuf:"varint,8,opt,name=restart_delay,json=restartDelay,proto3,oneof" json:"restart_delay,omitempty"`
+		//	MaxWait        *uint32 `protobuf:"varint,6,opt,name=max_wait,json=maxWait,proto3,oneof" json:"max_wait,omitempty"`
+
+		//	DebugPort      *string `protobuf:"bytes,53,opt,name=debug_port,json=debugPort,proto3,oneof" json:"debug_port,omitempty"`
+
+		//	Screen         *bool   `protobuf:"varint,9,opt,name=screen,proto3,oneof" json:"screen,omitempty"`
+		//	ScreenWidth    *uint32 `protobuf:"varint,10,opt,name=screen_width,json=screenWidth,proto3,oneof" json:"screen_width,omitempty"`
+		//	ScreenHeight   *uint32 `protobuf:"varint,11,opt,name=screen_height,json=screenHeight,proto3,oneof" json:"screen_height,omitempty"`
+		//	Vncport        *string `protobuf:"bytes,24,opt,name=vncport,proto3,oneof" json:"vncport,omitempty"`
+		//	Vncwait        *bool   `protobuf:"varint,12,opt,name=vncwait,proto3,oneof" json:"vncwait,omitempty"`
+
+		//	Sound          *bool   `protobuf:"varint,30,opt,name=sound,proto3,oneof" json:"sound,omitempty"`
+		//	SoundIn        *string `protobuf:"bytes,31,opt,name=sound_in,json=soundIn,proto3,oneof" json:"sound_in,omitempty"`
+		//	SoundOut       *string `protobuf:"bytes,32,opt,name=sound_out,json=soundOut,proto3,oneof" json:"sound_out,omitempty"`
+
+		//	Com1           *bool   `protobuf:"varint,33,opt,name=com1,proto3,oneof" json:"com1,omitempty"`
+		//	Com1Dev        *string `protobuf:"bytes,34,opt,name=com1dev,proto3,oneof" json:"com1dev,omitempty"`
+		//	Com2           *bool   `protobuf:"varint,35,opt,name=com2,proto3,oneof" json:"com2,omitempty"`
+		//	Com2Dev        *string `protobuf:"bytes,36,opt,name=com2dev,proto3,oneof" json:"com2dev,omitempty"`
+		//	Com3           *bool   `protobuf:"varint,37,opt,name=com3,proto3,oneof" json:"com3,omitempty"`
+		//	Com3Dev        *string `protobuf:"bytes,38,opt,name=com3dev,proto3,oneof" json:"com3dev,omitempty"`
+		//	Com4           *bool   `protobuf:"varint,39,opt,name=com4,proto3,oneof" json:"com4,omitempty"`
+		//	Com4Dev        *string `protobuf:"bytes,40,opt,name=com4dev,proto3,oneof" json:"com4dev,omitempty"`
+		//	Com1Log        *bool   `protobuf:"varint,42,opt,name=com1log,proto3,oneof" json:"com1log,omitempty"`
+		//	Com2Log        *bool   `protobuf:"varint,43,opt,name=com2log,proto3,oneof" json:"com2log,omitempty"`
+		//	Com3Log        *bool   `protobuf:"varint,44,opt,name=com3log,proto3,oneof" json:"com3log,omitempty"`
+		//	Com4Log        *bool   `protobuf:"varint,45,opt,name=com4log,proto3,oneof" json:"com4log,omitempty"`
+		//	Com1Speed      *uint32 `protobuf:"varint,46,opt,name=com1speed,proto3,oneof" json:"com1speed,omitempty"`
+		//	Com2Speed      *uint32 `protobuf:"varint,47,opt,name=com2speed,proto3,oneof" json:"com2speed,omitempty"`
+		//	Com3Speed      *uint32 `protobuf:"varint,48,opt,name=com3speed,proto3,oneof" json:"com3speed,omitempty"`
+		//	Com4Speed      *uint32 `protobuf:"varint,49,opt,name=com4speed,proto3,oneof" json:"com4speed,omitempty"`
+
+		//	Wireguestmem   *bool   `protobuf:"varint,13,opt,name=wireguestmem,proto3,oneof" json:"wireguestmem,omitempty"`
+		//	Tablet         *bool   `protobuf:"varint,14,opt,name=tablet,proto3,oneof" json:"tablet,omitempty"`
+		//	Storeuefi      *bool   `protobuf:"varint,15,opt,name=storeuefi,proto3,oneof" json:"storeuefi,omitempty"`
+		//	Utc            *bool   `protobuf:"varint,16,opt,name=utc,proto3,oneof" json:"utc,omitempty"`
+		//	Hostbridge     *bool   `protobuf:"varint,17,opt,name=hostbridge,proto3,oneof" json:"hostbridge,omitempty"`
+		//	Acpi           *bool   `protobuf:"varint,18,opt,name=acpi,proto3,oneof" json:"acpi,omitempty"`
+		//	Hlt            *bool   `protobuf:"varint,19,opt,name=hlt,proto3,oneof" json:"hlt,omitempty"`
+		//	Eop            *bool   `protobuf:"varint,20,opt,name=eop,proto3,oneof" json:"eop,omitempty"`
+		//	Dpo            *bool   `protobuf:"varint,21,opt,name=dpo,proto3,oneof" json:"dpo,omitempty"`
+		//	Ium            *bool   `protobuf:"varint,22,opt,name=ium,proto3,oneof" json:"ium,omitempty"`
+		//	Keyboard       *string `protobuf:"bytes,26,opt,name=keyboard,proto3,oneof" json:"keyboard,omitempty"`
+
+		//	ExtraArgs      *string `protobuf:"bytes,41,opt,name=extra_args,json=extraArgs,proto3,oneof" json:"extra_args,omitempty"`
 
 		err = rpc.UpdateVMConfig(&newConfig, c, ctx)
 		if err != nil {
@@ -693,7 +754,9 @@ func init() {
 	VmConfigCmd.Flags().StringVarP(&Description, "description", "d", Description, "Description of VM")
 	VmConfigCmd.Flags().Uint8VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
 	VmConfigCmd.Flags().Uint32VarP(&Mem, "mem", "m", Mem, "Amount of virtual memory in megabytes")
-	VmConfigCmd.Flags().BoolVar(&AutoStart, "autostart", AutoStart, "autostart VM")
+	VmConfigCmd.Flags().BoolVarP(&AutoStart, "autostart", "A", AutoStart, "Autostart VM")
+	VmConfigCmd.Flags().BoolVarP(&Debug, "debug", "D", Debug, "Enable Debug server")
+	VmConfigCmd.Flags().BoolVar(&DebugWait, "debug-wait", DebugWait, "Wait for connection to debug server before starting VM")
 
 	VmGetCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")

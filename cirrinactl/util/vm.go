@@ -42,6 +42,8 @@ func GetVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 			"\nignore unknown msr: %v "+
 			"\nvnc port: %v "+
 			"\nauto start: %v"+
+			"\ndebug: %v"+
+			"\ndebug wait: %v"+
 			"\n",
 		*res.Name,
 		*res.Description,
@@ -60,6 +62,8 @@ func GetVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 		*res.Ium,
 		*res.Vncport,
 		*res.Autostart,
+		*res.Debug,
+		*res.DebugWait,
 	)
 	fmt.Printf("status: %s\nvnc port: %s\ndebug port: %s\n", res2, vncPort, debugPort)
 }
