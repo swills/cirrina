@@ -157,13 +157,9 @@ message VMConfig {
   optional bool eop = 20;
   optional bool dpo = 21;
   optional bool ium = 22;
-  optional bool net = 23;
   optional string vncport = 24;
-  optional string mac = 25;
   optional string keyboard = 26;
   optional bool autostart = 27;
-  optional NetDevType netdevtype = 28;
-  optional NetType nettype = 29;
   optional bool sound = 30;
   optional string sound_in = 31;
   optional string sound_out = 32;
