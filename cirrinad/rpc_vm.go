@@ -403,9 +403,7 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Com3Speed = &vmInst.Config.Com3Speed
 	pvm.Com4Speed = &vmInst.Config.Com4Speed
 	pvm.AutostartDelay = &vmInst.Config.AutoStartDelay
-	if vmInst.Config.ExtraArgs != "" {
-		pvm.ExtraArgs = &vmInst.Config.ExtraArgs
-	}
+	pvm.ExtraArgs = &vmInst.Config.ExtraArgs
 	pvm.Debug = &vmInst.Config.Debug
 	pvm.DebugWait = &vmInst.Config.DebugWait
 	pvm.DebugPort = &vmInst.Config.DebugPort

@@ -26,47 +26,92 @@ func GetVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 
 	// TODO JSON output
 	fmt.Printf(
-		"name: %v "+
-			"\ndesc: %v "+
-			"\ncpus: %v "+
-			"\nmem: %v "+
-			"\nvncWait: %v "+
-			"\nwire guest mem: %v "+
-			"\ntablet mode: %v "+
-			"\nstore uefi vars: %v "+
-			"\nuse utc time: %v "+
-			"\nuse host bridge: %v "+
-			"\ngenerate acpi tables: %v "+
-			"\nyield on HLT: %v "+
-			"\nexit on PAUSE: %v "+
-			"\ndestroy on power off: %v "+
-			"\nignore unknown msr: %v "+
-			"\nvnc port: %v "+
-			"\nauto start: %v"+
-			"\ndebug: %v"+
-			"\ndebug wait: %v"+
+		"name: %v"+
+			"\nid: %v"+
+			"\ndesc: %v"+
+			"\ncpus: %v"+
+			"\nmem: %v"+
 			"\n",
 		*res.Name,
+		*idPtr,
 		*res.Description,
 		*res.Cpu,
 		*res.Mem,
+	)
+
+	fmt.Printf(
+		"\nscreen: %v"+
+			"\nvnc port: %v"+
+			"\nscreen width: %v"+
+			"\nscreen height: %v"+
+			"\nvncWait: %v"+
+			"\ntablet mode: %v"+
+			"\nkeyboard: %v"+
+			"\n",
+		*res.Screen,
+		*res.Vncport,
+		*res.ScreenWidth,
+		*res.ScreenHeight,
 		*res.Vncwait,
-		*res.Wireguestmem,
 		*res.Tablet,
+		*res.Keyboard,
+	)
+
+	fmt.Printf(
+		"\nsound: %v"+
+			"\nsound input: %v"+
+			"\nsound output: %v"+
+			"\n",
+		*res.Sound,
+		*res.SoundIn,
+		*res.SoundOut,
+	)
+
+	fmt.Printf(
+		"\nauto start: %v"+
+			"\nauto start delay: %v"+
+			"\nrestart: %v"+
+			"\nrestart delay: %v"+
+			"\nmax wait: %v"+
+			"\n",
+		*res.Autostart,
+		*res.AutostartDelay,
+		*res.Restart,
+		*res.RestartDelay,
+		*res.MaxWait,
+	)
+
+	fmt.Printf(
+		"\nstore uefi vars: %v"+
+			"\nuse utc time: %v "+
+			"\ndestroy on power off: %v"+
+			"\nwire guest mem: %v"+
+			"\nuse host bridge: %v"+
+			"\ngenerate acpi tables: %v"+
+			"\nexit on PAUSE: %v"+
+			"\nignore unknown msr: %v"+
+			"\nyield on HLT: %v"+
+			"\ndebug: %v"+
+			"\ndebug wait: %v"+
+			"\ndebug port: %v"+
+			"\nextra args: %v"+
+			"\n",
 		*res.Storeuefi,
 		*res.Utc,
+		*res.Dpo,
+		*res.Wireguestmem,
 		*res.Hostbridge,
 		*res.Acpi,
-		*res.Hlt,
 		*res.Eop,
-		*res.Dpo,
 		*res.Ium,
-		*res.Vncport,
-		*res.Autostart,
+		*res.Hlt,
 		*res.Debug,
 		*res.DebugWait,
+		*res.DebugPort,
+		*res.ExtraArgs,
 	)
-	fmt.Printf("status: %s\nvnc port: %s\ndebug port: %s\n", res2, vncPort, debugPort)
+
+	fmt.Printf("\nstatus: %s\nvnc port: %s\ndebug port: %s\n", res2, vncPort, debugPort)
 }
 
 func GetVMs(c cirrina.VMInfoClient, ctx context.Context) {
