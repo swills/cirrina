@@ -86,7 +86,7 @@ func init() {
 	}
 
 	IsoUploadCmd.Flags().StringVarP(&IsoId, "id", "i", IsoId, "Id of ISO to upload")
-	IsoUploadCmd.Flags().StringVarP(&IsoFilePath, "path", "P", IsoFilePath, "Path to ISO File to upload")
+	IsoUploadCmd.Flags().StringVarP(&IsoFilePath, "path", "p", IsoFilePath, "Path to ISO File to upload")
 	err = IsoUploadCmd.MarkFlagRequired("id")
 	if err != nil {
 		log.Fatalf(err.Error())

@@ -97,7 +97,7 @@ func init() {
 		log.Fatalf(err.Error())
 	}
 	SwitchCreateCmd.Flags().StringVarP(&Description, "description", "d", Description, "description of switch")
-	SwitchCreateCmd.Flags().StringVarP(&SwitchType, "type", "T", SwitchType, "type of switch")
+	SwitchCreateCmd.Flags().StringVarP(&SwitchType, "type", "t", SwitchType, "type of switch")
 
 	SwitchDestroyCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of switch")
 	err = SwitchDestroyCmd.MarkFlagRequired("name")

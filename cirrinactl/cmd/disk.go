@@ -27,7 +27,10 @@ var DiskListCmd = &cobra.Command{
 			_ = conn.Close()
 		}(conn)
 		defer cancel()
-		util.GetDisks(c, ctx)
+		err = util.GetDisks(c, ctx)
+		if err != nil {
+			log.Fatal(err)
+		}
 	},
 }
 
@@ -43,7 +46,10 @@ var DiskCreateCmd = &cobra.Command{
 			_ = conn.Close()
 		}(conn)
 		defer cancel()
-		util.AddDisk(&DiskName, c, ctx, &DiskDescription, &DiskSize, &DiskType)
+		_, err = util.AddDisk(&DiskName, c, ctx, &DiskDescription, &DiskSize, &DiskType)
+		if err != nil {
+			log.Fatal(err)
+		}
 	},
 }
 
@@ -74,13 +80,13 @@ func init() {
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	DiskCreateCmd.Flags().StringVarP(&DiskSize, "size", "S", DiskName, "size of disk")
+	DiskCreateCmd.Flags().StringVarP(&DiskSize, "size", "s", DiskName, "size of disk")
 	err = DiskCreateCmd.MarkFlagRequired("size")
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
 	DiskCreateCmd.Flags().StringVarP(&DiskDescription, "description", "d", DiskDescription, "description of disk")
-	DiskCreateCmd.Flags().StringVarP(&DiskType, "type", "T", DiskType, "type of disk")
+	DiskCreateCmd.Flags().StringVarP(&DiskType, "type", "t", DiskType, "type of disk")
 
 	DiskRemoveCmd.Flags().StringVarP(&DiskName, "name", "n", DiskName, "name of disk")
 	err = DiskRemoveCmd.MarkFlagRequired("name")

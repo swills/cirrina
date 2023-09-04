@@ -21,9 +21,9 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&conn2.ServerName, "server", "s", "localhost", "server")
-	rootCmd.PersistentFlags().Uint16VarP(&conn2.ServerPort, "port", "p", uint16(50051), "port")
-	rootCmd.PersistentFlags().Uint64VarP(&conn2.ServerTimeout, "timeout", "t", uint64(1), "timeout in seconds")
+	rootCmd.PersistentFlags().StringVarP(&conn2.ServerName, "server", "S", "localhost", "server")
+	rootCmd.PersistentFlags().Uint16VarP(&conn2.ServerPort, "port", "P", uint16(50051), "port")
+	rootCmd.PersistentFlags().Uint64VarP(&conn2.ServerTimeout, "timeout", "T", uint64(1), "timeout in seconds")
 
 	// some VM commands are duplicated at the root
 	rootCmd.AddCommand(VmCreateCmd)

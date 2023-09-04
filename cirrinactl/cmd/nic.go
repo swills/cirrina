@@ -126,10 +126,10 @@ func init() {
 		log.Fatalf(err.Error())
 	}
 	NicCreateCmd.Flags().StringVarP(&NicDescription, "description", "d", NicDescription, "description of NIC")
-	NicCreateCmd.Flags().StringVarP(&NicType, "type", "T", NicType, "type of NIC")
+	NicCreateCmd.Flags().StringVarP(&NicType, "type", "t", NicType, "type of NIC")
 	NicCreateCmd.Flags().StringVarP(&NicDevType, "devtype", "v", NicDevType, "NIC dev type")
 	NicCreateCmd.Flags().StringVarP(&NicMac, "mac", "m", NicMac, "MAC address of NIC")
-	NicCreateCmd.Flags().StringVarP(&NicSwitchId, "switch", "S", NicSwitchId, "uplink switch ID of NIC")
+	NicCreateCmd.Flags().StringVarP(&NicSwitchId, "switch", "s", NicSwitchId, "uplink switch ID of NIC")
 
 	NicRemoveCmd.Flags().StringVarP(&NicName, "name", "n", NicName, "name of NIC")
 	err = NicRemoveCmd.MarkFlagRequired("name")
