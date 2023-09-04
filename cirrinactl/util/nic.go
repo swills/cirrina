@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/status"
 	"log"
 	"os"
+	"sort"
 )
 
 func AddVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrptr *string, nettypeptr *string, netdevtypeptr *string, macPtr *string, switchIdPtr *string) (nicId string, err error) {
@@ -87,8 +88,19 @@ func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 	t.AppendHeader(table.Row{"NAME", "UUID", "NETDEVTYPE", "NETTYPE", "RATELIMITED", "DESCRIPTION"})
 	t.SetStyle(myTableStyle)
 
-	for _, r := range res {
-		res2, err := rpc.GetVmNicInfo(&r, c, ctx)
+	var names []string
+	type ThisNicInfo struct {
+		id          string
+		nettype     string
+		netdevtype  string
+		ratelimited string
+		descr       string
+	}
+
+	nicInfos := make(map[string]ThisNicInfo)
+
+	for _, id := range res {
+		res2, err := rpc.GetVmNicInfo(&id, c, ctx)
 		if err != nil {
 			log.Fatalf("could not get VmNics: %v", err)
 			return
@@ -117,15 +129,32 @@ func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 			rateLimited = "no"
 		}
 
-		t.AppendRow(table.Row{
-			*res2.Name,
-			r,
-			netDevType,
-			netType,
-			rateLimited,
-			*res2.Description,
-		})
+		aIsoInfo := ThisNicInfo{
+			id:          id,
+			nettype:     netType,
+			netdevtype:  netDevType,
+			ratelimited: rateLimited,
+			descr:       *res2.Description,
+		}
+		nicInfos[*res2.Name] = aIsoInfo
+		names = append(names, *res2.Name)
+
 	}
+
+	sort.Strings(names)
+
+	for _, a := range names {
+		t.AppendRow(table.Row{
+			a,
+			nicInfos[a].id,
+			nicInfos[a].netdevtype,
+			nicInfos[a].nettype,
+			nicInfos[a].ratelimited,
+			nicInfos[a].descr,
+		})
+
+	}
+
 	t.Render()
 }
 

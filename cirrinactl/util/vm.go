@@ -10,6 +10,7 @@ import (
 	"github.com/jedib0t/go-pretty/text"
 	"log"
 	"os"
+	"sort"
 )
 
 func GetVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
@@ -73,29 +74,18 @@ func GetVMs(c cirrina.VMInfoClient, ctx context.Context) {
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
 
-	t.AppendHeader(table.Row{"NAME", "UUID", "CPUS", "MEMORY", "STATE", "DESCRIPTION"})
-	t.SetStyle(table.Style{
-		Name: "myNewStyle",
-		Box: table.BoxStyle{
-			MiddleHorizontal: "-", // bug in go-pretty causes panic if this is empty
-			PaddingRight:     "  ",
-		},
-		Format: table.FormatOptions{
-			Footer: text.FormatUpper,
-			Header: text.FormatUpper,
-			Row:    text.FormatDefault,
-		},
-		Options: table.Options{
-			DrawBorder:      false,
-			SeparateColumns: false,
-			SeparateFooter:  false,
-			SeparateHeader:  false,
-			SeparateRows:    false,
-		},
-	})
+	var names []string
+	type ThisVmInfo struct {
+		id      string
+		cpu     uint32
+		mem     uint32
+		sstatus string
+		descr   string
+	}
+
+	vmInfos := make(map[string]ThisVmInfo)
+
 	for _, id := range ids {
 		res, err := rpc.GetVMConfig(&id, c, ctx)
 		if err != nil {
@@ -119,16 +109,52 @@ func GetVMs(c cirrina.VMInfoClient, ctx context.Context) {
 			sstatus = color.YellowString("STOPPING")
 		}
 
-		t.AppendRow(table.Row{
-			*res.Name,
-			id,
-			*res.Cpu,
-			*res.Mem,
-			sstatus,
-			*res.Description,
-		})
+		aVmInfo := ThisVmInfo{
+			id:      id,
+			cpu:     *res.Cpu,
+			mem:     *res.Mem,
+			sstatus: sstatus,
+			descr:   *res.Description,
+		}
+		vmInfos[*res.Name] = aVmInfo
+		names = append(names, *res.Name)
 	}
 
+	sort.Strings(names)
+
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"NAME", "UUID", "CPUS", "MEMORY", "STATE", "DESCRIPTION"})
+	t.SetStyle(table.Style{
+		Name: "myNewStyle",
+		Box: table.BoxStyle{
+			MiddleHorizontal: "-", // bug in go-pretty causes panic if this is empty
+			PaddingRight:     "  ",
+		},
+		Format: table.FormatOptions{
+			Footer: text.FormatUpper,
+			Header: text.FormatUpper,
+			Row:    text.FormatDefault,
+		},
+		Options: table.Options{
+			DrawBorder:      false,
+			SeparateColumns: false,
+			SeparateFooter:  false,
+			SeparateHeader:  false,
+			SeparateRows:    false,
+		},
+	})
+	for _, a := range names {
+		t.AppendRow(table.Row{
+			a,
+			vmInfos[a].id,
+			vmInfos[a].cpu,
+			vmInfos[a].mem,
+			vmInfos[a].sstatus,
+			vmInfos[a].descr,
+		})
+
+	}
 	t.Render()
 }
 

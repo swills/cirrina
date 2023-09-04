@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"github.com/jedib0t/go-pretty/table"
 	"google.golang.org/grpc/status"
-	"io"
 	"log"
 	"os"
+	"sort"
 )
 
 func GetSwitches(c cirrina.VMInfoClient, ctx context.Context) {
@@ -19,21 +19,18 @@ func GetSwitches(c cirrina.VMInfoClient, ctx context.Context) {
 		return
 	}
 
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
+	var names []string
+	type ThisSwitchInfo struct {
+		id         string
+		switchtype string
+		uplink     string
+		descr      string
+	}
 
-	t.AppendHeader(table.Row{"NAME", "UUID", "TYPE", "UPLINK", "DESCRIPTION"})
-	t.SetStyle(myTableStyle)
+	switchInfos := make(map[string]ThisSwitchInfo)
 
-	for {
-		VmSwitch, err := res.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			log.Fatalf("GetSwitches failed: %v", err)
-		}
-		res2, err := rpc.GetSwitch(&VmSwitch.Value, c, ctx)
+	for _, id := range res {
+		res2, err := rpc.GetSwitch(&id, c, ctx)
 		if err != nil {
 			log.Fatalf("could not get switch: %v", err)
 		}
@@ -43,7 +40,33 @@ func GetSwitches(c cirrina.VMInfoClient, ctx context.Context) {
 		} else if *res2.SwitchType == cirrina.SwitchType_NG {
 			switchType = "netgraph"
 		}
-		t.AppendRow(table.Row{*res2.Name, VmSwitch.Value, switchType, *res2.Uplink, *res2.Description})
+
+		aIsoInfo := ThisSwitchInfo{
+			id:         id,
+			switchtype: switchType,
+			uplink:     *res2.Uplink,
+			descr:      *res2.Description,
+		}
+		switchInfos[*res2.Name] = aIsoInfo
+		names = append(names, *res2.Name)
+
+	}
+
+	sort.Strings(names)
+
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"NAME", "UUID", "TYPE", "UPLINK", "DESCRIPTION"})
+	t.SetStyle(myTableStyle)
+	for _, a := range names {
+		t.AppendRow(table.Row{
+			a,
+			switchInfos[a].id,
+			switchInfos[a].switchtype,
+			switchInfos[a].uplink,
+			switchInfos[a].descr,
+		})
+
 	}
 	t.Render()
 }

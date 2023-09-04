@@ -13,6 +13,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"sort"
 )
 
 func AddISO(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string) {
@@ -152,9 +153,34 @@ func ListIsos(c cirrina.VMInfoClient, ctx context.Context) {
 		return
 	}
 
+	var names []string
+	type ThisIsoInfo struct {
+		id    string
+		descr string
+	}
+
+	isoInfos := make(map[string]ThisIsoInfo)
+
+	for _, id := range ids {
+		res, err := rpc.GetIsoInfo(&id, c, ctx)
+		if err != nil {
+			log.Fatalf("could not get VM: %v", err)
+			return
+		}
+
+		aIsoInfo := ThisIsoInfo{
+			id:    id,
+			descr: *res.Description,
+		}
+		isoInfos[*res.Name] = aIsoInfo
+		names = append(names, *res.Name)
+
+	}
+
+	sort.Strings(names)
+
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-
 	t.AppendHeader(table.Row{"NAME", "UUID", "DESCRIPTION"})
 	t.SetStyle(table.Style{
 		Name: "myNewStyle",
@@ -175,18 +201,12 @@ func ListIsos(c cirrina.VMInfoClient, ctx context.Context) {
 			SeparateRows:    false,
 		},
 	})
-	for _, id := range ids {
-		res, err := rpc.GetIsoInfo(&id, c, ctx)
-		if err != nil {
-			log.Fatalf("could not get VM: %v", err)
-			return
-		}
+	for _, a := range names {
 		t.AppendRow(table.Row{
-			*res.Name,
-			id,
-			*res.Description,
+			a,
+			isoInfos[a].id,
+			isoInfos[a].descr,
 		})
 	}
-
 	t.Render()
 }

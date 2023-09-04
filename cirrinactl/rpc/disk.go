@@ -15,8 +15,8 @@ func AddDisk(aDiskInfo *cirrina.DiskInfo, c cirrina.VMInfoClient, ctx context.Co
 	return res.Value, nil
 }
 
-func GetDiskInfo(j string, c cirrina.VMInfoClient, ctx context.Context) (*cirrina.DiskInfo, error) {
-	k, err := c.GetDiskInfo(ctx, &cirrina.DiskId{Value: j})
+func GetDiskInfo(diskId string, c cirrina.VMInfoClient, ctx context.Context) (*cirrina.DiskInfo, error) {
+	k, err := c.GetDiskInfo(ctx, &cirrina.DiskId{Value: diskId})
 	if err != nil {
 		return nil, err
 	}

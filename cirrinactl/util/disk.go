@@ -10,6 +10,7 @@ import (
 	"github.com/jedib0t/go-pretty/text"
 	"google.golang.org/grpc/status"
 	"os"
+	"sort"
 )
 
 func AddDisk(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string, sizePtr *string, diskTypePtr *string) (diskId string, err error) {
@@ -50,37 +51,60 @@ func GetDisks(c cirrina.VMInfoClient, ctx context.Context) (err error) {
 		return err
 	}
 
+	var names []string
+	type ThisDiskInfo struct {
+		id       string
+		size     uint64
+		diskType string
+		descr    string
+	}
+
+	diskInfos := make(map[string]ThisDiskInfo)
+
+	for _, id := range res {
+		res2, err := rpc.GetDiskInfo(id, c, ctx)
+		if err != nil {
+			return err
+		}
+
+		aDiskType := "unknown"
+		if *res2.DiskType == cirrina.DiskType_NVME {
+			aDiskType = "nvme"
+		} else if *res2.DiskType == cirrina.DiskType_AHCIHD {
+			aDiskType = "ahcihd"
+		} else if *res2.DiskType == cirrina.DiskType_VIRTIOBLK {
+			aDiskType = "virtio-blk"
+		}
+
+		aVmInfo := ThisDiskInfo{
+			id:       id,
+			size:     *res2.SizeNum,
+			diskType: aDiskType,
+			descr:    *res2.Description,
+		}
+		diskInfos[*res2.Name] = aVmInfo
+		names = append(names, *res2.Name)
+
+	}
+
+	sort.Strings(names)
+
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-
 	t.AppendHeader(table.Row{"NAME", "UUID", "SIZE", "TYPE", "DESCRIPTION"})
 	t.SetStyle(myTableStyle)
 	t.SetColumnConfigs([]table.ColumnConfig{
 		{Number: 3, Align: text.AlignLeft, AlignHeader: text.AlignLeft},
 	})
-
-	for _, r := range res {
-		res2, err := rpc.GetDiskInfo(r, c, ctx)
-		if err != nil {
-			return err
-		}
-
-		diskType := "unknown"
-		if *res2.DiskType == cirrina.DiskType_NVME {
-			diskType = "nvme"
-		} else if *res2.DiskType == cirrina.DiskType_AHCIHD {
-			diskType = "ahcihd"
-		} else if *res2.DiskType == cirrina.DiskType_VIRTIOBLK {
-			diskType = "virtio-blk"
-		}
-
+	for _, a := range names {
 		t.AppendRow(table.Row{
-			*res2.Name,
-			r,
-			*res2.SizeNum,
-			diskType,
-			*res2.Description,
+			a,
+			diskInfos[a].id,
+			diskInfos[a].size,
+			diskInfos[a].diskType,
+			diskInfos[a].descr,
 		})
+
 	}
 	t.Render()
 	return nil

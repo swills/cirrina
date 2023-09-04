@@ -64,9 +64,25 @@ func SwitchIdToName(s string, c cirrina.VMInfoClient, ctx context.Context) (stri
 	return *res.Name, nil
 }
 
-func GetSwitches(c cirrina.VMInfoClient, ctx context.Context) (cirrina.VMInfo_GetSwitchesClient, error) {
+func GetSwitches(c cirrina.VMInfoClient, ctx context.Context) ([]string, error) {
+	var rv []string
 	res, err := c.GetSwitches(ctx, &cirrina.SwitchesQuery{})
-	return res, err
+
+	if err != nil {
+		return []string{}, err
+	}
+
+	for {
+		SwitchId, err := res.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return []string{}, err
+		}
+		rv = append(rv, SwitchId.Value)
+	}
+	return rv, nil
 }
 
 func AddSwitch(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string, switchTypePtr *string) (switchId string, err error) {
