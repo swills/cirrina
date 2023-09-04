@@ -7,10 +7,19 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"log"
+	"strconv"
 )
 
 var AutoStart bool
 var AutoStartChanged bool
+var AutoStartDelay uint32
+var AutoStartDelayChanged bool
+var Restart bool
+var RestartChanged bool
+var RestartDelay uint32
+var RestartDelayChanged bool
+var MaxWait uint32
+var MaxWaitChanged bool
 var Cpus uint8
 var CpusChanged bool
 var DescriptionChanged bool
@@ -20,6 +29,30 @@ var Debug bool
 var DebugChanged bool
 var DebugWait bool
 var DebugWaitChanged bool
+var DebugPort uint32
+var DebugPortChanged bool
+var Screen bool
+var ScreenChanged bool
+var ScreenWidth uint32
+var ScreenWidthChanged bool
+var ScreenHeight uint32
+var ScreenHeightChanged bool
+var VncPort = "AUTO"
+var VncPortChanged bool
+var VncWait bool
+var VncWaitChanged bool
+var VncTablet bool
+var VncTabletChanged bool
+var VncKeyboard = "default"
+var VncKeyboardChanged bool
+var ExtraArgs string
+var ExtraArgsChanged bool
+var Sound bool
+var SoundChanged bool
+var SoundIn = "/dev/dsp0"
+var SoundInChanged bool
+var SoundOut = "/dev/dsp0"
+var SoundOutChanged bool
 
 var VmCreateCmd = &cobra.Command{
 	Use:   "create",
@@ -188,8 +221,25 @@ var VmConfigCmd = &cobra.Command{
 		CpusChanged = cmd.Flags().Changed("cpus")
 		MemChanged = cmd.Flags().Changed("mem")
 		AutoStartChanged = cmd.Flags().Changed("autostart")
+		AutoStartDelayChanged = cmd.Flags().Changed("autostart-delay")
+		RestartChanged = cmd.Flags().Changed("restart")
+		RestartDelayChanged = cmd.Flags().Changed("restart-delay")
+		MaxWaitChanged = cmd.Flags().Changed("max-wait")
 		DebugChanged = cmd.Flags().Changed("debug")
 		DebugWaitChanged = cmd.Flags().Changed("debug-wait")
+		DebugPortChanged = cmd.Flags().Changed("debug-port")
+		ScreenChanged = cmd.Flags().Changed("screen")
+		ScreenWidthChanged = cmd.Flags().Changed("screen-width")
+		ScreenHeightChanged = cmd.Flags().Changed("screen-height")
+		VncPortChanged = cmd.Flags().Changed("vnc-port")
+		VncWaitChanged = cmd.Flags().Changed("vnc-wait")
+		VncTabletChanged = cmd.Flags().Changed("vnc-tablet")
+		VncKeyboardChanged = cmd.Flags().Changed("vnc-keyboard")
+		ExtraArgsChanged = cmd.Flags().Changed("extra-args")
+		SoundChanged = cmd.Flags().Changed("sound")
+		SoundInChanged = cmd.Flags().Changed("sound-in")
+		SoundOutChanged = cmd.Flags().Changed("sound-out")
+
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -250,29 +300,64 @@ var VmConfigCmd = &cobra.Command{
 			newConfig.Autostart = &AutoStart
 		}
 
-		if DebugChanged {
-			newConfig.Debug = &Debug
-		}
-		if DebugWaitChanged {
-			newConfig.DebugWait = &DebugWait
+		if AutoStartDelayChanged {
+			newConfig.AutostartDelay = &AutoStartDelay
 		}
 
-		//	AutostartDelay *uint32 `protobuf:"varint,50,opt,name=autostart_delay,json=autostartDelay,proto3,oneof" json:"autostart_delay,omitempty"`
-		//	Restart        *bool   `protobuf:"varint,7,opt,name=restart,proto3,oneof" json:"restart,omitempty"`
-		//	RestartDelay   *uint32 `protobuf:"varint,8,opt,name=restart_delay,json=restartDelay,proto3,oneof" json:"restart_delay,omitempty"`
-		//	MaxWait        *uint32 `protobuf:"varint,6,opt,name=max_wait,json=maxWait,proto3,oneof" json:"max_wait,omitempty"`
+		if RestartChanged {
+			newConfig.Restart = &Restart
+		}
 
-		//	DebugPort      *string `protobuf:"bytes,53,opt,name=debug_port,json=debugPort,proto3,oneof" json:"debug_port,omitempty"`
+		if RestartDelayChanged {
+			newConfig.RestartDelay = &RestartDelay
+		}
 
-		//	Screen         *bool   `protobuf:"varint,9,opt,name=screen,proto3,oneof" json:"screen,omitempty"`
-		//	ScreenWidth    *uint32 `protobuf:"varint,10,opt,name=screen_width,json=screenWidth,proto3,oneof" json:"screen_width,omitempty"`
-		//	ScreenHeight   *uint32 `protobuf:"varint,11,opt,name=screen_height,json=screenHeight,proto3,oneof" json:"screen_height,omitempty"`
-		//	Vncport        *string `protobuf:"bytes,24,opt,name=vncport,proto3,oneof" json:"vncport,omitempty"`
-		//	Vncwait        *bool   `protobuf:"varint,12,opt,name=vncwait,proto3,oneof" json:"vncwait,omitempty"`
+		if MaxWaitChanged {
+			newConfig.MaxWait = &MaxWait
+		}
 
-		//	Sound          *bool   `protobuf:"varint,30,opt,name=sound,proto3,oneof" json:"sound,omitempty"`
-		//	SoundIn        *string `protobuf:"bytes,31,opt,name=sound_in,json=soundIn,proto3,oneof" json:"sound_in,omitempty"`
-		//	SoundOut       *string `protobuf:"bytes,32,opt,name=sound_out,json=soundOut,proto3,oneof" json:"sound_out,omitempty"`
+		if ScreenChanged {
+			newConfig.Screen = &Screen
+		}
+
+		if ScreenWidthChanged {
+			newConfig.ScreenWidth = &ScreenWidth
+		}
+
+		if ScreenHeightChanged {
+			newConfig.ScreenHeight = &ScreenHeight
+		}
+
+		if VncPortChanged {
+			newConfig.Vncport = &VncPort
+
+		}
+
+		if VncWaitChanged {
+			newConfig.Vncwait = &VncWait
+		}
+
+		if VncTabletChanged {
+			newConfig.Tablet = &VncTablet
+
+		}
+
+		if VncKeyboardChanged {
+			newConfig.Keyboard = &VncKeyboard
+
+		}
+
+		if SoundChanged {
+			newConfig.Sound = &Sound
+		}
+
+		if SoundInChanged {
+			newConfig.SoundIn = &SoundIn
+		}
+
+		if SoundOutChanged {
+			newConfig.SoundOut = &SoundOut
+		}
 
 		//	Com1           *bool   `protobuf:"varint,33,opt,name=com1,proto3,oneof" json:"com1,omitempty"`
 		//	Com1Dev        *string `protobuf:"bytes,34,opt,name=com1dev,proto3,oneof" json:"com1dev,omitempty"`
@@ -292,7 +377,6 @@ var VmConfigCmd = &cobra.Command{
 		//	Com4Speed      *uint32 `protobuf:"varint,49,opt,name=com4speed,proto3,oneof" json:"com4speed,omitempty"`
 
 		//	Wireguestmem   *bool   `protobuf:"varint,13,opt,name=wireguestmem,proto3,oneof" json:"wireguestmem,omitempty"`
-		//	Tablet         *bool   `protobuf:"varint,14,opt,name=tablet,proto3,oneof" json:"tablet,omitempty"`
 		//	Storeuefi      *bool   `protobuf:"varint,15,opt,name=storeuefi,proto3,oneof" json:"storeuefi,omitempty"`
 		//	Utc            *bool   `protobuf:"varint,16,opt,name=utc,proto3,oneof" json:"utc,omitempty"`
 		//	Hostbridge     *bool   `protobuf:"varint,17,opt,name=hostbridge,proto3,oneof" json:"hostbridge,omitempty"`
@@ -301,9 +385,23 @@ var VmConfigCmd = &cobra.Command{
 		//	Eop            *bool   `protobuf:"varint,20,opt,name=eop,proto3,oneof" json:"eop,omitempty"`
 		//	Dpo            *bool   `protobuf:"varint,21,opt,name=dpo,proto3,oneof" json:"dpo,omitempty"`
 		//	Ium            *bool   `protobuf:"varint,22,opt,name=ium,proto3,oneof" json:"ium,omitempty"`
-		//	Keyboard       *string `protobuf:"bytes,26,opt,name=keyboard,proto3,oneof" json:"keyboard,omitempty"`
 
-		//	ExtraArgs      *string `protobuf:"bytes,41,opt,name=extra_args,json=extraArgs,proto3,oneof" json:"extra_args,omitempty"`
+		if DebugChanged {
+			newConfig.Debug = &Debug
+		}
+
+		if DebugWaitChanged {
+			newConfig.DebugWait = &DebugWait
+		}
+
+		if DebugPortChanged {
+			d := strconv.FormatUint(uint64(DebugPort), 10)
+			newConfig.DebugPort = &d
+		}
+
+		if ExtraArgsChanged {
+			newConfig.ExtraArgs = &ExtraArgs
+		}
 
 		err = rpc.UpdateVMConfig(&newConfig, c, ctx)
 		if err != nil {
@@ -754,9 +852,25 @@ func init() {
 	VmConfigCmd.Flags().StringVarP(&Description, "description", "d", Description, "Description of VM")
 	VmConfigCmd.Flags().Uint8VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
 	VmConfigCmd.Flags().Uint32VarP(&Mem, "mem", "m", Mem, "Amount of virtual memory in megabytes")
-	VmConfigCmd.Flags().BoolVarP(&AutoStart, "autostart", "A", AutoStart, "Autostart VM")
-	VmConfigCmd.Flags().BoolVarP(&Debug, "debug", "D", Debug, "Enable Debug server")
+	VmConfigCmd.Flags().BoolVar(&AutoStart, "autostart", AutoStart, "Autostart VM")
+	VmConfigCmd.Flags().Uint32Var(&AutoStartDelay, "autostart-delay", AutoStartDelay, "How long to wait before starting this VM")
+	VmConfigCmd.Flags().BoolVar(&Restart, "restart", Restart, "Restart this VM if it stops, crashes, shuts down, reboots, etc.")
+	VmConfigCmd.Flags().Uint32Var(&RestartDelay, "restart-delay", RestartDelay, "How long to wait before restarting this VM")
+	VmConfigCmd.Flags().Uint32Var(&MaxWait, "max-wait", MaxWait, "How long to wait for this VM to shutdown before forcibly killing it")
+	VmConfigCmd.Flags().BoolVar(&Screen, "screen", Screen, "Start VNC Server for this VM")
+	VmConfigCmd.Flags().Uint32Var(&ScreenWidth, "screen-width", ScreenWidth, "Width of VNC server screen")
+	VmConfigCmd.Flags().Uint32Var(&ScreenHeight, "screen-height", ScreenHeight, "Height of VNC server screen")
+	VmConfigCmd.Flags().StringVar(&VncPort, "vnc-port", VncPort, "Port to run VNC server on, AUTO for automatic, or TCP port number")
+	VmConfigCmd.Flags().BoolVar(&VncWait, "vnc-wait", VncWait, "Wait for VNC connection before starting VM")
+	VmConfigCmd.Flags().BoolVar(&VncTablet, "vnc-tablet", VncTablet, "VNC server in tablet mode")
+	VmConfigCmd.Flags().StringVar(&VncKeyboard, "vnc-keyboard", VncKeyboard, "Keyboard layout used by VNC server")
+	VmConfigCmd.Flags().BoolVar(&Sound, "sound", Sound, "Enabled Sound output on this VM")
+	VmConfigCmd.Flags().StringVar(&SoundIn, "sound-in", SoundIn, "Device to use for sound input")
+	VmConfigCmd.Flags().StringVar(&SoundOut, "sound-out", SoundOut, "Device to use for sound output")
+	VmConfigCmd.Flags().BoolVar(&Debug, "debug", Debug, "Enable Debug server")
 	VmConfigCmd.Flags().BoolVar(&DebugWait, "debug-wait", DebugWait, "Wait for connection to debug server before starting VM")
+	VmConfigCmd.Flags().Uint32Var(&DebugPort, "debug-port", DebugPort, "TCP port to use for debug server")
+	VmConfigCmd.Flags().StringVar(&ExtraArgs, "extra-args", ExtraArgs, "Extra args to pass to bhyve")
 
 	VmGetCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
