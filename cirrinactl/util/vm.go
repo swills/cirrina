@@ -80,6 +80,10 @@ func GetVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 		*res.RestartDelay,
 		*res.MaxWait,
 	)
+	var extraArgs string
+	if res.ExtraArgs != nil {
+		extraArgs = *res.ExtraArgs
+	}
 
 	fmt.Printf(
 		"\nstore uefi vars: %v"+
@@ -108,7 +112,7 @@ func GetVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 		*res.Debug,
 		*res.DebugWait,
 		*res.DebugPort,
-		*res.ExtraArgs,
+		extraArgs,
 	)
 
 	fmt.Printf("\nstatus: %s\nvnc port: %s\ndebug port: %s\n", res2, vncPort, debugPort)
