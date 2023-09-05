@@ -118,6 +118,8 @@ and add:
   * Set config for a VM:
     * `./cirrainctl vm config -n something -c 2 -m 4096`
     * `./cirrinactl vm config -n something --description "some description"`
+  * Start the VM:
+    * `./cirrinactl vm start -n something`
 
 # TODO
 
