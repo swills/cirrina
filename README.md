@@ -108,9 +108,15 @@ and add:
     * `./cirrinactl disk create -n somediskname -s 32G`
   * Add a NIC for a VM:
     * `./cirrinactl nic create -n something_int0`
+    * `./cirrinactl nic setswitch -n something_int0 -N bridge0`
   * Add a VM:
     * `./cirrinactl vm create -n something`
+  * Add disk to VM
+    * `./cirrainctl vm disk add -n something -N somediskname`
+  * Add NIC to VM
+    * `./cirrinactl vm nic add -n something -N something_int0`
   * Set config for a VM:
+    * `./cirrainctl vm config -n something -c 2 -m 4096`
     * `./cirrinactl vm config -n something --description "some description"`
 
 # TODO
