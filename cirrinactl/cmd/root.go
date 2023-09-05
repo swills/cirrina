@@ -46,18 +46,18 @@ func init() {
 		log.Fatal(err)
 	}
 
-	// some VM commands are duplicated at the root
-	rootCmd.AddCommand(VmCreateCmd)
-	rootCmd.AddCommand(VmListCmd)
-	rootCmd.AddCommand(VmStartCmd)
-	rootCmd.AddCommand(VmStopCmd)
-	rootCmd.AddCommand(VmDestroyCmd)
-	rootCmd.AddCommand(VmConfigCmd)
-	rootCmd.AddCommand(VmGetCmd)
-	rootCmd.AddCommand(VmCom1Cmd)
-	rootCmd.AddCommand(VmCom2Cmd)
-	rootCmd.AddCommand(VmCom3Cmd)
-	rootCmd.AddCommand(VmCom4Cmd)
+	//// some VM commands are duplicated at the root
+	//rootCmd.AddCommand(VmCreateCmd)
+	//rootCmd.AddCommand(VmListCmd)
+	//rootCmd.AddCommand(VmStartCmd)
+	//rootCmd.AddCommand(VmStopCmd)
+	//rootCmd.AddCommand(VmDestroyCmd)
+	//rootCmd.AddCommand(VmConfigCmd)
+	//rootCmd.AddCommand(VmGetCmd)
+	//rootCmd.AddCommand(VmCom1Cmd)
+	//rootCmd.AddCommand(VmCom2Cmd)
+	//rootCmd.AddCommand(VmCom3Cmd)
+	//rootCmd.AddCommand(VmCom4Cmd)
 
 	rootCmd.AddCommand(VmCmd)
 	rootCmd.AddCommand(DiskCmd)

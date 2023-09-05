@@ -24,6 +24,9 @@ var NicMac = "AUTO"
 var NicSwitchId = ""
 var NicId string
 var NicIdChanged bool
+var NicRateLimited bool
+var NicRateIn uint64
+var NicRateOut uint64
 
 var NicListCmd = &cobra.Command{
 	Use:   "list",
@@ -53,7 +56,8 @@ var NicCreateCmd = &cobra.Command{
 			_ = conn.Close()
 		}(conn)
 		defer cancel()
-		_, err = util.AddVmNic(&NicName, c, ctx, &NicDescription, &NicType, &NicDevType, &NicMac, &NicSwitchId)
+		_, err = util.AddVmNic(&NicName, c, ctx, &NicDescription, &NicType, &NicDevType, &NicMac,
+			&NicSwitchId, &NicRateLimited, &NicRateIn, &NicRateOut)
 		if err != nil {
 			s := status.Convert(err)
 			fmt.Printf("error: could not create a new NIC: %s\n", s.Message())
@@ -130,6 +134,9 @@ func init() {
 	NicCreateCmd.Flags().StringVarP(&NicDevType, "devtype", "v", NicDevType, "NIC dev type")
 	NicCreateCmd.Flags().StringVarP(&NicMac, "mac", "m", NicMac, "MAC address of NIC")
 	NicCreateCmd.Flags().StringVarP(&NicSwitchId, "switch", "s", NicSwitchId, "uplink switch ID of NIC")
+	NicCreateCmd.Flags().BoolVar(&NicRateLimited, "rate-limit", NicRateLimited, "Rate limit the NIC")
+	NicCreateCmd.Flags().Uint64Var(&NicRateIn, "rate-in", NicRateIn, "Inbound rate limit of NIC")
+	NicCreateCmd.Flags().Uint64Var(&NicRateOut, "rate-out", NicRateOut, "Outbound rate limit of NIC")
 
 	NicRemoveCmd.Flags().StringVarP(&NicName, "name", "n", NicName, "name of NIC")
 	err = NicRemoveCmd.MarkFlagRequired("name")

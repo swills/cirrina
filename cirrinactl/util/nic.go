@@ -11,9 +11,12 @@ import (
 	"log"
 	"os"
 	"sort"
+	"strconv"
 )
 
-func AddVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrptr *string, nettypeptr *string, netdevtypeptr *string, macPtr *string, switchIdPtr *string) (nicId string, err error) {
+func AddVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrptr *string,
+	nettypeptr *string, netdevtypeptr *string, macPtr *string, switchIdPtr *string, rateLimit *bool,
+	rateIn *uint64, rateOut *uint64) (nicId string, err error) {
 	var thisVmNic cirrina.VmNicInfo
 	var thisNetType cirrina.NetType
 	var thisNetDevType cirrina.NetDevType
@@ -22,6 +25,9 @@ func AddVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrpt
 	thisVmNic.Description = descrptr
 	thisVmNic.Mac = macPtr
 	thisVmNic.Switchid = switchIdPtr
+	thisVmNic.Ratelimit = rateLimit
+	thisVmNic.Ratein = rateIn
+	thisVmNic.Rateout = rateOut
 
 	if *nettypeptr == "VIRTIONET" || *nettypeptr == "virtio-net" {
 		thisNetType = cirrina.NetType_VIRTIONET
@@ -85,7 +91,7 @@ func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 
-	t.AppendHeader(table.Row{"NAME", "UUID", "NETDEVTYPE", "NETTYPE", "RATELIMITED", "DESCRIPTION"})
+	t.AppendHeader(table.Row{"NAME", "UUID", "NETDEVTYPE", "NETTYPE", "RATELIMITED", "RATE-IN", "RATE-OUT", "UPLINK", "DESCRIPTION"})
 	t.SetStyle(myTableStyle)
 
 	var names []string
@@ -94,6 +100,9 @@ func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 		nettype     string
 		netdevtype  string
 		ratelimited string
+		ratein      string
+		rateout     string
+		uplink      string
 		descr       string
 	}
 
@@ -129,16 +138,30 @@ func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 			rateLimited = "no"
 		}
 
+		rateins := strconv.FormatUint(*res2.Ratein, 10)
+		rateouts := strconv.FormatUint(*res2.Rateout, 10)
+
+		uplinkName := ""
+		if res2.Switchid != nil && *res2.Switchid != "" {
+			uplinkName, err = rpc.SwitchIdToName(*res2.Switchid, c, ctx)
+			if err != nil {
+				log.Fatalf("could not get VmNics: %v", err)
+				return
+			}
+		}
+
 		aIsoInfo := ThisNicInfo{
 			id:          id,
 			nettype:     netType,
 			netdevtype:  netDevType,
 			ratelimited: rateLimited,
+			ratein:      rateins,
+			rateout:     rateouts,
+			uplink:      uplinkName,
 			descr:       *res2.Description,
 		}
 		nicInfos[*res2.Name] = aIsoInfo
 		names = append(names, *res2.Name)
-
 	}
 
 	sort.Strings(names)
@@ -150,6 +173,9 @@ func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 			nicInfos[a].netdevtype,
 			nicInfos[a].nettype,
 			nicInfos[a].ratelimited,
+			nicInfos[a].ratein,
+			nicInfos[a].rateout,
+			nicInfos[a].uplink,
 			nicInfos[a].descr,
 		})
 
