@@ -40,6 +40,54 @@ func GetVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 	)
 
 	fmt.Printf(
+		"\ncom1: %v"+
+			"\ncom1-log: %v"+
+			"\ncom1-dev: %v"+
+			"\ncom1-speed: %v"+
+			"\n",
+		*res.Com1,
+		*res.Com1Log,
+		*res.Com1Dev,
+		*res.Com1Speed,
+	)
+
+	fmt.Printf(
+		"\ncom2: %v"+
+			"\ncom2-log: %v"+
+			"\ncom2-dev: %v"+
+			"\ncom2-speed: %v"+
+			"\n",
+		*res.Com2,
+		*res.Com2Log,
+		*res.Com2Dev,
+		*res.Com2Speed,
+	)
+
+	fmt.Printf(
+		"\ncom3: %v"+
+			"\ncom3-log: %v"+
+			"\ncom3-dev: %v"+
+			"\ncom3-speed: %v"+
+			"\n",
+		*res.Com3,
+		*res.Com3Log,
+		*res.Com3Dev,
+		*res.Com3Speed,
+	)
+
+	fmt.Printf(
+		"\ncom4: %v"+
+			"\ncom4-log: %v"+
+			"\ncom4-dev: %v"+
+			"\ncom4-speed: %v"+
+			"\n",
+		*res.Com4,
+		*res.Com4Log,
+		*res.Com4Dev,
+		*res.Com4Speed,
+	)
+
+	fmt.Printf(
 		"\nscreen: %v"+
 			"\nvnc port: %v"+
 			"\nscreen width: %v"+

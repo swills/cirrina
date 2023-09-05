@@ -53,6 +53,60 @@ var SoundIn = "/dev/dsp0"
 var SoundInChanged bool
 var SoundOut = "/dev/dsp0"
 var SoundOutChanged bool
+var Wire bool
+var WireChanged bool
+var Uefi bool
+var UefiChanged bool
+var Utc bool
+var UtcChanged bool
+var HostBridge bool
+var HostBridgeChanged bool
+var Acpi bool
+var AcpiChanged bool
+var Hlt bool
+var HltChanged bool
+var Eop bool
+var EopChanged bool
+var Dpo bool
+var DpoChanged bool
+var Ium bool
+var IumChanged bool
+
+var Com1 bool
+var Com1Changed bool
+var Com1Log bool
+var Com1LogChanged bool
+var Com1Dev = "AUTO"
+var Com1DevChanged bool
+var Com1Speed uint32 = 115200
+var Com1SpeedChanged bool
+
+var Com2 bool
+var Com2Changed bool
+var Com2Log bool
+var Com2LogChanged bool
+var Com2Dev = "AUTO"
+var Com2DevChanged bool
+var Com2Speed uint32 = 115200
+var Com2SpeedChanged bool
+
+var Com3 bool
+var Com3Changed bool
+var Com3Log bool
+var Com3LogChanged bool
+var Com3Dev = "AUTO"
+var Com3DevChanged bool
+var Com3Speed uint32 = 115200
+var Com3SpeedChanged bool
+
+var Com4 bool
+var Com4Changed bool
+var Com4Log bool
+var Com4LogChanged bool
+var Com4Dev = "AUTO"
+var Com4DevChanged bool
+var Com4Speed uint32 = 115200
+var Com4SpeedChanged bool
 
 var VmCreateCmd = &cobra.Command{
 	Use:   "create",
@@ -239,6 +293,31 @@ var VmConfigCmd = &cobra.Command{
 		SoundChanged = cmd.Flags().Changed("sound")
 		SoundInChanged = cmd.Flags().Changed("sound-in")
 		SoundOutChanged = cmd.Flags().Changed("sound-out")
+		WireChanged = cmd.Flags().Changed("wire")
+		UefiChanged = cmd.Flags().Changed("uefi")
+		UtcChanged = cmd.Flags().Changed("utc")
+		HostBridgeChanged = cmd.Flags().Changed("host-bridge")
+		AcpiChanged = cmd.Flags().Changed("acpi")
+		HltChanged = cmd.Flags().Changed("hlt")
+		EopChanged = cmd.Flags().Changed("eop")
+		DpoChanged = cmd.Flags().Changed("dpo")
+		IumChanged = cmd.Flags().Changed("ium")
+		Com1Changed = cmd.Flags().Changed("com1")
+		Com1DevChanged = cmd.Flags().Changed("com1-dev")
+		Com1LogChanged = cmd.Flags().Changed("com1-log")
+		Com1SpeedChanged = cmd.Flags().Changed("com1-speed")
+		Com2Changed = cmd.Flags().Changed("com2")
+		Com2DevChanged = cmd.Flags().Changed("com2-dev")
+		Com2LogChanged = cmd.Flags().Changed("com2-log")
+		Com2SpeedChanged = cmd.Flags().Changed("com2-speed")
+		Com3Changed = cmd.Flags().Changed("com3")
+		Com3DevChanged = cmd.Flags().Changed("com3-dev")
+		Com3LogChanged = cmd.Flags().Changed("com3-log")
+		Com3SpeedChanged = cmd.Flags().Changed("com3-speed")
+		Com4Changed = cmd.Flags().Changed("com4")
+		Com4DevChanged = cmd.Flags().Changed("com4-dev")
+		Com4LogChanged = cmd.Flags().Changed("com4-log")
+		Com4SpeedChanged = cmd.Flags().Changed("com4-speed")
 
 		return nil
 	},
@@ -359,32 +438,105 @@ var VmConfigCmd = &cobra.Command{
 			newConfig.SoundOut = &SoundOut
 		}
 
-		//	Com1           *bool   `protobuf:"varint,33,opt,name=com1,proto3,oneof" json:"com1,omitempty"`
-		//	Com1Dev        *string `protobuf:"bytes,34,opt,name=com1dev,proto3,oneof" json:"com1dev,omitempty"`
-		//	Com2           *bool   `protobuf:"varint,35,opt,name=com2,proto3,oneof" json:"com2,omitempty"`
-		//	Com2Dev        *string `protobuf:"bytes,36,opt,name=com2dev,proto3,oneof" json:"com2dev,omitempty"`
-		//	Com3           *bool   `protobuf:"varint,37,opt,name=com3,proto3,oneof" json:"com3,omitempty"`
-		//	Com3Dev        *string `protobuf:"bytes,38,opt,name=com3dev,proto3,oneof" json:"com3dev,omitempty"`
-		//	Com4           *bool   `protobuf:"varint,39,opt,name=com4,proto3,oneof" json:"com4,omitempty"`
-		//	Com4Dev        *string `protobuf:"bytes,40,opt,name=com4dev,proto3,oneof" json:"com4dev,omitempty"`
-		//	Com1Log        *bool   `protobuf:"varint,42,opt,name=com1log,proto3,oneof" json:"com1log,omitempty"`
-		//	Com2Log        *bool   `protobuf:"varint,43,opt,name=com2log,proto3,oneof" json:"com2log,omitempty"`
-		//	Com3Log        *bool   `protobuf:"varint,44,opt,name=com3log,proto3,oneof" json:"com3log,omitempty"`
-		//	Com4Log        *bool   `protobuf:"varint,45,opt,name=com4log,proto3,oneof" json:"com4log,omitempty"`
-		//	Com1Speed      *uint32 `protobuf:"varint,46,opt,name=com1speed,proto3,oneof" json:"com1speed,omitempty"`
-		//	Com2Speed      *uint32 `protobuf:"varint,47,opt,name=com2speed,proto3,oneof" json:"com2speed,omitempty"`
-		//	Com3Speed      *uint32 `protobuf:"varint,48,opt,name=com3speed,proto3,oneof" json:"com3speed,omitempty"`
-		//	Com4Speed      *uint32 `protobuf:"varint,49,opt,name=com4speed,proto3,oneof" json:"com4speed,omitempty"`
+		if Com1Changed {
+			newConfig.Com1 = &Com1
+		}
 
-		//	Wireguestmem   *bool   `protobuf:"varint,13,opt,name=wireguestmem,proto3,oneof" json:"wireguestmem,omitempty"`
-		//	Storeuefi      *bool   `protobuf:"varint,15,opt,name=storeuefi,proto3,oneof" json:"storeuefi,omitempty"`
-		//	Utc            *bool   `protobuf:"varint,16,opt,name=utc,proto3,oneof" json:"utc,omitempty"`
-		//	Hostbridge     *bool   `protobuf:"varint,17,opt,name=hostbridge,proto3,oneof" json:"hostbridge,omitempty"`
-		//	Acpi           *bool   `protobuf:"varint,18,opt,name=acpi,proto3,oneof" json:"acpi,omitempty"`
-		//	Hlt            *bool   `protobuf:"varint,19,opt,name=hlt,proto3,oneof" json:"hlt,omitempty"`
-		//	Eop            *bool   `protobuf:"varint,20,opt,name=eop,proto3,oneof" json:"eop,omitempty"`
-		//	Dpo            *bool   `protobuf:"varint,21,opt,name=dpo,proto3,oneof" json:"dpo,omitempty"`
-		//	Ium            *bool   `protobuf:"varint,22,opt,name=ium,proto3,oneof" json:"ium,omitempty"`
+		if Com1LogChanged {
+			newConfig.Com1Log = &Com1Log
+		}
+
+		if Com1DevChanged {
+			newConfig.Com1Dev = &Com1Dev
+		}
+
+		if Com1SpeedChanged {
+			newConfig.Com1Speed = &Com1Speed
+		}
+
+		if Com2Changed {
+			newConfig.Com2 = &Com2
+		}
+
+		if Com2LogChanged {
+			newConfig.Com2Log = &Com2Log
+		}
+
+		if Com2DevChanged {
+			newConfig.Com2Dev = &Com2Dev
+		}
+
+		if Com2SpeedChanged {
+			newConfig.Com2Speed = &Com2Speed
+		}
+
+		if Com3Changed {
+			newConfig.Com3 = &Com3
+		}
+
+		if Com3LogChanged {
+			newConfig.Com3Log = &Com3Log
+		}
+
+		if Com3DevChanged {
+			newConfig.Com3Dev = &Com3Dev
+		}
+
+		if Com3SpeedChanged {
+			newConfig.Com3Speed = &Com3Speed
+		}
+
+		if Com4Changed {
+			newConfig.Com4 = &Com4
+		}
+
+		if Com4LogChanged {
+			newConfig.Com4Log = &Com4Log
+		}
+
+		if Com4DevChanged {
+			newConfig.Com4Dev = &Com4Dev
+		}
+
+		if Com4SpeedChanged {
+			newConfig.Com4Speed = &Com4Speed
+		}
+
+		if WireChanged {
+			newConfig.Wireguestmem = &Wire
+		}
+
+		if UefiChanged {
+			newConfig.Storeuefi = &Uefi
+		}
+
+		if UtcChanged {
+			newConfig.Utc = &Utc
+		}
+
+		if HostBridgeChanged {
+			newConfig.Hostbridge = &HostBridge
+		}
+
+		if AcpiChanged {
+			newConfig.Acpi = &Acpi
+		}
+
+		if HltChanged {
+			newConfig.Hlt = &Hlt
+		}
+
+		if EopChanged {
+			newConfig.Eop = &Eop
+		}
+
+		if DpoChanged {
+			newConfig.Dpo = &Dpo
+		}
+
+		if IumChanged {
+			newConfig.Ium = &Ium
+		}
 
 		if DebugChanged {
 			newConfig.Debug = &Debug
@@ -852,6 +1004,22 @@ func init() {
 	VmConfigCmd.Flags().StringVarP(&Description, "description", "d", Description, "Description of VM")
 	VmConfigCmd.Flags().Uint8VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
 	VmConfigCmd.Flags().Uint32VarP(&Mem, "mem", "m", Mem, "Amount of virtual memory in megabytes")
+	VmConfigCmd.Flags().BoolVar(&Com1, "com1", Com1, "Enable COM1")
+	VmConfigCmd.Flags().BoolVar(&Com1Log, "com1-log", Com1Log, "Log input and output of COM1")
+	VmConfigCmd.Flags().StringVar(&Com1Dev, "com1-dev", Com1Dev, "Device to use for COM1")
+	VmConfigCmd.Flags().Uint32Var(&Com1Speed, "com1-speed", Com1Speed, "Speed of COM1")
+	VmConfigCmd.Flags().BoolVar(&Com2, "com2", Com2, "Enable COM2")
+	VmConfigCmd.Flags().BoolVar(&Com2Log, "com2-log", Com2Log, "Log input and output of COM2")
+	VmConfigCmd.Flags().StringVar(&Com2Dev, "com2-dev", Com2Dev, "Device to use for COM2")
+	VmConfigCmd.Flags().Uint32Var(&Com2Speed, "com2-speed", Com2Speed, "Speed of COM2")
+	VmConfigCmd.Flags().BoolVar(&Com3, "com3", Com3, "Enable COM3")
+	VmConfigCmd.Flags().BoolVar(&Com3Log, "com3-log", Com3Log, "Log input and output of COM3")
+	VmConfigCmd.Flags().StringVar(&Com3Dev, "com3-dev", Com3Dev, "Device to use for COM3")
+	VmConfigCmd.Flags().Uint32Var(&Com3Speed, "com3-speed", Com3Speed, "Speed of COM3")
+	VmConfigCmd.Flags().BoolVar(&Com4, "com4", Com4, "Enable COM4")
+	VmConfigCmd.Flags().BoolVar(&Com4Log, "com4-log", Com4Log, "Log input and output of COM4")
+	VmConfigCmd.Flags().StringVar(&Com4Dev, "com4-dev", Com4Dev, "Device to use for COM4")
+	VmConfigCmd.Flags().Uint32Var(&Com4Speed, "com4-speed", Com4Speed, "Speed of COM4")
 	VmConfigCmd.Flags().BoolVar(&AutoStart, "autostart", AutoStart, "Autostart VM")
 	VmConfigCmd.Flags().Uint32Var(&AutoStartDelay, "autostart-delay", AutoStartDelay, "How long to wait before starting this VM")
 	VmConfigCmd.Flags().BoolVar(&Restart, "restart", Restart, "Restart this VM if it stops, crashes, shuts down, reboots, etc.")
@@ -867,6 +1035,15 @@ func init() {
 	VmConfigCmd.Flags().BoolVar(&Sound, "sound", Sound, "Enabled Sound output on this VM")
 	VmConfigCmd.Flags().StringVar(&SoundIn, "sound-in", SoundIn, "Device to use for sound input")
 	VmConfigCmd.Flags().StringVar(&SoundOut, "sound-out", SoundOut, "Device to use for sound output")
+	VmConfigCmd.Flags().BoolVar(&Wire, "wire", Wire, "Wire guest memory")
+	VmConfigCmd.Flags().BoolVar(&Uefi, "uefi", Uefi, "Store UEFI variables")
+	VmConfigCmd.Flags().BoolVar(&Utc, "utc", Utc, "Store VM time in UTC")
+	VmConfigCmd.Flags().BoolVar(&HostBridge, "host-bridge", HostBridge, "Enable host bridge")
+	VmConfigCmd.Flags().BoolVar(&Acpi, "acpi", Acpi, "Enable ACPI tables")
+	VmConfigCmd.Flags().BoolVar(&Hlt, "hlt", Hlt, "Yield the virtual CPU(s), when a HTL instruction is detected")
+	VmConfigCmd.Flags().BoolVar(&Eop, "eop", Eop, "Force the virtual CPU(s) to exit when a PAUSE instruction is detected")
+	VmConfigCmd.Flags().BoolVar(&Dpo, "dpo", Dpo, "Destroy the VM on guest initiated power off")
+	VmConfigCmd.Flags().BoolVar(&Ium, "ium", Ium, "Ignore unimplemented model specific register access")
 	VmConfigCmd.Flags().BoolVar(&Debug, "debug", Debug, "Enable Debug server")
 	VmConfigCmd.Flags().BoolVar(&DebugWait, "debug-wait", DebugWait, "Wait for connection to debug server before starting VM")
 	VmConfigCmd.Flags().Uint32Var(&DebugPort, "debug-port", DebugPort, "TCP port to use for debug server")
