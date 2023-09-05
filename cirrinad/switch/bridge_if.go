@@ -109,7 +109,7 @@ func createIfBridge(name string) error {
 }
 
 func actualIfBridgeCreate(name string) error {
-	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", name, "create", "up")
+	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", name, "create", "group", "cirrinad", "up")
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	if err := cmd.Start(); err != nil {

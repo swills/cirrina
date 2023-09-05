@@ -72,21 +72,21 @@ func CreateEpair(name string) (err error) {
 	if name == "" {
 		return errors.New("empty epair name")
 	}
-	args := []string{"/sbin/ifconfig", name, "create"}
+	args := []string{"/sbin/ifconfig", name, "create", "group", "cirrinad"}
 	cmd := exec.Command(config.Config.Sys.Sudo, args...)
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("failed to create epair", "name", name, "err", err)
 		return err
 	}
-	args = []string{"/sbin/ifconfig", name + "a", "up"}
+	args = []string{"/sbin/ifconfig", name + "a", "up", "group", "cirrinad"}
 	cmd = exec.Command(config.Config.Sys.Sudo, args...)
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("failed to up epair", "name", name+"a", "err", err)
 		return err
 	}
-	args = []string{"/sbin/ifconfig", name + "b", "up"}
+	args = []string{"/sbin/ifconfig", name + "b", "up", "group", "cirrinad"}
 	cmd = exec.Command(config.Config.Sys.Sudo, args...)
 	err = cmd.Run()
 	if err != nil {

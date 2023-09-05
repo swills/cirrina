@@ -1,6 +1,7 @@
 package util
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"golang.org/x/exp/slog"
@@ -144,16 +145,14 @@ func GetHostInterfaces() []string {
 	}
 	slog.Debug("GetHostInterfaces", "netInterfaces", netInterfaces)
 	for _, inter := range netInterfaces {
-		if strings.HasPrefix(inter.Name, "bridge") {
+		intGroups, err := getIntGroups(inter.Name)
+		if err != nil {
+			slog.Error("failed to get interface groups", "err", err)
+			return []string{}
+		}
+		if ContainsStr(intGroups, "cirrinad") {
 			continue
 		}
-		if strings.HasPrefix(inter.Name, "tap") {
-			continue
-		}
-		// include epair for now, need to exclude ones created by cirrinad, but list ones the user may have created
-		//if strings.HasPrefix(inter.Name, "epair") {
-		//	continue
-		//}
 		if inter.HardwareAddr.String() == "" {
 			continue
 		}
@@ -178,4 +177,37 @@ func CopyFile(in, out string) (int64, error) {
 		_ = o.Close()
 	}(o)
 	return o.ReadFrom(i)
+}
+
+func getIntGroups(interfaceName string) (intGroups []string, err error) {
+	cmd := exec.Command("/sbin/ifconfig", interfaceName)
+	defer func(cmd *exec.Cmd) {
+		err := cmd.Wait()
+		if err != nil {
+			slog.Error("ifconfig error", "err", err)
+		}
+	}(cmd)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return []string{}, err
+	}
+	if err := cmd.Start(); err != nil {
+		return []string{}, err
+	}
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		text := scanner.Text()
+		textFields := strings.Fields(text)
+		if !strings.HasPrefix(textFields[0], "groups:") {
+			continue
+		}
+		fl := len(textFields)
+		for f := 1; f < fl; f++ {
+			intGroups = append(intGroups, textFields[f])
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return []string{}, err
+	}
+	return intGroups, nil
 }

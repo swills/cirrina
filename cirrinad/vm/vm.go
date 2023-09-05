@@ -292,7 +292,7 @@ func (vm *VM) netStartup() {
 	for _, vmNic := range vmNicsList {
 		if vmNic.NetDevType == "TAP" || vmNic.NetDevType == "VMNET" {
 			// Create interface
-			args := []string{"/sbin/ifconfig", vmNic.NetDev, "create"}
+			args := []string{"/sbin/ifconfig", vmNic.NetDev, "create", "group", "cirrinad"}
 			cmd := exec.Command(config.Config.Sys.Sudo, args...)
 			err := cmd.Run()
 			if err != nil {
