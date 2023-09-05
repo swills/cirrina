@@ -86,8 +86,8 @@ func (vm *VM) setStarting() {
 	}
 }
 
-// this can in some cases get called on already stopped/deleted VMs and that's OK
-func setStopped(id string) {
+// SetStopped this can in some cases get called on already stopped/deleted VMs and that's OK
+func SetStopped(id string) {
 	vm := VM{ID: id}
 	db := getVmDb()
 	vm.Status = STOPPED

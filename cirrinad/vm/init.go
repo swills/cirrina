@@ -252,11 +252,11 @@ func PrintVMStatus() {
 			)
 		} else {
 			if vmInst.proc == nil {
-				setStopped(vmInst.ID)
+				SetStopped(vmInst.ID)
 				List.Mu.Lock()
 				List.VmList[vmInst.ID].Status = STOPPED
 				List.Mu.Unlock()
-				vmInst.maybeForceKillVM()
+				vmInst.MaybeForceKillVM()
 				slog.Info("vm",
 					"id", vmInst.ID,
 					"name", vmInst.Name,

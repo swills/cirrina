@@ -241,7 +241,7 @@ func (vm *VM) String() string {
 	return fmt.Sprintf("name: %s id: %s", vm.Name, vm.ID)
 }
 
-func (vm *VM) maybeForceKillVM() {
+func (vm *VM) MaybeForceKillVM() {
 	ex, err := util.PathExists("/dev/vmm/" + vm.Name)
 	if err != nil {
 		return
@@ -391,7 +391,7 @@ func (vm *VM) netStartup() {
 	}
 }
 
-func (vm *VM) netCleanup() {
+func (vm *VM) NetCleanup() {
 	vmNicsList, err := vm.GetNics()
 	if err != nil {
 		slog.Error("netStartup failed to get nics", "err", err)
@@ -459,7 +459,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 				vm.log.Info("event", "code", event.Code, "message", event.Message)
 			case "ProcessCrashed":
 				vm.log.Info("exited, destroying")
-				vm.maybeForceKillVM()
+				vm.MaybeForceKillVM()
 			default:
 				vm.log.Info("event", "code", event.Code, "message", event.Message)
 			}
@@ -468,9 +468,9 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 				"vm_name", vm.Name,
 			)
 			vm.log.Info("stopped")
-			vm.netCleanup()
+			vm.NetCleanup()
 			vm.killComLoggers()
-			setStopped(vm.ID)
+			SetStopped(vm.ID)
 			vm.mu.Lock()
 			List.VmList[vm.ID].Status = STOPPED
 			List.VmList[vm.ID].VNCPort = 0
@@ -481,7 +481,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			List.VmList[vm.ID].Com3Dev = ""
 			List.VmList[vm.ID].Com4Dev = ""
 			vm.mu.Unlock()
-			vm.maybeForceKillVM()
+			vm.MaybeForceKillVM()
 			vm.log.Info("closing loop we are done")
 			return
 		}
