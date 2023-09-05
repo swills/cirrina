@@ -717,7 +717,7 @@ var VmDiskRmCmd = &cobra.Command{
 
 var VmDisksCmd = &cobra.Command{
 	Use:   "disk",
-	Short: "Disk operations on VMs",
+	Short: "Disk related operations on VMs",
 	Long:  "List disks attached to VMs, attach disks to VMs and un-attach disks from VMs",
 }
 
