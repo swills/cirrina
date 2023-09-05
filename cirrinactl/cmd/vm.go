@@ -971,6 +971,38 @@ var VmNicsCmd = &cobra.Command{
 	Long:  "List NICs attached to VMs, attach NICs to VMs and un-attach NICs from VMs",
 }
 
+var VmClearUefiVarsCmd = &cobra.Command{
+	Use:   "clearuefivars",
+	Short: "Clear UEFI variable state",
+	Run: func(cmd *cobra.Command, args []string) {
+		conn, c, ctx, cancel, err := rpc.SetupConn()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer func(conn *grpc.ClientConn) {
+			_ = conn.Close()
+		}(conn)
+		defer cancel()
+
+		if VmId == "" {
+			VmId, err = rpc.VmNameToId(VmName, c, ctx)
+			if err != nil {
+				log.Fatalf(err.Error())
+			}
+			if VmId == "" {
+				log.Fatalf("VM not found")
+			}
+		}
+		if VmName == "" {
+			VmName, err = rpc.VmIdToName(&VmId, c, ctx)
+			if err != nil {
+				log.Fatalf(err.Error())
+			}
+		}
+		util.ClearUefiVars(VmName, c, ctx)
+	},
+}
+
 var VmCmd = &cobra.Command{
 	Use:   "vm",
 	Short: "Create, list, modify, destroy VMs",
@@ -1113,6 +1145,10 @@ func init() {
 	VmNicsRmCmd.Flags().StringVarP(&NicId, "nic-id", "I", NicId, "Id of Nic")
 	VmNicsRmCmd.MarkFlagsOneRequired("nic-name", "nic-id")
 
+	VmClearUefiVarsCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
+	VmClearUefiVarsCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
+	VmClearUefiVarsCmd.MarkFlagsOneRequired("name", "id")
+
 	VmDisksCmd.AddCommand(VmDisksGetCmd)
 	VmDisksCmd.AddCommand(VmDiskAddCmd)
 	VmDisksCmd.AddCommand(VmDiskRmCmd)
@@ -1136,6 +1172,7 @@ func init() {
 	VmCmd.AddCommand(VmCom2Cmd)
 	VmCmd.AddCommand(VmCom3Cmd)
 	VmCmd.AddCommand(VmCom4Cmd)
+	VmCmd.AddCommand(VmClearUefiVarsCmd)
 
 	VmCmd.AddCommand(VmDisksCmd)
 	VmCmd.AddCommand(VmIsosCmd)

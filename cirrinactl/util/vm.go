@@ -296,6 +296,20 @@ func StopVM(VmName string, c cirrina.VMInfoClient, ctx context.Context) bool {
 	return false
 }
 
+func ClearUefiVars(VmName string, c cirrina.VMInfoClient, ctx context.Context) {
+	vmId, err := rpc.VmNameToId(VmName, c, ctx)
+	if err != nil || vmId == "" {
+		fmt.Printf("error: could not find VM »%s«: %s", VmName, err)
+	}
+	res, err := rpc.VmClearUefiVars(vmId, c, ctx)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	if !res {
+		fmt.Printf("Failed\n")
+	}
+}
+
 func AddVM(VmName *string, c cirrina.VMInfoClient, ctx context.Context, Description *string, lCpus *uint32, Mem *uint32) {
 	res, err := rpc.AddVM(VmName, c, ctx, Description, lCpus, Mem)
 	if err != nil {

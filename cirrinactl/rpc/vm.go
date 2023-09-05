@@ -269,3 +269,11 @@ func VmSetNics(id string, nicIds []string, c cirrina.VMInfoClient, ctx context.C
 	}
 	return res.Success, nil
 }
+
+func VmClearUefiVars(id string, c cirrina.VMInfoClient, ctx context.Context) (bool, error) {
+	res, err := c.ClearUEFIState(ctx, &cirrina.VMID{Value: id})
+	if err != nil {
+		return false, err
+	}
+	return res.Success, err
+}
