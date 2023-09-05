@@ -94,26 +94,29 @@ and add:
     * Start VM
 * Command line - Incomplete
   * Create a switch
-    * `./cirrinactl -action addSwitch -name bridge0`
+    * `./cirrinactl switch create -n bridge0`
     * Note:
       * "IF" (`if_bridge`) type switches must have names which start with `bridge`
       * "NG" (`netgraph`) type switches must have names which start with `bnet`
   * Set it's uplink
-    * `./cirrinactl -action setSwitchUplink -switchId switchuuid -uplinkName "em0"`
+    * `./cirrinactl switch set-uplink -n bridge0 -u em0`
     * Or use the GUI (weasel)
   * Add an iso for your VM to use:
-    * `./cirrinactl -action addISO -name something.iso`
-    * `./cirrinactl -action uploadIso -id isoid -filePath /some/file/path.iso`
+    * `./cirrinactl iso add -n something.iso`
+    * This returns an iso id (UUID). Use this ID to upload the iso file:
+    * `./cirrinactl iso upload -i <isoid> -P /some/file/path/something.iso`
     * Or use the GUI (weasel)
   * Add a disk for a VM:
-    * `./cirrinactl -action addDisk -name something -descr 'a disk' -size 8g`
+    * `./cirrinactl disk create -n somediskname -s 32G`
     * Or use the GUI (weasel)
   * Add a NIC for a VM:
-    * `./cirrinactl -action addVmNic -name something_int0 -switchId switchuuid`
+    * `./cirrinactl nic create -n something_int0`
     * Or use the GUI (weasel)
   * Add a VM:
-    * `./cirrinactl -action addVM -name something`
+    * `./cirrinactl vm create -n something`
     * Or use the GUI (weasel)
+  * Set config for a VM:
+    * `./cirrinactl vm config -n something --description "some description"`
 
 # TODO
 
