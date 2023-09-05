@@ -241,14 +241,14 @@ func GetVMs(c cirrina.VMInfoClient, ctx context.Context) {
 			SeparateRows:    false,
 		},
 	})
-	for _, a := range names {
+	for _, name := range names {
 		t.AppendRow(table.Row{
-			a,
-			vmInfos[a].id,
-			vmInfos[a].cpu,
-			vmInfos[a].mem,
-			vmInfos[a].sstatus,
-			vmInfos[a].descr,
+			name,
+			vmInfos[name].id,
+			vmInfos[name].cpu,
+			vmInfos[name].mem,
+			vmInfos[name].sstatus,
+			vmInfos[name].descr,
 		})
 
 	}
