@@ -94,11 +94,11 @@ func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 		mac         string
 		nettype     string
 		netdevtype  string
+		uplink      string
+		vm          string
 		ratelimited string
 		ratein      string
 		rateout     string
-		uplink      string
-		vm          string
 		descr       string
 	}
 
@@ -157,11 +157,11 @@ func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 			mac:         *res2.Mac,
 			nettype:     netType,
 			netdevtype:  netDevType,
+			uplink:      uplinkName,
+			vm:          vmName,
 			ratelimited: rateLimited,
 			ratein:      rateins,
 			rateout:     rateouts,
-			uplink:      uplinkName,
-			vm:          vmName,
 			descr:       *res2.Description,
 		}
 		nicInfos[*res2.Name] = aIsoInfo
@@ -173,20 +173,20 @@ func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 
-	t.AppendHeader(table.Row{"NAME", "UUID", "MAC", "NETDEVTYPE", "NETTYPE", "RATELIMITED", "RATE-IN", "RATE-OUT", "VM", "UPLINK", "DESCRIPTION"})
+	t.AppendHeader(table.Row{"NAME", "UUID", "MAC", "TYPE", "DEVTYPE", "UPLINK", "VM", "RATE-LIMITED", "RATE-IN", "RATE-OUT", "DESCRIPTION"})
 	t.SetStyle(myTableStyle)
 	for _, name := range names {
 		t.AppendRow(table.Row{
 			name,
 			nicInfos[name].id,
 			nicInfos[name].mac,
-			nicInfos[name].netdevtype,
 			nicInfos[name].nettype,
+			nicInfos[name].netdevtype,
+			nicInfos[name].uplink,
+			nicInfos[name].vm,
 			nicInfos[name].ratelimited,
 			nicInfos[name].ratein,
 			nicInfos[name].rateout,
-			nicInfos[name].vm,
-			nicInfos[name].uplink,
 			nicInfos[name].descr,
 		})
 

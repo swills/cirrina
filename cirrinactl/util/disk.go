@@ -54,9 +54,9 @@ func GetDisks(c cirrina.VMInfoClient, ctx context.Context) (err error) {
 	var names []string
 	type ThisDiskInfo struct {
 		id       string
-		size     uint64
 		diskType string
-		usage    string
+		size     uint64
+		usage    uint64
 		vm       string
 		descr    string
 	}
@@ -85,9 +85,9 @@ func GetDisks(c cirrina.VMInfoClient, ctx context.Context) (err error) {
 
 		aVmInfo := ThisDiskInfo{
 			id:       id,
-			size:     *res2.SizeNum,
 			diskType: aDiskType,
-			usage:    *res2.Usage,
+			size:     *res2.SizeNum,
+			usage:    *res2.UsageNum,
 			vm:       vmName,
 			descr:    *res2.Description,
 		}
@@ -100,7 +100,7 @@ func GetDisks(c cirrina.VMInfoClient, ctx context.Context) (err error) {
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"NAME", "UUID", "SIZE", "TYPE", "USAGE", "VM", "DESCRIPTION"})
+	t.AppendHeader(table.Row{"NAME", "UUID", "TYPE", "SIZE", "USAGE", "VM", "DESCRIPTION"})
 	t.SetStyle(myTableStyle)
 	t.SetColumnConfigs([]table.ColumnConfig{
 		{Number: 3, Align: text.AlignLeft, AlignHeader: text.AlignLeft},
@@ -109,8 +109,8 @@ func GetDisks(c cirrina.VMInfoClient, ctx context.Context) (err error) {
 		t.AppendRow(table.Row{
 			name,
 			diskInfos[name].id,
-			diskInfos[name].size,
 			diskInfos[name].diskType,
+			diskInfos[name].size,
 			diskInfos[name].usage,
 			diskInfos[name].vm,
 			diskInfos[name].descr,
