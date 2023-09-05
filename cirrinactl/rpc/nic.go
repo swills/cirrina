@@ -121,3 +121,22 @@ func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) ([]string, error)
 	}
 	return rv, nil
 }
+
+func NicGetVm(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (vmName string, err error) {
+	if idPtr == nil || *idPtr == "" {
+		return "", errors.New("nic id not specified")
+	}
+
+	res, err := c.GetVmNicVm(ctx, &cirrina.VmNicId{Value: *idPtr})
+	if err != nil {
+		return "", nil
+	}
+	if res.Value == "" {
+		return "", nil
+	}
+	res2, err := VmIdToName(&res.Value, c, ctx)
+	if err != nil {
+		return "", err
+	}
+	return res2, nil
+}
