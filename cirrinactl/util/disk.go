@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/dustin/go-humanize"
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/jedib0t/go-pretty/text"
 	"google.golang.org/grpc/status"
@@ -45,7 +46,7 @@ func AddDisk(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descr
 	return res, err
 }
 
-func GetDisks(c cirrina.VMInfoClient, ctx context.Context) (err error) {
+func GetDisks(c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) (err error) {
 	res, err := rpc.GetDisks(c, ctx)
 	if err != nil {
 		return err
@@ -103,19 +104,31 @@ func GetDisks(c cirrina.VMInfoClient, ctx context.Context) (err error) {
 	t.AppendHeader(table.Row{"NAME", "UUID", "TYPE", "SIZE", "USAGE", "VM", "DESCRIPTION"})
 	t.SetStyle(myTableStyle)
 	t.SetColumnConfigs([]table.ColumnConfig{
-		{Number: 3, Align: text.AlignLeft, AlignHeader: text.AlignLeft},
+		{Number: 4, Align: text.AlignRight, AlignHeader: text.AlignRight},
+		{Number: 5, Align: text.AlignRight, AlignHeader: text.AlignRight},
 	})
 	for _, name := range names {
-		t.AppendRow(table.Row{
-			name,
-			diskInfos[name].id,
-			diskInfos[name].diskType,
-			diskInfos[name].size,
-			diskInfos[name].usage,
-			diskInfos[name].vm,
-			diskInfos[name].descr,
-		})
-
+		if useHumanize {
+			t.AppendRow(table.Row{
+				name,
+				diskInfos[name].id,
+				diskInfos[name].diskType,
+				humanize.IBytes(diskInfos[name].size),
+				humanize.IBytes(diskInfos[name].usage),
+				diskInfos[name].vm,
+				diskInfos[name].descr,
+			})
+		} else {
+			t.AppendRow(table.Row{
+				name,
+				diskInfos[name].id,
+				diskInfos[name].diskType,
+				diskInfos[name].size,
+				diskInfos[name].usage,
+				diskInfos[name].vm,
+				diskInfos[name].descr,
+			})
+		}
 	}
 	t.Render()
 	return nil

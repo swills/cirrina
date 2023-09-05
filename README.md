@@ -148,7 +148,6 @@ and add:
     * Create disk from existing image (clone) or other disk image.
   * Networking
     * Support various network types from VBox
-    * Support rate limiting - High Priority
     * Support vxlan and vale switches - High Priority
     * Maybe run a DHCP server on switches of the proper "type"
     * Tunnel/VPN support
@@ -174,7 +173,6 @@ and add:
     * Build Web UI -- maybe [awesome-grpc](https://github.com/grpc-ecosystem/awesome-grpc) has suggestions
   * Have GUI manage config for and automatically start daemon for a purely local mode
   * User/password auth - High Priority
-  * Server manager with grouping - High Priority
   * VM grouping - High Priority
   * VM templates for various OSs
   * Automated OS install

@@ -14,6 +14,7 @@ var DiskType = "nvme"
 var DiskSize = "1G"
 var DiskId string
 var DiskIdChanged bool
+var DiskHumanize bool
 
 var DiskListCmd = &cobra.Command{
 	Use:   "list",
@@ -27,7 +28,7 @@ var DiskListCmd = &cobra.Command{
 			_ = conn.Close()
 		}(conn)
 		defer cancel()
-		err = util.GetDisks(c, ctx)
+		err = util.GetDisks(c, ctx, DiskHumanize)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -93,6 +94,8 @@ func init() {
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
+
+	DiskListCmd.Flags().BoolVarP(&DiskHumanize, "human", "H", DiskHumanize, "Print sizes in human readable form")
 
 	DiskCmd.AddCommand(DiskListCmd)
 	DiskCmd.AddCommand(DiskCreateCmd)
