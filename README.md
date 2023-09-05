@@ -191,8 +191,7 @@ and add:
     * [ProxMox](https://pve.proxmox.com/)
     * [minimega](https://minimega.org/)
     * [Ganeti](https://ganeti.org/)
-  *
-  Review [networking](https://freebsdfoundation.org/wp-content/uploads/2020/01/Arranging-Your-Virtual-Network-on-FreeBSD.pdf)
+  * Review [networking](https://freebsdfoundation.org/wp-content/uploads/2020/01/Arranging-Your-Virtual-Network-on-FreeBSD.pdf)
   * Consider a cirrinactl command for remote sound, similar to remote serial
   * Support suspend/resume
   * Switch to using bhyve config file instead of command line args
