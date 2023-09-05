@@ -58,13 +58,13 @@ func GetSwitches(c cirrina.VMInfoClient, ctx context.Context) {
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"NAME", "UUID", "TYPE", "UPLINK", "DESCRIPTION"})
 	t.SetStyle(myTableStyle)
-	for _, a := range names {
+	for _, name := range names {
 		t.AppendRow(table.Row{
-			a,
-			switchInfos[a].id,
-			switchInfos[a].switchtype,
-			switchInfos[a].uplink,
-			switchInfos[a].descr,
+			name,
+			switchInfos[name].id,
+			switchInfos[name].switchtype,
+			switchInfos[name].uplink,
+			switchInfos[name].descr,
 		})
 
 	}

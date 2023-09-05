@@ -201,11 +201,11 @@ func ListIsos(c cirrina.VMInfoClient, ctx context.Context) {
 			SeparateRows:    false,
 		},
 	})
-	for _, a := range names {
+	for _, name := range names {
 		t.AppendRow(table.Row{
-			a,
-			isoInfos[a].id,
-			isoInfos[a].descr,
+			name,
+			isoInfos[name].id,
+			isoInfos[name].descr,
 		})
 	}
 	t.Render()

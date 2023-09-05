@@ -168,18 +168,18 @@ func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 
 	sort.Strings(names)
 
-	for _, a := range names {
+	for _, name := range names {
 		t.AppendRow(table.Row{
-			a,
-			nicInfos[a].id,
-			nicInfos[a].mac,
-			nicInfos[a].netdevtype,
-			nicInfos[a].nettype,
-			nicInfos[a].ratelimited,
-			nicInfos[a].ratein,
-			nicInfos[a].rateout,
-			nicInfos[a].uplink,
-			nicInfos[a].descr,
+			name,
+			nicInfos[name].id,
+			nicInfos[name].mac,
+			nicInfos[name].netdevtype,
+			nicInfos[name].nettype,
+			nicInfos[name].ratelimited,
+			nicInfos[name].ratein,
+			nicInfos[name].rateout,
+			nicInfos[name].uplink,
+			nicInfos[name].descr,
 		})
 
 	}

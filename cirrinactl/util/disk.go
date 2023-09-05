@@ -98,14 +98,14 @@ func GetDisks(c cirrina.VMInfoClient, ctx context.Context) (err error) {
 	t.SetColumnConfigs([]table.ColumnConfig{
 		{Number: 3, Align: text.AlignLeft, AlignHeader: text.AlignLeft},
 	})
-	for _, a := range names {
+	for _, name := range names {
 		t.AppendRow(table.Row{
-			a,
-			diskInfos[a].id,
-			diskInfos[a].size,
-			diskInfos[a].diskType,
-			diskInfos[a].usage,
-			diskInfos[a].descr,
+			name,
+			diskInfos[name].id,
+			diskInfos[name].size,
+			diskInfos[name].diskType,
+			diskInfos[name].usage,
+			diskInfos[name].descr,
 		})
 
 	}
