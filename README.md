@@ -92,7 +92,7 @@ and add:
     * Upload ISO
     * Select VM, click edit, add disk, iso and nic to VM
     * Start VM
-* Command line - Incomplete
+* Command line
   * Create a switch
     * `./cirrinactl switch create -n bridge0`
     * Note:
