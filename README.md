@@ -100,21 +100,16 @@ and add:
       * "NG" (`netgraph`) type switches must have names which start with `bnet`
   * Set it's uplink
     * `./cirrinactl switch set-uplink -n bridge0 -u em0`
-    * Or use the GUI (weasel)
   * Add an iso for your VM to use:
     * `./cirrinactl iso add -n something.iso`
     * This returns an iso id (UUID). Use this ID to upload the iso file:
     * `./cirrinactl iso upload -i <isoid> -P /some/file/path/something.iso`
-    * Or use the GUI (weasel)
   * Add a disk for a VM:
     * `./cirrinactl disk create -n somediskname -s 32G`
-    * Or use the GUI (weasel)
   * Add a NIC for a VM:
     * `./cirrinactl nic create -n something_int0`
-    * Or use the GUI (weasel)
   * Add a VM:
     * `./cirrinactl vm create -n something`
-    * Or use the GUI (weasel)
   * Set config for a VM:
     * `./cirrinactl vm config -n something --description "some description"`
 
