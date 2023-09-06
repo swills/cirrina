@@ -5,12 +5,15 @@ import (
 	"cirrina/cirrinactl/rpc"
 	"context"
 	"fmt"
+	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/jedib0t/go-pretty/text"
 	"log"
 	"os"
 	"sort"
+	"strconv"
+	"strings"
 )
 
 func GetVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
@@ -342,7 +345,7 @@ func DeleteVM(VmName string, c cirrina.VMInfoClient, ctx context.Context) {
 	fmt.Printf("Deleted request created, reqid: %v\n", reqId)
 }
 
-func GetVMDisks(VmName string, c cirrina.VMInfoClient, ctx context.Context) {
+func GetVMDisks(VmName string, c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) {
 	vmId, err := rpc.VmNameToId(VmName, c, ctx)
 	if err != nil || vmId == "" {
 		fmt.Printf("error: could not find VM »%s«: %s\n", VmName, err)
@@ -351,7 +354,7 @@ func GetVMDisks(VmName string, c cirrina.VMInfoClient, ctx context.Context) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 
-	t.AppendHeader(table.Row{"NAME", "UUID", "SIZE", "TYPE", "DESCRIPTION"})
+	t.AppendHeader(table.Row{"NAME", "UUID", "TYPE", "SIZE", "USAGE", "DESCRIPTION"})
 
 	t.SetStyle(table.Style{
 		Name: "myNewStyle",
@@ -383,16 +386,27 @@ func GetVMDisks(VmName string, c cirrina.VMInfoClient, ctx context.Context) {
 			log.Fatalf("could not get VM: %v", err)
 			return
 		}
+		if useHumanize {
+			t.AppendRow(table.Row{
+				*res.Name,
+				id,
+				*res.DiskType,
+				humanize.IBytes(*res.SizeNum),
+				humanize.IBytes(*res.UsageNum),
+				*res.Description,
+			})
 
-		t.AppendRow(table.Row{
-			*res.Name,
-			id,
-			*res.Size,
-			*res.DiskType,
-			*res.Description,
-		})
+		} else {
+			t.AppendRow(table.Row{
+				*res.Name,
+				id,
+				*res.DiskType,
+				*res.SizeNum,
+				*res.UsageNum,
+				*res.Description,
+			})
+		}
 	}
-
 	t.Render()
 }
 
@@ -448,7 +462,7 @@ func GetVMIsos(VmName string, c cirrina.VMInfoClient, ctx context.Context) {
 	t.Render()
 }
 
-func GetVmNics(VmName string, c cirrina.VMInfoClient, ctx context.Context) {
+func GetVmNics(VmName string, c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) {
 	vmId, err := rpc.VmNameToId(VmName, c, ctx)
 	if err != nil || vmId == "" {
 		fmt.Printf("error: could not find VM »%s«: %s\n", VmName, err)
@@ -501,6 +515,21 @@ func GetVmNics(VmName string, c cirrina.VMInfoClient, ctx context.Context) {
 			uplinkName = *res2.Name
 		}
 
+		var rateins string
+		var rateouts string
+
+		if *res.Ratelimit {
+			if useHumanize {
+				rateins = humanize.Bytes(*res.Ratein)
+				rateins = strings.Replace(rateins, "B", "b", 1) + "ps"
+				rateouts = humanize.Bytes(*res.Rateout)
+				rateouts = strings.Replace(rateouts, "B", "b", 1) + "ps"
+			} else {
+				rateins = strconv.FormatUint(*res.Ratein, 10)
+				rateouts = strconv.FormatUint(*res.Rateout, 10)
+			}
+		}
+
 		t.AppendRow(table.Row{
 			*res.Name,
 			id,
@@ -509,8 +538,8 @@ func GetVmNics(VmName string, c cirrina.VMInfoClient, ctx context.Context) {
 			*res.Netdevtype,
 			uplinkName,
 			*res.Ratelimit,
-			*res.Ratein,
-			*res.Rateout,
+			rateins,
+			rateouts,
 			*res.Description,
 		})
 	}

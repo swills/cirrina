@@ -6,12 +6,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/dustin/go-humanize"
 	"github.com/jedib0t/go-pretty/table"
 	"google.golang.org/grpc/status"
 	"log"
 	"os"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 func AddVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context, descrptr *string,
@@ -81,7 +83,7 @@ func GetVmNicsOne(c cirrina.VMInfoClient, ctx context.Context, idPtr *string) {
 	fmt.Printf("VmNic: id: %v\n", res)
 }
 
-func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
+func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) {
 	res, err := rpc.GetVmNicsAll(c, ctx)
 	if err != nil {
 		log.Fatalf("could not get VmNics: %v", err)
@@ -128,14 +130,22 @@ func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) {
 		}
 
 		rateLimited := "unknown"
+		var rateins string
+		var rateouts string
 		if *res2.Ratelimit {
 			rateLimited = "yes"
+			if useHumanize {
+				rateins = humanize.Bytes(*res2.Ratein)
+				rateins = strings.Replace(rateins, "B", "b", 1) + "ps"
+				rateouts = humanize.Bytes(*res2.Rateout)
+				rateouts = strings.Replace(rateouts, "B", "b", 1) + "ps"
+			} else {
+				rateins = strconv.FormatUint(*res2.Ratein, 10)
+				rateouts = strconv.FormatUint(*res2.Rateout, 10)
+			}
 		} else {
 			rateLimited = "no"
 		}
-
-		rateins := strconv.FormatUint(*res2.Ratein, 10)
-		rateouts := strconv.FormatUint(*res2.Rateout, 10)
 
 		uplinkName := ""
 		if res2.Switchid != nil && *res2.Switchid != "" {

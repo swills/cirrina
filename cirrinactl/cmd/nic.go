@@ -27,6 +27,7 @@ var NicIdChanged bool
 var NicRateLimited bool
 var NicRateIn uint64
 var NicRateOut uint64
+var NicHumanize bool
 
 var NicListCmd = &cobra.Command{
 	Use:   "list",
@@ -40,7 +41,7 @@ var NicListCmd = &cobra.Command{
 			_ = conn.Close()
 		}(conn)
 		defer cancel()
-		util.GetVmNicsAll(c, ctx)
+		util.GetVmNicsAll(c, ctx, NicHumanize)
 	},
 }
 
@@ -143,6 +144,8 @@ func init() {
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
+
+	NicListCmd.Flags().BoolVarP(&NicHumanize, "human", "H", NicHumanize, "Print speeds in human readable form")
 
 	NicCmd.AddCommand(NicListCmd)
 	NicCmd.AddCommand(NicCreateCmd)
