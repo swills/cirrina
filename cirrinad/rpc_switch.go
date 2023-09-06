@@ -230,9 +230,8 @@ func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq)
 		}
 		if switchInst.Uplink != uplink {
 			slog.Debug("SetSwitchUplink", "msg", "unsetting switch uplink", "switchInst", switchInst)
-			if err = switchInst.UnsetUplink(); err != nil {
-				return &r, err
-			}
+			// ignore error here because it may not be set so removing it can fail
+			_ = switchInst.UnsetUplink()
 			slog.Debug("SetSwitchUplink", "msg", "setting switch uplink", "switchInst", switchInst)
 			if err = switchInst.SetUplink(uplink); err != nil {
 				return &r, err
