@@ -40,24 +40,11 @@ func init() {
 		log.Fatal(err)
 	}
 
-	rootCmd.PersistentFlags().Uint64P("timeout", "T", uint64(1), "timeout in seconds")
+	rootCmd.PersistentFlags().Uint64P("timeout", "T", uint64(2), "timeout in seconds")
 	err = viper.BindPFlag("timeout", rootCmd.PersistentFlags().Lookup("timeout"))
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	//// some VM commands are duplicated at the root
-	//rootCmd.AddCommand(VmCreateCmd)
-	//rootCmd.AddCommand(VmListCmd)
-	//rootCmd.AddCommand(VmStartCmd)
-	//rootCmd.AddCommand(VmStopCmd)
-	//rootCmd.AddCommand(VmDestroyCmd)
-	//rootCmd.AddCommand(VmConfigCmd)
-	//rootCmd.AddCommand(VmGetCmd)
-	//rootCmd.AddCommand(VmCom1Cmd)
-	//rootCmd.AddCommand(VmCom2Cmd)
-	//rootCmd.AddCommand(VmCom3Cmd)
-	//rootCmd.AddCommand(VmCom4Cmd)
 
 	rootCmd.AddCommand(VmCmd)
 	rootCmd.AddCommand(DiskCmd)
