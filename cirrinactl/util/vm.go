@@ -169,7 +169,7 @@ func GetVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 	fmt.Printf("\nstatus: %s\nvnc port: %s\ndebug port: %s\n", res2, vncPort, debugPort)
 }
 
-func GetVMs(c cirrina.VMInfoClient, ctx context.Context) {
+func GetVMs(c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) {
 	ids, err := rpc.GetVmIds(c, ctx)
 	if err != nil {
 		log.Fatalf(err.Error())
@@ -179,7 +179,7 @@ func GetVMs(c cirrina.VMInfoClient, ctx context.Context) {
 	type ThisVmInfo struct {
 		id      string
 		cpu     uint32
-		mem     uint32
+		mem     string
 		sstatus string
 		descr   string
 	}
@@ -199,6 +199,14 @@ func GetVMs(c cirrina.VMInfoClient, ctx context.Context) {
 		}
 		sstatus := "Unknown"
 
+		var mems string
+		if useHumanize {
+			mems = humanize.IBytes(uint64(*res.Mem * 1024 * 1024))
+		} else {
+			mems = strconv.FormatInt(int64(*res.Mem*1024*1024), 10)
+
+		}
+
 		if status == "stopped" {
 			sstatus = color.RedString("STOPPED")
 		} else if status == "starting" {
@@ -212,7 +220,7 @@ func GetVMs(c cirrina.VMInfoClient, ctx context.Context) {
 		aVmInfo := ThisVmInfo{
 			id:      id,
 			cpu:     *res.Cpu,
-			mem:     *res.Mem,
+			mem:     mems,
 			sstatus: sstatus,
 			descr:   *res.Description,
 		}

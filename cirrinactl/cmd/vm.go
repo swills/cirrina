@@ -110,6 +110,7 @@ var Com4SpeedChanged bool
 
 var VmDiskUseHumanize bool
 var VmNicUseHumanize bool
+var VmUseHumanize bool
 
 var VmCreateCmd = &cobra.Command{
 	Use:   "create",
@@ -170,7 +171,7 @@ var VmListCmd = &cobra.Command{
 			_ = conn.Close()
 		}(conn)
 		defer cancel()
-		util.GetVMs(c, ctx)
+		util.GetVMs(c, ctx, VmUseHumanize)
 	},
 }
 
@@ -1153,6 +1154,8 @@ func init() {
 	VmClearUefiVarsCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmClearUefiVarsCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmClearUefiVarsCmd.MarkFlagsOneRequired("name", "id")
+
+	VmListCmd.Flags().BoolVarP(&VmUseHumanize, "human", "H", VmUseHumanize, "Print sizes in human readable form")
 
 	VmDisksCmd.AddCommand(VmDisksGetCmd)
 	VmDisksCmd.AddCommand(VmDiskAddCmd)
