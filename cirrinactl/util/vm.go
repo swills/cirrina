@@ -199,11 +199,13 @@ func GetVMs(c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) {
 		}
 		sstatus := "Unknown"
 
+		var memi uint64
 		var mems string
+		memi = uint64(*res.Mem)
 		if useHumanize {
-			mems = humanize.IBytes(uint64(*res.Mem * 1024 * 1024))
+			mems = humanize.IBytes(memi * 1024 * 1024)
 		} else {
-			mems = strconv.FormatInt(int64(*res.Mem*1024*1024), 10)
+			mems = strconv.FormatUint(memi*1024*1024, 10)
 
 		}
 
