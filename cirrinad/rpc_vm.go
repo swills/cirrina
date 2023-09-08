@@ -90,7 +90,7 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 		}
 	}
 	if isOptionPassed(reflect, "wireguestmem") {
-		if *rc.Storeuefi == true {
+		if *rc.Wireguestmem == true {
 			vmInst.Config.WireGuestMem = true
 		} else {
 			vmInst.Config.WireGuestMem = false
