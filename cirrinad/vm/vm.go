@@ -908,11 +908,11 @@ func comLogger(vm *VM, comNum int) {
 			slog.Error("comLogger read more than 1 byte", "nb", nb)
 		}
 		if err == io.EOF && vm.Status != RUNNING {
-			slog.Debug("comLogger", "msg", "vm not running, exiting", "vm_id", vm.ID, "comNum", comNum)
+			slog.Debug("comLogger vm not running, exiting", "vm_id", vm.ID, "comNum", comNum)
 			return
 		}
 		if err != nil && err != io.EOF {
-			slog.Error("comLogger", "msg", "error reading", err)
+			slog.Error("comLogger", "error reading", err)
 			return
 		}
 		if nb != 0 {
@@ -931,7 +931,7 @@ func comLogger(vm *VM, comNum int) {
 
 			n = n + nb
 			if err != nil {
-				slog.Error("comLogger", "msg", "error writing", err)
+				slog.Error("comLogger", "error writing", err)
 				return
 			}
 		}

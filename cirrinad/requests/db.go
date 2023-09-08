@@ -33,7 +33,13 @@ func getReqDb() *gorm.DB {
 
 	once.Do(func() {
 		instance = &singleton{}
-		reqDb, err := gorm.Open(sqlite.Open(config.Config.DB.Path), &gorm.Config{Logger: noColorLogger})
+		reqDb, err := gorm.Open(
+			sqlite.Open(config.Config.DB.Path),
+			&gorm.Config{
+				Logger:      noColorLogger,
+				PrepareStmt: true,
+			},
+		)
 		if err != nil {
 			panic("failed to connect database")
 		}

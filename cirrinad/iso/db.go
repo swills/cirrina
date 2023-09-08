@@ -33,7 +33,13 @@ func getIsoDb() *gorm.DB {
 
 	once.Do(func() {
 		instance = &singleton{}
-		isoDb, err := gorm.Open(sqlite.Open(config.Config.DB.Path), &gorm.Config{Logger: noColorLogger})
+		isoDb, err := gorm.Open(
+			sqlite.Open(config.Config.DB.Path),
+			&gorm.Config{
+				Logger:      noColorLogger,
+				PrepareStmt: true,
+			},
+		)
 		if err != nil {
 			panic("failed to connect database")
 		}

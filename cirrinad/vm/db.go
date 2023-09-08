@@ -34,7 +34,13 @@ func getVmDb() *gorm.DB {
 
 	once.Do(func() {
 		instance = &singleton{}
-		vmDb, err := gorm.Open(sqlite.Open(config.Config.DB.Path), &gorm.Config{Logger: noColorLogger})
+		vmDb, err := gorm.Open(
+			sqlite.Open(config.Config.DB.Path),
+			&gorm.Config{
+				Logger:      noColorLogger,
+				PrepareStmt: true,
+			},
+		)
 		vmDb.Preload("Config")
 		if err != nil {
 			panic("failed to connect database")

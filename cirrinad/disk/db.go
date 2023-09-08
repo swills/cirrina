@@ -33,7 +33,13 @@ func getDiskDb() *gorm.DB {
 
 	once.Do(func() {
 		instance = &singleton{}
-		diskDb, err := gorm.Open(sqlite.Open(config.Config.DB.Path), &gorm.Config{Logger: noColorLogger})
+		diskDb, err := gorm.Open(
+			sqlite.Open(config.Config.DB.Path),
+			&gorm.Config{
+				Logger:      noColorLogger,
+				PrepareStmt: true,
+			},
+		)
 		if err != nil {
 			panic("failed to connect database")
 		}
