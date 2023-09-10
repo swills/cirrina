@@ -73,17 +73,12 @@ func (vm *VM) Delete() (err error) {
 var vmStartLock sync.Mutex
 
 func (vm *VM) Start() (err error) {
-	vmStartLock.Lock()
 	defer vmStartLock.Unlock()
+	vmStartLock.Lock()
 	if vm.Status != STOPPED {
 		return errors.New("must be stopped first")
 	}
-	defer func() {
-		vm.mu.Unlock()
-	}()
-	vm.mu.Lock()
-	vm.setStarting()
-	List.VmList[vm.ID].Status = STARTING
+	vm.SetStarting()
 	events := make(chan supervisor.Event)
 
 	cmdName, cmdArgs, err := vm.generateCommandLine()
@@ -119,7 +114,7 @@ func (vm *VM) Start() (err error) {
 		IdleTimeout:             -1,
 		TerminationGraceTimeout: time.Duration(vm.Config.MaxWait) * time.Second,
 	})
-	List.VmList[vm.ID].proc = p
+	vm.proc = p
 	go vmDaemon(events, vm)
 
 	if err := p.Start(); err != nil {
@@ -133,9 +128,7 @@ func (vm *VM) Stop() (err error) {
 		slog.Error("tried to stop VM that is not running", "vm", vm.Name)
 		return errors.New("must be running first")
 	}
-	defer vm.mu.Unlock()
-	vm.mu.Lock()
-	setStopping(vm.ID)
+	vm.SetStopping()
 	if vm.proc == nil {
 		return nil
 	}
@@ -445,11 +438,8 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			switch event.Code {
 			case "ProcessStart":
 				vm.log.Info("event", "code", event.Code, "message", event.Message)
-				go vm.setRunning(vm.proc.Pid())
-				go vm.setupComLoggers()
-				vm.mu.Lock()
-				List.VmList[vm.ID].Status = RUNNING
-				vm.mu.Unlock()
+				vm.SetRunning(vm.proc.Pid())
+				vm.setupComLoggers()
 			case "ProcessDone":
 				vm.log.Info("event", "code", event.Code, "message", event.Message)
 			case "ProcessCrashed":
@@ -465,17 +455,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			vm.log.Info("stopped")
 			vm.NetCleanup()
 			vm.killComLoggers()
-			SetStopped(vm.ID)
-			vm.mu.Lock()
-			List.VmList[vm.ID].Status = STOPPED
-			List.VmList[vm.ID].VNCPort = 0
-			List.VmList[vm.ID].DebugPort = 0
-			List.VmList[vm.ID].BhyvePid = 0
-			List.VmList[vm.ID].Com1Dev = ""
-			List.VmList[vm.ID].Com2Dev = ""
-			List.VmList[vm.ID].Com3Dev = ""
-			List.VmList[vm.ID].Com4Dev = ""
-			vm.mu.Unlock()
+			vm.SetStopped()
 			vm.MaybeForceKillVM()
 			vm.log.Info("closing loop we are done")
 			return
@@ -484,6 +464,8 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 }
 
 func (vm *VM) GetISOs() ([]iso.ISO, error) {
+	defer vm.mu.RUnlock()
+	vm.mu.RLock()
 	var isos []iso.ISO
 	slog.Debug("GetISOs", "vm", vm.ID, "ISOs", vm.Config.ISOs)
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
@@ -502,6 +484,8 @@ func (vm *VM) GetISOs() ([]iso.ISO, error) {
 }
 
 func (vm *VM) GetNics() ([]vm_nics.VmNic, error) {
+	defer vm.mu.RUnlock()
+	vm.mu.RLock()
 	var nics []vm_nics.VmNic
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	for _, cv := range strings.Split(vm.Config.Nics, ",") {
@@ -519,6 +503,8 @@ func (vm *VM) GetNics() ([]vm_nics.VmNic, error) {
 }
 
 func (vm *VM) GetDisks() ([]disk.Disk, error) {
+	defer vm.mu.RUnlock()
+	vm.mu.RLock()
 	var disks []disk.Disk
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	for _, cv := range strings.Split(vm.Config.Disks, ",") {
@@ -551,8 +537,9 @@ func (vm *VM) DeleteUEFIState() error {
 }
 
 func (vm *VM) AttachIsos(isoIds []string) error {
-	defer List.Mu.Unlock()
-	List.Mu.Lock()
+	defer vm.mu.Unlock()
+	vm.mu.Lock()
+
 	if vm.Status != STOPPED {
 		return errors.New("VM must be stopped before adding isos(s)")
 	}
@@ -595,8 +582,8 @@ func (vm *VM) AttachIsos(isoIds []string) error {
 }
 
 func (vm *VM) AttachNics(nicIds []string) error {
-	defer List.Mu.Unlock()
-	List.Mu.Lock()
+	defer vm.mu.Unlock()
+	vm.mu.Lock()
 	if vm.Status != STOPPED {
 		return errors.New("VM must be stopped before adding disk(s)")
 	}
@@ -663,8 +650,8 @@ func (vm *VM) AttachNics(nicIds []string) error {
 }
 
 func (vm *VM) AttachDisks(diskids []string) error {
-	defer List.Mu.Unlock()
-	List.Mu.Lock()
+	defer vm.mu.Unlock()
+	vm.mu.Lock()
 	if vm.Status != STOPPED {
 		return errors.New("VM must be stopped before adding disk(s)")
 	}

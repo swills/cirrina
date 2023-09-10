@@ -212,8 +212,7 @@ func (vm *VM) getDebugArg() []string {
 			return []string{}
 		}
 	}
-	vm.DebugPort = int32(debugListenPortInt)
-	vm.setDebugPort(debugListenPortInt)
+	vm.SetDebugPort(debugListenPortInt)
 
 	if vm.Config.DebugWait {
 		debugWaitStr = "w"
@@ -309,8 +308,7 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 			return []string{}, slot
 		}
 	}
-	vm.VNCPort = int32(vncListenPortInt)
-	vm.setVNCPort(vncListenPortInt)
+	vm.SetVNCPort(vncListenPortInt)
 
 	fbufArg := []string{"-s",
 		strconv.Itoa(slot) +

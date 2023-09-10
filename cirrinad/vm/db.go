@@ -56,8 +56,10 @@ func getVmDb() *gorm.DB {
 	return instance.vmDb
 }
 
-func (vm *VM) setRunning(pid int) {
+func (vm *VM) SetRunning(pid int) {
 	db := getVmDb()
+	defer vm.mu.Unlock()
+	vm.mu.Lock()
 	vm.Status = RUNNING
 	vm.BhyvePid = uint32(pid)
 	res := db.Select([]string{
@@ -78,8 +80,10 @@ func (vm *VM) setRunning(pid int) {
 	}
 }
 
-func (vm *VM) setStarting() {
+func (vm *VM) SetStarting() {
 	db := getVmDb()
+	defer vm.mu.Unlock()
+	vm.mu.Lock()
 	vm.Status = STARTING
 	res := db.Select([]string{
 		"status",
@@ -93,9 +97,10 @@ func (vm *VM) setStarting() {
 }
 
 // SetStopped this can in some cases get called on already stopped/deleted VMs and that's OK
-func SetStopped(id string) {
-	vm := VM{ID: id}
+func (vm *VM) SetStopped() {
 	db := getVmDb()
+	defer vm.mu.Unlock()
+	vm.mu.Lock()
 	vm.Status = STOPPED
 	vm.VNCPort = 0
 	vm.DebugPort = 0
@@ -130,9 +135,10 @@ func SetStopped(id string) {
 	}
 }
 
-func setStopping(id string) {
-	vm := VM{ID: id}
+func (vm *VM) SetStopping() {
 	db := getVmDb()
+	defer vm.mu.Unlock()
+	vm.mu.Lock()
 	vm.Status = STOPPING
 	res := db.Select([]string{
 		"status",
@@ -145,14 +151,18 @@ func setStopping(id string) {
 	}
 }
 
-func (vm *VM) setVNCPort(port int) {
-	slog.Debug("setVNCPort", "port", port)
+func (vm *VM) SetVNCPort(port int) {
+	slog.Debug("SetVNCPort", "port", port)
+	defer vm.mu.Unlock()
+	vm.mu.Lock()
 	vm.VNCPort = int32(port)
 	_ = vm.Save()
 }
 
-func (vm *VM) setDebugPort(port int) {
-	slog.Debug("setDebugPort", "port", port)
+func (vm *VM) SetDebugPort(port int) {
+	slog.Debug("SetDebugPort", "port", port)
+	defer vm.mu.Unlock()
+	vm.mu.Lock()
 	vm.DebugPort = int32(port)
 	_ = vm.Save()
 }

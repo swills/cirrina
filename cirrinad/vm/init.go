@@ -90,7 +90,7 @@ type VM struct {
 	VNCPort     int32
 	DebugPort   int32
 	proc        *supervisor.Process
-	mu          sync.Mutex
+	mu          sync.RWMutex
 	log         slog.Logger
 	Config      Config
 	Com1Dev     string // TODO make a com struct and put these in it?
@@ -116,12 +116,12 @@ type VM struct {
 }
 
 type ListType struct {
-	Mu     sync.Mutex
+	Mu     sync.RWMutex
 	VmList map[string]*VM
 }
 
-var List = ListType{
-	VmList: map[string]*VM{},
+var List = &ListType{
+	VmList: make(map[string]*VM),
 }
 
 func GetVmLogPath(logpath string) error {
@@ -149,14 +149,14 @@ func init() {
 		panic("failed to auto-migrate Configs")
 	}
 
-	List.Mu.Lock()
 	for _, vmInst := range GetAll() {
 		InitOneVm(vmInst)
 	}
-	List.Mu.Unlock()
 }
 
 func InitOneVm(vmInst *VM) {
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
 	vmLogPath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name
 	err := GetVmLogPath(vmLogPath)
 	if err != nil {
@@ -196,19 +196,18 @@ func AutoStartVMs() {
 }
 
 func doAutostart(vmInst *VM) {
-	func(aVmInst *VM) {
-		slog.Debug(
-			"AutoStartVMs sleeping for auto start delay",
-			"vm", aVmInst.Name,
-			"auto_start_delay", aVmInst.Config.AutoStartDelay,
-		)
-		time.Sleep(time.Duration(aVmInst.Config.AutoStartDelay) * time.Second)
-		err := aVmInst.Start()
-		if err != nil {
-			slog.Error("auto start failed", "vm", vmInst.ID, "name", vmInst.Name, "err", err)
-		}
-	}(vmInst)
+	slog.Debug(
+		"AutoStartVMs sleeping for auto start delay",
+		"vm", vmInst.Name,
+		"auto_start_delay", vmInst.Config.AutoStartDelay,
+	)
+	time.Sleep(time.Duration(vmInst.Config.AutoStartDelay) * time.Second)
+	err := vmInst.Start()
+	if err != nil {
+		slog.Error("auto start failed", "vm", vmInst.ID, "name", vmInst.Name, "err", err)
+	}
 }
+
 func GetAll() []*VM {
 	var result []*VM
 
@@ -219,6 +218,8 @@ func GetAll() []*VM {
 }
 
 func GetByName(name string) (v *VM, err error) {
+	defer List.Mu.RUnlock()
+	List.Mu.RLock()
 	for _, t := range List.VmList {
 		if t.Name == name {
 			return t, nil
@@ -228,17 +229,16 @@ func GetByName(name string) (v *VM, err error) {
 }
 
 func GetById(Id string) (v *VM, err error) {
-	defer List.Mu.Unlock()
-	List.Mu.Lock()
+	defer List.Mu.RUnlock()
+	List.Mu.RLock()
 	vmInst, valid := List.VmList[Id]
 	if valid {
 		return vmInst, nil
-	} else {
-		return vmInst, errors.New("not found")
 	}
+	return nil, errors.New("not found")
 }
 
-func PrintVMStatus() {
+func LogAllVmStatus() {
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
 	for _, vmInst := range List.VmList {
@@ -252,10 +252,7 @@ func PrintVMStatus() {
 			)
 		} else {
 			if vmInst.proc == nil {
-				SetStopped(vmInst.ID)
-				List.Mu.Lock()
-				List.VmList[vmInst.ID].Status = STOPPED
-				List.Mu.Unlock()
+				vmInst.SetStopped()
 				vmInst.MaybeForceKillVM()
 				slog.Info("vm",
 					"id", vmInst.ID,
@@ -279,6 +276,8 @@ func PrintVMStatus() {
 
 func GetRunningVMs() int {
 	count := 0
+	defer List.Mu.RUnlock()
+	List.Mu.RLock()
 	for _, vmInst := range List.VmList {
 		if vmInst.Status == RUNNING {
 			count += 1
@@ -288,6 +287,8 @@ func GetRunningVMs() int {
 }
 
 func KillVMs() {
+	defer List.Mu.RUnlock()
+	List.Mu.RLock()
 	for _, vmInst := range List.VmList {
 		if vmInst.Status == RUNNING {
 			go func(aVmInst *VM) {
@@ -302,8 +303,8 @@ func KillVMs() {
 
 func GetUsedVncPorts() []int {
 	var ret []int
-	defer List.Mu.Unlock()
-	List.Mu.Lock()
+	defer List.Mu.RUnlock()
+	List.Mu.RLock()
 	for _, vmInst := range List.VmList {
 		if vmInst.Status != STOPPED {
 			ret = append(ret, int(vmInst.VNCPort))
@@ -314,8 +315,8 @@ func GetUsedVncPorts() []int {
 
 func GetUsedDebugPorts() []int {
 	var ret []int
-	defer List.Mu.Unlock()
-	List.Mu.Lock()
+	defer List.Mu.RUnlock()
+	List.Mu.RLock()
 	for _, vmInst := range List.VmList {
 		if vmInst.Status != STOPPED {
 			ret = append(ret, int(vmInst.DebugPort))
@@ -326,8 +327,8 @@ func GetUsedDebugPorts() []int {
 
 func GetUsedNetPorts() []string {
 	var ret []string
-	defer List.Mu.Unlock()
-	List.Mu.Lock()
+	defer List.Mu.RUnlock()
+	List.Mu.RLock()
 	for _, vmInst := range List.VmList {
 		vmNicsList, err := vmInst.GetNics()
 		if err != nil {

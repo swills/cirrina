@@ -18,8 +18,7 @@ func processRequests() {
 			case requests.DELETE:
 				go deleteVM(&rs)
 			}
-
 		}
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 	}
 }

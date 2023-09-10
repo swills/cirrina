@@ -482,8 +482,6 @@ func (s *server) AddVM(_ context.Context, v *cirrina.VMConfig) (*cirrina.VMID, e
 	if v.Mem == nil || *v.Mem < 128 {
 		v.Mem = &defaultVmMemCount
 	}
-	defer vm.List.Mu.Unlock()
-	vm.List.Mu.Lock()
 	vmInst, err := vm.Create(*v.Name, *v.Description, *v.Cpu, *v.Mem)
 	if err != nil {
 		return &cirrina.VMID{}, err
@@ -493,7 +491,6 @@ func (s *server) AddVM(_ context.Context, v *cirrina.VMConfig) (*cirrina.VMID, e
 	if err != nil {
 		return &cirrina.VMID{}, err
 	}
-	vm.List.VmList[vmInst.ID] = vmInst
 	return &cirrina.VMID{Value: vmInst.ID}, nil
 }
 

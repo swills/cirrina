@@ -22,7 +22,7 @@ var sigIntHandlerRunning = false
 
 func handleSigInfo() {
 	var mem runtime.MemStats
-	vm.PrintVMStatus()
+	vm.LogAllVmStatus()
 	runtime.ReadMemStats(&mem)
 	slog.Debug("MemStats",
 		"mem.Alloc", mem.Alloc,
@@ -132,17 +132,9 @@ func cleanUpVms() {
 				}
 			}
 			slog.Debug("destroying VM", "name", aVm.Name)
-			vm.List.VmList[aVm.ID].Status = vm.STOPPED
-			vm.List.VmList[aVm.ID].VNCPort = 0
-			vm.List.VmList[aVm.ID].DebugPort = 0
-			vm.List.VmList[aVm.ID].BhyvePid = 0
-			vm.List.VmList[aVm.ID].Com1Dev = ""
-			vm.List.VmList[aVm.ID].Com2Dev = ""
-			vm.List.VmList[aVm.ID].Com3Dev = ""
-			vm.List.VmList[aVm.ID].Com4Dev = ""
 			aVm.MaybeForceKillVM()
 			aVm.NetCleanup()
-			vm.SetStopped(aVm.ID)
+			aVm.SetStopped()
 		}
 	}
 }
