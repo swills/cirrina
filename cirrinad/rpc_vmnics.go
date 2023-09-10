@@ -3,6 +3,7 @@ package main
 import (
 	"cirrina/cirrina"
 	_switch "cirrina/cirrinad/switch"
+	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm"
 	"cirrina/cirrinad/vm_nics"
 	"context"
@@ -10,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/exp/slog"
 	"net"
-	"strings"
 )
 
 func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmNicId, error) {
@@ -19,7 +19,7 @@ func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 
 	reflect := v.ProtoReflect()
 
-	if v.Name == nil || *v.Name == "" || strings.Contains(*v.Name, "/") {
+	if v.Name == nil || !util.ValidNicName(*v.Name) {
 		return vmNicId, errors.New("invalid name")
 	}
 	vmNicInst.Name = *v.Name

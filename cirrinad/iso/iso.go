@@ -6,14 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/exp/slog"
-	"strings"
 )
 
 func Create(name string, description string) (iso *ISO, err error) {
 	var isoInst *ISO
 
-	if name == "." || name == ".." || strings.Contains(name, "/") || strings.HasPrefix(name, ".") {
-		return isoInst, errors.New("illegal character in iso name")
+	if !util.ValidDiskName(name) {
+		return isoInst, errors.New("invalid name")
 	}
 
 	path := config.Config.Disk.VM.Path.Iso + "/" + name

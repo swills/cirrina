@@ -39,8 +39,8 @@ func GetAll() []*Switch {
 
 func Create(name string, description string, switchType string) (_switch *Switch, err error) {
 	var switchInst *Switch
-	if strings.Contains(name, "/") {
-		return switchInst, errors.New("illegal character in switch name")
+	if !util.ValidSwitchName(name) {
+		return switchInst, errors.New("invalid name")
 	}
 	_, err = GetByName(name)
 	if err == nil {

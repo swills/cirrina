@@ -3,6 +3,7 @@ package main
 import (
 	"cirrina/cirrina"
 	_switch "cirrina/cirrinad/switch"
+	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -18,8 +19,8 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 	defaultSwitchDescription := ""
 	// TODO handle uplink (i.Uplink)
 
-	if i.Name == nil {
-		return &cirrina.SwitchId{}, errors.New("name not specified")
+	if i.Name == nil || !util.ValidSwitchName(*i.Name) {
+		return &cirrina.SwitchId{}, errors.New("invalid name")
 	}
 
 	if i.Description == nil {
@@ -34,8 +35,8 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 		switchType = "IF"
 		// TODO check that same uplink isn't used for another switch of same type
 		if !strings.HasPrefix(*i.Name, "bridge") {
-			slog.Error("invalid bridge name", "name", *i.Name)
-			return &cirrina.SwitchId{Value: ""}, errors.New("invalid bridge name")
+			slog.Error("invalid name", "name", *i.Name)
+			return &cirrina.SwitchId{Value: ""}, errors.New("invalid name")
 		}
 
 		bridgeNumStr := strings.TrimPrefix(*i.Name, "bridge")
@@ -48,8 +49,8 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 		bridgeNumFormattedString := strconv.FormatInt(int64(bridgeNum), 10)
 		// Check for silly things like "0123"
 		if bridgeNumStr != bridgeNumFormattedString {
-			slog.Error("invalid bridge name", "name", *i.Name)
-			return &cirrina.SwitchId{Value: ""}, errors.New("invalid bridge name")
+			slog.Error("invalid name", "name", *i.Name)
+			return &cirrina.SwitchId{Value: ""}, errors.New("invalid name")
 		}
 
 	} else if *i.SwitchType == cirrina.SwitchType_NG {
@@ -57,11 +58,24 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 		// TODO check that same uplink isn't used for another switch of same type
 		if !strings.HasPrefix(*i.Name, "bnet") {
 			slog.Error("invalid bridge name", "name", *i.Name)
-			return &cirrina.SwitchId{Value: ""}, errors.New("invalid bridge name, bridge name must start with \"bnet\"")
+			return &cirrina.SwitchId{Value: ""}, errors.New("invalid name")
 		}
 
+		bridgeNumStr := strings.TrimPrefix(*i.Name, "bnet")
+		bridgeNum, err := strconv.Atoi(bridgeNumStr)
+		if err != nil {
+			slog.Error("invalid bridge name", "name", *i.Name)
+			return &cirrina.SwitchId{Value: ""}, errors.New("invalid bridge name")
+
+		}
+		bridgeNumFormattedString := strconv.FormatInt(int64(bridgeNum), 10)
+		// Check for silly things like "0123"
+		if bridgeNumStr != bridgeNumFormattedString {
+			slog.Error("invalid name", "name", *i.Name)
+			return &cirrina.SwitchId{Value: ""}, errors.New("invalid name")
+		}
 	} else {
-		return &cirrina.SwitchId{}, errors.New("invalid switch type")
+		return &cirrina.SwitchId{}, errors.New("invalid type")
 	}
 
 	switchInst, err := _switch.Create(*i.Name, *i.Description, switchType)

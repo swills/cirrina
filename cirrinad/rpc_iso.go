@@ -5,6 +5,7 @@ import (
 	"cirrina/cirrina"
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/iso"
+	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm"
 	"context"
 	"crypto/sha512"
@@ -53,8 +54,8 @@ func (s *server) GetISOInfo(_ context.Context, i *cirrina.ISOID) (*cirrina.ISOIn
 
 func (s *server) AddISO(_ context.Context, i *cirrina.ISOInfo) (*cirrina.ISOID, error) {
 	defaultDescription := ""
-	if i.Name == nil {
-		return &cirrina.ISOID{}, errors.New("name not specified")
+	if i.Name == nil || !util.ValidIsoName(*i.Name) {
+		return &cirrina.ISOID{}, errors.New("invalid name")
 	}
 	if i.Description == nil {
 		i.Description = &defaultDescription

@@ -60,8 +60,8 @@ func parseDiskSize(size string) (sizeBytes uint64, err error) {
 
 func Create(name string, description string, size string, diskType string) (disk *Disk, err error) {
 	var diskInst *Disk
-	if strings.Contains(name, "/") || strings.Contains(name, ".") {
-		return diskInst, errors.New("illegal character in disk name")
+	if !util.ValidDiskName(name) {
+		return diskInst, errors.New("invalid name")
 	}
 	path := config.Config.Disk.VM.Path.Image + "/" + name + ".img"
 	diskExists, err := util.PathExists(path)

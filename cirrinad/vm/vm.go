@@ -31,8 +31,8 @@ func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
 
 func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, err error) {
 	var vmInst *VM
-	if strings.Contains(name, "/") {
-		return vmInst, errors.New("illegal character in vm name")
+	if !util.ValidVmName(name) {
+		return vmInst, errors.New("invalid name")
 	}
 	if _, err := GetByName(name); err == nil {
 		return vmInst, errors.New(fmt.Sprintf("%v already exists", name))
@@ -387,7 +387,6 @@ func (vm *VM) netStartup() {
 			slog.Debug("unknown net type, can't set up")
 			return
 		}
-
 	}
 }
 

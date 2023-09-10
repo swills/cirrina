@@ -1,11 +1,11 @@
 package vm_nics
 
 import (
+	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
 	"golang.org/x/exp/slog"
 	"net"
-	"strings"
 )
 
 func GetByName(name string) (s *VmNic, err error) {
@@ -28,8 +28,8 @@ func GetAll() []*VmNic {
 }
 
 func Create(VmNicInst *VmNic) (newNicId string, err error) {
-	if strings.Contains(VmNicInst.Name, "/") {
-		return newNicId, errors.New("illegal character in VmNic name")
+	if !util.ValidNicName(VmNicInst.Name) {
+		return newNicId, errors.New("invalid name")
 	}
 	existingVmNic, err := GetByName(VmNicInst.Name)
 	if err != nil {
