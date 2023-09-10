@@ -190,7 +190,7 @@ var VmDestroyCmd = &cobra.Command{
 		if VmId == "" {
 			VmId, err = rpc.VmNameToId(VmName, c, ctx)
 			if err != nil {
-				log.Fatalf(err.Error())
+				log.Fatalf("failed to convert VM name to id: %s", err.Error())
 			}
 			if VmId == "" {
 				log.Fatalf("VM not found")

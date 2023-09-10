@@ -152,7 +152,9 @@ func VmNameToId(name string, c cirrina.VMInfoClient, ctx context.Context) (rid s
 	for _, id := range ids {
 		res, err := GetVMConfig(&id, c, ctx)
 		if err != nil {
-			return "", err
+			// if one of the VMs (perhaps not even the one we're looking for) got deleted, this can fail
+			// ignore it
+			continue
 		}
 		if *res.Name == name {
 			if found == true {
