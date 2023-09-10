@@ -237,10 +237,6 @@ func (vm *VM) Save() error {
 	return nil
 }
 
-func (vm *VM) String() string {
-	return fmt.Sprintf("name: %s id: %s", vm.Name, vm.ID)
-}
-
 func (vm *VM) MaybeForceKillVM() {
 	ex, err := util.PathExists("/dev/vmm/" + vm.Name)
 	if err != nil {
