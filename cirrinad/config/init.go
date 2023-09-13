@@ -21,6 +21,7 @@ var Config = struct {
 				Image string
 				State string
 				Iso   string
+				Zpool string
 			}
 		}
 		Default struct {

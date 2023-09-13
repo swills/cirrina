@@ -14,6 +14,11 @@ enum DiskType {
   VIRTIOBLK = 2;
 }
 
+enum DiskDevType {
+  FILE = 0;
+  ZVOL = 1;
+}
+
 enum SwitchType {
   IF = 0;
   NG = 1;
@@ -86,6 +91,9 @@ message DiskInfo {
   optional string usage = 5;
   optional uint64 size_num = 6;
   optional uint64 usage_num = 7;
+  optional DiskDevType disk_dev_type = 8;
+  optional bool cache = 9;
+  optional bool direct = 10;
 }
 
 message NetInterfacesReq {

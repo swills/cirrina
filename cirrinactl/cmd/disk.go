@@ -11,10 +11,13 @@ import (
 var DiskName string
 var DiskDescription string
 var DiskType = "nvme"
+var DiskDevType = "FILE"
 var DiskSize = "1G"
 var DiskId string
 var DiskIdChanged bool
 var DiskUseHumanize bool
+var DiskCache = true
+var DiskDirect = false
 
 var DiskListCmd = &cobra.Command{
 	Use:   "list",
@@ -47,7 +50,7 @@ var DiskCreateCmd = &cobra.Command{
 			_ = conn.Close()
 		}(conn)
 		defer cancel()
-		_, err = util.AddDisk(&DiskName, c, ctx, &DiskDescription, &DiskSize, &DiskType)
+		_, err = util.AddDisk(&DiskName, c, ctx, &DiskDescription, &DiskSize, &DiskType, &DiskDevType, DiskCache, DiskDirect)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -88,6 +91,9 @@ func init() {
 	}
 	DiskCreateCmd.Flags().StringVarP(&DiskDescription, "description", "d", DiskDescription, "description of disk")
 	DiskCreateCmd.Flags().StringVarP(&DiskType, "type", "t", DiskType, "type of disk")
+	DiskCreateCmd.Flags().StringVar(&DiskDevType, "dev-type", DiskDevType, "Dev type of disk - file or zvol")
+	DiskCreateCmd.Flags().BoolVar(&DiskCache, "cache", DiskCache, "Enable or disable OS caching for this disk")
+	DiskCreateCmd.Flags().BoolVar(&DiskDirect, "direct", DiskDirect, "Enable or disable synchronous writes for this disk")
 
 	DiskRemoveCmd.Flags().StringVarP(&DiskName, "name", "n", DiskName, "name of disk")
 	err = DiskRemoveCmd.MarkFlagRequired("name")

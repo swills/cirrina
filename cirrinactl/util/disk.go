@@ -14,8 +14,9 @@ import (
 	"sort"
 )
 
-func AddDisk(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string, sizePtr *string, diskTypePtr *string) (diskId string, err error) {
+func AddDisk(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string, sizePtr *string, diskTypePtr *string, diskDevTypePtr *string, diskCache bool, diskDirect bool) (diskId string, err error) {
 	var thisDiskType cirrina.DiskType
+	var thisDiskDevType cirrina.DiskDevType
 
 	if *namePtr == "" {
 		return "", errors.New("name not specified")
@@ -25,6 +26,10 @@ func AddDisk(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descr
 		return "", errors.New("disk type not specified")
 	}
 
+	if *diskDevTypePtr == "" {
+		return "", errors.New("disk dev type not specified")
+	}
+
 	if *diskTypePtr == "NVME" || *diskTypePtr == "nvme" {
 		thisDiskType = cirrina.DiskType_NVME
 	} else if *diskTypePtr == "AHCI" || *diskTypePtr == "ahci" || *diskTypePtr == "ahcihd" {
@@ -32,7 +37,15 @@ func AddDisk(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descr
 	} else if *diskTypePtr == "VIRTIOBLK" || *diskTypePtr == "virtioblk" || *diskTypePtr == "virtio-blk" {
 		thisDiskType = cirrina.DiskType_VIRTIOBLK
 	} else {
-		return "", errors.New("invalid disk type specified")
+		return "", errors.New("invalid disk type specified " + *diskTypePtr)
+	}
+
+	if *diskTypePtr == "FILE" || *diskDevTypePtr == "file" {
+		thisDiskDevType = cirrina.DiskDevType_FILE
+	} else if *diskDevTypePtr == "ZVOL" || *diskDevTypePtr == "zvol" {
+		thisDiskDevType = cirrina.DiskDevType_ZVOL
+	} else {
+		return "", errors.New("invalid disk dev type")
 	}
 
 	aDiskInfo := &cirrina.DiskInfo{
@@ -40,6 +53,9 @@ func AddDisk(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descr
 		Description: descrPtr,
 		Size:        sizePtr,
 		DiskType:    &thisDiskType,
+		DiskDevType: &thisDiskDevType,
+		Cache:       &diskCache,
+		Direct:      &diskDirect,
 	}
 
 	res, err := rpc.AddDisk(aDiskInfo, c, ctx)
@@ -60,6 +76,9 @@ func GetDisks(c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) (er
 		usage    uint64
 		vm       string
 		descr    string
+		devType  string
+		cache    bool
+		direct   bool
 	}
 
 	diskInfos := make(map[string]ThisDiskInfo)
@@ -79,6 +98,13 @@ func GetDisks(c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) (er
 			aDiskType = "virtio-blk"
 		}
 
+		aDiskDevType := "unknown"
+		if *res2.DiskDevType == cirrina.DiskDevType_FILE {
+			aDiskDevType = "file"
+		} else if *res2.DiskDevType == cirrina.DiskDevType_ZVOL {
+			aDiskDevType = "zvol"
+		}
+
 		vmName, err := rpc.DiskGetVm(&id, c, ctx)
 		if err != nil {
 			return err
@@ -91,6 +117,9 @@ func GetDisks(c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) (er
 			usage:    *res2.UsageNum,
 			vm:       vmName,
 			descr:    *res2.Description,
+			devType:  aDiskDevType,
+			cache:    *res2.Cache,
+			direct:   *res2.Direct,
 		}
 		diskInfos[*res2.Name] = aVmInfo
 		names = append(names, *res2.Name)
@@ -101,7 +130,7 @@ func GetDisks(c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) (er
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"NAME", "UUID", "TYPE", "SIZE", "USAGE", "VM", "DESCRIPTION"})
+	t.AppendHeader(table.Row{"NAME", "UUID", "TYPE", "SIZE", "USAGE", "VM", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"})
 	t.SetStyle(myTableStyle)
 	t.SetColumnConfigs([]table.ColumnConfig{
 		{Number: 4, Align: text.AlignRight, AlignHeader: text.AlignRight},
@@ -116,6 +145,9 @@ func GetDisks(c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) (er
 				humanize.IBytes(diskInfos[name].size),
 				humanize.IBytes(diskInfos[name].usage),
 				diskInfos[name].vm,
+				diskInfos[name].devType,
+				diskInfos[name].cache,
+				diskInfos[name].direct,
 				diskInfos[name].descr,
 			})
 		} else {
@@ -126,6 +158,9 @@ func GetDisks(c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) (er
 				diskInfos[name].size,
 				diskInfos[name].usage,
 				diskInfos[name].vm,
+				diskInfos[name].devType,
+				diskInfos[name].cache,
+				diskInfos[name].direct,
 				diskInfos[name].descr,
 			})
 		}

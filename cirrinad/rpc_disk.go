@@ -32,10 +32,14 @@ func (s *server) GetDisks(_ *cirrina.DisksQuery, stream cirrina.VMInfo_GetDisksS
 
 func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskId, error) {
 	var diskType string
+	var diskDevType string
 
+	deafultDiskDescription := ""
 	defaultDiskType := cirrina.DiskType_NVME
 	defaultDiskSize := config.Config.Disk.Default.Size
-	deafultDiskDescription := ""
+	defaultDiskDevType := cirrina.DiskDevType_FILE
+	defaultDiskCache := true
+	defaultDiskDirect := false
 
 	if i.Name == nil {
 		return &cirrina.DiskId{}, errors.New("name not specified")
@@ -53,15 +57,37 @@ func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskI
 		i.DiskType = &defaultDiskType
 	}
 
+	if i.DiskDevType == nil {
+		i.DiskDevType = &defaultDiskDevType
+	}
+
+	if i.Cache == nil {
+		i.Cache = &defaultDiskCache
+	}
+
+	if i.Direct == nil {
+		i.Direct = &defaultDiskDirect
+	}
+
 	if *i.DiskType == cirrina.DiskType_NVME {
 		diskType = "NVME"
 	} else if *i.DiskType == cirrina.DiskType_AHCIHD {
 		diskType = "AHCI-HD"
 	} else if *i.DiskType == cirrina.DiskType_VIRTIOBLK {
 		diskType = "VIRTIO-BLK"
+	} else {
+		return &cirrina.DiskId{}, errors.New("invalid disk type")
 	}
 
-	diskInst, err := disk.Create(*i.Name, *i.Description, *i.Size, diskType)
+	if *i.DiskDevType == cirrina.DiskDevType_FILE {
+		diskDevType = "FILE"
+	} else if *i.DiskDevType == cirrina.DiskDevType_ZVOL {
+		diskDevType = "ZVOL"
+	} else {
+		return &cirrina.DiskId{}, errors.New("invalid disk dev type")
+	}
+
+	diskInst, err := disk.Create(*i.Name, *i.Description, *i.Size, diskType, diskDevType, *i.Cache, *i.Direct)
 	if err != nil {
 		return &cirrina.DiskId{}, err
 	}
@@ -76,6 +102,8 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 	var ic cirrina.DiskInfo
 	var stat syscall.Stat_t
 	var blockSize int64 = 512
+	var defaultDiskCache = true
+	var defaultDiskDirect = false
 
 	slog.Debug("GetDiskInfo", "disk", i.Value)
 
@@ -94,9 +122,21 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 	}
 	ic.Name = &diskInst.Name
 	ic.Description = &diskInst.Description
+	if diskInst.DiskCache.Valid {
+		ic.Cache = &diskInst.DiskCache.Bool
+	} else {
+		ic.Cache = &defaultDiskCache
+	}
+	if diskInst.DiskDirect.Valid {
+		ic.Direct = &diskInst.DiskDirect.Bool
+	} else {
+		ic.Direct = &defaultDiskDirect
+	}
 	DiskTypeNVME := cirrina.DiskType_NVME
 	DiskTypeAHCI := cirrina.DiskType_AHCIHD
 	DiskTypeVIRT := cirrina.DiskType_VIRTIOBLK
+	DiskDevTypeFile := cirrina.DiskDevType_FILE
+	DiskDevTypeZvol := cirrina.DiskDevType_ZVOL
 
 	if diskInst.Type == "NVME" {
 		ic.DiskType = &DiskTypeNVME
@@ -108,31 +148,56 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 		slog.Error("GetDiskInfo invalid disk type", "diskid", i.Value, "disktype", diskInst.Type)
 		return nil, errors.New("invalid disk type")
 	}
-	diskPath := config.Config.Disk.VM.Path.Image + "/" + diskInst.Name
 
-	diskFileStat, err := os.Stat(diskPath)
-	if err != nil {
-		slog.Error("GetDiskInfo error getting disk size", "err", err)
-		return nil, errors.New("unable to get file size")
-	}
+	if diskInst.DevType == "FILE" {
+		diskPath := config.Config.Disk.VM.Path.Image + "/" + diskInst.Name
 
-	err = syscall.Stat(diskPath, &stat)
-	if err != nil {
-		return nil, errors.New("unable to stat")
-	}
+		diskFileStat, err := os.Stat(diskPath)
+		if err != nil {
+			slog.Error("GetDiskInfo error getting disk size", "err", err)
+			return nil, errors.New("unable to get file size")
+		}
 
-	diskSize := strconv.FormatInt(diskFileStat.Size(), 10)
-	diskBlocks := strconv.FormatInt(stat.Blocks*blockSize, 10)
-	diskSizeNum := uint64(diskFileStat.Size())
-	diskUsageNum := uint64(stat.Blocks * blockSize)
+		err = syscall.Stat(diskPath, &stat)
+		if err != nil {
+			return nil, errors.New("unable to stat")
+		}
 
-	ic.Size = &diskSize
-	ic.SizeNum = &diskSizeNum
-	ic.Usage = &diskBlocks
-	ic.UsageNum = &diskUsageNum
+		diskSize := strconv.FormatInt(diskFileStat.Size(), 10)
+		diskBlocks := strconv.FormatInt(stat.Blocks*blockSize, 10)
+		diskSizeNum := uint64(diskFileStat.Size())
+		diskUsageNum := uint64(stat.Blocks * blockSize)
 
-	if strings.HasSuffix(*ic.Name, ".img") {
-		*ic.Name = strings.TrimSuffix(*ic.Name, ".img")
+		ic.Size = &diskSize
+		ic.SizeNum = &diskSizeNum
+		ic.Usage = &diskBlocks
+		ic.UsageNum = &diskUsageNum
+
+		if strings.HasSuffix(*ic.Name, ".img") {
+			*ic.Name = strings.TrimSuffix(*ic.Name, ".img")
+		}
+		ic.DiskDevType = &DiskDevTypeFile
+	} else if diskInst.DevType == "ZVOL" {
+
+		diskSizeNum, err := disk.GetZfsVolumeSize(config.Config.Disk.VM.Path.Zpool + "/" + diskInst.Name)
+		if err != nil {
+			diskSizeNum = 0
+		}
+
+		diskUsageNum, err := disk.GetZfsVolumeUsage(config.Config.Disk.VM.Path.Zpool + "/" + diskInst.Name)
+		if err != nil {
+			diskUsageNum = 0
+		}
+
+		diskBlocks := strconv.FormatInt(int64(diskUsageNum), 10)
+		diskSize := strconv.FormatInt(int64(diskSizeNum), 10)
+
+		ic.Size = &diskSize
+		ic.SizeNum = &diskSizeNum
+		ic.Usage = &diskBlocks
+		ic.UsageNum = &diskUsageNum
+
+		ic.DiskDevType = &DiskDevTypeZvol
 	}
 
 	return &ic, nil

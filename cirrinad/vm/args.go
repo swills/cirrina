@@ -96,19 +96,35 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 			return []string{}, originalSlot
 		}
 		if thisDisk.Type == "NVME" {
-			thisHd := []string{"-s", strconv.Itoa(slot) + ",nvme," + thisDisk.Path}
+			nocache := ""
+			if thisDisk.DevType == "ZVOL" {
+				nocache = ",nocache"
+			}
+			thisHd := []string{"-s", strconv.Itoa(slot) + ",nvme," + thisDisk.Path + nocache}
 			diskString = append(diskString, thisHd...)
 			devCount = devCount + 1
 			slot = slot + 1
 		} else if thisDisk.Type == "AHCI-HD" {
 			if devCount <= maxSataDevs {
-				thisHd := []string{"-s", strconv.Itoa(slot) + ",ahci-hd," + thisDisk.Path}
+				nocache := ""
+				if thisDisk.DevType == "ZVOL" {
+					nocache = ",nocache"
+				}
+				thisHd := []string{"-s", strconv.Itoa(slot) + ",ahci-hd," + thisDisk.Path + nocache}
 				diskString = append(diskString, thisHd...)
 				devCount = devCount + 1
 				slot = slot + 1
 			}
 		} else if thisDisk.Type == "VIRTIO-BLK" {
-			thisHd := []string{"-s", strconv.Itoa(slot) + ",virtio-blk," + thisDisk.Path}
+			nocache := ""
+			direct := ""
+			if !thisDisk.DiskCache.Bool && thisDisk.DiskCache.Valid {
+				nocache = ",nocache"
+			}
+			if thisDisk.DiskDirect.Bool && thisDisk.DiskDirect.Valid {
+				direct = ",direct"
+			}
+			thisHd := []string{"-s", strconv.Itoa(slot) + ",virtio-blk," + thisDisk.Path + nocache + direct}
 			diskString = append(diskString, thisHd...)
 			devCount = devCount + 1
 			slot = slot + 1
