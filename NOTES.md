@@ -29,7 +29,6 @@
         * Implement support for separate controllers and types and specifying which HD/CD are on which controller
         * Implement enlarging disks
         * Implement iSCSI disk support
-        * Implement creating disks as zvols
         * Create disk from existing image (clone) or other disk image.
     * Networking
         * Support various network types from VBox

@@ -78,6 +78,7 @@ type Config struct {
 	Debug            bool   `gorm:"default:False;check:debug IN(0,1)"`
 	DebugWait        bool   `gorm:"default:False;check:debug_wait IN(0,1)"`
 	DebugPort        string `gorm:"default:AUTO"`
+	Priority         int32  `gorm:"default:0;check:priority BETWEEN -20 and 20"`
 }
 
 type VM struct {

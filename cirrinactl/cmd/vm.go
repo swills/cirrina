@@ -25,6 +25,8 @@ var CpusChanged bool
 var DescriptionChanged bool
 var Mem uint32
 var MemChanged bool
+var Priority int32
+var PriorityChanged bool
 var Debug bool
 var DebugChanged bool
 var DebugWait bool
@@ -279,6 +281,7 @@ var VmConfigCmd = &cobra.Command{
 		DescriptionChanged = cmd.Flags().Changed("description")
 		CpusChanged = cmd.Flags().Changed("cpus")
 		MemChanged = cmd.Flags().Changed("mem")
+		PriorityChanged = cmd.Flags().Changed("priority")
 		AutoStartChanged = cmd.Flags().Changed("autostart")
 		AutoStartDelayChanged = cmd.Flags().Changed("autostart-delay")
 		RestartChanged = cmd.Flags().Changed("restart")
@@ -323,7 +326,6 @@ var VmConfigCmd = &cobra.Command{
 		Com4DevChanged = cmd.Flags().Changed("com4-dev")
 		Com4LogChanged = cmd.Flags().Changed("com4-log")
 		Com4SpeedChanged = cmd.Flags().Changed("com4-speed")
-
 		return nil
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -378,6 +380,13 @@ var VmConfigCmd = &cobra.Command{
 				newMem = 128
 			}
 			newConfig.Mem = &newMem
+		}
+		if PriorityChanged {
+			newPriority := Priority
+			if newPriority < -20 || newPriority > 20 {
+				newPriority = 0
+			}
+			newConfig.Priority = &newPriority
 		}
 
 		if AutoStartChanged {
@@ -1041,6 +1050,7 @@ func init() {
 	VmConfigCmd.Flags().StringVarP(&Description, "description", "d", Description, "Description of VM")
 	VmConfigCmd.Flags().Uint8VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
 	VmConfigCmd.Flags().Uint32VarP(&Mem, "mem", "m", Mem, "Amount of virtual memory in megabytes")
+	VmConfigCmd.Flags().Int32Var(&Priority, "priority", Priority, "Priority of VM (nice)")
 	VmConfigCmd.Flags().BoolVar(&Com1, "com1", Com1, "Enable COM1")
 	VmConfigCmd.Flags().BoolVar(&Com1Log, "com1-log", Com1Log, "Log input and output of COM1")
 	VmConfigCmd.Flags().StringVar(&Com1Dev, "com1-dev", Com1Dev, "Device to use for COM1")

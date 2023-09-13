@@ -51,6 +51,9 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	if isOptionPassed(reflect, "mem") {
 		vmInst.Config.Mem = *rc.Mem
 	}
+	if isOptionPassed(reflect, "priority") {
+		vmInst.Config.Priority = *rc.Priority
+	}
 	if isOptionPassed(reflect, "vncwait") {
 		if *rc.Vncwait == true {
 			vmInst.Config.VNCWait = true
@@ -407,6 +410,7 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Debug = &vmInst.Config.Debug
 	pvm.DebugWait = &vmInst.Config.DebugWait
 	pvm.DebugPort = &vmInst.Config.DebugPort
+	pvm.Priority = &vmInst.Config.Priority
 	return &pvm, nil
 }
 

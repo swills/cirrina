@@ -578,6 +578,9 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	extraArgs := vm.getExtraArg()
 
 	args = append(args, "/usr/bin/protect")
+	if vm.Config.Priority != 0 {
+		args = append(args, "/usr/bin/nice", "-n", strconv.FormatInt(int64(vm.Config.Priority), 10))
+	}
 	args = append(args, "/usr/sbin/bhyve")
 	args = append(args, kbdArg...)
 	args = append(args, acpiArg...)
