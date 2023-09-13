@@ -35,6 +35,7 @@ func GetVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 			"\ncpus: %v"+
 			"\nmem: %v"+
 			"\npriority: %v"+
+			"\nprotect: %v"+
 			"\n",
 		*res.Name,
 		*idPtr,
@@ -42,6 +43,7 @@ func GetVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
 		*res.Cpu,
 		*res.Mem,
 		*res.Priority,
+		*res.Protect,
 	)
 
 	fmt.Printf(

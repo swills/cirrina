@@ -6,6 +6,7 @@ import (
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm"
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -53,6 +54,9 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	}
 	if isOptionPassed(reflect, "priority") {
 		vmInst.Config.Priority = *rc.Priority
+	}
+	if isOptionPassed(reflect, "protect") {
+		vmInst.Config.Protect = sql.NullBool{Bool: *rc.Protect, Valid: true}
 	}
 	if isOptionPassed(reflect, "vncwait") {
 		if *rc.Vncwait == true {
@@ -411,6 +415,7 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.DebugWait = &vmInst.Config.DebugWait
 	pvm.DebugPort = &vmInst.Config.DebugPort
 	pvm.Priority = &vmInst.Config.Priority
+	pvm.Protect = &vmInst.Config.Protect.Bool
 	return &pvm, nil
 }
 

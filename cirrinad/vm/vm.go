@@ -195,6 +195,7 @@ func (vm *VM) Save() error {
 			"debug_wait":         &vm.Config.DebugWait,
 			"debug_port":         &vm.Config.DebugPort,
 			"priority":           &vm.Config.Priority,
+			"protect":            &vm.Config.Protect,
 		},
 		)
 

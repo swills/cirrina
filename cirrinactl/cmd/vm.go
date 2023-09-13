@@ -27,6 +27,8 @@ var Mem uint32
 var MemChanged bool
 var Priority int32
 var PriorityChanged bool
+var Protect bool
+var ProtectChanged bool
 var Debug bool
 var DebugChanged bool
 var DebugWait bool
@@ -282,6 +284,7 @@ var VmConfigCmd = &cobra.Command{
 		CpusChanged = cmd.Flags().Changed("cpus")
 		MemChanged = cmd.Flags().Changed("mem")
 		PriorityChanged = cmd.Flags().Changed("priority")
+		ProtectChanged = cmd.Flags().Changed("protect")
 		AutoStartChanged = cmd.Flags().Changed("autostart")
 		AutoStartDelayChanged = cmd.Flags().Changed("autostart-delay")
 		RestartChanged = cmd.Flags().Changed("restart")
@@ -387,6 +390,10 @@ var VmConfigCmd = &cobra.Command{
 				newPriority = 0
 			}
 			newConfig.Priority = &newPriority
+		}
+
+		if ProtectChanged {
+			newConfig.Protect = &Protect
 		}
 
 		if AutoStartChanged {
@@ -1051,6 +1058,7 @@ func init() {
 	VmConfigCmd.Flags().Uint8VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
 	VmConfigCmd.Flags().Uint32VarP(&Mem, "mem", "m", Mem, "Amount of virtual memory in megabytes")
 	VmConfigCmd.Flags().Int32Var(&Priority, "priority", Priority, "Priority of VM (nice)")
+	VmConfigCmd.Flags().BoolVar(&Protect, "protect", Protect, "Protect VM from being killed when swap space is exhausted")
 	VmConfigCmd.Flags().BoolVar(&Com1, "com1", Com1, "Enable COM1")
 	VmConfigCmd.Flags().BoolVar(&Com1Log, "com1-log", Com1Log, "Log input and output of COM1")
 	VmConfigCmd.Flags().StringVar(&Com1Dev, "com1-dev", Com1Dev, "Device to use for COM1")

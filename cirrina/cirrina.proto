@@ -193,6 +193,7 @@ message VMConfig {
   optional bool debug_wait = 52;
   optional string debug_port = 53;
   optional int32 priority = 54;
+  optional bool protect = 55;
 }
 
 message VMsQuery {

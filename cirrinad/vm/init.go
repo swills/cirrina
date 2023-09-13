@@ -3,6 +3,7 @@ package vm
 import (
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
+	"database/sql"
 	"errors"
 	"github.com/kontera-technologies/go-supervisor/v2"
 	"github.com/tarm/serial"
@@ -70,15 +71,16 @@ type Config struct {
 	ISOs             string
 	Disks            string
 	Nics             string
-	Com1Speed        uint32 `gorm:"default:115200;check:com1_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
-	Com2Speed        uint32 `gorm:"default:115200;check:com2_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
-	Com3Speed        uint32 `gorm:"default:115200;check:com3_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
-	Com4Speed        uint32 `gorm:"default:115200;check:com4_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
-	AutoStartDelay   uint32 `gorm:"default:0;check:auto_start_delay>=0"`
-	Debug            bool   `gorm:"default:False;check:debug IN(0,1)"`
-	DebugWait        bool   `gorm:"default:False;check:debug_wait IN(0,1)"`
-	DebugPort        string `gorm:"default:AUTO"`
-	Priority         int32  `gorm:"default:0;check:priority BETWEEN -20 and 20"`
+	Com1Speed        uint32       `gorm:"default:115200;check:com1_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
+	Com2Speed        uint32       `gorm:"default:115200;check:com2_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
+	Com3Speed        uint32       `gorm:"default:115200;check:com3_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
+	Com4Speed        uint32       `gorm:"default:115200;check:com4_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
+	AutoStartDelay   uint32       `gorm:"default:0;check:auto_start_delay>=0"`
+	Debug            bool         `gorm:"default:False;check:debug IN(0,1)"`
+	DebugWait        bool         `gorm:"default:False;check:debug_wait IN(0,1)"`
+	DebugPort        string       `gorm:"default:AUTO"`
+	Priority         int32        `gorm:"default:0;check:priority BETWEEN -20 and 20"`
+	Protect          sql.NullBool `gorm:"default:True;check:protect IN(0,1)"`
 }
 
 type VM struct {
