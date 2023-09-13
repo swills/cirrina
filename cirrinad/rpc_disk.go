@@ -105,8 +105,6 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 	var defaultDiskCache = true
 	var defaultDiskDirect = false
 
-	slog.Debug("GetDiskInfo", "disk", i.Value)
-
 	diskUuid, err := uuid.Parse(i.Value)
 	if err != nil {
 		return &ic, errors.New("invalid disk id")
@@ -250,7 +248,6 @@ func (s *server) RemoveDisk(_ context.Context, i *cirrina.DiskId) (*cirrina.ReqB
 }
 
 func (s *server) GetDiskVm(_ context.Context, i *cirrina.DiskId) (v *cirrina.VMID, err error) {
-	slog.Debug("GetDiskVm finding VM for disk", "diskid", i.Value)
 	var pvmId cirrina.VMID
 
 	diskUuid, err := uuid.Parse(i.Value)
@@ -281,7 +278,7 @@ func (s *server) GetDiskVm(_ context.Context, i *cirrina.DiskId) (v *cirrina.VMI
 	}
 
 	if pvmId.Value == "" {
-		slog.Debug("not found")
+		// no VMs use this disk
 		return &pvmId, errors.New("not found")
 	}
 	return &pvmId, nil
