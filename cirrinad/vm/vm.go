@@ -467,7 +467,6 @@ func (vm *VM) GetISOs() ([]iso.ISO, error) {
 	defer vm.mu.RUnlock()
 	vm.mu.RLock()
 	var isos []iso.ISO
-	slog.Debug("GetISOs", "vm", vm.ID, "ISOs", vm.Config.ISOs)
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	for _, cv := range strings.Split(vm.Config.ISOs, ",") {
 		if cv == "" {
