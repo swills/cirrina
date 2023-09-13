@@ -210,7 +210,6 @@ func (s *server) RemoveISO(_ context.Context, i *cirrina.ISOID) (*cirrina.ReqBoo
 	re := cirrina.ReqBool{}
 	re.Success = false
 
-	slog.Debug("GetISOInfo", "iso", i.Value)
 	isoUuid, err := uuid.Parse(i.Value)
 	if err != nil {
 		return &re, errors.New("id not specified or invalid")

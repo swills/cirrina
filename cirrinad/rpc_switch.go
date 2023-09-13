@@ -123,7 +123,6 @@ func (s *server) GetSwitches(_ *cirrina.SwitchesQuery, stream cirrina.VMInfo_Get
 }
 
 func (s *server) GetSwitchInfo(_ context.Context, v *cirrina.SwitchId) (*cirrina.SwitchInfo, error) {
-	slog.Debug("GetSwitchInfo", "id", v.Value)
 	var pvmswitchinfo cirrina.SwitchInfo
 
 	switchUuid, err := uuid.Parse(v.Value)

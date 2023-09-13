@@ -153,7 +153,6 @@ func (s *server) GetVmNicInfo(_ context.Context, v *cirrina.VmNicId) (*cirrina.V
 
 	pvmnicinfo.Name = &vmNic.Name
 	pvmnicinfo.Description = &vmNic.Description
-	slog.Debug("GetVmNicInfo", "description", *pvmnicinfo.Description)
 
 	if vmNic.NetType == "VIRTIONET" {
 		pvmnicinfo.Nettype = &NetTypeVIRTIONET
