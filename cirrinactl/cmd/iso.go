@@ -15,6 +15,7 @@ var IsoDescription string
 var IsoId string
 var IsoIdChanged bool
 var IsoFilePath string
+var IsoUseHumanize bool
 
 var IsoListCmd = &cobra.Command{
 	Use:   "list",
@@ -29,7 +30,7 @@ var IsoListCmd = &cobra.Command{
 		}(conn)
 		defer cancel()
 
-		util.ListIsos(c, ctx)
+		util.ListIsos(c, ctx, IsoUseHumanize)
 	},
 }
 
@@ -77,13 +78,13 @@ var IsoCmd = &cobra.Command{
 }
 
 func init() {
-
 	IsoCreateCmd.Flags().StringVarP(&IsoName, "name", "n", IsoName, "name of ISO")
 	IsoCreateCmd.Flags().StringVarP(&IsoDescription, "description", "d", IsoDescription, "description of ISO")
 	err := IsoCreateCmd.MarkFlagRequired("name")
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
+	IsoListCmd.Flags().BoolVarP(&IsoUseHumanize, "human", "H", IsoUseHumanize, "Print sizes in human readable form")
 
 	IsoUploadCmd.Flags().StringVarP(&IsoId, "id", "i", IsoId, "Id of ISO to upload")
 	IsoUploadCmd.Flags().StringVarP(&IsoFilePath, "path", "p", IsoFilePath, "Path to ISO File to upload")

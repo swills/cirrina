@@ -364,7 +364,7 @@ func GetVMDisks(VmName string, c cirrina.VMInfoClient, ctx context.Context, useH
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 
-	t.AppendHeader(table.Row{"NAME", "UUID", "TYPE", "SIZE", "USAGE", "DESCRIPTION"})
+	t.AppendHeader(table.Row{"NAME", "UUID", "TYPE", "SIZE", "USAGE", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"})
 
 	t.SetStyle(table.Style{
 		Name: "myNewStyle",
@@ -403,6 +403,9 @@ func GetVMDisks(VmName string, c cirrina.VMInfoClient, ctx context.Context, useH
 				*res.DiskType,
 				humanize.IBytes(*res.SizeNum),
 				humanize.IBytes(*res.UsageNum),
+				*res.DiskDevType,
+				*res.Cache,
+				*res.Direct,
 				*res.Description,
 			})
 
@@ -413,6 +416,9 @@ func GetVMDisks(VmName string, c cirrina.VMInfoClient, ctx context.Context, useH
 				*res.DiskType,
 				*res.SizeNum,
 				*res.UsageNum,
+				*res.DiskDevType,
+				*res.Cache,
+				*res.Direct,
 				*res.Description,
 			})
 		}
@@ -420,7 +426,7 @@ func GetVMDisks(VmName string, c cirrina.VMInfoClient, ctx context.Context, useH
 	t.Render()
 }
 
-func GetVMIsos(VmName string, c cirrina.VMInfoClient, ctx context.Context) {
+func GetVMIsos(VmName string, c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) {
 	vmId, err := rpc.VmNameToId(VmName, c, ctx)
 	if err != nil || vmId == "" {
 		fmt.Printf("error: could not find VM »%s«: %s\n", VmName, err)
@@ -429,7 +435,7 @@ func GetVMIsos(VmName string, c cirrina.VMInfoClient, ctx context.Context) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 
-	t.AppendHeader(table.Row{"NAME", "UUID", "DESCRIPTION"})
+	t.AppendHeader(table.Row{"NAME", "UUID", "SIZE", "DESCRIPTION"})
 
 	t.SetStyle(table.Style{
 		Name: "myNewStyle",
@@ -462,11 +468,21 @@ func GetVMIsos(VmName string, c cirrina.VMInfoClient, ctx context.Context) {
 			return
 		}
 
-		t.AppendRow(table.Row{
-			*res.Name,
-			id,
-			*res.Description,
-		})
+		if useHumanize {
+			t.AppendRow(table.Row{
+				*res.Name,
+				id,
+				humanize.IBytes(*res.Size),
+				*res.Description,
+			})
+		} else {
+			t.AppendRow(table.Row{
+				*res.Name,
+				id,
+				*res.Size,
+				*res.Description,
+			})
+		}
 	}
 
 	t.Render()

@@ -49,6 +49,7 @@ func (s *server) GetISOInfo(_ context.Context, i *cirrina.ISOID) (*cirrina.ISOIn
 	}
 	ic.Name = &isoInst.Name
 	ic.Description = &isoInst.Description
+	ic.Size = &isoInst.Size
 	return &ic, nil
 }
 

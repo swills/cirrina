@@ -110,6 +110,7 @@ var Com4SpeedChanged bool
 
 var VmDiskUseHumanize bool
 var VmNicUseHumanize bool
+var VmIsoUseHumanize bool
 var VmUseHumanize bool
 
 var VmCreateCmd = &cobra.Command{
@@ -752,7 +753,7 @@ var VmIsosGetCmd = &cobra.Command{
 				log.Fatalf(err.Error())
 			}
 		}
-		util.GetVMIsos(VmName, c, ctx)
+		util.GetVMIsos(VmName, c, ctx, VmIsoUseHumanize)
 	},
 }
 
@@ -1113,6 +1114,7 @@ func init() {
 	VmIsosGetCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmIsosGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmIsosGetCmd.MarkFlagsOneRequired("name", "id")
+	VmIsosGetCmd.Flags().BoolVarP(&VmIsoUseHumanize, "human", "H", VmIsoUseHumanize, "Print sizes in human readable form")
 
 	VmIsosAddCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmIsosAddCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
@@ -1133,7 +1135,7 @@ func init() {
 	VmNicsGetCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmNicsGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmNicsGetCmd.MarkFlagsOneRequired("name", "id")
-	VmNicsGetCmd.Flags().BoolVarP(&VmNicUseHumanize, "human", "H", VmDiskUseHumanize, "Print sizes in human readable form")
+	VmNicsGetCmd.Flags().BoolVarP(&VmNicUseHumanize, "human", "H", VmNicUseHumanize, "Print sizes in human readable form")
 
 	VmNicsAddCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmNicsAddCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")

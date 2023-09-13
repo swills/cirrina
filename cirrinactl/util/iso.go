@@ -8,6 +8,7 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
+	"github.com/dustin/go-humanize"
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/jedib0t/go-pretty/text"
 	"io"
@@ -146,7 +147,7 @@ func UploadIso(c cirrina.VMInfoClient, ctx context.Context, idPtr *string, fileP
 	fmt.Printf("ISO Upload complete: %v\n", reply)
 }
 
-func ListIsos(c cirrina.VMInfoClient, ctx context.Context) {
+func ListIsos(c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) {
 	ids, err := rpc.GetIsoIds(c, ctx)
 	if err != nil {
 		fmt.Printf("failed to get iso IDs: %s\n", err.Error())
@@ -157,6 +158,7 @@ func ListIsos(c cirrina.VMInfoClient, ctx context.Context) {
 	type ThisIsoInfo struct {
 		id    string
 		descr string
+		size  uint64
 	}
 
 	isoInfos := make(map[string]ThisIsoInfo)
@@ -171,6 +173,7 @@ func ListIsos(c cirrina.VMInfoClient, ctx context.Context) {
 		aIsoInfo := ThisIsoInfo{
 			id:    id,
 			descr: *res.Description,
+			size:  *res.Size,
 		}
 		isoInfos[*res.Name] = aIsoInfo
 		names = append(names, *res.Name)
@@ -181,7 +184,7 @@ func ListIsos(c cirrina.VMInfoClient, ctx context.Context) {
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"NAME", "UUID", "DESCRIPTION"})
+	t.AppendHeader(table.Row{"NAME", "UUID", "SIZE", "DESCRIPTION"})
 	t.SetStyle(table.Style{
 		Name: "myNewStyle",
 		Box: table.BoxStyle{
@@ -202,11 +205,21 @@ func ListIsos(c cirrina.VMInfoClient, ctx context.Context) {
 		},
 	})
 	for _, name := range names {
-		t.AppendRow(table.Row{
-			name,
-			isoInfos[name].id,
-			isoInfos[name].descr,
-		})
+		if useHumanize {
+			t.AppendRow(table.Row{
+				name,
+				isoInfos[name].id,
+				humanize.IBytes(isoInfos[name].size),
+				isoInfos[name].descr,
+			})
+		} else {
+			t.AppendRow(table.Row{
+				name,
+				isoInfos[name].id,
+				isoInfos[name].size,
+				isoInfos[name].descr,
+			})
+		}
 	}
 	t.Render()
 }
