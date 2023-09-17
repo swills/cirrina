@@ -29,6 +29,16 @@ var Priority int32
 var PriorityChanged bool
 var Protect bool
 var ProtectChanged bool
+var Pcpu uint32
+var PcpuChanged bool
+var Rbps uint32
+var RbpsChanged bool
+var Wbps uint32
+var WbpsChanged bool
+var Riops uint32
+var RiopsChanged bool
+var Wiops uint32
+var WiopsChanged bool
 var Debug bool
 var DebugChanged bool
 var DebugWait bool
@@ -285,6 +295,11 @@ var VmConfigCmd = &cobra.Command{
 		MemChanged = cmd.Flags().Changed("mem")
 		PriorityChanged = cmd.Flags().Changed("priority")
 		ProtectChanged = cmd.Flags().Changed("protect")
+		PcpuChanged = cmd.Flags().Changed("pcpu")
+		RbpsChanged = cmd.Flags().Changed("rbps")
+		WbpsChanged = cmd.Flags().Changed("wbps")
+		RiopsChanged = cmd.Flags().Changed("riops")
+		WiopsChanged = cmd.Flags().Changed("wiops")
 		AutoStartChanged = cmd.Flags().Changed("autostart")
 		AutoStartDelayChanged = cmd.Flags().Changed("autostart-delay")
 		RestartChanged = cmd.Flags().Changed("restart")
@@ -384,6 +399,7 @@ var VmConfigCmd = &cobra.Command{
 			}
 			newConfig.Mem = &newMem
 		}
+
 		if PriorityChanged {
 			newPriority := Priority
 			if newPriority < -20 || newPriority > 20 {
@@ -394,6 +410,26 @@ var VmConfigCmd = &cobra.Command{
 
 		if ProtectChanged {
 			newConfig.Protect = &Protect
+		}
+
+		if PcpuChanged {
+			newConfig.Pcpu = &Pcpu
+		}
+
+		if RbpsChanged {
+			newConfig.Rbps = &Rbps
+		}
+
+		if WbpsChanged {
+			newConfig.Wbps = &Wbps
+		}
+
+		if RiopsChanged {
+			newConfig.Riops = &Riops
+		}
+
+		if WiopsChanged {
+			newConfig.Wiops = &Wiops
 		}
 
 		if AutoStartChanged {
@@ -1059,6 +1095,11 @@ func init() {
 	VmConfigCmd.Flags().Uint32VarP(&Mem, "mem", "m", Mem, "Amount of virtual memory in megabytes")
 	VmConfigCmd.Flags().Int32Var(&Priority, "priority", Priority, "Priority of VM (nice)")
 	VmConfigCmd.Flags().BoolVar(&Protect, "protect", Protect, "Protect VM from being killed when swap space is exhausted")
+	VmConfigCmd.Flags().Uint32Var(&Pcpu, "pcpu", Pcpu, "Max CPU usage in percent of a single CPU core")
+	VmConfigCmd.Flags().Uint32Var(&Rbps, "rbps", Rbps, "Limit VM filesystem reads, in bytes per second")
+	VmConfigCmd.Flags().Uint32Var(&Wbps, "wbps", Wbps, "Limit VM filesystem writes, in bytes per second")
+	VmConfigCmd.Flags().Uint32Var(&Riops, "riops", Riops, "Limit VM filesystem reads, in operations per second")
+	VmConfigCmd.Flags().Uint32Var(&Wiops, "wiops", Wiops, "Limit VM filesystem writes, in operations per second")
 	VmConfigCmd.Flags().BoolVar(&Com1, "com1", Com1, "Enable COM1")
 	VmConfigCmd.Flags().BoolVar(&Com1Log, "com1-log", Com1Log, "Log input and output of COM1")
 	VmConfigCmd.Flags().StringVar(&Com1Dev, "com1-dev", Com1Dev, "Device to use for COM1")

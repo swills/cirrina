@@ -343,6 +343,21 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 		}
 		vmInst.Config.DebugPort = *rc.DebugPort
 	}
+	if isOptionPassed(reflect, "pcpu") {
+		vmInst.Config.Pcpu = *rc.Pcpu
+	}
+	if isOptionPassed(reflect, "rbps") {
+		vmInst.Config.Rbps = *rc.Rbps
+	}
+	if isOptionPassed(reflect, "wbps") {
+		vmInst.Config.Wbps = *rc.Wbps
+	}
+	if isOptionPassed(reflect, "riops") {
+		vmInst.Config.Riops = *rc.Riops
+	}
+	if isOptionPassed(reflect, "wiops") {
+		vmInst.Config.Wiops = *rc.Wiops
+	}
 	err = vmInst.Save()
 	if err != nil {
 		return &re, err
@@ -416,6 +431,11 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.DebugPort = &vmInst.Config.DebugPort
 	pvm.Priority = &vmInst.Config.Priority
 	pvm.Protect = &vmInst.Config.Protect.Bool
+	pvm.Pcpu = &vmInst.Config.Pcpu
+	pvm.Rbps = &vmInst.Config.Rbps
+	pvm.Wbps = &vmInst.Config.Wbps
+	pvm.Riops = &vmInst.Config.Riops
+	pvm.Wiops = &vmInst.Config.Wiops
 	return &pvm, nil
 }
 

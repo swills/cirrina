@@ -194,6 +194,11 @@ message VMConfig {
   optional string debug_port = 53;
   optional int32 priority = 54;
   optional bool protect = 55;
+  optional uint32 pcpu = 56;
+  optional uint32 rbps = 57;
+  optional uint32 wbps = 58;
+  optional uint32 riops = 59;
+  optional uint32 wiops = 60;
 }
 
 message VMsQuery {

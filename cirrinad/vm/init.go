@@ -81,6 +81,11 @@ type Config struct {
 	DebugPort        string       `gorm:"default:AUTO"`
 	Priority         int32        `gorm:"default:0;check:priority BETWEEN -20 and 20"`
 	Protect          sql.NullBool `gorm:"default:True;check:protect IN(0,1)"`
+	Pcpu             uint32
+	Rbps             uint32
+	Wbps             uint32
+	Riops            uint32
+	Wiops            uint32
 }
 
 type VM struct {

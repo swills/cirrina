@@ -196,6 +196,11 @@ func (vm *VM) Save() error {
 			"debug_port":         &vm.Config.DebugPort,
 			"priority":           &vm.Config.Priority,
 			"protect":            &vm.Config.Protect,
+			"pcpu":               &vm.Config.Pcpu,
+			"rbps":               &vm.Config.Rbps,
+			"wbps":               &vm.Config.Wbps,
+			"riops":              &vm.Config.Riops,
+			"wiops":              &vm.Config.Wiops,
 		},
 		)
 
@@ -381,6 +386,68 @@ func (vm *VM) netStartup() {
 	}
 }
 
+func (vm *VM) applyResourceLimits() {
+	if vm.proc == nil || vm.proc.Pid() == 0 || vm.BhyvePid == 0 {
+		slog.Error("attempted to apply resource limits to vm that may not be running")
+		return
+	}
+	vm.log.Debug("checking resource limits")
+	// vm.proc.Pid aka vm.BhyvePid is actually the sudo proc that's the parent of bhyve
+	// call pgrep to get the child (bhyve) -- life would be so much easier if we could run bhyve as non-root
+	// should fix supervisor to use int32
+	vmPid := strconv.FormatInt(int64(util.FindChildPid(uint32(vm.proc.Pid()))), 10)
+	if vm.Config.Pcpu > 0 {
+		vm.log.Debug("Setting pcpu limit")
+		cpuLimitStr := strconv.FormatUint(uint64(vm.Config.Pcpu), 10)
+		args := []string{"/usr/bin/rctl", "-a", "process:" + vmPid + ":pcpu:deny=" + cpuLimitStr}
+		cmd := exec.Command(config.Config.Sys.Sudo, args...)
+		err := cmd.Run()
+		if err != nil {
+			slog.Error("failed to set resource limit", "err", err)
+		}
+	}
+	if vm.Config.Rbps > 0 {
+		vm.log.Debug("Setting rbps limit")
+		rbpsLimitStr := strconv.FormatUint(uint64(vm.Config.Rbps), 10)
+		args := []string{"/usr/bin/rctl", "-a", "process:" + vmPid + ":readbps:throttle=" + rbpsLimitStr}
+		cmd := exec.Command(config.Config.Sys.Sudo, args...)
+		err := cmd.Run()
+		if err != nil {
+			slog.Error("failed to set resource limit", "err", err)
+		}
+	}
+	if vm.Config.Wbps > 0 {
+		vm.log.Debug("Setting wbps limit")
+		wbpsLimitStr := strconv.FormatUint(uint64(vm.Config.Wbps), 10)
+		args := []string{"/usr/bin/rctl", "-a", "process:" + vmPid + ":writebps:throttle=" + wbpsLimitStr}
+		cmd := exec.Command(config.Config.Sys.Sudo, args...)
+		err := cmd.Run()
+		if err != nil {
+			slog.Error("failed to set resource limit", "err", err)
+		}
+	}
+	if vm.Config.Riops > 0 {
+		vm.log.Debug("Setting riops limit")
+		riopsLimitStr := strconv.FormatUint(uint64(vm.Config.Riops), 10)
+		args := []string{"/usr/bin/rctl", "-a", "process:" + vmPid + ":readiops:throttle=" + riopsLimitStr}
+		cmd := exec.Command(config.Config.Sys.Sudo, args...)
+		err := cmd.Run()
+		if err != nil {
+			slog.Error("failed to set resource limit", "err", err)
+		}
+	}
+	if vm.Config.Wiops > 0 {
+		vm.log.Debug("Setting wiops limit")
+		wiopsLimitStr := strconv.FormatUint(uint64(vm.Config.Wiops), 10)
+		args := []string{"/usr/bin/rctl", "-a", "process:" + vmPid + ":writeiops:throttle=" + wiopsLimitStr}
+		cmd := exec.Command(config.Config.Sys.Sudo, args...)
+		err := cmd.Run()
+		if err != nil {
+			slog.Error("failed to set resource limit", "err", err)
+		}
+	}
+}
+
 func (vm *VM) NetCleanup() {
 	vmNicsList, err := vm.GetNics()
 	if err != nil {
@@ -442,6 +509,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 				vm.log.Info("event", "code", event.Code, "message", event.Message)
 				vm.SetRunning(vm.proc.Pid())
 				vm.setupComLoggers()
+				vm.applyResourceLimits()
 			case "ProcessDone":
 				vm.log.Info("event", "code", event.Code, "message", event.Message)
 			case "ProcessCrashed":

@@ -2,6 +2,7 @@ package util
 
 import (
 	"bufio"
+	"cirrina/cirrinad/config"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -53,7 +54,56 @@ func PidExists(pid int) (bool, error) {
 		return true, nil
 	}
 	return false, err
+}
 
+func FindChildPid(findPid uint32) (childPid uint32) {
+	slog.Debug("FindChildPid finding child proc")
+	pidString := strconv.FormatUint(uint64(findPid), 10)
+	args := []string{"/bin/pgrep", "-P", pidString}
+	cmd := exec.Command(config.Config.Sys.Sudo, args...)
+	defer func(cmd *exec.Cmd) {
+		err := cmd.Wait()
+		if err != nil {
+			slog.Error("ifconfig error", "err", err)
+		}
+	}(cmd)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		slog.Error("FindChildPid error", "err", err)
+		return 0
+	}
+	if err := cmd.Start(); err != nil {
+		slog.Error("FindChildPid error", "err", err)
+		return 0
+	}
+	found := false
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		text := scanner.Text()
+		textFields := strings.Fields(text)
+		fl := len(textFields)
+		if fl != 1 {
+			slog.Debug("FindChildPid pgrep extra fields", "text", text)
+		}
+		tempPid1 := uint64(0)
+		if !found {
+			found = true
+			tempPid1, err = strconv.ParseUint(textFields[0], 10, 32)
+			if err != nil {
+				slog.Error("FindChildPid error", "err", err)
+				return 0
+			}
+			tempPid2 := uint32(tempPid1)
+			childPid = tempPid2
+		} else {
+			slog.Debug("FindChildPid found too many child procs")
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		slog.Error("FindChildPid error", "err", err)
+	}
+	slog.Debug("FindChildPid returning childPid", "childPid", childPid)
+	return childPid
 }
 
 func OSReadDir(root string) ([]string, error) {

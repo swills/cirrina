@@ -103,6 +103,7 @@
     * Support [QCOW2](https://github.com/xcllnt/libvdsk)
     * Test grpc interface with [grpcurl](https://github.com/fullstorydev/grpcurl)
     * [Convert](https://github.com/grpc/grpc-go/blob/master/examples/features/error_details/client/main.go) all grpc [errors](https://grpc.github.io/grpc/core/md_doc_statuscodes.html), especially invalid argument
+    * More notes on gRPC error handling [here](https://cloud.google.com/apis/design/errors#error_model) and [here](https://grpc.io/docs/guides/error/)
     * Add more [detail](https://github.com/grpc/grpc-go/blob/master/Documentation/rpc-errors.md) to grpc errors
     * [Improve](https://protobuf.dev/programming-guides/techniques/) [grpc](https://protobuf.dev/programming-guides/dos-donts/) [stuff](https://protobuf.dev/programming-guides/api/)
     * Use well known [types](https://protobuf.dev/reference/protobuf/google.protobuf/) in proto, especially Empty
