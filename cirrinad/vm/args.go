@@ -621,6 +621,7 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 		args = append(args, com4Arg...)
 	}
 	args = append(args, extraArgs...)
+	args = append(args, "-U", vm.ID)
 	args = append(args, vm.Name)
 	return name, args, nil
 }
