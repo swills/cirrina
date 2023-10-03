@@ -40,7 +40,7 @@ func AddDisk(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descr
 		return "", errors.New("invalid disk type specified " + *diskTypePtr)
 	}
 
-	if *diskTypePtr == "FILE" || *diskDevTypePtr == "file" {
+	if *diskDevTypePtr == "FILE" || *diskDevTypePtr == "file" {
 		thisDiskDevType = cirrina.DiskDevType_FILE
 	} else if *diskDevTypePtr == "ZVOL" || *diskDevTypePtr == "zvol" {
 		thisDiskDevType = cirrina.DiskDevType_ZVOL
