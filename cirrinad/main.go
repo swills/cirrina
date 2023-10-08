@@ -171,6 +171,36 @@ func cleanupNet() {
 	}
 }
 
+func kmodLoaded(name string) (loaded bool) {
+	slog.Debug("checking module", "module", name)
+	cmd := exec.Command("/sbin/kldstat", "-q", "-n", name)
+	err := cmd.Run()
+	if err == nil {
+		loaded = true
+	}
+	return loaded
+}
+
+func validateKmods() {
+	slog.Debug("validating kernel modules")
+	moduleList := []string{"vmm", "nmdm", "if_bridge", "if_epair", "ng_bridge", "ng_ether", "ng_pipe"}
+
+	for _, module := range moduleList {
+		loaded := kmodLoaded(module + ".ko")
+		if !loaded {
+			slog.Debug("module not loaded", "module", module)
+			fmt.Printf("Module %s not loaded, please load before using\n", module)
+			os.Exit(1)
+		}
+	}
+}
+
+func validateSystem() {
+	slog.Debug("validating system")
+	validateKmods()
+	// TODO: further validation
+}
+
 func main() {
 	signals := make(chan os.Signal)
 	signal.Notify(signals, os.Interrupt, syscall.SIGINFO)
@@ -200,6 +230,9 @@ func main() {
 		slog.Info("log level not set or un-parseable, setting to info")
 	}
 
+	slog.Debug("Starting host validation")
+	validateSystem()
+	slog.Debug("Finished host validation")
 	slog.Debug("Clean up starting")
 	cleanUpVms()
 	cleanupNet()
