@@ -188,7 +188,7 @@ func UpdateDisk(
 	name string, c cirrina.VMInfoClient, ctx context.Context,
 	DiskDescriptionChanged bool, DiskDescription string,
 	DiskTypeChanged bool, DiskType string,
-) {
+) (err error) {
 	diskId, err := rpc.DiskNameToId(&name, c, ctx)
 	if err != nil {
 		s := status.Convert(err)
@@ -208,19 +208,18 @@ func UpdateDisk(
 	if DiskTypeChanged {
 		if DiskType == "NVME" || DiskType == "nvme" {
 			diu.DiskType = &DiskTypeNvme
-		}
-		if DiskType == "AHCIHD" || DiskType == "ahcihd" || DiskType == "AHCI" || DiskType == "ahci" {
+		} else if DiskType == "AHCIHD" || DiskType == "ahcihd" || DiskType == "AHCI" || DiskType == "ahci" {
 			diu.DiskType = &DiskTypeAHCIHD
-		}
-		if DiskType == "VIRTIO-BLK" || DiskType == "virtio-blk" || DiskType == "VIRTIOBLK" || DiskType == "virtioblk" {
+		} else if DiskType == "VIRTIO-BLK" || DiskType == "virtio-blk" || DiskType == "VIRTIOBLK" || DiskType == "virtioblk" {
 			diu.DiskType = &DiskTypeVirtIoBlk
+		} else {
+			return errors.New("invalid disk type specified " + DiskType)
 		}
-
 	}
 	err = rpc.UpdateDisk(&diskId, c, ctx, &diu)
 	if err != nil {
 		s := status.Convert(err)
 		fmt.Printf("error: could not update switch: %s\n", s.Message())
 	}
-	return
+	return nil
 }

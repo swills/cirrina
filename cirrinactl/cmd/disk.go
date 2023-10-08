@@ -108,7 +108,10 @@ var DiskUpdateCmd = &cobra.Command{
 			}
 		}
 		// currently only support changing disk description, and type
-		util.UpdateDisk(DiskName, c, ctx, DiskDescriptionChanged, DiskDescription, DiskTypeChanged, DiskType)
+		err = util.UpdateDisk(DiskName, c, ctx, DiskDescriptionChanged, DiskDescription, DiskTypeChanged, DiskType)
+		if err != nil {
+			log.Fatal(err)
+		}
 	},
 }
 
