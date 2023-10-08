@@ -11,18 +11,28 @@
     * Ensuring no crashes
     * Fixing race conditions
     * Fetching logs from server to client
-    * Implement VM rename - High Priority
+    * Implement VM rename
     * Switch from polling to streaming for VM status
+    * Host validation
+      * Ensure necessary kernel modules are loaded
+        * `vmm`
+        * `nmdm`
+        * `if_bridge`
+        * `if_epair`
+        * `ng_bridge`
+        * `ng_ether`
+        * `ng_pipe`
+    * Error checking
+      * Ensure sudo is setup
+      * Ensure switch uplinks exist
+      * Ensure config paths exist
+      * Ensure disk paths/volumes exist
 * Booting
     * Add feature to manage UEFI settings such as boot order to GUI
-* Resources limiting
-    * [Disk](https://arstechnica.com/gadgets/2020/02/how-fast-are-your-disks-find-out-the-open-source-way-with-fio/) I/O
-        * Have tested with [rctl](https://man.freebsd.org/cgi/man.cgi?rctl) but it's per process not per VM disk
 * Devices
     * CPU
         * Implement CPU pinning support
-        * Implement customization of CPU sockets, cores and threads - High Priority
-        * CPU Usage limits
+        * Implement customization of CPU sockets, cores and threads
     * Serial
         * Input playback
     * Disk
@@ -32,7 +42,7 @@
         * Create disk from existing image (clone) or other disk image.
     * Networking
         * Support various network types from VBox
-        * Support [vxlan](https://www.bsdcan.org/2016/schedule/attachments/341_VXLAN_BSDCan2016.pdf) [video](https://www.youtube.com/watch?v=_1Ne_TgF3MQ) and [stuff](https://www.bsdcan.org/2016/schedule/events/715.en.html) and vale switches - High Priority
+        * Support [vxlan](https://www.bsdcan.org/2016/schedule/attachments/341_VXLAN_BSDCan2016.pdf) [video](https://www.youtube.com/watch?v=_1Ne_TgF3MQ) and [stuff](https://www.bsdcan.org/2016/schedule/events/715.en.html) and vale switches
         * Maybe run a DHCP server on switches of the proper "type"
         * Support [NATing](https://github.com/zed-0xff/ng_sbinat) VMs [via](https://github.com/MonkWho/pfatt/blob/master/bin/pfatt.sh) [netgraph](https://reviews.freebsd.org/D23461)
         * Tunnel/VPN support
@@ -40,7 +50,7 @@
         * Add sound device list
 * Access/Sharing
     * VNC
-        * Proxying - High Priority
+        * Proxying
         * Clipboard sharing
         * Resizing
         * Add VNC preview
@@ -51,16 +61,17 @@
     * SSH
         * Add SSH integration
     * RDP
-    * Implement 9p sharing - High Priority
+    * Implement 9p sharing
 * Other/Ideas
     * Use cobra/viper in cirrinad
+    * Use [deque](https://pkg.go.dev/github.com/gammazero/deque)
     * Use real uuid type instead of string everywhere
     * Clients
         * Build TUI with [tview](https://github.com/rivo/tview)
         * Build Web UI -- maybe [awesome-grpc](https://github.com/grpc-ecosystem/awesome-grpc) has suggestions
     * Have GUI manage config for and automatically start daemon for a purely local mode
-    * User/password auth - High Priority
-    * VM grouping - High Priority
+    * User/password auth
+    * VM grouping
     * VM templates for various OSs
     * Automated OS install
     * VM Snapshots
@@ -78,7 +89,7 @@
     * Clean up protobuf api, specify max string lengths, check for missing values, etc.
     * Consider [go-sqlite](https://github.com/glebarez/go-sqlite)
     * Compare with:
-        * [libvirt bhyve driver](https://libvirt.org/drvbhyve.html) - High Priority
+        * [libvirt bhyve driver](https://libvirt.org/drvbhyve.html)
         * [VirtualBox](https://www.virtualbox.org/wiki/Documentation)
         * [vm-bhyve](https://github.com/churchers/vm-bhyve)
         * [chyves](http://chyves.org/)
