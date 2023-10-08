@@ -227,3 +227,20 @@ func Delete(id string) (err error) {
 		return errors.New(errText)
 	}
 }
+
+func (d *Disk) Save() error {
+	db := getDiskDb()
+
+	res := db.Model(&d).
+		Updates(map[string]interface{}{
+			"description": &d.Description,
+			"type":        &d.Type,
+		},
+		)
+
+	if res.Error != nil {
+		return errors.New("error updating disk")
+	}
+
+	return nil
+}

@@ -146,6 +146,20 @@ func RemoveSwitch(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (e
 	return nil
 }
 
+func UpdateSwitch(idPtr *string, c cirrina.VMInfoClient, ctx context.Context, siu *cirrina.SwitchInfoUpdate) (err error) {
+	if *idPtr == "" {
+		return errors.New("id not specified")
+	}
+	reqId, err := c.SetSwitchInfo(ctx, siu)
+	if err != nil {
+		return err
+	}
+	if !reqId.Success {
+		return errors.New("failed to update switch")
+	}
+	return nil
+}
+
 func GetSwitch(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (switchInfo *cirrina.SwitchInfo, err error) {
 	if *idPtr == "" {
 		return &cirrina.SwitchInfo{}, errors.New("id not specified")

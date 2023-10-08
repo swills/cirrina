@@ -85,6 +85,14 @@ func DiskNameToId(namePtr *string, c cirrina.VMInfoClient, ctx context.Context) 
 	return diskId, nil
 }
 
+func DiskIdToName(s string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
+	res, err := c.GetDiskInfo(ctx, &cirrina.DiskId{Value: s})
+	if err != nil {
+		return "", err
+	}
+	return *res.Name, nil
+}
+
 func DiskGetVm(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (vmName string, err error) {
 	if idPtr == nil || *idPtr == "" {
 		return "", errors.New("disk id not specified")
@@ -102,4 +110,18 @@ func DiskGetVm(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (vmNa
 		return "", err
 	}
 	return res2, nil
+}
+
+func UpdateDisk(idPtr *string, c cirrina.VMInfoClient, ctx context.Context, diu *cirrina.DiskInfoUpdate) (err error) {
+	if *idPtr == "" {
+		return errors.New("id not specified")
+	}
+	reqId, err := c.SetDiskInfo(ctx, diu)
+	if err != nil {
+		return err
+	}
+	if !reqId.Success {
+		return errors.New("failed to update disk")
+	}
+	return nil
 }

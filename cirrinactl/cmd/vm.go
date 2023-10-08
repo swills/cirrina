@@ -22,7 +22,8 @@ var MaxWait uint32
 var MaxWaitChanged bool
 var Cpus uint8
 var CpusChanged bool
-var DescriptionChanged bool
+var VmDescription string
+var VmDescriptionChanged bool
 var Mem uint32
 var MemChanged bool
 var Priority int32
@@ -131,7 +132,7 @@ var VmCreateCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a VM",
 	Args: func(cmd *cobra.Command, args []string) error {
-		DescriptionChanged = cmd.Flags().Changed("description")
+		VmDescriptionChanged = cmd.Flags().Changed("description")
 		CpusChanged = cmd.Flags().Changed("cpus")
 		MemChanged = cmd.Flags().Changed("mem")
 		return nil
@@ -150,10 +151,10 @@ var VmCreateCmd = &cobra.Command{
 		var lCpus *uint32
 		var lMem *uint32
 
-		if !DescriptionChanged {
+		if !VmDescriptionChanged {
 			lDesc = nil
 		} else {
-			lDesc = &Description
+			lDesc = &VmDescription
 		}
 
 		if !CpusChanged {
@@ -290,7 +291,7 @@ var VmConfigCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Reconfigure a VM",
 	Args: func(cmd *cobra.Command, args []string) error {
-		DescriptionChanged = cmd.Flags().Changed("description")
+		VmDescriptionChanged = cmd.Flags().Changed("description")
 		CpusChanged = cmd.Flags().Changed("cpus")
 		MemChanged = cmd.Flags().Changed("mem")
 		PriorityChanged = cmd.Flags().Changed("priority")
@@ -376,8 +377,8 @@ var VmConfigCmd = &cobra.Command{
 			Id: VmId,
 		}
 
-		if DescriptionChanged {
-			newConfig.Description = &Description
+		if VmDescriptionChanged {
+			newConfig.Description = &VmDescription
 		}
 
 		if CpusChanged {
@@ -1071,7 +1072,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	VmCreateCmd.Flags().StringVarP(&Description, "description", "d", Description, "Description of VM")
+	VmCreateCmd.Flags().StringVarP(&VmDescription, "description", "d", SwitchDescription, "SwitchDescription of VM")
 	VmCreateCmd.Flags().Uint8VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
 	VmCreateCmd.Flags().Uint32VarP(&Mem, "mem", "m", Mem, "Amount of virtual memory in megabytes")
 
@@ -1090,7 +1091,7 @@ func init() {
 	VmConfigCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmConfigCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmConfigCmd.MarkFlagsOneRequired("name", "id")
-	VmConfigCmd.Flags().StringVarP(&Description, "description", "d", Description, "Description of VM")
+	VmConfigCmd.Flags().StringVarP(&VmDescription, "description", "d", VmDescription, "SwitchDescription of VM")
 	VmConfigCmd.Flags().Uint8VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
 	VmConfigCmd.Flags().Uint32VarP(&Mem, "mem", "m", Mem, "Amount of virtual memory in megabytes")
 	VmConfigCmd.Flags().Int32Var(&Priority, "priority", Priority, "Priority of VM (nice)")

@@ -99,7 +99,7 @@ func RmSwitch(name string, c cirrina.VMInfoClient, ctx context.Context) {
 	switchId, err := rpc.SwitchNameToId(&name, c, ctx)
 	if err != nil {
 		s := status.Convert(err)
-		fmt.Printf("error: could not delete switch: %s\n", s.Message())
+		fmt.Printf("error: %s\n", s.Message())
 		return
 	}
 	if switchId == "" {
@@ -110,6 +110,33 @@ func RmSwitch(name string, c cirrina.VMInfoClient, ctx context.Context) {
 	if err != nil {
 		s := status.Convert(err)
 		fmt.Printf("error: could not delete switch: %s\n", s.Message())
+	}
+	return
+}
+
+func UpdateSwitch(name string, c cirrina.VMInfoClient, ctx context.Context, SwitchDescriptionChanged bool, SwitchDescription string) {
+	switchId, err := rpc.SwitchNameToId(&name, c, ctx)
+	if err != nil {
+		s := status.Convert(err)
+		fmt.Printf("error: %s\n", s.Message())
+		return
+	}
+	if switchId == "" {
+		fmt.Printf("error: could not find switch: no switch with the given name found\n")
+		return
+	}
+
+	siu := cirrina.SwitchInfoUpdate{
+		Id: switchId,
+	}
+	if SwitchDescriptionChanged {
+		siu.Description = &SwitchDescription
+	}
+
+	err = rpc.UpdateSwitch(&switchId, c, ctx, &siu)
+	if err != nil {
+		s := status.Convert(err)
+		fmt.Printf("error: could not update switch: %s\n", s.Message())
 	}
 	return
 }

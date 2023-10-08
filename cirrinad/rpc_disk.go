@@ -283,3 +283,49 @@ func (s *server) GetDiskVm(_ context.Context, i *cirrina.DiskId) (v *cirrina.VMI
 	}
 	return &pvmId, nil
 }
+
+func (s *server) SetDiskInfo(c context.Context, diu *cirrina.DiskInfoUpdate) (*cirrina.ReqBool, error) {
+	var re cirrina.ReqBool
+	re.Success = false
+
+	if diu.Id == "" {
+		return &re, errors.New("id not specified or invalid")
+	}
+
+	DiskUuid, err := uuid.Parse(diu.Id)
+	if err != nil {
+		return &re, errors.New("id not specified or invalid")
+	}
+
+	DiskInst, err := disk.GetById(DiskUuid.String())
+	if err != nil {
+		return &re, err
+	}
+
+	if diu.Description != nil {
+		DiskInst.Description = *diu.Description
+		slog.Debug("SetDiskInfo", "description", *diu.Description)
+	}
+
+	if diu.DiskType != nil {
+		if *diu.DiskType == cirrina.DiskType_NVME {
+			DiskInst.Type = "NVME"
+		} else if *diu.DiskType == cirrina.DiskType_AHCIHD {
+			DiskInst.Type = "AHCI-HD"
+		} else if *diu.DiskType == cirrina.DiskType_VIRTIOBLK {
+			DiskInst.Type = "VIRTIO-BLK"
+		} else {
+			return &re, errors.New("invalid disk type")
+		}
+		slog.Debug("SetDiskInfo", "type", DiskInst.Type)
+	}
+
+	slog.Debug("SetDiskInfo saving disk")
+	err = DiskInst.Save()
+	if err != nil {
+		return &re, errors.New("failed to update Disk")
+	}
+	re.Success = true
+
+	return &re, nil
+}

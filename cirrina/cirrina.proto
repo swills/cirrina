@@ -96,6 +96,17 @@ message DiskInfo {
   optional bool direct = 10;
 }
 
+message DiskInfoUpdate {
+  string id = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional string size = 4;
+  optional DiskType disk_type = 5;
+  optional DiskDevType disk_dev_type = 6;
+  optional bool cache = 7;
+  optional bool direct = 8;
+}
+
 message NetInterfacesReq {
 }
 
@@ -297,6 +308,7 @@ service VMInfo {
 
   rpc GetDisks(DisksQuery) returns (stream DiskId);
   rpc GetDiskInfo(DiskId) returns (DiskInfo);
+  rpc SetDiskInfo(DiskInfoUpdate) returns (ReqBool);
   rpc AddDisk(DiskInfo) returns (DiskId);
   rpc RemoveDisk(DiskId) returns (ReqBool);
   rpc SetVmDisks(SetDiskReq) returns (ReqBool);

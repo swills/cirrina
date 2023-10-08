@@ -183,3 +183,44 @@ func RmDisk(name string, c cirrina.VMInfoClient, ctx context.Context) {
 		return
 	}
 }
+
+func UpdateDisk(
+	name string, c cirrina.VMInfoClient, ctx context.Context,
+	DiskDescriptionChanged bool, DiskDescription string,
+	DiskTypeChanged bool, DiskType string,
+) {
+	diskId, err := rpc.DiskNameToId(&name, c, ctx)
+	if err != nil {
+		s := status.Convert(err)
+		fmt.Printf("error: could not update disk: %s\n", s.Message())
+		return
+	}
+	diu := cirrina.DiskInfoUpdate{
+		Id: diskId,
+	}
+	if DiskDescriptionChanged {
+		diu.Description = &DiskDescription
+	}
+	DiskTypeNvme := cirrina.DiskType_NVME
+	DiskTypeAHCIHD := cirrina.DiskType_AHCIHD
+	DiskTypeVirtIoBlk := cirrina.DiskType_VIRTIOBLK
+
+	if DiskTypeChanged {
+		if DiskType == "NVME" || DiskType == "nvme" {
+			diu.DiskType = &DiskTypeNvme
+		}
+		if DiskType == "AHCIHD" || DiskType == "ahcihd" || DiskType == "AHCI" || DiskType == "ahci" {
+			diu.DiskType = &DiskTypeAHCIHD
+		}
+		if DiskType == "VIRTIO-BLK" || DiskType == "virtio-blk" || DiskType == "VIRTIOBLK" || DiskType == "virtioblk" {
+			diu.DiskType = &DiskTypeVirtIoBlk
+		}
+
+	}
+	err = rpc.UpdateDisk(&diskId, c, ctx, &diu)
+	if err != nil {
+		s := status.Convert(err)
+		fmt.Printf("error: could not update switch: %s\n", s.Message())
+	}
+	return
+}

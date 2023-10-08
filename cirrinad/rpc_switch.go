@@ -263,8 +263,33 @@ func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq)
 	return &r, nil
 }
 
-func (s *server) SetSwitchInfo(context.Context, *cirrina.SwitchInfoUpdate) (*cirrina.ReqBool, error) {
+func (s *server) SetSwitchInfo(c context.Context, siu *cirrina.SwitchInfoUpdate) (*cirrina.ReqBool, error) {
 	var re cirrina.ReqBool
 	re.Success = false
-	return &re, errors.New("not implemented yet")
+
+	if siu.Id == "" {
+		return &re, errors.New("id not specified or invalid")
+	}
+
+	switchUuid, err := uuid.Parse(siu.Id)
+	if err != nil {
+		return &re, errors.New("id not specified or invalid")
+	}
+
+	switchInst, err := _switch.GetById(switchUuid.String())
+	if err != nil {
+		return &re, err
+	}
+
+	if siu.Description != nil {
+		switchInst.Description = *siu.Description
+	}
+
+	err = switchInst.Save()
+	if err != nil {
+		return &re, errors.New("failed to update switch")
+	}
+	re.Success = true
+
+	return &re, nil
 }
