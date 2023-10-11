@@ -13,15 +13,6 @@
     * Fetching logs from server to client
     * Implement VM rename
     * Switch from polling to streaming for VM status
-    * Host validation
-      * Ensure necessary kernel modules are loaded
-        * `vmm`
-        * `nmdm`
-        * `if_bridge`
-        * `if_epair`
-        * `ng_bridge`
-        * `ng_ether`
-        * `ng_pipe`
     * Error checking
       * Ensure sudo is setup
       * Ensure switch uplinks exist
@@ -58,6 +49,7 @@
         * Screenshots
         * Add VNC recording (see also [minimega feature](https://minimega.org/articles/vnc.article)
           and [vncproxy](https://pkg.go.dev/github.com/amitbet/vncproxy))
+        * Maybe [screego](https://screego.net/) ([port](https://www.freshports.org/www/screego/)) or [neko](https://github.com/m1k1o/neko) could help here
         * Add VNC input playback
     * SSH
         * Add SSH integration
@@ -71,7 +63,7 @@
         * Build TUI with [tview](https://github.com/rivo/tview)
         * Build Web UI -- maybe [awesome-grpc](https://github.com/grpc-ecosystem/awesome-grpc) has suggestions
     * Have GUI manage config for and automatically start daemon for a purely local mode
-    * User/password auth
+    * User/password auth - perhaps [spiffe](https://spiffe.io/) or [dapr](https://dapr.io/) could help here
     * VM grouping
     * VM templates for various OSs
     * Automated OS install
@@ -87,6 +79,7 @@
     * Add cloud-init
       style [meta-data](https://docs.openstack.org/nova/train/admin/metadata-service.html)
       [server](https://docs.tinkerbell.org/services/hegel/)
+    * Test cloud-init with FreeBSD see [commit](https://cgit.freebsd.org/src/commit/?id=1f4ce7a39f0f4b0621ff55d228014ccddb366d37)
     * Clean up protobuf api, specify max string lengths, check for missing values, etc.
     * Consider [go-sqlite](https://github.com/glebarez/go-sqlite)
     * Compare with:
@@ -105,6 +98,11 @@
     * Remove calls to external programs -- particularly hard for ngctl, but doable, tho requires setting up the socket
     * [Distribute](https://en.wikipedia.org/wiki/Distributed_SQL) the database via mvsqlite, dqlite or something similar, but not rqlite because it lacks a sql or gorm driver and can't really have one
     * Use [virtio-vsock](https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=271793) to [communicate](https://github.com/linuxkit/virtsock) with VMs
+    * See also [nc-vsock](https://github.com/stefanha/nc-vsock) and [this](https://gist.github.com/mcastelino/9a57d00ccf245b98de2129f0efe39857)
+    * And [this](https://wiki.qemu.org/Features/VirtioVsock) and [this](https://lwn.net/Articles/556550/)
+    * And [this](https://www.linux-kvm.org/images/8/83/01x08-Stefan_Hajnoczi-virtio-vsock_Zero-configuration_hostguest_communication.pdf)
+    * And [this](https://pkg.go.dev/github.com/mdlayher/vsock@v1.2.1/cmd/vscp#section-readme) and [this](https://github.com/mdlayher/vsock)
+    * And [this](https://stefano-garzarella.github.io/posts/2019-11-08-kvmforum-2019-vsock/) and [this](https://www.youtube.com/watch?v=_bYSQ68JPwE) and [this](https://www.youtube.com/watch?v=LFqz-VZPhFE)
     * More on [virtio-vsock](https://www.youtube.com/watch?v=LFqz-VZPhFE) [here](https://www.youtube.com/watch?v=_bYSQ68JPwE)
     * [Support](https://github.com/FreeBSD-UPB/freebsd-src/wiki/Virtual-Machine-Migration-using-bhyve) [live migration](https://lists.freebsd.org/archives/freebsd-virtualization/2023-June/001369.html)
     * [More](https://manpages.ubuntu.com/manpages/impish/man1/cloud-localds.1.html) [on](https://github.com/racingmars/vm-provision/blob/master/create.sh) [templates](https://www.youtube.com/watch?v=jxItb7iZyR0)
@@ -114,6 +112,7 @@
     * Support [more](https://github.com/freenas/libhyve-remote) [VNC encoding](https://reviews.freebsd.org/D11768)
     * Support [QCOW2](https://github.com/xcllnt/libvdsk)
     * Test grpc interface with [grpcurl](https://github.com/fullstorydev/grpcurl)
+    * Look into use QUIC via [quic-go](https://github.com/quic-go/quic-go), perhaps for host to host disk image transfer
     * [Convert](https://github.com/grpc/grpc-go/blob/master/examples/features/error_details/client/main.go) all grpc [errors](https://grpc.github.io/grpc/core/md_doc_statuscodes.html), especially invalid argument
     * More notes on gRPC error handling [here](https://cloud.google.com/apis/design/errors#error_model) and [here](https://grpc.io/docs/guides/error/)
     * Add more [detail](https://github.com/grpc/grpc-go/blob/master/Documentation/rpc-errors.md) to grpc errors
