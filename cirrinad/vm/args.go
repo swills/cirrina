@@ -437,14 +437,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 				string(h1[2]) + string(h1[3]) + ":" +
 				string(h1[3]) + string(h1[4])
 			slog.Debug("getNetArg", "mac", mac)
-			macOui := "00:18:25"
-			// We use the "00:18:25" private OUI from
-			// https://standards-oui.ieee.org/oui/oui.txt
-			// because why not?
-			// Note, some MACs are invalid:
-			// https://cgit.freebsd.org/src/tree/usr.sbin/bhyve/net_utils.c?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n56
-			// should check for this more elsewhere
-			macString = ",mac=" + macOui + ":" + mac
+			macString = ",mac=" + config.Config.Network.Mac.Oui + ":" + mac
 		}
 		netArg := []string{"-s", strconv.Itoa(slot) + "," + netType + "," + netDevArg + macString}
 		slot = slot + 1
