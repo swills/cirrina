@@ -2,20 +2,27 @@ package main
 
 import (
 	"bytes"
-	"cirrina/cirrinad/config"
-	_switch "cirrina/cirrinad/switch"
-	"cirrina/cirrinad/util"
-	"cirrina/cirrinad/vm"
+	"errors"
 	"fmt"
-	"golang.org/x/exp/slog"
 	"net"
 	"os"
 	"os/exec"
 	"os/signal"
+	"regexp"
 	"runtime"
+	"strconv"
+	"strings"
 	"syscall"
-
 	"time"
+
+	"golang.org/x/sys/unix"
+
+	"cirrina/cirrinad/config"
+	_switch "cirrina/cirrinad/switch"
+	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vm"
+
+	"golang.org/x/exp/slog"
 )
 
 var sigIntHandlerRunning = false
@@ -195,9 +202,164 @@ func validateKmods() {
 	}
 }
 
+func checkSudoCmd(expectedExit int, expectedOut string, cmdArgs ...string) (err error) {
+	var emptyBytes []byte
+	var outBytes bytes.Buffer
+	var errBytes bytes.Buffer
+	var exitErr *exec.ExitError
+	var exitCode int
+	var c []string
+
+	c = append(c, "-S") // ensure no password prompt on tty
+	c = append(c, cmdArgs...)
+
+	checkCmd := exec.Command(config.Config.Sys.Sudo, c...)
+	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
+	checkCmd.Stdout = &outBytes
+	checkCmd.Stderr = &errBytes
+	err = checkCmd.Run()
+	if err != nil {
+		if errors.As(err, &exitErr) {
+			exitCode = exitErr.ExitCode()
+		} else {
+			exitCode = -1
+		}
+		if exitCode != expectedExit || !strings.HasPrefix(errBytes.String(), expectedOut) {
+			slog.Error("failed running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
+			return err
+		}
+	}
+	return nil
+}
+
+func validateSudo() {
+	var err error
+
+	err = checkSudoCmd(0, "", "/sbin/ifconfig")
+	if err != nil {
+		fmt.Printf("error running /sbin/ifconfig, check sudo config\n")
+		os.Exit(1)
+	}
+
+	err = checkSudoCmd(0, "", "/sbin/zfs", "-V")
+	if err != nil {
+		fmt.Printf("error running /sbin/zfs, check sudo config\n")
+		os.Exit(1)
+	}
+
+	err = checkSudoCmd(0, "", "/usr/bin/nice", "/bin/echo", "-n")
+	if err != nil {
+		fmt.Printf("error running /usr/bin/nice, check sudo config\n")
+		os.Exit(1)
+	}
+
+	err = checkSudoCmd(0, "", "/usr/bin/protect", "/bin/echo", "-n")
+	if err != nil {
+		fmt.Printf("error running /usr/bin/protect, check sudo config\n")
+		os.Exit(1)
+	}
+
+	err = checkSudoCmd(0, "", "/usr/bin/rctl")
+	if err != nil {
+		fmt.Printf("error running /usr/bin/rctl, check sudo config\n")
+		os.Exit(1)
+	}
+
+	tmpFile, ok := os.CreateTemp("", "cirrinad")
+	if ok != nil {
+		slog.Error("failed creating tmp file")
+		fmt.Printf("failed creating tmp file")
+		os.Exit(1)
+	}
+	err = checkSudoCmd(0, "", "/usr/bin/truncate", "-c", "-s", "1", tmpFile.Name())
+	if err != nil {
+		fmt.Printf("error running /usr/bin/truncate, check sudo config\n")
+		os.Exit(1)
+	}
+
+	err = checkSudoCmd(0, "", "/usr/sbin/bhyve", "-h")
+	if err != nil {
+		fmt.Printf("error running /usr/sbin/bhyve, check sudo config\n")
+		os.Exit(1)
+	}
+
+	err = checkSudoCmd(1, "Usage: bhyvectl", "/usr/sbin/bhyvectl")
+	if err != nil {
+		fmt.Printf("error running /usr/sbin/bhyvectl, check sudo config\n")
+		os.Exit(1)
+	}
+
+	err = checkSudoCmd(1, "Usage: bhyvectl", "/usr/sbin/ngctl", "help")
+	if err != nil {
+		fmt.Printf("error running /usr/sbin/ngctl, check sudo config\n")
+		os.Exit(1)
+	}
+}
+
+func validateArch() {
+	runtimeArch := runtime.GOARCH
+	switch runtimeArch {
+	case "amd64":
+	default:
+		fmt.Printf("Unsupported Architecture\n")
+		os.Exit(1)
+	}
+}
+
+func validateOS() {
+	runtimeOS := runtime.GOOS
+	switch runtimeOS {
+	case "freebsd":
+	default:
+		fmt.Printf("Unsupported OS\n")
+		os.Exit(1)
+	}
+}
+
+func validateOSVersion() {
+	utsname := unix.Utsname{}
+	err := unix.Uname(&utsname)
+	if err != nil {
+		slog.Error("Failed to get uname", "err", err)
+		fmt.Printf("Unable to validate OS version\n")
+		os.Exit(1)
+	}
+
+	var r []byte
+	for _, b := range utsname.Release {
+		if b == 0 {
+			break
+		}
+		r = append(r, b)
+	}
+
+	release := fmt.Sprintf("%s", r)
+	re := regexp.MustCompile("-.*")
+	ov := re.ReplaceAllString(release, "")
+	ovi, err := strconv.ParseFloat(ov, 32)
+	if err != nil {
+		slog.Error("failed to get OS version", "release", string(utsname.Release[:]))
+		fmt.Printf("Error getting OS version\n")
+		os.Exit(1)
+	}
+
+	slog.Debug("validate OS", "ovi", ovi)
+	// Check for valid OS version, see https://www.freebsd.org/security/
+	// as of commit, 12.4 and 13.2 are oldest supported versions
+	if ovi < 12.4 || (ovi > 13 && ovi < 13.2) {
+		slog.Error("Unsupported OS version")
+		fmt.Printf("Unsupported OS version\n")
+		os.Exit(1)
+	}
+}
+
 func validateSystem() {
 	slog.Debug("validating system")
+	validateArch()
+	validateOS()
+	validateOSVersion()
 	validateKmods()
+	validateSudo()
 	// TODO: further validation
 }
 
@@ -211,12 +373,12 @@ func main() {
 			sigHandler(s)
 		}
 	}()
-	logFile, err := os.OpenFile(config.Config.Log.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	logFile, err := os.OpenFile(config.Config.Log.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		slog.Error("failed to open log file: %v", err)
 		return
 	}
-	var programLevel = new(slog.LevelVar) // Info by default
+	programLevel := new(slog.LevelVar) // Info by default
 	logger := slog.New(slog.HandlerOptions{Level: programLevel}.NewTextHandler(logFile))
 	slog.SetDefault(logger)
 	if config.Config.Log.Level == "info" {

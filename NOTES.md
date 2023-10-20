@@ -14,10 +14,9 @@
     * Implement VM rename
     * Switch from polling to streaming for VM status
     * Error checking
-      * Ensure sudo is setup
       * Ensure switch uplinks exist
       * Ensure config paths exist
-      * Ensure disk paths/volumes exist
+      * Ensure disk paths/pool/volumes exist
 * Booting
     * Add feature to manage UEFI settings such as boot order to GUI
 * Devices

@@ -104,38 +104,20 @@ func CreateBridges() {
 		slog.Debug("creating bridge", "num", num, "bridge", bridge.Name)
 		if bridge.Type == "IF" {
 			slog.Debug("creating if bridge", "name", bridge.Name)
-			allIfBridges, err := getAllIfBridges()
+			err := BuildIfBridge(bridge)
 			if err != nil {
-				slog.Debug("failed to get all if bridges", "err", err)
+				slog.Error("error creating if bridge", "err", err)
 				return
-			}
-			if util.ContainsStr(allIfBridges, bridge.Name) {
-				slog.Debug("bridge already exists, skipping", "bridge", bridge.Name)
-			} else {
-				err := BuildIfBridge(bridge)
-				if err != nil {
-					slog.Error("error creating if bridge", "err", err)
-					return
-				}
 			}
 		} else if bridge.Type == "NG" {
 			slog.Debug("creating ng bridge", "name", bridge.Name)
-			allNgBridges, err := getAllNgBridges()
+			err := BuildNgBridge(bridge)
 			if err != nil {
-				slog.Error("error getting bridge list", "err", err)
+				slog.Error("error creating ng bridge",
+					"name", bridge.Name,
+					"err", err,
+				)
 				return
-			}
-			if util.ContainsStr(allNgBridges, bridge.Name) {
-				slog.Debug("bridge already exists, skipping", "bridge", bridge.Name)
-			} else {
-				err := BuildNgBridge(bridge)
-				if err != nil {
-					slog.Error("error creating ng bridge",
-						"name", bridge.Name,
-						"err", err,
-					)
-					return
-				}
 			}
 		} else {
 			slog.Debug("unknown bridge type", "name", bridge.Name, "type", bridge.Type)
@@ -145,19 +127,32 @@ func CreateBridges() {
 
 func DestroyBridges() {
 	allBridges := GetAll()
-	for num, bridge := range allBridges {
-		slog.Debug("destroying bridge", "num", num, "bridge", bridge.Name)
+
+	exitingIfBridges, err := getAllIfBridges()
+	if err != nil {
+		slog.Error("error getting all if bridges")
+	}
+	exitingNgBridges, err := getAllNgBridges()
+	if err != nil {
+		slog.Error("error getting all ng bridges")
+	}
+
+	for _, bridge := range allBridges {
 		if bridge.Type == "IF" {
-			slog.Debug("destroying if bridge", "name", bridge.Name)
-			err := DestroyIfBridge(bridge.Name, true)
-			if err != nil {
-				slog.Error("error destroying if bridge", "err", err)
+			if util.ContainsStr(exitingIfBridges, bridge.Name) {
+				slog.Debug("destroying if bridge", "name", bridge.Name)
+				err := DestroyIfBridge(bridge.Name, true)
+				if err != nil {
+					slog.Error("error destroying if bridge", "err", err)
+				}
 			}
 		} else if bridge.Type == "NG" {
-			slog.Debug("destroying ng bridge", "name", bridge.Name)
-			err := DestroyNgBridge(bridge.Name)
-			if err != nil {
-				slog.Error("error destroying if bridge", "err", err)
+			if util.ContainsStr(exitingNgBridges, bridge.Name) {
+				slog.Debug("destroying ng bridge", "name", bridge.Name)
+				err = DestroyNgBridge(bridge.Name)
+				if err != nil {
+					slog.Error("error destroying if bridge", "err", err)
+				}
 			}
 		} else {
 			slog.Debug("unknown bridge type", "name", bridge.Name, "type", bridge.Type)
@@ -225,7 +220,6 @@ func ngGetBridgeNextLink(bridge string) (nextLink string, err error) {
 
 	nextLink = ngBridgeNextLink(bridgePeers)
 	return nextLink, nil
-
 }
 
 func GetNgDev(switchId string) (bridge string, peer string, err error) {
@@ -273,7 +267,6 @@ func (d *Switch) UnsetUplink() error {
 }
 
 func (d *Switch) SetUplink(uplink string) error {
-
 	netDevs := util.GetHostInterfaces()
 
 	if !util.ContainsStr(netDevs, uplink) {
