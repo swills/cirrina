@@ -32,6 +32,7 @@
         * Implement iSCSI disk support
         * Create disk from existing image (clone) or other disk image.
     * Networking
+        * Switch from `sudo ifconfig ...` to using [netlink](https://man.freebsd.org/cgi/man.cgi?netlink) via [go lib](https://pkg.go.dev/github.com/vishvananda/netlink) once netlink is in all supported FreeBSD versions
         * Support various network types from VBox
         * Support [vxlan](https://www.bsdcan.org/2016/schedule/attachments/341_VXLAN_BSDCan2016.pdf) [video](https://www.youtube.com/watch?v=_1Ne_TgF3MQ) and [stuff](https://www.bsdcan.org/2016/schedule/events/715.en.html) and vale switches
         * Maybe run a DHCP server on switches of the proper "type"
