@@ -369,6 +369,7 @@ func validateArch() {
 	runtimeArch := runtime.GOARCH
 	switch runtimeArch {
 	case "amd64":
+		// Do nothing
 	default:
 		fmt.Printf("Unsupported Architecture\n")
 		os.Exit(1)
@@ -379,6 +380,7 @@ func validateOS() {
 	runtimeOS := runtime.GOOS
 	switch runtimeOS {
 	case "freebsd":
+		// Do nothing
 	default:
 		fmt.Printf("Unsupported OS\n")
 		os.Exit(1)
@@ -429,7 +431,7 @@ func validateOSVersion() {
 	// as of commit, 12.4 and 13.2 are oldest supported versions
 	if ovi.LessThan(ver124) || ovi.LessThan(ver132) {
 		slog.Error("Unsupported OS version", "ovi", ovi)
-		fmt.Printf("Unsupported OS version: %f\n", ovi)
+		fmt.Printf("Unsupported OS version: %s\n", ovi)
 		os.Exit(1)
 	}
 }
