@@ -14,6 +14,7 @@
     * Implement VM rename
     * Switch from polling to streaming for VM status
     * Error checking
+      * Prevent running two copies of cirrinad
       * Ensure switch uplinks exist
       * Ensure config paths exist
       * Ensure disk paths/pool/volumes exist

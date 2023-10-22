@@ -226,7 +226,7 @@ func validateVirt() {
 	var exitErr *exec.ExitError
 	var exitCode int
 
-	checkCmd := exec.Command(config.Config.Sys.Sudo, "-S", "/sbin/sysctl", "hw.hv_vendor")
+	checkCmd := exec.Command(config.Config.Sys.Sudo, "-S", "/sbin/sysctl", "-n", "hw.hv_vendor")
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
@@ -237,9 +237,35 @@ func validateVirt() {
 		} else {
 			exitCode = -1
 		}
-		if exitCode != 0 || outBytes.String() != "hw.hv_vendor: " {
+		if exitCode != 0 || outBytes.String() != "" {
 			slog.Error("Refusing to run inside virtualized environment")
 			fmt.Printf("Refusing to run inside virtualized environment\n")
+			os.Exit(1)
+		}
+	}
+}
+
+func validateJailed() {
+	var emptyBytes []byte
+	var outBytes bytes.Buffer
+	var errBytes bytes.Buffer
+	var exitErr *exec.ExitError
+	var exitCode int
+
+	checkCmd := exec.Command(config.Config.Sys.Sudo, "-S", "/sbin/sysctl", "-n", "security.jail.jailed")
+	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
+	checkCmd.Stdout = &outBytes
+	checkCmd.Stderr = &errBytes
+	err := checkCmd.Run()
+	if err != nil {
+		if errors.As(err, &exitErr) {
+			exitCode = exitErr.ExitCode()
+		} else {
+			exitCode = -1
+		}
+		if exitCode != 0 || outBytes.String() != "0" {
+			slog.Error("Refusing to run inside jailed environment")
+			fmt.Printf("Refusing to run inside jailed environment\n")
 			os.Exit(1)
 		}
 	}
@@ -415,6 +441,7 @@ func validateSystem() {
 	validateOSVersion()
 	validateKmods()
 	validateVirt()
+	validateJailed()
 	validateSudo()
 	// TODO: further validation
 }
