@@ -2,19 +2,22 @@ package util
 
 import (
 	"bufio"
-	"cirrina/cirrina"
-	"cirrina/cirrinactl/rpc"
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
 	"fmt"
-	"github.com/dustin/go-humanize"
-	"github.com/jedib0t/go-pretty/table"
-	"github.com/jedib0t/go-pretty/text"
 	"io"
 	"log"
 	"os"
 	"sort"
+
+	"cirrina/cirrina"
+	"cirrina/cirrinactl/rpc"
+
+	"github.com/dustin/go-humanize"
+	"github.com/jedib0t/go-pretty/table"
+	"github.com/jedib0t/go-pretty/text"
+	"google.golang.org/grpc/status"
 )
 
 func AddISO(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descrPtr *string) {
@@ -145,6 +148,21 @@ func UploadIso(c cirrina.VMInfoClient, ctx context.Context, idPtr *string, fileP
 		fmt.Printf("cannot receive response: %v\n", err)
 	}
 	fmt.Printf("ISO Upload complete: %v\n", reply)
+}
+
+func RmIso(name string, c cirrina.VMInfoClient, ctx context.Context) {
+	IsoId, err := rpc.IsoNameToId(&name, c, ctx)
+	if err != nil {
+		s := status.Convert(err)
+		fmt.Printf("error: could not delete iso: %s\n", s.Message())
+		return
+	}
+	_, err = rpc.RmIso(&IsoId, c, ctx)
+	if err != nil {
+		s := status.Convert(err)
+		fmt.Printf("error: could not delete iso: %s\n", s.Message())
+		return
+	}
 }
 
 func ListIsos(c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) {

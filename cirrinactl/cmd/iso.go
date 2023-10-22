@@ -1,21 +1,25 @@
 package cmd
 
 import (
-	"cirrina/cirrinactl/rpc"
-	"cirrina/cirrinactl/util"
 	"context"
-	"github.com/spf13/cobra"
-	"google.golang.org/grpc"
 	"log"
 	"time"
+
+	"cirrina/cirrinactl/rpc"
+	"cirrina/cirrinactl/util"
+
+	"github.com/spf13/cobra"
+	"google.golang.org/grpc"
 )
 
-var IsoName string
-var IsoDescription string
-var IsoId string
-var IsoIdChanged bool
-var IsoFilePath string
-var IsoUseHumanize bool
+var (
+	IsoName        string
+	IsoDescription string
+	IsoId          string
+	IsoIdChanged   bool
+	IsoFilePath    string
+	IsoUseHumanize bool
+)
 
 var IsoListCmd = &cobra.Command{
 	Use:   "list",
@@ -72,6 +76,37 @@ var IsoUploadCmd = &cobra.Command{
 	},
 }
 
+var IsoRemoveCmd = &cobra.Command{
+	Use:   "remove",
+	Short: "Remove an ISO",
+	Run: func(cmd *cobra.Command, args []string) {
+		conn, c, ctx, cancel, err := rpc.SetupConn()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer func(conn *grpc.ClientConn) {
+			_ = conn.Close()
+		}(conn)
+		defer cancel()
+		if IsoId == "" {
+			IsoId, err = rpc.IsoNameToId(&IsoName, c, ctx)
+			if err != nil {
+				log.Fatalf(err.Error())
+			}
+			if IsoId == "" {
+				log.Fatalf("Iso not found")
+			}
+		}
+		if IsoName == "" {
+			IsoName, err = rpc.IsoIdToName(IsoId, c, ctx)
+			if err != nil {
+				log.Fatalf(err.Error())
+			}
+		}
+		util.RmIso(IsoName, c, ctx)
+	},
+}
+
 var IsoCmd = &cobra.Command{
 	Use:   "iso",
 	Short: "Create, list, modify, destroy ISOs",
@@ -97,7 +132,12 @@ func init() {
 		log.Fatalf(err.Error())
 	}
 
+	IsoRemoveCmd.Flags().StringVarP(&IsoName, "name", "n", IsoName, "name of iso")
+	IsoRemoveCmd.Flags().StringVarP(&IsoId, "id", "i", DiskId, "id of iso")
+	IsoRemoveCmd.MarkFlagsOneRequired("name", "id")
+
 	IsoCmd.AddCommand(IsoListCmd)
 	IsoCmd.AddCommand(IsoCreateCmd)
 	IsoCmd.AddCommand(IsoUploadCmd)
+	IsoCmd.AddCommand(IsoRemoveCmd)
 }

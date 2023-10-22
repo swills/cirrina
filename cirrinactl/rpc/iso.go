@@ -1,10 +1,11 @@
 package rpc
 
 import (
-	"cirrina/cirrina"
 	"context"
 	"errors"
 	"io"
+
+	"cirrina/cirrina"
 )
 
 func AddIso(j *cirrina.ISOInfo, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
@@ -32,6 +33,14 @@ func GetIsoIds(c cirrina.VMInfoClient, ctx context.Context) (ids []string, err e
 		ids = append(ids, VM.Value)
 	}
 	return ids, nil
+}
+
+func RmIso(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (bool, error) {
+	res, err := c.RemoveISO(ctx, &cirrina.ISOID{Value: *idPtr})
+	if err != nil {
+		return false, err
+	}
+	return res.Success, err
 }
 
 func GetIsoInfo(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (isoInfo *cirrina.ISOInfo, err error) {
@@ -76,4 +85,12 @@ func IsoNameToId(namePtr *string, c cirrina.VMInfoClient, ctx context.Context) (
 		return "", errors.New("iso not found")
 	}
 	return isoId, nil
+}
+
+func IsoIdToName(s string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
+	res, err := c.GetISOInfo(ctx, &cirrina.ISOID{Value: s})
+	if err != nil {
+		return "", err
+	}
+	return *res.Name, nil
 }
