@@ -231,16 +231,16 @@ func validateVirt() {
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
-	hv_vendor := strings.TrimSpace(outBytes.String())
-	slog.Debug("validateVirt", "hv_vendor", hv_vendor)
+	hvVendor := strings.TrimSpace(outBytes.String())
+	slog.Debug("validateVirt", "hvVendor", hvVendor)
 	if err != nil {
 		if errors.As(err, &exitErr) {
 			exitCode = exitErr.ExitCode()
 		} else {
 			exitCode = -1
 		}
-		if exitCode != 0 || hv_vendor != "" {
-			slog.Error("Refusing to run inside virtualized environment", "hv_vendor", hv_vendor)
+		if exitCode != 0 || hvVendor != "" {
+			slog.Error("Refusing to run inside virtualized environment", "hvVendor", hvVendor)
 			fmt.Printf("Refusing to run inside virtualized environment\n")
 			os.Exit(1)
 		}
