@@ -179,7 +179,7 @@ func cleanupNet() {
 }
 
 func kmodLoaded(name string) (loaded bool) {
-	slog.Debug("checking module", "module", name)
+	slog.Debug("checking module loaded", "module", name)
 	cmd := exec.Command("/sbin/kldstat", "-q", "-n", name)
 	err := cmd.Run()
 	if err == nil {
@@ -188,15 +188,57 @@ func kmodLoaded(name string) (loaded bool) {
 	return loaded
 }
 
+func kmodInited(name string) (inited bool) {
+	slog.Debug("checking module initialized", "module", name)
+	cmd := exec.Command("/sbin/kldstat", "-q", "-m", name)
+	err := cmd.Run()
+	if err == nil {
+		inited = true
+	}
+	return inited
+}
+
 func validateKmods() {
 	slog.Debug("validating kernel modules")
 	moduleList := []string{"vmm", "nmdm", "if_bridge", "if_epair", "ng_bridge", "ng_ether", "ng_pipe"}
 
 	for _, module := range moduleList {
-		loaded := kmodLoaded(module + ".ko")
+		loaded := kmodLoaded(module)
 		if !loaded {
 			slog.Debug("module not loaded", "module", module)
 			fmt.Printf("Module %s not loaded, please load before using\n", module)
+			os.Exit(1)
+		}
+		inited := kmodInited(module)
+		if !inited {
+			slog.Debug("module not initialized", "module", module)
+			fmt.Printf("Module %s not initialized, please fix before using\n", module)
+			os.Exit(1)
+		}
+	}
+}
+
+func validateVirt() {
+	var emptyBytes []byte
+	var outBytes bytes.Buffer
+	var errBytes bytes.Buffer
+	var exitErr *exec.ExitError
+	var exitCode int
+
+	checkCmd := exec.Command(config.Config.Sys.Sudo, "-S", "/sbin/sysctl", "hw.hv_vendor")
+	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
+	checkCmd.Stdout = &outBytes
+	checkCmd.Stderr = &errBytes
+	err := checkCmd.Run()
+	if err != nil {
+		if errors.As(err, &exitErr) {
+			exitCode = exitErr.ExitCode()
+		} else {
+			exitCode = -1
+		}
+		if exitCode != 0 || outBytes.String() != "hw.hv_vendor: " {
+			slog.Error("Refusing to run inside virtualized environment")
+			fmt.Printf("Refusing to run inside virtualized environment\n")
 			os.Exit(1)
 		}
 	}
@@ -359,6 +401,7 @@ func validateSystem() {
 	validateOS()
 	validateOSVersion()
 	validateKmods()
+	validateVirt()
 	validateSudo()
 	// TODO: further validation
 }
