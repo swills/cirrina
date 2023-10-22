@@ -10,10 +10,11 @@ import (
 	"os/signal"
 	"regexp"
 	"runtime"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/hashicorp/go-version"
 
 	"golang.org/x/sys/unix"
 
@@ -378,17 +379,29 @@ func validateOSVersion() {
 	release := fmt.Sprintf("%s", r)
 	re := regexp.MustCompile("-.*")
 	ov := re.ReplaceAllString(release, "")
-	ovi, err := strconv.ParseFloat(ov, 32)
+	ovi, err := version.NewVersion(ov)
 	if err != nil {
 		slog.Error("failed to get OS version", "release", string(utsname.Release[:]))
 		fmt.Printf("Error getting OS version\n")
+		os.Exit(1)
+	}
+	ver124, err := version.NewVersion("12.4")
+	if err != nil {
+		slog.Error("failed to create a version for 12.4")
+		fmt.Printf("Error checking version version\n")
+		os.Exit(1)
+	}
+	ver132, err := version.NewVersion("13.2")
+	if err != nil {
+		slog.Error("failed to create a version for 13.2")
+		fmt.Printf("Error checking version version\n")
 		os.Exit(1)
 	}
 
 	slog.Debug("validate OS", "ovi", ovi)
 	// Check for valid OS version, see https://www.freebsd.org/security/
 	// as of commit, 12.4 and 13.2 are oldest supported versions
-	if ovi < 12.4 || (ovi > 13 && ovi < 13.2) {
+	if ovi.LessThan(ver124) || ovi.LessThan(ver132) {
 		slog.Error("Unsupported OS version", "ovi", ovi)
 		fmt.Printf("Unsupported OS version: %f\n", ovi)
 		os.Exit(1)
