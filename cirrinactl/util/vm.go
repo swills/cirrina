@@ -1,19 +1,21 @@
 package util
 
 import (
-	"cirrina/cirrina"
-	"cirrina/cirrinactl/rpc"
 	"context"
 	"fmt"
-	"github.com/dustin/go-humanize"
-	"github.com/fatih/color"
-	"github.com/jedib0t/go-pretty/table"
-	"github.com/jedib0t/go-pretty/text"
 	"log"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
+
+	"cirrina/cirrina"
+	"cirrina/cirrinactl/rpc"
+
+	"github.com/dustin/go-humanize"
+	"github.com/fatih/color"
+	"github.com/jedib0t/go-pretty/table"
+	"github.com/jedib0t/go-pretty/text"
 )
 
 func GetVM(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
@@ -220,7 +222,6 @@ func GetVMs(c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) {
 			mems = humanize.IBytes(memi * 1024 * 1024)
 		} else {
 			mems = strconv.FormatUint(memi*1024*1024, 10)
-
 		}
 
 		if status == "stopped" {
@@ -277,7 +278,6 @@ func GetVMs(c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) {
 			vmInfos[name].sstatus,
 			vmInfos[name].descr,
 		})
-
 	}
 	t.Render()
 }
@@ -422,7 +422,6 @@ func GetVMDisks(VmName string, c cirrina.VMInfoClient, ctx context.Context, useH
 				*res.Direct,
 				*res.Description,
 			})
-
 		} else {
 			t.AppendRow(table.Row{
 				*res.Name,
@@ -712,7 +711,8 @@ func VmNicAdd(VmName string, nicId string, c cirrina.VMInfoClient, ctx context.C
 	nicIds = append(nicIds, nicId)
 	res, err := rpc.VmSetNics(vmId, nicIds, c, ctx)
 	if err != nil {
-		fmt.Printf("failed to add nic: %v", err)
+		fmt.Printf("failed to add nic: %v\n", err)
+		return
 	}
 	if res {
 		fmt.Printf("Added\n")
