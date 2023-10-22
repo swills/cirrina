@@ -226,19 +226,21 @@ func validateVirt() {
 	var exitErr *exec.ExitError
 	var exitCode int
 
-	checkCmd := exec.Command(config.Config.Sys.Sudo, "-S", "/sbin/sysctl", "-n", "hw.hv_vendor")
+	checkCmd := exec.Command("/sbin/sysctl", "-n", "hw.hv_vendor")
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
+	hv_vendor := strings.TrimSpace(outBytes.String())
+	slog.Debug("validateVirt", "hv_vendor", hv_vendor)
 	if err != nil {
 		if errors.As(err, &exitErr) {
 			exitCode = exitErr.ExitCode()
 		} else {
 			exitCode = -1
 		}
-		if exitCode != 0 || outBytes.String() != "" {
-			slog.Error("Refusing to run inside virtualized environment")
+		if exitCode != 0 || hv_vendor != "" {
+			slog.Error("Refusing to run inside virtualized environment", "hv_vendor", hv_vendor)
 			fmt.Printf("Refusing to run inside virtualized environment\n")
 			os.Exit(1)
 		}
@@ -252,11 +254,13 @@ func validateJailed() {
 	var exitErr *exec.ExitError
 	var exitCode int
 
-	checkCmd := exec.Command(config.Config.Sys.Sudo, "-S", "/sbin/sysctl", "-n", "security.jail.jailed")
+	checkCmd := exec.Command("/sbin/sysctl", "-n", "security.jail.jailed")
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
+	jailed := strings.TrimSpace(outBytes.String())
+	slog.Debug("validateJailed", "jailed", jailed)
 	if err != nil {
 		if errors.As(err, &exitErr) {
 			exitCode = exitErr.ExitCode()
