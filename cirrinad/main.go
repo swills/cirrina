@@ -389,8 +389,8 @@ func validateOSVersion() {
 	// Check for valid OS version, see https://www.freebsd.org/security/
 	// as of commit, 12.4 and 13.2 are oldest supported versions
 	if ovi < 12.4 || (ovi > 13 && ovi < 13.2) {
-		slog.Error("Unsupported OS version")
-		fmt.Printf("Unsupported OS version\n")
+		slog.Error("Unsupported OS version", "ovi", ovi)
+		fmt.Printf("Unsupported OS version: %f\n", ovi)
 		os.Exit(1)
 	}
 }
