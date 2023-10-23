@@ -1,19 +1,21 @@
 package main
 
 import (
-	"cirrina/cirrina"
-	"cirrina/cirrinad/config"
-	"cirrina/cirrinad/disk"
-	"cirrina/cirrinad/vm"
 	"context"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	"golang.org/x/exp/slog"
 	"os"
 	"strconv"
 	"strings"
 	"syscall"
+
+	"cirrina/cirrina"
+	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/disk"
+	"cirrina/cirrinad/vm"
+
+	"github.com/google/uuid"
+	"golang.org/x/exp/slog"
 )
 
 func (s *server) GetDisks(_ *cirrina.DisksQuery, stream cirrina.VMInfo_GetDisksServer) error {
@@ -102,8 +104,8 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 	var ic cirrina.DiskInfo
 	var stat syscall.Stat_t
 	var blockSize int64 = 512
-	var defaultDiskCache = true
-	var defaultDiskDirect = false
+	defaultDiskCache := true
+	defaultDiskDirect := false
 
 	diskUuid, err := uuid.Parse(i.Value)
 	if err != nil {
@@ -176,6 +178,9 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 		}
 		ic.DiskDevType = &DiskDevTypeFile
 	} else if diskInst.DevType == "ZVOL" {
+		if config.Config.Disk.VM.Path.Zpool == "" {
+			return &cirrina.DiskInfo{}, errors.New("zfs pool not configured, cannot manage zvol disks")
+		}
 
 		diskSizeNum, err := disk.GetZfsVolumeSize(config.Config.Disk.VM.Path.Zpool + "/" + diskInst.Name)
 		if err != nil {
@@ -284,7 +289,7 @@ func (s *server) GetDiskVm(_ context.Context, i *cirrina.DiskId) (v *cirrina.VMI
 	return &pvmId, nil
 }
 
-func (s *server) SetDiskInfo(c context.Context, diu *cirrina.DiskInfoUpdate) (*cirrina.ReqBool, error) {
+func (s *server) SetDiskInfo(_ context.Context, diu *cirrina.DiskInfoUpdate) (*cirrina.ReqBool, error) {
 	var re cirrina.ReqBool
 	re.Success = false
 

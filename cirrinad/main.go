@@ -267,7 +267,7 @@ func validateJailed() {
 		} else {
 			exitCode = -1
 		}
-		if exitCode != 0 || outBytes.String() != "0" {
+		if exitCode != 0 || jailed != "0" {
 			slog.Error("Refusing to run inside jailed environment")
 			fmt.Printf("Refusing to run inside jailed environment\n")
 			os.Exit(1)
@@ -440,6 +440,39 @@ func validateOSVersion() {
 	}
 }
 
+func validateZpool() {
+	if config.Config.Disk.VM.Path.Zpool == "" {
+		return
+	}
+	var emptyBytes []byte
+	var outBytes bytes.Buffer
+	var errBytes bytes.Buffer
+	var exitErr *exec.ExitError
+	var exitCode int
+
+	checkCmd := exec.Command("/sbin/zpool", "status", config.Config.Disk.VM.Path.Zpool)
+	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
+	checkCmd.Stdout = &outBytes
+	checkCmd.Stderr = &errBytes
+	err := checkCmd.Run()
+	if err != nil {
+		if errors.As(err, &exitErr) {
+			exitCode = exitErr.ExitCode()
+		} else {
+			exitCode = -1
+		}
+		if exitCode != 0 {
+			slog.Error("zpool not available", "exitCode", exitCode)
+			fmt.Printf("zpool not available, please fix or reconfigure\n")
+			os.Exit(1)
+		}
+	}
+}
+
+func validateConfig() {
+	validateZpool()
+}
+
 func validateSystem() {
 	slog.Debug("validating system")
 	validateArch()
@@ -449,6 +482,7 @@ func validateSystem() {
 	validateVirt()
 	validateJailed()
 	validateSudo()
+	validateConfig()
 	// TODO: further validation
 }
 
