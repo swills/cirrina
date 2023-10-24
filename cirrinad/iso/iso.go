@@ -11,7 +11,7 @@ import (
 func Create(name string, description string) (iso *ISO, err error) {
 	var isoInst *ISO
 
-	if !util.ValidDiskName(name) {
+	if !util.ValidIsoName(name) {
 		return isoInst, errors.New("invalid name")
 	}
 
