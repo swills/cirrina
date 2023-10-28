@@ -40,11 +40,10 @@ func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 				return vmNicId, errors.New("may not use broadcast MAC address")
 			}
 			// https://cgit.freebsd.org/src/tree/usr.sbin/bhyve/net_utils.c?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n56
-			// could maybe convert to hex and check but meh
-			if string(hwAddrSlc[1]) == "1" || string(hwAddrSlc[1]) == "3" || string(hwAddrSlc[1]) == "5" || string(hwAddrSlc[1]) == "7" || string(hwAddrSlc[1]) == "9" || string(hwAddrSlc[1]) == "b" || string(hwAddrSlc[1]) == "d" || string(hwAddrSlc[1]) == "f" {
+			// https://cgit.freebsd.org/src/tree/sys/net/ethernet.h?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n74
+			if newMac[0]&0x01 == 1 {
 				return vmNicId, errors.New("may not use multicast MAC address")
 			}
-
 			vmNicInst.Mac = newMac.String()
 		}
 	}
