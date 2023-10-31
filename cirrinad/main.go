@@ -473,6 +473,57 @@ func validateConfig() {
 	validateZpool()
 }
 
+func validateSysctls() {
+	var emptyBytes []byte
+	var outBytes bytes.Buffer
+	var errBytes bytes.Buffer
+	var exitErr *exec.ExitError
+	var exitCode int
+
+	checkCmd := exec.Command("/sbin/sysctl", "-n", "security.bsd.see_other_gids")
+	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
+	checkCmd.Stdout = &outBytes
+	checkCmd.Stderr = &errBytes
+	err := checkCmd.Run()
+	seeOtherGids := strings.TrimSpace(outBytes.String())
+	slog.Debug("validateSysctls", "seeOtherGids", seeOtherGids)
+	if err != nil {
+		if errors.As(err, &exitErr) {
+			exitCode = exitErr.ExitCode()
+		} else {
+			exitCode = -1
+		}
+		if exitCode != 0 || seeOtherGids != "1" {
+			slog.Error("Unable to run with other GIDs are not visible")
+			fmt.Printf("Unable to run with other GIDs are not visible, please set security.bsd.see_other_gids=1 (default)\n")
+			os.Exit(1)
+		}
+	}
+
+	outBytes.Reset()
+	errBytes.Reset()
+	checkCmd = exec.Command("/sbin/sysctl", "-n", "security.bsd.see_other_uids")
+	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
+	checkCmd.Stdout = &outBytes
+	checkCmd.Stderr = &errBytes
+	err = checkCmd.Run()
+	seeOtherUids := strings.TrimSpace(outBytes.String())
+	slog.Debug("validateSysctls", "seeOtherUids", seeOtherUids)
+	if err != nil {
+		if errors.As(err, &exitErr) {
+			exitCode = exitErr.ExitCode()
+		} else {
+			exitCode = -1
+		}
+		if exitCode != 0 || seeOtherGids != "1" {
+			slog.Error("Unable to run with other UIDs are not visible")
+			fmt.Printf("Unable to run with other UIDs are not visible, please set security.bsd.see_other_uids=1 (default)\n")
+			os.Exit(1)
+		}
+	}
+
+}
+
 func validateSystem() {
 	slog.Debug("validating system")
 	validateArch()
@@ -482,6 +533,7 @@ func validateSystem() {
 	validateVirt()
 	validateJailed()
 	validateSudo()
+	validateSysctls()
 	validateConfig()
 	// TODO: further validation
 }
