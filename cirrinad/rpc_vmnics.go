@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"cirrina/cirrina"
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
@@ -11,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/exp/slog"
 	"net"
-	"strings"
 )
 
 func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmNicId, error) {
@@ -35,8 +35,7 @@ func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 			if err != nil {
 				return vmNicId, errors.New("invalid MAC address")
 			}
-			hwAddrSlc := strings.ToLower(newMac.String())
-			if hwAddrSlc == "ff:ff:ff:ff:ff:ff" {
+			if bytes.Equal(newMac, []byte{255, 255, 255, 255, 255, 255}) {
 				return vmNicId, errors.New("may not use broadcast MAC address")
 			}
 			// https://cgit.freebsd.org/src/tree/usr.sbin/bhyve/net_utils.c?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n56

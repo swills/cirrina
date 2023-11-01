@@ -11,6 +11,11 @@
 #                               Set it to YES to enable cirrinad.
 # cirrinad_config (str):        Configuration file.
 #                               Default is "${LOCALBASE}/etc/cirrinad/config.yml"
+# cirrinad_user (string):       Set user to run cirrinad.
+#                               Default is "cirrinad".
+# cirrinad_group (string):      Set group to run cirrinad.
+#                               Default is "cirrinad".
+
 
 . /etc/rc.subr
 
@@ -22,8 +27,10 @@ load_rc_config $name
 : ${cirrinad_enable:="NO"}
 : ${cirrinad_config:="/usr/local/etc/cirrinad/config.yml"}
 : ${cirrinad_args:="-config ${cirrinad_config}"}
+: ${cirrinad_user:="cirrinad"}
+: ${cirrinad_group:="cirrinad"}
 
-pidfile=/var/run/cirrinad.pid
+pidfile=/var/run/cirrinad/cirrinad.pid
 required_files="${cirrinad_config}"
 procname="/usr/local/bin/cirrinad"
 command="/usr/sbin/daemon"

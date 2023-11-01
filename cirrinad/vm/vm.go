@@ -97,6 +97,12 @@ func (vm *VM) Start() (err error) {
 		respawnWait = 1
 	}
 
+	var processDebug bool
+	if config.Config.Log.Level == "debug" {
+		slog.Debug("vm.Start enabling process debugging", "vm", vm.Name)
+		processDebug = true
+	}
+
 	p := supervisor.NewProcess(supervisor.ProcessOptions{
 		Name:                    cmdName,
 		Args:                    cmdArgs,
@@ -113,7 +119,9 @@ func (vm *VM) Start() (err error) {
 		MaxTerminateAttempts:    1,
 		IdleTimeout:             -1,
 		TerminationGraceTimeout: time.Duration(vm.Config.MaxWait) * time.Second,
+		Debug:                   processDebug,
 	})
+
 	vm.proc = p
 	go vmDaemon(events, vm)
 
@@ -335,7 +343,7 @@ func (vm *VM) netStartup() {
 						if err != nil {
 							slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
 						}
-						err := _switch.BridgeIfAddMember(thisSwitch.Name, thisEpair+"b")
+						err := _switch.BridgeIfAddMember(thisSwitch.Name, thisEpair+"b", true, "")
 						if err != nil {
 							slog.Error("failed to add nic to switch",
 								"nicname", vmNic.Name,
@@ -347,7 +355,8 @@ func (vm *VM) netStartup() {
 						}
 
 					} else {
-						err := _switch.BridgeIfAddMember(thisSwitch.Name, vmNic.NetDev)
+						mac := GetMac(&vmNic, vm)
+						err := _switch.BridgeIfAddMember(thisSwitch.Name, vmNic.NetDev, false, mac)
 						if err != nil {
 							slog.Error("failed to add nic to switch",
 								"nicname", vmNic.Name,
@@ -386,7 +395,7 @@ func (vm *VM) netStartup() {
 	}
 }
 
-func (vm *VM) applyResourceLimits() {
+func (vm *VM) applyResourceLimits(vmPid string) {
 	if vm.proc == nil || vm.proc.Pid() == 0 || vm.BhyvePid == 0 {
 		slog.Error("attempted to apply resource limits to vm that may not be running")
 		return
@@ -395,7 +404,6 @@ func (vm *VM) applyResourceLimits() {
 	// vm.proc.Pid aka vm.BhyvePid is actually the sudo proc that's the parent of bhyve
 	// call pgrep to get the child (bhyve) -- life would be so much easier if we could run bhyve as non-root
 	// should fix supervisor to use int32
-	vmPid := strconv.FormatInt(int64(util.FindChildPid(uint32(vm.proc.Pid()))), 10)
 	if vm.Config.Pcpu > 0 {
 		vm.log.Debug("Setting pcpu limit")
 		cpuLimitStr := strconv.FormatUint(uint64(vm.Config.Pcpu), 10)
@@ -508,8 +516,10 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			case "ProcessStart":
 				vm.log.Info("event", "code", event.Code, "message", event.Message)
 				vm.SetRunning(vm.proc.Pid())
+				vmPid := strconv.FormatInt(int64(util.FindChildPid(uint32(vm.proc.Pid()))), 10)
+				slog.Debug("vmDaemon ProcessStart", "bhyvePid", vm.BhyvePid, "sudoPid", vm.proc.Pid(), "realPid", vmPid)
 				vm.setupComLoggers()
-				vm.applyResourceLimits()
+				vm.applyResourceLimits(vmPid)
 			case "ProcessDone":
 				vm.log.Info("event", "code", event.Code, "message", event.Message)
 			case "ProcessCrashed":

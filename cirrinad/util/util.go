@@ -43,7 +43,8 @@ func PidExists(pid int) (bool, error) {
 	if err.Error() == "os: process already finished" {
 		return false, nil
 	}
-	errno, ok := err.(syscall.Errno)
+	var errno syscall.Errno
+	ok := errors.As(err, &errno)
 	if !ok {
 		return false, err
 	}
@@ -64,7 +65,7 @@ func FindChildPid(findPid uint32) (childPid uint32) {
 	defer func(cmd *exec.Cmd) {
 		err := cmd.Wait()
 		if err != nil {
-			slog.Error("ifconfig error", "err", err)
+			slog.Error("FindChildPid error", "err", err)
 		}
 	}(cmd)
 	stdout, err := cmd.StdoutPipe()

@@ -1,6 +1,12 @@
 package vm
 
 import (
+	"net"
+	"os"
+	"sort"
+	"strconv"
+	"strings"
+
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
@@ -9,11 +15,6 @@ import (
 	"cirrina/cirrinad/vm_nics"
 	"github.com/rxwycdh/rxhash"
 	"golang.org/x/exp/slog"
-	"net"
-	"os"
-	"sort"
-	"strconv"
-	"strings"
 )
 
 type MacHashData struct {
@@ -415,31 +416,10 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 			return []string{}, slot
 		}
 		slog.Debug("getNetArg", "netdevarg", netDevArg)
-		macAddress := thisNic.Mac
-		macString := ""
-		if macAddress != "AUTO" {
+		macAddress := GetMac(thisNic, vm)
+		var macString string
+		if macAddress != "" {
 			macString = ",mac=" + macAddress
-		} else {
-			// Bhyve is still using the NetApp MAC:
-			// https://cgit.freebsd.org/src/tree/usr.sbin/bhyve/net_utils.c?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n115
-			// so, generate our own.
-			slog.Debug("getNetArg: Generating MAC")
-			thisNicHashData := MacHashData{
-				vm.ID,
-				vm.Name,
-				thisNic.ID,
-				thisNic.Name,
-			}
-			h1, err := rxhash.HashStruct(thisNicHashData)
-			if err != nil {
-				slog.Error("getNetArg error generating mac", "err", err)
-			}
-			slog.Debug("getNetArg", "h1", h1)
-			mac := string(h1[0]) + string(h1[1]) + ":" +
-				string(h1[2]) + string(h1[3]) + ":" +
-				string(h1[3]) + string(h1[4])
-			slog.Debug("getNetArg", "mac", mac)
-			macString = ",mac=" + config.Config.Network.Mac.Oui + ":" + mac
 		}
 		netArg := []string{"-s", strconv.Itoa(slot) + "," + netType + "," + netDevArg + macString}
 		slot = slot + 1
@@ -447,6 +427,37 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	}
 
 	return netArgs, slot
+}
+
+func GetMac(thisNic *vm_nics.VmNic, vm *VM) string {
+	var macAddress string
+	if thisNic.Mac == "AUTO" {
+		// if MAC is AUTO, we still generate our own here rather than letting bhyve generate it, because:
+		// 1. Bhyve is still using the NetApp MAC:
+		// https://cgit.freebsd.org/src/tree/usr.sbin/bhyve/net_utils.c?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n115
+		// 2. We want to be able to distinguish our VMs from other VMs
+		slog.Debug("getNetArg: Generating MAC")
+		thisNicHashData := MacHashData{
+			vm.ID,
+			vm.Name,
+			thisNic.ID,
+			thisNic.Name,
+		}
+		h1, err := rxhash.HashStruct(thisNicHashData)
+		if err != nil {
+			slog.Error("getNetArg error generating mac", "err", err)
+			return ""
+		}
+		slog.Debug("getNetArg", "h1", h1)
+		mac := string(h1[0]) + string(h1[1]) + ":" +
+			string(h1[2]) + string(h1[3]) + ":" +
+			string(h1[3]) + string(h1[4])
+		slog.Debug("getNetArg", "mac", mac)
+		macAddress = config.Config.Network.Mac.Oui + ":" + mac
+	} else {
+		macAddress = thisNic.Mac
+	}
+	return macAddress
 }
 
 // TODO move to _switch

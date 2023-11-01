@@ -1,15 +1,17 @@
 package disk
 
 import (
-	"cirrina/cirrinad/config"
-	"cirrina/cirrinad/util"
 	"database/sql"
 	"errors"
 	"fmt"
-	"golang.org/x/exp/slog"
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/util"
+
+	"golang.org/x/exp/slog"
 )
 
 func parseDiskSize(size string) (sizeBytes uint64, err error) {
@@ -62,6 +64,10 @@ func parseDiskSize(size string) (sizeBytes uint64, err error) {
 func Create(name string, description string, size string, diskType string, diskDevType string, diskCache bool, diskDirect bool) (disk *Disk, err error) {
 	var diskInst *Disk
 	var diskSize uint64
+
+	if diskDevType == "ZVOL" && config.Config.Disk.VM.Path.Zpool == "" {
+		return &Disk{}, errors.New("zfs pool not configured, cannot create zvol disks")
+	}
 
 	filePath := config.Config.Disk.VM.Path.Image + "/" + name
 	volName := config.Config.Disk.VM.Path.Zpool + "/" + name
