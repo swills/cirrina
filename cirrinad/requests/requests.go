@@ -93,3 +93,13 @@ func PendingReqExists(vmId string) bool {
 	}
 	return false
 }
+
+func FailAllPending() (cleared int64) {
+	db := getReqDb()
+	res := db.Where(map[string]interface{}{"complete": false}).Updates(
+		Request{
+			Complete: true,
+		},
+	)
+	return res.RowsAffected
+}

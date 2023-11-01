@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"cirrina/cirrinad/requests"
 	"errors"
 	"fmt"
 	"net"
@@ -177,6 +178,11 @@ func cleanupNet() {
 			slog.Error("failed running ifconfig", "err", err, "out", out)
 		}
 	}
+}
+
+func cleanupDb() {
+	rowsCleared := requests.FailAllPending()
+	slog.Debug("cleared failed requests", "rowsCleared", rowsCleared)
 }
 
 func kmodLoaded(name string) (loaded bool) {
@@ -611,6 +617,7 @@ func main() {
 	slog.Debug("Clean up starting")
 	cleanUpVms()
 	cleanupNet()
+	cleanupDb()
 	slog.Debug("Clean up complete")
 
 	slog.Debug("Creating bridges")
