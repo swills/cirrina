@@ -5,12 +5,15 @@ import (
 	"cirrina/cirrinad/requests"
 	"errors"
 	"fmt"
+	"io/fs"
+	"math/rand"
 	"net"
 	"os"
 	"os/exec"
 	"os/signal"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -333,6 +336,36 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 	return nil
 }
 
+// getTmpFileName returns the name of a tmp file that doesn't exist or maybe an error
+func getTmpFileName() (tmpFileName string, err error) {
+	tmpDir := os.Getenv("TMPDIR")
+	if tmpDir == "" {
+		tmpDir = "/tmp"
+	}
+
+	s1 := rand.NewSource(time.Now().UnixNano())
+	r1 := rand.New(s1)
+
+	try := 0
+	for {
+		rnum := r1.Intn(1000000000)
+		tmpFileName = tmpDir + string(os.PathSeparator) + "cirrinad" + strconv.Itoa(rnum)
+		_, err := os.Stat(tmpFileName)
+		if err == nil {
+			if try++; try < 10000 {
+				continue
+			}
+			// couldn't find a file name that doesn't exist?
+			return "", errors.New("couldn't find a tmp file")
+		} else if errors.Is(err, fs.ErrNotExist) {
+			break
+		} else {
+			return "", err
+		}
+	}
+	return tmpFileName, nil
+}
+
 func validateSudo() {
 	var err error
 
@@ -366,13 +399,14 @@ func validateSudo() {
 		os.Exit(1)
 	}
 
-	tmpFile, ok := os.CreateTemp("", "cirrinad")
-	if ok != nil {
-		slog.Error("failed creating tmp file")
-		fmt.Printf("failed creating tmp file")
+	name, err := getTmpFileName()
+	if err != nil {
+		slog.Debug("getTmpFilename failed", "err", err.Error())
+		fmt.Printf("Failed finding tmp file\n")
 		os.Exit(1)
 	}
-	err = checkSudoCmd(0, "", "", "/usr/bin/truncate", "-c", "-s", "1", tmpFile.Name())
+	slog.Debug("Checking tmp file", "name", name)
+	err = checkSudoCmd(0, "", "", "/usr/bin/truncate", "-c", "-s", "1", name)
 	if err != nil {
 		fmt.Printf("error running /usr/bin/truncate, check sudo config\n")
 		os.Exit(1)
