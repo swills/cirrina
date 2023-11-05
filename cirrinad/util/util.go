@@ -2,14 +2,18 @@ package util
 
 import (
 	"bufio"
+	"bytes"
 	"cirrina/cirrinad/config"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"golang.org/x/exp/slog"
+	exec "golang.org/x/sys/execabs"
+	"io/fs"
 	"net"
 	"os"
-	"os/exec"
+	"os/user"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -22,7 +26,7 @@ func PathExists(path string) (bool, error) {
 	if err == nil {
 		return true, nil
 	}
-	if os.IsNotExist(err) {
+	if errors.Is(err, fs.ErrNotExist) {
 		return false, nil
 	}
 	return false, err
@@ -55,56 +59,6 @@ func PidExists(pid int) (bool, error) {
 		return true, nil
 	}
 	return false, err
-}
-
-func FindChildPid(findPid uint32) (childPid uint32) {
-	slog.Debug("FindChildPid finding child proc")
-	pidString := strconv.FormatUint(uint64(findPid), 10)
-	args := []string{"/bin/pgrep", "-P", pidString}
-	cmd := exec.Command(config.Config.Sys.Sudo, args...)
-	defer func(cmd *exec.Cmd) {
-		err := cmd.Wait()
-		if err != nil {
-			slog.Error("FindChildPid error", "err", err)
-		}
-	}(cmd)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		slog.Error("FindChildPid error", "err", err)
-		return 0
-	}
-	if err := cmd.Start(); err != nil {
-		slog.Error("FindChildPid error", "err", err)
-		return 0
-	}
-	found := false
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		text := scanner.Text()
-		textFields := strings.Fields(text)
-		fl := len(textFields)
-		if fl != 1 {
-			slog.Debug("FindChildPid pgrep extra fields", "text", text)
-		}
-		tempPid1 := uint64(0)
-		if !found {
-			found = true
-			tempPid1, err = strconv.ParseUint(textFields[0], 10, 32)
-			if err != nil {
-				slog.Error("FindChildPid error", "err", err)
-				return 0
-			}
-			tempPid2 := uint32(tempPid1)
-			childPid = tempPid2
-		} else {
-			slog.Debug("FindChildPid found too many child procs")
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		slog.Error("FindChildPid error", "err", err)
-	}
-	slog.Debug("FindChildPid returning childPid", "childPid", childPid)
-	return childPid
 }
 
 func OSReadDir(root string) ([]string, error) {
@@ -402,4 +356,169 @@ func checkInRange(name string, myRT *unicode.RangeTable) bool {
 		}
 	}
 	return true
+}
+
+func MacIsBroadcast(macAddress string) (bool, error) {
+	newMac, err := net.ParseMAC(macAddress)
+	if err != nil {
+		return false, errors.New("invalid MAC address")
+	}
+	if bytes.Equal(newMac, []byte{255, 255, 255, 255, 255, 255}) {
+		return true, nil
+	}
+	return false, nil
+}
+
+func MacIsMulticast(macAddress string) (bool, error) {
+	newMac, err := net.ParseMAC(macAddress)
+	if err != nil {
+		return false, errors.New("invalid MAC address")
+	}
+	// https://cgit.freebsd.org/src/tree/usr.sbin/bhyve/net_utils.c?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n56
+	// https://cgit.freebsd.org/src/tree/sys/net/ethernet.h?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n74
+	if newMac[0]&0x01 == 1 {
+		return true, nil
+	}
+	return false, nil
+}
+
+func IsValidIP(ipAddress string) bool {
+	parsedIp := net.ParseIP(ipAddress)
+	if parsedIp == nil {
+		return false
+	}
+	return true
+}
+
+func IsValidTcpPort(tcpPort uint) bool {
+	if tcpPort < 1 || tcpPort > 65535 {
+		return false
+	}
+	return true
+}
+
+func ModeIsSuid(mode fs.FileMode) bool {
+	if mode&fs.ModeSetuid != 0 {
+		return true
+	}
+	return false
+}
+
+func ModeIsWriteOwner(mode os.FileMode) bool {
+	return mode&0200 != 0
+}
+
+func ModeIsExecOther(mode os.FileMode) bool {
+	if mode&0001 != 0 {
+		return true
+	}
+	return false
+}
+
+func GetMyUidGid() (uid uint32, gid uint32, err error) {
+	myUser, err := user.Current()
+	if err != nil {
+		return 0, 0, err
+	}
+	myUid, err := strconv.Atoi(myUser.Uid)
+	if err != nil {
+		return 0, 0, err
+	}
+	myGid, err := strconv.Atoi(myUser.Uid)
+	if err != nil {
+		return 0, 0, err
+	}
+	u := uint32(myUid)
+	g := uint32(myGid)
+	return u, g, nil
+}
+
+func ValidateDbConfig() {
+	dbFilePath, err := filepath.Abs(config.Config.DB.Path)
+	if err != nil {
+		slog.Error("failed to get absolute path to database")
+		os.Exit(1)
+	}
+	dbFilePathInfo, err := os.Stat(dbFilePath)
+	if err != nil {
+		slog.Error("database path invalid, please reconfigure")
+		os.Exit(1)
+	}
+	if dbFilePathInfo.IsDir() {
+		slog.Error("database path is a directory, please reconfigure to point to a file", "dbFilePath", dbFilePath)
+		os.Exit(1)
+	}
+	dbDir := filepath.Dir(config.Config.DB.Path)
+	dbDirInfo, err := os.Stat(dbDir)
+	if err != nil {
+		slog.Error("failed to stat db dir, please reconfigure")
+		os.Exit(1)
+	}
+	dbDirStat := dbDirInfo.Sys().(*syscall.Stat_t)
+	if dbDirStat == nil {
+		slog.Error("failed getting db dir sys info")
+		os.Exit(1)
+	}
+	myUid, myGid, err := GetMyUidGid()
+	if err != nil {
+		slog.Error("failed getting my uid/gid")
+		os.Exit(1)
+	}
+	dbDirMode := dbDirInfo.Mode()
+	if !ModeIsWriteOwner(dbDirMode) {
+		slog.Error("db dir not writable")
+		os.Exit(1)
+	}
+
+	if dbDirStat.Uid != myUid || dbDirStat.Gid != myGid {
+		slog.Error("db dir not owned by my user")
+		os.Exit(1)
+	}
+}
+
+func ParseDiskSize(size string) (sizeBytes uint64, err error) {
+	var t string
+	var n uint
+	var m uint64
+	if strings.HasSuffix(size, "k") {
+		t = strings.TrimSuffix(size, "k")
+		m = 1024
+	} else if strings.HasSuffix(size, "K") {
+		t = strings.TrimSuffix(size, "K")
+		m = 1024
+	} else if strings.HasSuffix(size, "m") {
+		t = strings.TrimSuffix(size, "m")
+		m = 1024 * 1024
+	} else if strings.HasSuffix(size, "M") {
+		t = strings.TrimSuffix(size, "M")
+		m = 1024 * 1024
+	} else if strings.HasSuffix(size, "g") {
+		t = strings.TrimSuffix(size, "g")
+		m = 1024 * 1024 * 1024
+	} else if strings.HasSuffix(size, "G") {
+		t = strings.TrimSuffix(size, "G")
+		m = 1024 * 1024 * 1024
+	} else if strings.HasSuffix(size, "t") {
+		t = strings.TrimSuffix(size, "t")
+		m = 1024 * 1024 * 1024 * 1024
+	} else if strings.HasSuffix(size, "T") {
+		t = strings.TrimSuffix(size, "T")
+		m = 1024 * 1024 * 1024 * 1024
+	} else if strings.HasSuffix(size, "b") {
+		t = strings.TrimSuffix(size, "b")
+		m = 1024 * 1024 * 1024 * 1024
+	} else if strings.HasSuffix(size, "B") {
+		t = size
+		m = 1
+	} else {
+		t = size
+		m = 1
+	}
+	nu, err := strconv.Atoi(t)
+	if err != nil {
+		return 0, err
+	}
+	n = uint(nu)
+	r := uint64(n) * m
+	return r, nil
 }

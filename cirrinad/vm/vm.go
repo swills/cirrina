@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"bufio"
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/epair"
@@ -14,10 +15,10 @@ import (
 	"github.com/kontera-technologies/go-supervisor/v2"
 	"github.com/tarm/serial"
 	"golang.org/x/exp/slog"
+	exec "golang.org/x/sys/execabs"
 	"gorm.io/gorm"
 	"io"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
@@ -504,6 +505,56 @@ func (vm *VM) NetCleanup() {
 	}
 }
 
+func findChildPid(findPid uint32) (childPid uint32) {
+	slog.Debug("FindChildPid finding child proc")
+	pidString := strconv.FormatUint(uint64(findPid), 10)
+	args := []string{"/bin/pgrep", "-P", pidString}
+	cmd := exec.Command(config.Config.Sys.Sudo, args...)
+	defer func(cmd *exec.Cmd) {
+		err := cmd.Wait()
+		if err != nil {
+			slog.Error("FindChildPid error", "err", err)
+		}
+	}(cmd)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		slog.Error("FindChildPid error", "err", err)
+		return 0
+	}
+	if err := cmd.Start(); err != nil {
+		slog.Error("FindChildPid error", "err", err)
+		return 0
+	}
+	found := false
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		text := scanner.Text()
+		textFields := strings.Fields(text)
+		fl := len(textFields)
+		if fl != 1 {
+			slog.Debug("FindChildPid pgrep extra fields", "text", text)
+		}
+		tempPid1 := uint64(0)
+		if !found {
+			found = true
+			tempPid1, err = strconv.ParseUint(textFields[0], 10, 32)
+			if err != nil {
+				slog.Error("FindChildPid error", "err", err)
+				return 0
+			}
+			tempPid2 := uint32(tempPid1)
+			childPid = tempPid2
+		} else {
+			slog.Debug("FindChildPid found too many child procs")
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		slog.Error("FindChildPid error", "err", err)
+	}
+	slog.Debug("FindChildPid returning childPid", "childPid", childPid)
+	return childPid
+}
+
 func vmDaemon(events chan supervisor.Event, vm *VM) {
 	for {
 		select {
@@ -516,7 +567,7 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			case "ProcessStart":
 				vm.log.Info("event", "code", event.Code, "message", event.Message)
 				vm.SetRunning(vm.proc.Pid())
-				vmPid := strconv.FormatInt(int64(util.FindChildPid(uint32(vm.proc.Pid()))), 10)
+				vmPid := strconv.FormatInt(int64(findChildPid(uint32(vm.proc.Pid()))), 10)
 				slog.Debug("vmDaemon ProcessStart", "bhyvePid", vm.BhyvePid, "sudoPid", vm.proc.Pid(), "realPid", vmPid)
 				vm.setupComLoggers()
 				vm.applyResourceLimits(vmPid)

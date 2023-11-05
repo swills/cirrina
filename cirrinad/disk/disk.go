@@ -1,65 +1,16 @@
 package disk
 
 import (
+	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/util"
 	"database/sql"
 	"errors"
 	"fmt"
-	"os/exec"
+	exec "golang.org/x/sys/execabs"
 	"strconv"
-	"strings"
-
-	"cirrina/cirrinad/config"
-	"cirrina/cirrinad/util"
 
 	"golang.org/x/exp/slog"
 )
-
-func parseDiskSize(size string) (sizeBytes uint64, err error) {
-	var t string
-	var n uint
-	var m uint64
-	if strings.HasSuffix(size, "k") {
-		t = strings.TrimSuffix(size, "k")
-		m = 1024
-	} else if strings.HasSuffix(size, "K") {
-		t = strings.TrimSuffix(size, "K")
-		m = 1024
-	} else if strings.HasSuffix(size, "m") {
-		t = strings.TrimSuffix(size, "m")
-		m = 1024 * 1024
-	} else if strings.HasSuffix(size, "M") {
-		t = strings.TrimSuffix(size, "M")
-		m = 1024 * 1024
-	} else if strings.HasSuffix(size, "g") {
-		t = strings.TrimSuffix(size, "g")
-		m = 1024 * 1024 * 1024
-	} else if strings.HasSuffix(size, "G") {
-		t = strings.TrimSuffix(size, "G")
-		m = 1024 * 1024 * 1024
-	} else if strings.HasSuffix(size, "t") {
-		t = strings.TrimSuffix(size, "t")
-		m = 1024 * 1024 * 1024 * 1024
-	} else if strings.HasSuffix(size, "T") {
-		t = strings.TrimSuffix(size, "T")
-		m = 1024 * 1024 * 1024 * 1024
-	} else if strings.HasSuffix(size, "b") {
-		t = strings.TrimSuffix(size, "b")
-		m = 1024 * 1024 * 1024 * 1024
-	} else if strings.HasSuffix(size, "B") {
-		t = size
-		m = 1
-	} else {
-		t = size
-		m = 1
-	}
-	nu, err := strconv.Atoi(t)
-	if err != nil {
-		return 0, err
-	}
-	n = uint(nu)
-	r := uint64(n) * m
-	return r, nil
-}
 
 func Create(name string, description string, size string, diskType string, diskDevType string, diskCache bool, diskDirect bool) (disk *Disk, err error) {
 	var diskInst *Disk
@@ -91,12 +42,12 @@ func Create(name string, description string, size string, diskType string, diskD
 
 	// check disk size
 	if size == "" {
-		diskSize, err = parseDiskSize(config.Config.Disk.Default.Size)
+		diskSize, err = util.ParseDiskSize(config.Config.Disk.Default.Size)
 		if err != nil {
 			return &Disk{}, err
 		}
 	} else {
-		diskSize, err = parseDiskSize(size)
+		diskSize, err = util.ParseDiskSize(size)
 		if diskSize == 0 || err != nil {
 			return &Disk{}, errors.New("invalid disk size")
 		}

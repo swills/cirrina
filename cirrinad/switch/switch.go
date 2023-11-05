@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"os/exec"
+	exec "golang.org/x/sys/execabs"
 	"strings"
 
 	"cirrina/cirrinad/config"

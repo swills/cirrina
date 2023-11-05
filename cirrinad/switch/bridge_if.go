@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/exp/slog"
-	"os/exec"
+	exec "golang.org/x/sys/execabs"
 	"strconv"
 	"strings"
 )

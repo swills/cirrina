@@ -5,12 +5,13 @@ import (
 	"cirrina/cirrinad/requests"
 	"errors"
 	"fmt"
+	exec "golang.org/x/sys/execabs"
 	"io/fs"
 	"math/rand"
 	"net"
 	"os"
-	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -74,7 +75,7 @@ func handleSigInt() {
 }
 
 func handleSigTerm() {
-	fmt.Printf("SIGTERM received, exiting\n")
+	slog.Info("SIGTERM received, exiting")
 	os.Exit(0)
 }
 
@@ -215,14 +216,12 @@ func validateKmods() {
 	for _, module := range moduleList {
 		loaded := kmodLoaded(module)
 		if !loaded {
-			slog.Debug("module not loaded", "module", module)
-			fmt.Printf("Module %s not loaded, please load before using\n", module)
+			slog.Error("module not loaded, please load all kernel modules", "module", module)
 			os.Exit(1)
 		}
 		inited := kmodInited(module)
 		if !inited {
-			slog.Debug("module not initialized", "module", module)
-			fmt.Printf("Module %s not initialized, please fix before using\n", module)
+			slog.Error("module failed to initialize, please fix", "module", module)
 			os.Exit(1)
 		}
 	}
@@ -256,7 +255,6 @@ func validateVirt() {
 	}
 	if hvVendor != "" {
 		slog.Error("Refusing to run inside virtualized environment", "hvVendor", hvVendor)
-		fmt.Printf("Refusing to run inside virtualized environment\n")
 		os.Exit(1)
 	}
 }
@@ -289,7 +287,6 @@ func validateJailed() {
 	}
 	if jailed != "0" {
 		slog.Error("Refusing to run inside jailed environment")
-		fmt.Printf("Refusing to run inside jailed environment\n")
 		os.Exit(1)
 	}
 }
@@ -319,18 +316,18 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 	}
 
 	if exitCode != expectedExit {
-		slog.Error("exitCode mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
+		slog.Debug("exitCode mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
 		return errors.New("exitCode mismatch running command")
 	}
 
 	if !strings.HasPrefix(outBytes.String(), expectedStdOut) {
-		slog.Error("stdout prefix mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
+		slog.Debug("stdout prefix mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
 		return errors.New("stdout prefix mismatch running command")
 	}
 
 	if !strings.HasPrefix(errBytes.String(), expectedStdErr) {
-		slog.Error("stderr prefix mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
-		return errors.New("sterr prefix mismatch running command")
+		slog.Debug("stderr prefix mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
+		return errors.New("stderr prefix mismatch running command")
 	}
 
 	return nil
@@ -348,9 +345,9 @@ func getTmpFileName() (tmpFileName string, err error) {
 
 	try := 0
 	for {
-		rnum := r1.Intn(1000000000)
-		tmpFileName = tmpDir + string(os.PathSeparator) + "cirrinad" + strconv.Itoa(rnum)
-		_, err := os.Stat(tmpFileName)
+		randomNum := r1.Intn(1000000000)
+		tmpFileName = tmpDir + string(os.PathSeparator) + "cirrinad" + strconv.Itoa(randomNum)
+		_, err = os.Stat(tmpFileName)
 		if err == nil {
 			if try++; try < 10000 {
 				continue
@@ -366,73 +363,72 @@ func getTmpFileName() (tmpFileName string, err error) {
 	return tmpFileName, nil
 }
 
-func validateSudo() {
+func validateSudoCommands() {
 	var err error
 
 	err = checkSudoCmd(0, "", "", "/sbin/ifconfig")
 	if err != nil {
-		fmt.Printf("error running /sbin/ifconfig, check sudo config\n")
+		slog.Error("error running /sbin/ifconfig, check sudo config")
 		os.Exit(1)
 	}
 
 	err = checkSudoCmd(0, "", "", "/sbin/zfs", "-V")
 	if err != nil {
-		fmt.Printf("error running /sbin/zfs, check sudo config\n")
+		slog.Error("error running /sbin/zfs, check sudo config")
 		os.Exit(1)
 	}
 
 	err = checkSudoCmd(0, "", "", "/usr/bin/nice", "/bin/echo", "-n")
 	if err != nil {
-		fmt.Printf("error running /usr/bin/nice, check sudo config\n")
+		slog.Error("error running /usr/bin/nice, check sudo config")
 		os.Exit(1)
 	}
 
 	err = checkSudoCmd(0, "", "", "/usr/bin/protect", "/bin/echo", "-n")
 	if err != nil {
-		fmt.Printf("error running /usr/bin/protect, check sudo config\n")
+		slog.Error("error running /usr/bin/protect, check sudo config")
 		os.Exit(1)
 	}
 
 	err = checkSudoCmd(0, "", "", "/usr/bin/rctl")
 	if err != nil {
-		fmt.Printf("error running /usr/bin/rctl, check sudo config\n")
+		slog.Error("error running /usr/bin/rctl, check sudo config")
 		os.Exit(1)
 	}
 
 	name, err := getTmpFileName()
 	if err != nil {
-		slog.Debug("getTmpFilename failed", "err", err.Error())
-		fmt.Printf("Failed finding tmp file\n")
+		slog.Error("getTmpFilename failed", "err", err.Error())
 		os.Exit(1)
 	}
 	slog.Debug("Checking tmp file", "name", name)
 	err = checkSudoCmd(0, "", "", "/usr/bin/truncate", "-c", "-s", "1", name)
 	if err != nil {
-		fmt.Printf("error running /usr/bin/truncate, check sudo config\n")
+		slog.Error("error running /usr/bin/truncate, check sudo config")
 		os.Exit(1)
 	}
 
 	err = checkSudoCmd(0, "", "", "/usr/sbin/bhyve", "-h")
 	if err != nil {
-		fmt.Printf("error running /usr/sbin/bhyve, check sudo config\n")
+		slog.Error("error running /usr/sbin/bhyve, check sudo config")
 		os.Exit(1)
 	}
 
 	err = checkSudoCmd(1, "", "Usage: bhyvectl", "/usr/sbin/bhyvectl")
 	if err != nil {
-		fmt.Printf("error running /usr/sbin/bhyvectl, check sudo config\n")
+		slog.Error("error running /usr/sbin/bhyvectl, check sudo config")
 		os.Exit(1)
 	}
 
 	err = checkSudoCmd(0, "Available commands:", "", "/usr/sbin/ngctl", "help")
 	if err != nil {
-		fmt.Printf("error running /usr/sbin/ngctl, check sudo config\n")
+		slog.Error("error running /usr/sbin/ngctl, check sudo config")
 		os.Exit(1)
 	}
 
 	err = checkSudoCmd(0, "1 init", "", "/bin/pgrep", "-a", "-l", "-x", "init")
 	if err != nil {
-		fmt.Printf("error running /bin/pgrep, check sudo config\n")
+		slog.Error("error running /bin/pgrep, check sudo config")
 		os.Exit(1)
 	}
 }
@@ -443,7 +439,7 @@ func validateArch() {
 	case "amd64":
 		// Do nothing
 	default:
-		fmt.Printf("Unsupported Architecture\n")
+		slog.Error("Unsupported Architecture")
 		os.Exit(1)
 	}
 }
@@ -454,7 +450,7 @@ func validateOS() {
 	case "freebsd":
 		// Do nothing
 	default:
-		fmt.Printf("Unsupported OS\n")
+		slog.Error("Unsupported OS")
 		os.Exit(1)
 	}
 }
@@ -463,8 +459,7 @@ func validateOSVersion() {
 	utsname := unix.Utsname{}
 	err := unix.Uname(&utsname)
 	if err != nil {
-		slog.Error("Failed to get uname", "err", err)
-		fmt.Printf("Unable to validate OS version\n")
+		slog.Error("Unable to validate OS version")
 		os.Exit(1)
 	}
 
@@ -482,19 +477,16 @@ func validateOSVersion() {
 	ovi, err := version.NewVersion(ov)
 	if err != nil {
 		slog.Error("failed to get OS version", "release", string(utsname.Release[:]))
-		fmt.Printf("Error getting OS version\n")
 		os.Exit(1)
 	}
 	ver124, err := version.NewVersion("12.4")
 	if err != nil {
 		slog.Error("failed to create a version for 12.4")
-		fmt.Printf("Error checking version version\n")
 		os.Exit(1)
 	}
 	ver132, err := version.NewVersion("13.2")
 	if err != nil {
 		slog.Error("failed to create a version for 13.2")
-		fmt.Printf("Error checking version version\n")
 		os.Exit(1)
 	}
 
@@ -502,13 +494,42 @@ func validateOSVersion() {
 	// Check for valid OS version, see https://www.freebsd.org/security/
 	// as of commit, 12.4 and 13.2 are oldest supported versions
 	if ovi.LessThan(ver124) || ovi.LessThan(ver132) {
-		slog.Error("Unsupported OS version", "ovi", ovi)
-		fmt.Printf("Unsupported OS version: %s\n", ovi)
+		slog.Error("Unsupported OS version", "version", ovi)
 		os.Exit(1)
 	}
 }
 
-func validateZpool() {
+func validateSudoConfig() {
+	sudoPath, err := filepath.Abs(config.Config.Sys.Sudo)
+	if err != nil {
+		slog.Error("failed to get absolute path to sudo")
+		os.Exit(1)
+	}
+	sudoFileInfo, err := os.Stat(sudoPath)
+	if err != nil {
+		slog.Error("failed to stat sudo")
+		os.Exit(1)
+	}
+	sudoIsDir := sudoFileInfo.IsDir()
+	if sudoIsDir {
+		slog.Error("sudo is a directory?")
+		os.Exit(1)
+	}
+
+	sudoMode := sudoFileInfo.Mode()
+	if !util.ModeIsExecOther(sudoMode) {
+		slog.Error("sudo permissions not exec other", "sudoMode", sudoMode)
+		os.Exit(1)
+	}
+
+	if !util.ModeIsSuid(sudoMode) {
+		slog.Error("sudo permissions not suid", "sudoMode", sudoMode)
+		os.Exit(1)
+	}
+}
+
+func validateZpoolConf() {
+	// it's valid for the zpool not to be configured if you want to only use file storage
 	if config.Config.Disk.VM.Path.Zpool == "" {
 		return
 	}
@@ -531,14 +552,279 @@ func validateZpool() {
 		}
 	}
 	if exitCode != 0 {
-		slog.Error("zpool not available", "exitCode", exitCode)
-		fmt.Printf("zpool not available, please fix or reconfigure\n")
+		slog.Error("zpool not available, please fix or reconfigure", "exitCode", exitCode)
 		os.Exit(1)
 	}
 }
 
+func validateNetworkConf() {
+	if !util.IsValidIP(config.Config.Network.Grpc.Ip) {
+		slog.Error("Invalid listen IP in config, please reconfigure")
+		os.Exit(1)
+	}
+
+	if !util.IsValidTcpPort(config.Config.Network.Grpc.Port) {
+		slog.Error("Invalid listen port in config, please reconfigure")
+		os.Exit(1)
+	}
+
+	// is MAC parseable?
+	macTest := config.Config.Network.Mac.Oui + ":ff:ff:ff"
+	_, err := net.ParseMAC(macTest)
+	if err != nil {
+		slog.Error("Invalid NIC MAC OUI in config, please reconfigure")
+		os.Exit(1)
+	}
+
+	// is MAC broadcast?
+	isBroadcast, err := util.MacIsBroadcast(macTest)
+	if err != nil {
+		slog.Error("invalid MAC OUI", "OUI", config.Config.Network.Mac.Oui, "err", err)
+		os.Exit(1)
+	}
+	if isBroadcast {
+		slog.Error("invalid MAC OUI, may not use potentially broadcast OUI", "oui", config.Config.Network.Mac.Oui)
+		os.Exit(1)
+	}
+
+	// is MAC multicast?
+	isMulticast, err := util.MacIsMulticast(macTest)
+	if err != nil {
+		slog.Error("invalid MAC OUI ", "OUI", macTest, "err", err)
+		os.Exit(1)
+	}
+	if isMulticast {
+		slog.Error("invalid MAC OUI, may not use multicast OUI", "oui", config.Config.Network.Mac.Oui)
+		os.Exit(1)
+	}
+}
+
+func validateVncConfig() {
+	if !util.IsValidIP(config.Config.Vnc.Ip) {
+		slog.Error("Invalid VNC IP in config, please reconfigure")
+		os.Exit(1)
+	}
+
+	if !util.IsValidTcpPort(config.Config.Vnc.Port) {
+		slog.Error("Invalid VNC port in config, please reconfigure")
+		os.Exit(1)
+	}
+}
+
+func validateDebugConfig() {
+	if !util.IsValidIP(config.Config.Debug.Ip) {
+		slog.Error("Invalid debug IP in config, please reconfigure")
+		os.Exit(1)
+	}
+
+	if !util.IsValidTcpPort(config.Config.Debug.Port) {
+		slog.Error("Invalid debug port in config, please reconfigure")
+		os.Exit(1)
+	}
+}
+
+func validateRomConfig() {
+	romPath, err := filepath.Abs(config.Config.Rom.Path)
+	if err != nil {
+		slog.Error("failed to get absolute path to rom file")
+		os.Exit(1)
+	}
+	romFileInfo, err := os.Stat(romPath)
+	if err != nil {
+		slog.Error("rom not installed or path invalid, please install edk2-bhyve (sysutils/edk2) or reconfigure")
+		os.Exit(1)
+	}
+	romIsDir := romFileInfo.IsDir()
+	if romIsDir {
+		slog.Error("rom config points to directory, please reconfigure")
+		os.Exit(1)
+	}
+
+	varTemplatePath, err := filepath.Abs(config.Config.Rom.Vars.Template)
+	if err != nil {
+		slog.Error("failed to get absolute path to rom vars template file")
+		os.Exit(1)
+	}
+	varTemplateFileInfo, err := os.Stat(varTemplatePath)
+	if err != nil {
+		slog.Error("rom vars template not installed or path invalid, please install edk2-bhyve (sysutils/edk2) or reconfigure")
+		os.Exit(1)
+	}
+	varTemplateFileIsDir := varTemplateFileInfo.IsDir()
+	if varTemplateFileIsDir {
+		slog.Error("rom vars template config points to directory, please reconfigure")
+		os.Exit(1)
+	}
+}
+
+func validateLogConfig() {
+	var checkLogPathDirPerms bool
+	logFilePath, err := filepath.Abs(config.Config.Log.Path)
+	if err != nil {
+		slog.Error("failed to get absolute path to log")
+		os.Exit(1)
+	}
+	logFilePathInfo, err := os.Stat(logFilePath)
+	if err != nil {
+		// if the file doesn't exist, that's OK, we can create it if we have permission
+		checkLogPathDirPerms = true
+	}
+	if !checkLogPathDirPerms {
+		if logFilePathInfo.IsDir() {
+			slog.Error("log path is a directory, please reconfigure to point to a file", "logFilePath", logFilePath)
+			os.Exit(1)
+		}
+		logFileStat := logFilePathInfo.Sys().(*syscall.Stat_t)
+		if logFileStat == nil {
+			slog.Error("failed getting log file sys info")
+			os.Exit(1)
+		}
+		return
+	}
+	logDir := filepath.Dir(config.Config.Log.Path)
+	logDirInfo, err := os.Stat(logDir)
+	if err != nil {
+		slog.Error("failed to stat log dir, please reconfigure")
+		os.Exit(1)
+	}
+	logDirStat := logDirInfo.Sys().(*syscall.Stat_t)
+	if logDirStat == nil {
+		slog.Error("failed getting log dir sys info")
+		os.Exit(1)
+	}
+	myUid, myGid, err := util.GetMyUidGid()
+	if err != nil {
+		slog.Error("failed getting my uid/gid")
+		os.Exit(1)
+	}
+	logDirMode := logDirInfo.Mode()
+	if !util.ModeIsWriteOwner(logDirMode) {
+		slog.Error("log dir not writable")
+		os.Exit(1)
+	}
+	if logDirStat.Uid != myUid || logDirStat.Gid != myGid {
+		slog.Error("log dir not owned by my user")
+		os.Exit(1)
+	}
+}
+
+func validateDiskConfig() {
+	_, err := util.ParseDiskSize(config.Config.Disk.Default.Size)
+	if err != nil {
+		slog.Error("default disk size invalid")
+		os.Exit(1)
+	}
+	myUid, myGid, err := util.GetMyUidGid()
+	if err != nil {
+		slog.Error("failed getting my uid/gid")
+		os.Exit(1)
+	}
+
+	// config.Config.Disk.VM.Path.Image
+	diskImagePath, err := filepath.Abs(config.Config.Disk.VM.Path.Image)
+	if err != nil {
+		slog.Error("failed parsing disk vm path image, please reconfigure")
+		os.Exit(1)
+	}
+	diskImagePathInfo, err := os.Stat(diskImagePath)
+	if err != nil {
+		slog.Error("failed to stat disk image path")
+		os.Exit(1)
+	}
+	diskImagePathDir := diskImagePathInfo.IsDir()
+	if !diskImagePathDir {
+		slog.Error("disk image path is not a directory, please reconfigure")
+		os.Exit(1)
+	}
+	diskImageDirStat := diskImagePathInfo.Sys().(*syscall.Stat_t)
+	if diskImageDirStat == nil {
+		slog.Error("failed getting disk image dir sys info")
+		os.Exit(1)
+	}
+	diskDirMode := diskImagePathInfo.Mode()
+	if !util.ModeIsWriteOwner(diskDirMode) {
+		slog.Error("disk image dir not writable")
+		os.Exit(1)
+	}
+	if diskImageDirStat.Uid != myUid || diskImageDirStat.Gid != myGid {
+		slog.Error("disk image dir not owned by my user")
+		os.Exit(1)
+	}
+
+	//config.Config.Disk.VM.Path.State
+	diskStatePath, err := filepath.Abs(config.Config.Disk.VM.Path.State)
+	if err != nil {
+		slog.Error("failed parsing disk vm path state, please reconfigure")
+		os.Exit(1)
+	}
+	diskStatePathInfo, err := os.Stat(diskStatePath)
+	if err != nil {
+		slog.Error("failed to stat disk state path")
+		os.Exit(1)
+	}
+	diskStatePathDir := diskStatePathInfo.IsDir()
+	if !diskStatePathDir {
+		slog.Error("disk state path is not a directory, please reconfigure")
+		os.Exit(1)
+	}
+	diskDirStat := diskStatePathInfo.Sys().(*syscall.Stat_t)
+	if diskDirStat == nil {
+		slog.Error("failed getting disk state dir sys info")
+		os.Exit(1)
+	}
+	diskStateDirMode := diskStatePathInfo.Mode()
+	if !util.ModeIsWriteOwner(diskStateDirMode) {
+		slog.Error("disk state dir not writable")
+		os.Exit(1)
+	}
+	if diskDirStat.Uid != myUid || diskDirStat.Gid != myGid {
+		slog.Error("disk state dir not owned by my user")
+		os.Exit(1)
+	}
+
+	//config.Config.Disk.VM.Path.Iso
+	diskIsoPath, err := filepath.Abs(config.Config.Disk.VM.Path.Iso)
+	if err != nil {
+		slog.Error("failed parsing disk vm path iso, please reconfigure")
+		os.Exit(1)
+	}
+	diskIsoPathInfo, err := os.Stat(diskIsoPath)
+	if err != nil {
+		slog.Error("failed to stat disk iso path")
+		os.Exit(1)
+	}
+	diskIsoPathDir := diskIsoPathInfo.IsDir()
+	if !diskIsoPathDir {
+		slog.Error("disk iso path is not a directory, please reconfigure")
+		os.Exit(1)
+	}
+	diskIsoStat := diskIsoPathInfo.Sys().(*syscall.Stat_t)
+	if diskIsoStat == nil {
+		slog.Error("failed getting disk iso dir sys info")
+		os.Exit(1)
+	}
+	diskIsoDirMode := diskIsoPathInfo.Mode()
+	if !util.ModeIsWriteOwner(diskIsoDirMode) {
+		slog.Error("disk iso dir not writable")
+		os.Exit(1)
+	}
+	if diskDirStat.Uid != myUid || diskDirStat.Gid != myGid {
+		slog.Error("disk iso dir not owned by my user")
+		os.Exit(1)
+	}
+
+	validateZpoolConf()
+}
+
 func validateConfig() {
-	validateZpool()
+	// requests init func validates db config via util.ValidateDbConfig()
+	validateSudoConfig()
+	validateVncConfig()
+	validateDebugConfig()
+	validateRomConfig()
+	validateDiskConfig()
+	// validateLogConfig called early in main
+	validateNetworkConf()
 }
 
 func validateSysctls() {
@@ -564,12 +850,10 @@ func validateSysctls() {
 	}
 	if exitCode != 0 {
 		slog.Error("Failed checking sysctl seeOtherGids")
-		fmt.Printf("Failed checking sysctl seeOtherGids\n")
 		os.Exit(1)
 	}
 	if seeOtherGids != "1" {
 		slog.Error("Unable to run with other GIDs are not visible")
-		fmt.Printf("Unable to run with other GIDs are not visible, please set security.bsd.see_other_gids=1 (default)\n")
 		os.Exit(1)
 	}
 
@@ -592,12 +876,22 @@ func validateSysctls() {
 	}
 	if exitCode != 0 {
 		slog.Error("Failed checking sysctl seeOtherUids")
-		fmt.Printf("Failed checking sysctl seeOtherUids\n")
 		os.Exit(1)
 	}
 	if exitCode != 0 || seeOtherGids != "1" {
 		slog.Error("Unable to run with other UIDs are not visible")
-		fmt.Printf("Unable to run with other UIDs are not visible, please set security.bsd.see_other_uids=1 (default)\n")
+		os.Exit(1)
+	}
+}
+
+func validateMyId() {
+	myUid, myGid, err := util.GetMyUidGid()
+	if err != nil {
+		slog.Error("failed getting my uid/gid")
+		os.Exit(1)
+	}
+	if myUid == 0 || myGid == 0 {
+		slog.Error("refusing to run as root/wheel user/group")
 		os.Exit(1)
 	}
 }
@@ -610,10 +904,10 @@ func validateSystem() {
 	validateKmods()
 	validateVirt()
 	validateJailed()
-	validateSudo()
+	validateMyId()
+	validateSudoCommands()
 	validateSysctls()
 	validateConfig()
-	// TODO: further validation
 }
 
 func main() {
@@ -626,21 +920,31 @@ func main() {
 			sigHandler(s)
 		}
 	}()
+
+	validateLogConfig()
+
 	logFile, err := os.OpenFile(config.Config.Log.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
-		slog.Error("failed to open log file: %v", err)
+		slog.Error("failed to open log file", err)
 		return
 	}
 	programLevel := new(slog.LevelVar) // Info by default
 	logger := slog.New(slog.HandlerOptions{Level: programLevel}.NewTextHandler(logFile))
 	slog.SetDefault(logger)
-	if config.Config.Log.Level == "info" {
-		slog.Info("log level set to info")
-		programLevel.Set(slog.LevelInfo)
-	} else if config.Config.Log.Level == "debug" {
+	switch strings.ToLower(config.Config.Log.Level) {
+	case "debug":
 		slog.Info("log level set to debug")
 		programLevel.Set(slog.LevelDebug)
-	} else {
+	case "info":
+		slog.Info("log level set to info")
+		programLevel.Set(slog.LevelInfo)
+	case "warn":
+		slog.Info("log level set to debug")
+		programLevel.Set(slog.LevelWarn)
+	case "error":
+		slog.Info("log level set to debug")
+		programLevel.Set(slog.LevelError)
+	default:
 		programLevel.Set(slog.LevelInfo)
 		slog.Info("log level not set or un-parseable, setting to info")
 	}

@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"golang.org/x/exp/slog"
-	"os/exec"
+	exec "golang.org/x/sys/execabs"
 	"strconv"
 	"strings"
 )

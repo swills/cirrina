@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"cirrina/cirrina"
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
@@ -31,18 +30,21 @@ func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 		if *v.Mac == "AUTO" {
 			vmNicInst.Mac = *v.Mac
 		} else {
-			newMac, err := net.ParseMAC(*v.Mac)
+			isBroadcast, err := util.MacIsBroadcast(*v.Mac)
 			if err != nil {
 				return vmNicId, errors.New("invalid MAC address")
 			}
-			if bytes.Equal(newMac, []byte{255, 255, 255, 255, 255, 255}) {
+			if isBroadcast {
 				return vmNicId, errors.New("may not use broadcast MAC address")
 			}
-			// https://cgit.freebsd.org/src/tree/usr.sbin/bhyve/net_utils.c?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n56
-			// https://cgit.freebsd.org/src/tree/sys/net/ethernet.h?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n74
-			if newMac[0]&0x01 == 1 {
+			isMulticast, err := util.MacIsMulticast(*v.Mac)
+			if err != nil {
+				return vmNicId, errors.New("invalid MAC address")
+			}
+			if isMulticast {
 				return vmNicId, errors.New("may not use multicast MAC address")
 			}
+			newMac, err := net.ParseMAC(*v.Mac)
 			vmNicInst.Mac = newMac.String()
 		}
 	}
