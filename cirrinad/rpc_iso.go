@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bytes"
+	"bufio"
 	"cirrina/cirrina"
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/iso"
@@ -71,8 +71,6 @@ func (s *server) AddISO(_ context.Context, i *cirrina.ISOInfo) (*cirrina.ISOID, 
 func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 	var re cirrina.ReqBool
 	re.Success = false
-
-	imageData := bytes.Buffer{}
 	var imageSize uint64
 	imageSize = 0
 
@@ -80,7 +78,7 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 	if err != nil {
 		slog.Error("UploadIso", "msg", "cannot receive image info")
 	}
-	isoUploadReq := req.GetIsouploadinfo()
+	isoUploadReq := req.GetISOUploadInfo()
 	isoId := isoUploadReq.Isoid
 
 	isoUuid, err := uuid.Parse(isoId.Value)
@@ -103,14 +101,35 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 		"size", isoUploadReq.Size, "checksum", isoUploadReq.Sha512Sum,
 	)
 
+	if isoInst.Path == "" {
+		isoInst.Path = config.Config.Disk.VM.Path.Iso + string(os.PathSeparator) + isoInst.Name
+	}
+
+	err = isoInst.Save()
+	if err != nil {
+		slog.Error("UploadIso", "msg", "Failed saving to db")
+		err = stream.SendAndClose(&re)
+		if err != nil {
+			slog.Error("UploadIso cannot send response", "err", err)
+		}
+		return nil
+	}
+
+	isoFile, err := os.Create(isoInst.Path)
+	if err != nil {
+		slog.Error("Failed to open iso file", "err", err.Error())
+		return err
+	}
+	isoFileBuffer := bufio.NewWriter(isoFile)
+
+	hasher := sha512.New()
+
 	for {
-		//slog.Debug("UploadIso", "msg", "waiting to receive more data")
 		req, err := stream.Recv()
 		if err == io.EOF {
 			slog.Debug("UploadIso", "msg", "no more data")
 			break
 		}
-
 		if err != nil {
 			slog.Error("UploadIso", "err", err)
 			return errors.New("failed reading image date")
@@ -121,21 +140,19 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 		slog.Debug("UploadIso got data", "size", size)
 
 		imageSize += uint64(size)
-		//slog.Debug("UploadIso", "msg", "got data")
-
-		//data := req.GetData()
-		//slog.Debug("uploadIos", "data", data)
-
-		_, err = imageData.Write(chunk)
+		_, err = isoFileBuffer.Write(chunk)
 		if err != nil {
 			slog.Error("UploadIso", "err", err)
 			return errors.New("failed writing image data")
 		}
-
+		hasher.Write(chunk)
 	}
+	// flush buffer
+	isoFileBuffer.Flush()
 
+	// verify size
 	if imageSize != isoUploadReq.Size {
-		slog.Debug("UploadIso", "image upload size incorrect")
+		slog.Error("UploadIso", "image upload size incorrect")
 		err = stream.SendAndClose(&re)
 		if err != nil {
 			slog.Error("UploadIso cannot send response", "err", err)
@@ -146,34 +163,19 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 		slog.Debug("UploadIso", "msg", "image size correct")
 	}
 
-	hasher := sha512.New()
-
-	hasher.Write(imageData.Bytes())
-
-	isoChecksum := hex.EncodeToString(hasher.Sum(nil))
-
-	if isoChecksum != isoUploadReq.Sha512Sum {
+	// verify checksum
+	isoInst.Checksum = hex.EncodeToString(hasher.Sum(nil))
+	if isoInst.Checksum != isoUploadReq.Sha512Sum {
 		slog.Debug("UploadIso", "image upload checksum incorrect")
 		err = stream.SendAndClose(&re)
 		if err != nil {
 			slog.Error("UploadIso cannot send response", "err", err)
 		}
 		return nil
-	} else {
-		slog.Debug("UploadIso", "msg", "image checksum correct")
-		isoInst.Checksum = isoChecksum
 	}
 
-	if isoInst.Name == "" {
-		slog.Error("Name is empty")
-	}
-
-	if isoInst.Path == "" {
-		isoInst.Path = config.Config.Disk.VM.Path.Iso + "/" + isoInst.Name
-	}
-
-	slog.Debug("UploadIso", "msg", "Saving contents")
-	err = os.WriteFile(isoInst.Path, imageData.Bytes(), 0644)
+	// finish saving file
+	err = isoFile.Close()
 	if err != nil {
 		slog.Debug("UploadIso", "msg", "Failed writing iso", "err", err)
 		err = stream.SendAndClose(&re)
@@ -183,6 +185,7 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 		return nil
 	}
 
+	// save to db
 	err = isoInst.Save()
 	if err != nil {
 		slog.Debug("UploadIso", "msg", "Failed saving to db")
@@ -193,18 +196,14 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 		return nil
 	}
 
-	// we're done!
+	// we're done, return success to client
 	re.Success = true
-
 	err = stream.SendAndClose(&re)
 	if err != nil {
 		slog.Error("UploadIso cannot send response", "err", err)
 	}
-
 	slog.Debug("UploadIso complete")
-
 	return nil
-
 }
 
 func (s *server) RemoveISO(_ context.Context, i *cirrina.ISOID) (*cirrina.ReqBool, error) {

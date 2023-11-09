@@ -2656,7 +2656,7 @@ func (m *ISOImageRequest) GetData() isISOImageRequest_Data {
 	return nil
 }
 
-func (x *ISOImageRequest) GetIsouploadinfo() *ISOUploadInfo {
+func (x *ISOImageRequest) GetISOUploadInfo() *ISOUploadInfo {
 	if x, ok := x.GetData().(*ISOImageRequest_Isouploadinfo); ok {
 		return x.Isouploadinfo
 	}

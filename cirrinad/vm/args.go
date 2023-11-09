@@ -54,6 +54,11 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 			slog.Error("error getting ISO", "isoItem", isoItem, "err", err)
 			return []string{}, slot
 		}
+		if thisIso.Path == "" {
+			slog.Error("empty iso path, correcting", "iso", thisIso.Name, "id", thisIso.ID, "path", thisIso.Path)
+			thisIso.Path = config.Config.Disk.VM.Path.Iso + string(os.PathSeparator) + thisIso.Name
+		}
+		slog.Debug("getCDArg", "name", thisIso.Name, "id", thisIso.ID, "path", thisIso.Path)
 		if devCount <= maxSataDevs {
 			thisCd := []string{"-s", strconv.Itoa(slot) + ":0,ahci,cd:" + thisIso.Path}
 			cdString = append(cdString, thisCd...)
