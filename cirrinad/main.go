@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -31,7 +32,8 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-var sigIntHandlerRunning = false
+var shutdownHandlerRunning = false
+var shutdownWaitGroup = sync.WaitGroup{}
 
 func handleSigInfo() {
 	var mem runtime.MemStats
@@ -55,11 +57,11 @@ func handleSigInfo() {
 	)
 }
 
-func handleSigInt() {
-	if sigIntHandlerRunning {
+func shutdownHandler() {
+	if shutdownHandlerRunning {
 		return
 	}
-	sigIntHandlerRunning = true
+	shutdownHandlerRunning = true
 	vm.KillVMs()
 	for {
 		runningVMs := vm.GetRunningVMs()
@@ -71,23 +73,18 @@ func handleSigInt() {
 	}
 	_switch.DestroyBridges()
 	slog.Info("Exiting normally")
-	os.Exit(0)
-}
-
-func handleSigTerm() {
-	slog.Info("SIGTERM received, exiting")
-	os.Exit(0)
+	shutdownWaitGroup.Done()
 }
 
 func sigHandler(signal os.Signal) {
 	slog.Debug("got signal", "signal", signal)
 	switch signal {
 	case syscall.SIGINFO:
-		go handleSigInfo()
+		handleSigInfo()
 	case syscall.SIGINT:
-		go handleSigInt()
+		shutdownHandler()
 	case syscall.SIGTERM:
-		handleSigTerm()
+		shutdownHandler()
 	default:
 		slog.Info("Ignoring signal", "signal", signal)
 	}
@@ -913,6 +910,8 @@ func validateSystem() {
 func main() {
 	signals := make(chan os.Signal)
 	signal.Notify(signals, os.Interrupt, syscall.SIGINFO)
+	signal.Notify(signals, os.Interrupt, syscall.SIGINT)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
 		for {
@@ -967,7 +966,6 @@ func main() {
 	go rpcServer()
 	go processRequests()
 
-	for {
-		time.Sleep(1 * time.Second)
-	}
+	shutdownWaitGroup.Add(1)
+	shutdownWaitGroup.Wait()
 }

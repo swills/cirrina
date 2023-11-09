@@ -287,7 +287,7 @@ func GetRunningVMs() int {
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
 	for _, vmInst := range List.VmList {
-		if vmInst.Status == RUNNING {
+		if vmInst.Status != STOPPED {
 			count += 1
 		}
 	}
