@@ -95,11 +95,10 @@ func Delete(id string) (err error) {
 		errorText := fmt.Sprintf("iso %v not found", id)
 		return errors.New(errorText)
 	}
-	res := db.Limit(1).Delete(&dDisk)
-	if res.RowsAffected == 1 {
-		return nil
-	} else {
-		errText := fmt.Sprintf("disk delete error, rows affected %v", res.RowsAffected)
+	res := db.Limit(1).Unscoped().Delete(&dDisk)
+	if res.RowsAffected != 1 {
+		errText := fmt.Sprintf("iso delete error, rows affected %v", res.RowsAffected)
 		return errors.New(errText)
 	}
+	return nil
 }
