@@ -59,12 +59,12 @@ func (vm *VM) Delete() (err error) {
 	if vm.ID == "" {
 		return errors.New("not found")
 	}
-	res := db.Delete(&vm.Config)
+	res := db.Limit(1).Delete(&vm.Config)
 	if res.RowsAffected != 1 {
 		// don't fail deleting the VM, may have a bad or missing config, still want to be able to delete VM
 		slog.Error("failed to delete config for VM", "vmid", vm.ID)
 	}
-	res = db.Delete(&vm)
+	res = db.Limit(1).Delete(&vm)
 	if res.RowsAffected != 1 {
 		return errors.New("failed to delete VM")
 	}
