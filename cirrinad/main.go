@@ -92,60 +92,65 @@ func sigHandler(signal os.Signal) {
 
 func cleanUpVms() {
 	vmList := vm.GetAll()
+	// deal with any leftover running VMs
 	for _, aVm := range vmList {
-		if aVm.Status != vm.STOPPED {
-			// check /dev/vmm entry
-			vmmPath := "/dev/vmm/" + aVm.Name
-			slog.Debug("checking VM", "name", aVm.Name, "path", vmmPath)
-			exists, err := util.PathExists(vmmPath)
+		vmmPath := "/dev/vmm/" + aVm.Name
+		slog.Debug("checking VM", "name", aVm.Name, "path", vmmPath)
+		exists, err := util.PathExists(vmmPath)
+		if err != nil {
+			slog.Error("error checking VM", "err", err)
+			continue
+		}
+		if !exists {
+			continue
+		}
+		slog.Debug("leftover VM exists, checking pid", "name", aVm.Name, "pid", aVm.BhyvePid)
+		var pidStat bool
+		// check pid
+		if aVm.BhyvePid > 0 {
+			pidStat, err = util.PidExists(int(aVm.BhyvePid))
 			if err != nil {
 				slog.Error("error checking VM", "err", err)
 			}
-			slog.Debug("leftover VM exists, checking pid", "name", aVm.Name, "pid", aVm.BhyvePid)
-			// check pid
-			pidStat, err := util.PidExists(int(aVm.BhyvePid))
-			if err != nil {
-				slog.Error("error checking VM", "err", err)
-			}
-			if exists {
-				slog.Debug("killing VM")
-				if pidStat {
-					slog.Debug("leftover pid exists", "name", aVm.Name, "pid", aVm.BhyvePid, "maxWait", aVm.Config.MaxWait)
-					var sleptTime time.Duration
-					err = syscall.Kill(int(aVm.BhyvePid), syscall.SIGTERM)
-					if err != nil {
-						return
-					}
-					for {
-						pidStat, err := util.PidExists(int(aVm.BhyvePid))
-						if err != nil {
-							slog.Error("error checking VM", "err", err)
-							return
-						}
-						if !pidStat {
-							break
-						}
-						time.Sleep(10 * time.Millisecond)
-						sleptTime += 10 * time.Millisecond
-						if sleptTime > (time.Duration(aVm.Config.MaxWait) * time.Second) {
-							break
-						}
-					}
-					pidStillExists, err := util.PidExists(int(aVm.BhyvePid))
-					if err != nil {
-						slog.Error("error checking VM", "err", err)
-						return
-					}
-					if pidStillExists {
-						slog.Error("VM refused to die")
-					}
+		}
+		if pidStat {
+			slog.Debug("leftover VM exists", "name", aVm.Name, "pid", aVm.BhyvePid, "maxWait", aVm.Config.MaxWait)
+			var sleptTime time.Duration
+			_ = syscall.Kill(int(aVm.BhyvePid), syscall.SIGTERM)
+			for {
+				pidStat, err = util.PidExists(int(aVm.BhyvePid))
+				if err != nil {
+					slog.Error("error checking VM", "err", err)
+					break
+				}
+				if !pidStat {
+					break
+				}
+				time.Sleep(10 * time.Millisecond)
+				sleptTime += 10 * time.Millisecond
+				if sleptTime > (time.Duration(aVm.Config.MaxWait) * time.Second) {
+					break
 				}
 			}
-			slog.Debug("destroying VM", "name", aVm.Name)
-			aVm.MaybeForceKillVM()
-			aVm.NetCleanup()
-			aVm.SetStopped()
+			pidStillExists, err := util.PidExists(int(aVm.BhyvePid))
+			if err != nil {
+				slog.Error("error checking VM", "err", err)
+			} else {
+				if pidStillExists {
+					slog.Error("VM refused to die")
+				}
+			}
 		}
+		slog.Debug("destroying VM", "name", aVm.Name)
+		aVm.MaybeForceKillVM()
+	}
+
+	// clean up leftover nets and mark everything stopped
+	for _, aVm := range vmList {
+		slog.Debug("cleaning up VM net(s)", "name", aVm.Name)
+		aVm.NetCleanup()
+		slog.Debug("marking VM stopped", "name", aVm.Name)
+		aVm.SetStopped()
 	}
 }
 

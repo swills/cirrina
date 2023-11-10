@@ -133,12 +133,13 @@ func (vm *VM) Start() (err error) {
 }
 
 func (vm *VM) Stop() (err error) {
-	if vm.Status != RUNNING {
-		slog.Error("tried to stop VM that is not running", "vm", vm.Name)
-		return errors.New("must be running first")
+	if vm.Status == STOPPED {
+		slog.Error("tried to stop VM already stopped", "vm", vm.Name)
+		return errors.New("VM already stopped")
 	}
 	vm.SetStopping()
 	if vm.proc == nil {
+		vm.SetStopped()
 		return nil
 	}
 	err = vm.proc.Stop()
@@ -465,21 +466,27 @@ func (vm *VM) NetCleanup() {
 	}
 	for _, vmNic := range vmNicsList {
 		if vmNic.NetDevType == "TAP" || vmNic.NetDevType == "VMNET" {
-			args := []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"}
-			cmd := exec.Command(config.Config.Sys.Sudo, args...)
-			err := cmd.Run()
-			if err != nil {
-				slog.Error("failed to destroy network interface", "err", err)
+			if vmNic.NetDev != "" {
+				args := []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"}
+				cmd := exec.Command(config.Config.Sys.Sudo, args...)
+				err := cmd.Run()
+				if err != nil {
+					slog.Error("failed to destroy network interface", "err", err)
+				}
 			}
-			if vmNic.RateLimit {
+			if vmNic.InstEpair != "" {
 				err = epair.DestroyEpair(vmNic.InstEpair)
 				if err != nil {
 					slog.Error("failed to destroy epair", err)
 				}
+			}
+			if vmNic.InstBridge != "" {
 				err = _switch.DestroyIfBridge(vmNic.InstBridge, false)
 				if err != nil {
 					slog.Error("failed to destroy switch", err)
 				}
+			}
+			if vmNic.InstEpair != "" {
 				err = epair.NgDestroyPipe(vmNic.InstEpair + "a")
 				if err != nil {
 					slog.Error("failed to ng pipe", err)
@@ -489,7 +496,6 @@ func (vm *VM) NetCleanup() {
 					slog.Error("failed to ng pipe", err)
 				}
 			}
-
 		} else if vmNic.NetDevType == "NETGRAPH" {
 			// nothing to do for netgraph
 		} else {

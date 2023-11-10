@@ -22,14 +22,15 @@ import (
 )
 
 func PathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
+	statInfo, err := os.Stat(path)
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) || statInfo == nil {
+			return false, nil
+		}
+		return false, err
 	}
-	if errors.Is(err, fs.ErrNotExist) {
-		return false, nil
-	}
-	return false, err
+	slog.Debug("PathExists", "path", path, "statInfo", statInfo)
+	return true, nil
 }
 
 func PidExists(pid int) (bool, error) {

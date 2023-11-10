@@ -298,7 +298,7 @@ func KillVMs() {
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
 	for _, vmInst := range List.VmList {
-		if vmInst.Status == RUNNING {
+		if vmInst.Status != STOPPED {
 			go func(aVmInst *VM) {
 				err := aVmInst.Stop()
 				if err != nil {
