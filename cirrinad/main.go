@@ -6,6 +6,7 @@ import (
 	"cirrina/cirrinad/requests"
 	"errors"
 	"fmt"
+	"github.com/hashicorp/go-version"
 	exec "golang.org/x/sys/execabs"
 	"io/fs"
 	"math/rand"
@@ -21,8 +22,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/hashicorp/go-version"
-
 	"golang.org/x/sys/unix"
 
 	"cirrina/cirrinad/config"
@@ -32,6 +31,8 @@ import (
 
 	"golang.org/x/exp/slog"
 )
+
+var mainVersion = "unknown"
 
 var shutdownHandlerRunning = false
 var shutdownWaitGroup = sync.WaitGroup{}

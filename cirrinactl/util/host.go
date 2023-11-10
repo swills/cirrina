@@ -17,3 +17,11 @@ func GetNics(c cirrina.VMInfoClient, ctx context.Context) {
 		fmt.Printf("nic: name: %v\n", nic.InterfaceName)
 	}
 }
+
+func GetHostVersion(c cirrina.VMInfoClient, ctx context.Context) {
+	res, err := rpc.GetHostVersion(c, ctx)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	fmt.Printf("version: %s\n", res)
+}

@@ -78,7 +78,7 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 	if err != nil {
 		slog.Error("UploadIso", "msg", "cannot receive image info")
 	}
-	isoUploadReq := req.GetISOUploadInfo()
+	isoUploadReq := req.GetIsouploadinfo()
 	isoId := isoUploadReq.Isoid
 
 	isoUuid, err := uuid.Parse(isoId.Value)

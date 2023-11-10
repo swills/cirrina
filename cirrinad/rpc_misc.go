@@ -9,6 +9,8 @@ import (
 	"errors"
 	"github.com/google/uuid"
 	"golang.org/x/exp/slog"
+	"google.golang.org/protobuf/types/known/emptypb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrina.ReqStatus, error) {
@@ -67,4 +69,9 @@ func (s *server) GetNetInterfaces(_ *cirrina.NetInterfacesReq, st cirrina.VMInfo
 	}
 
 	return nil
+}
+
+func (s *server) GetVersion(context.Context, *emptypb.Empty) (*wrapperspb.StringValue, error) {
+	r := wrapperspb.String(mainVersion)
+	return r, nil
 }

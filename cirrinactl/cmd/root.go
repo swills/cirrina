@@ -54,6 +54,7 @@ func init() {
 	rootCmd.AddCommand(TuiCmd)
 	rootCmd.AddCommand(ReqStatCmd)
 	rootCmd.AddCommand(HostCmd)
+	rootCmd.AddCommand(VersionCmd)
 }
 
 func initConfig() {

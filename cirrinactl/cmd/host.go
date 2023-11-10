@@ -24,6 +24,22 @@ var HostNicsCmd = &cobra.Command{
 	},
 }
 
+var HostVersionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Get host daemon version",
+	Run: func(cmd *cobra.Command, args []string) {
+		conn, c, ctx, cancel, err := rpc.SetupConn()
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer func(conn *grpc.ClientConn) {
+			_ = conn.Close()
+		}(conn)
+		defer cancel()
+		util.GetHostVersion(c, ctx)
+	},
+}
+
 var HostCmd = &cobra.Command{
 	Use:   "host",
 	Short: "Commands related to VM server host",
@@ -31,4 +47,5 @@ var HostCmd = &cobra.Command{
 
 func init() {
 	HostCmd.AddCommand(HostNicsCmd)
+	HostCmd.AddCommand(HostVersionCmd)
 }

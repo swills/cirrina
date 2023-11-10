@@ -11,6 +11,8 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -28,6 +30,7 @@ const (
 	VMInfo_StopVM_FullMethodName             = "/cirrina.VMInfo/StopVM"
 	VMInfo_DeleteVM_FullMethodName           = "/cirrina.VMInfo/DeleteVM"
 	VMInfo_ClearUEFIState_FullMethodName     = "/cirrina.VMInfo/ClearUEFIState"
+	VMInfo_GetVersion_FullMethodName         = "/cirrina.VMInfo/GetVersion"
 	VMInfo_GetNetInterfaces_FullMethodName   = "/cirrina.VMInfo/GetNetInterfaces"
 	VMInfo_RequestStatus_FullMethodName      = "/cirrina.VMInfo/RequestStatus"
 	VMInfo_GetKeyboardLayouts_FullMethodName = "/cirrina.VMInfo/GetKeyboardLayouts"
@@ -80,6 +83,7 @@ type VMInfoClient interface {
 	StopVM(ctx context.Context, in *VMID, opts ...grpc.CallOption) (*RequestID, error)
 	DeleteVM(ctx context.Context, in *VMID, opts ...grpc.CallOption) (*RequestID, error)
 	ClearUEFIState(ctx context.Context, in *VMID, opts ...grpc.CallOption) (*ReqBool, error)
+	GetVersion(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*wrapperspb.StringValue, error)
 	GetNetInterfaces(ctx context.Context, in *NetInterfacesReq, opts ...grpc.CallOption) (VMInfo_GetNetInterfacesClient, error)
 	RequestStatus(ctx context.Context, in *RequestID, opts ...grpc.CallOption) (*ReqStatus, error)
 	GetKeyboardLayouts(ctx context.Context, in *KbdQuery, opts ...grpc.CallOption) (VMInfo_GetKeyboardLayoutsClient, error)
@@ -225,6 +229,15 @@ func (c *vMInfoClient) DeleteVM(ctx context.Context, in *VMID, opts ...grpc.Call
 func (c *vMInfoClient) ClearUEFIState(ctx context.Context, in *VMID, opts ...grpc.CallOption) (*ReqBool, error) {
 	out := new(ReqBool)
 	err := c.cc.Invoke(ctx, VMInfo_ClearUEFIState_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vMInfoClient) GetVersion(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*wrapperspb.StringValue, error) {
+	out := new(wrapperspb.StringValue)
+	err := c.cc.Invoke(ctx, VMInfo_GetVersion_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -897,6 +910,7 @@ type VMInfoServer interface {
 	StopVM(context.Context, *VMID) (*RequestID, error)
 	DeleteVM(context.Context, *VMID) (*RequestID, error)
 	ClearUEFIState(context.Context, *VMID) (*ReqBool, error)
+	GetVersion(context.Context, *emptypb.Empty) (*wrapperspb.StringValue, error)
 	GetNetInterfaces(*NetInterfacesReq, VMInfo_GetNetInterfacesServer) error
 	RequestStatus(context.Context, *RequestID) (*ReqStatus, error)
 	GetKeyboardLayouts(*KbdQuery, VMInfo_GetKeyboardLayoutsServer) error
@@ -967,6 +981,9 @@ func (UnimplementedVMInfoServer) DeleteVM(context.Context, *VMID) (*RequestID, e
 }
 func (UnimplementedVMInfoServer) ClearUEFIState(context.Context, *VMID) (*ReqBool, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ClearUEFIState not implemented")
+}
+func (UnimplementedVMInfoServer) GetVersion(context.Context, *emptypb.Empty) (*wrapperspb.StringValue, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetVersion not implemented")
 }
 func (UnimplementedVMInfoServer) GetNetInterfaces(*NetInterfacesReq, VMInfo_GetNetInterfacesServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetNetInterfaces not implemented")
@@ -1253,6 +1270,24 @@ func _VMInfo_ClearUEFIState_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(VMInfoServer).ClearUEFIState(ctx, req.(*VMID))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VMInfo_GetVersion_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).GetVersion(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_GetVersion_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).GetVersion(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2028,6 +2063,10 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ClearUEFIState",
 			Handler:    _VMInfo_ClearUEFIState_Handler,
+		},
+		{
+			MethodName: "GetVersion",
+			Handler:    _VMInfo_GetVersion_Handler,
 		},
 		{
 			MethodName: "RequestStatus",
