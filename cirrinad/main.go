@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"cirrina/cirrinad/requests"
 	"errors"
@@ -557,6 +558,62 @@ func validateZpoolConf() {
 		slog.Error("zpool not available, please fix or reconfigure", "exitCode", exitCode)
 		os.Exit(1)
 	}
+
+	if config.Config.Disk.VM.Path.Zpool == "" {
+		return
+	}
+
+	var rawCapacity string
+	cmd := exec.Command("/sbin/zpool", "list", "-H", config.Config.Disk.VM.Path.Zpool)
+	defer func(cmd *exec.Cmd) {
+		err := cmd.Wait()
+		if err != nil {
+			slog.Error("error checking zpool", "err", err)
+			os.Exit(1)
+		}
+	}(cmd)
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		slog.Error("error checking zpool", "err", err)
+		os.Exit(1)
+	}
+	if err := cmd.Start(); err != nil {
+		slog.Error("error checking zpool", "err", err)
+		os.Exit(1)
+	}
+	scanner := bufio.NewScanner(stdout)
+	for scanner.Scan() {
+		text := scanner.Text()
+		textFields := strings.Fields(text)
+		if len(textFields) != 11 {
+			continue
+		}
+		if !strings.HasSuffix(textFields[7], "%") {
+			continue
+		}
+		rawCapacity = strings.TrimSuffix(textFields[7], "%")
+	}
+	if err := scanner.Err(); err != nil {
+		slog.Error("error checking zpool", "err", err)
+		os.Exit(1)
+	}
+	capacity, err := strconv.Atoi(rawCapacity)
+	if err != nil {
+		slog.Error("error checking zpool", "err", err)
+		os.Exit(1)
+	}
+	if capacity > 99 {
+		slog.Error("zpool at critical usage, refusing to run", "capacity", capacity)
+		os.Exit(1)
+	} else if capacity > 95 {
+		slog.Warn("zpool at very high usage, be careful", "capacity", capacity)
+	} else if capacity > 90 {
+		slog.Warn("zpool at high usage, be careful", "capacity", capacity)
+	} else if capacity > 80 {
+		slog.Warn("zpool nearing high usage, consider reducing usage", "capacity", capacity)
+	} else {
+		slog.Debug("zpool usage OK", "capacity", capacity)
+	}
 }
 
 func validateNetworkConf() {
@@ -937,20 +994,15 @@ func main() {
 	slog.SetDefault(logger)
 	switch strings.ToLower(config.Config.Log.Level) {
 	case "debug":
-		slog.Info("log level set to debug")
 		programLevel.Set(slog.LevelDebug)
 	case "info":
-		slog.Info("log level set to info")
 		programLevel.Set(slog.LevelInfo)
 	case "warn":
-		slog.Info("log level set to debug")
 		programLevel.Set(slog.LevelWarn)
 	case "error":
-		slog.Info("log level set to debug")
 		programLevel.Set(slog.LevelError)
 	default:
 		programLevel.Set(slog.LevelInfo)
-		slog.Info("log level not set or un-parseable, setting to info")
 	}
 
 	slog.Debug("Starting host validation")

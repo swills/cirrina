@@ -10,6 +10,7 @@ import (
 	"golang.org/x/exp/slog"
 	"gorm.io/gorm"
 	"os"
+	"strings"
 	"sync"
 	"time"
 )
@@ -180,15 +181,17 @@ func InitOneVm(vmInst *VM) {
 
 	vmInst.log = *vmLogger
 
-	if config.Config.Log.Level == "info" {
-		vmInst.log.Info("log level set to info")
-		programLevel.Set(slog.LevelInfo)
-	} else if config.Config.Log.Level == "debug" {
-		vmInst.log.Info("log level set to debug")
+	switch strings.ToLower(config.Config.Log.Level) {
+	case "debug":
 		programLevel.Set(slog.LevelDebug)
-	} else {
+	case "info":
 		programLevel.Set(slog.LevelInfo)
-		vmInst.log.Info("log level not set or un-parseable, setting to info")
+	case "warn":
+		programLevel.Set(slog.LevelWarn)
+	case "error":
+		programLevel.Set(slog.LevelError)
+	default:
+		programLevel.Set(slog.LevelInfo)
 	}
 
 	List.VmList[vmInst.ID] = vmInst
