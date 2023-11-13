@@ -195,7 +195,6 @@ func InitOneVm(vmInst *VM) {
 	}
 
 	List.VmList[vmInst.ID] = vmInst
-	vmInst.log.Debug("vm init", "id", vmInst.ID, "isos", vmInst.Config.ISOs, "disks", vmInst.Config.Disks)
 }
 
 func AutoStartVMs() {
