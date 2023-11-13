@@ -456,7 +456,7 @@ func GetMac(thisNic *vm_nics.VmNic, vm *VM) string {
 		slog.Debug("getNetArg", "h1", h1)
 		mac := string(h1[0]) + string(h1[1]) + ":" +
 			string(h1[2]) + string(h1[3]) + ":" +
-			string(h1[3]) + string(h1[4])
+			string(h1[4]) + string(h1[5])
 		slog.Debug("getNetArg", "mac", mac)
 		macAddress = config.Config.Network.Mac.Oui + ":" + mac
 	} else {
