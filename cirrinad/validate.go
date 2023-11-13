@@ -773,6 +773,37 @@ func validateSysctls() {
 		slog.Error("Unable to run with other UIDs are not visible")
 		os.Exit(1)
 	}
+
+	outBytes.Reset()
+	errBytes.Reset()
+	exitCode = 0
+	checkCmd = execabs.Command("/sbin/sysctl", "-n", "kern.securelevel")
+	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
+	checkCmd.Stdout = &outBytes
+	checkCmd.Stderr = &errBytes
+	err = checkCmd.Run()
+	if err != nil {
+		if errors.As(err, &exitErr) {
+			exitCode = exitErr.ExitCode()
+		} else {
+			exitCode = -1
+		}
+	}
+	if exitCode != 0 {
+		slog.Error("Failed checking sysctl secureLevel")
+		os.Exit(1)
+	}
+	secureLevelStr := strings.TrimSpace(outBytes.String())
+	slog.Debug("validateSysctls", "secureLevelStr", secureLevelStr)
+	secureLevel, err := strconv.ParseInt(secureLevelStr, 10, 8)
+	if err != nil {
+		slog.Error("Failed checking sysctl secureLevel")
+		os.Exit(1)
+	}
+	if secureLevel > 0 {
+		slog.Error("Unable to run with kern.securelevel > 0")
+		os.Exit(1)
+	}
 }
 
 func validateMyId() {
