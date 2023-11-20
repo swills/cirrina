@@ -71,7 +71,6 @@ func (s *server) GetNetInterfaces(_ *cirrina.NetInterfacesReq, st cirrina.VMInfo
 	return nil
 }
 
-func (s *server) GetVersion(context.Context, *emptypb.Empty) (*wrapperspb.StringValue, error) {
-	r := wrapperspb.String(mainVersion)
-	return r, nil
+func (s *server) GetVersion(_ context.Context, _ *emptypb.Empty) (_ *wrapperspb.StringValue, _ error) {
+	return wrapperspb.String(mainVersion), nil
 }
