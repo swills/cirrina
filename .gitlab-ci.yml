@@ -1,4 +1,5 @@
 qodana:
+  when: manual
   only:
     - main
     - merge_requests
