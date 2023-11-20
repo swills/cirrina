@@ -1,7 +1,6 @@
 package util
 
 import (
-	"flag"
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/jedib0t/go-pretty/text"
 )
@@ -24,14 +23,4 @@ var myTableStyle = table.Style{
 		SeparateHeader:  false,
 		SeparateRows:    false,
 	},
-}
-
-func isFlagPassed(name string) bool {
-	found := false
-	flag.Visit(func(fflag *flag.Flag) {
-		if fflag.Name == name {
-			found = true
-		}
-	})
-	return found
 }

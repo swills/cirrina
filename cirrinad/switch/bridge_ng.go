@@ -212,13 +212,14 @@ func actualNgBridgeCreate(netDev string) error {
 		slog.Error("ngctl name err", "err", err)
 		return err
 	}
-	useUplink := true
-	var upper string
-	if useUplink {
-		upper = "uplink"
-	} else {
-		upper = "link"
-	}
+	//useUplink := true
+	//var upper string
+	upper := "uplink"
+	//if useUplink {
+	//	upper = "uplink"
+	//} else {
+	//	upper = "link"
+	//}
 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "connect",
 		dummyIfBridgeName+":", netDev+":", "upper", upper+"1")
 	err = cmd.Run()

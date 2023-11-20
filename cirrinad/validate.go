@@ -28,7 +28,6 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 	var emptyBytes []byte
 	var outBytes bytes.Buffer
 	var errBytes bytes.Buffer
-	var exitErr *execabs.ExitError
 	var exitCode int
 	var c []string
 
@@ -41,11 +40,7 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 	checkCmd.Stderr = &errBytes
 	err = checkCmd.Run()
 	if err != nil {
-		if errors.As(err, &exitErr) {
-			exitCode = exitErr.ExitCode()
-		} else {
-			exitCode = -1
-		}
+		exitCode = checkCmd.ProcessState.ExitCode()
 	}
 
 	if exitCode != expectedExit {
@@ -138,7 +133,6 @@ func validateVirt() {
 	var emptyBytes []byte
 	var outBytes bytes.Buffer
 	var errBytes bytes.Buffer
-	var exitErr *execabs.ExitError
 	var exitCode int
 
 	checkCmd := execabs.Command("/sbin/sysctl", "-n", "hw.hv_vendor")
@@ -146,20 +140,15 @@ func validateVirt() {
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
-	hvVendor := strings.TrimSpace(outBytes.String())
-	slog.Debug("validateVirt", "hvVendor", hvVendor)
 	if err != nil {
-		if errors.As(err, &exitErr) {
-			exitCode = exitErr.ExitCode()
-		} else {
-			exitCode = -1
-		}
+		exitCode = checkCmd.ProcessState.ExitCode()
 	}
 	if exitCode != 0 {
-		slog.Error("Failed checking hypervisor")
+		slog.Error("Failed checking hypervisor", "exitCode", exitCode)
 		fmt.Print("Failed checking hypervisor\n")
 		os.Exit(1)
 	}
+	hvVendor := strings.TrimSpace(outBytes.String())
 	if hvVendor != "" {
 		slog.Error("Refusing to run inside virtualized environment", "hvVendor", hvVendor)
 		os.Exit(1)
@@ -170,7 +159,6 @@ func validateJailed() {
 	var emptyBytes []byte
 	var outBytes bytes.Buffer
 	var errBytes bytes.Buffer
-	var exitErr *execabs.ExitError
 	var exitCode int
 
 	checkCmd := execabs.Command("/sbin/sysctl", "-n", "security.jail.jailed")
@@ -181,11 +169,7 @@ func validateJailed() {
 	jailed := strings.TrimSpace(outBytes.String())
 	slog.Debug("validateJailed", "jailed", jailed)
 	if err != nil {
-		if errors.As(err, &exitErr) {
-			exitCode = exitErr.ExitCode()
-		} else {
-			exitCode = -1
-		}
+		exitCode = checkCmd.ProcessState.ExitCode()
 	}
 	if exitCode != 0 {
 		slog.Error("Failed checking jail")
@@ -371,7 +355,6 @@ func validateZpoolConf() {
 	var emptyBytes []byte
 	var outBytes bytes.Buffer
 	var errBytes bytes.Buffer
-	var exitErr *execabs.ExitError
 	var exitCode int
 
 	checkCmd := execabs.Command("/sbin/zpool", "status", config.Config.Disk.VM.Path.Zpool)
@@ -380,11 +363,7 @@ func validateZpoolConf() {
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
 	if err != nil {
-		if errors.As(err, &exitErr) {
-			exitCode = exitErr.ExitCode()
-		} else {
-			exitCode = -1
-		}
+		exitCode = checkCmd.ProcessState.ExitCode()
 	}
 	if exitCode != 0 {
 		slog.Error("zpool not available, please fix or reconfigure", "exitCode", exitCode)
@@ -722,7 +701,6 @@ func validateSysctls() {
 	var emptyBytes []byte
 	var outBytes bytes.Buffer
 	var errBytes bytes.Buffer
-	var exitErr *execabs.ExitError
 	var exitCode int
 
 	checkCmd := execabs.Command("/sbin/sysctl", "-n", "security.bsd.see_other_gids")
@@ -733,11 +711,7 @@ func validateSysctls() {
 	seeOtherGids := strings.TrimSpace(outBytes.String())
 	slog.Debug("validateSysctls", "seeOtherGids", seeOtherGids)
 	if err != nil {
-		if errors.As(err, &exitErr) {
-			exitCode = exitErr.ExitCode()
-		} else {
-			exitCode = -1
-		}
+		exitCode = checkCmd.ProcessState.ExitCode()
 	}
 	if exitCode != 0 {
 		slog.Error("Failed checking sysctl seeOtherGids")
@@ -759,11 +733,7 @@ func validateSysctls() {
 	seeOtherUids := strings.TrimSpace(outBytes.String())
 	slog.Debug("validateSysctls", "seeOtherUids", seeOtherUids)
 	if err != nil {
-		if errors.As(err, &exitErr) {
-			exitCode = exitErr.ExitCode()
-		} else {
-			exitCode = -1
-		}
+		exitCode = checkCmd.ProcessState.ExitCode()
 	}
 	if exitCode != 0 {
 		slog.Error("Failed checking sysctl seeOtherUids")
@@ -783,11 +753,7 @@ func validateSysctls() {
 	checkCmd.Stderr = &errBytes
 	err = checkCmd.Run()
 	if err != nil {
-		if errors.As(err, &exitErr) {
-			exitCode = exitErr.ExitCode()
-		} else {
-			exitCode = -1
-		}
+		exitCode = checkCmd.ProcessState.ExitCode()
 	}
 	if exitCode != 0 {
 		slog.Error("Failed checking sysctl secureLevel")

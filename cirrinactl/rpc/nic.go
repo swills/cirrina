@@ -67,14 +67,14 @@ func NicNameToId(namePtr *string, c cirrina.VMInfoClient, ctx context.Context) (
 	return nicId, nil
 }
 
-func NicIdToName(s string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
-	res, err := c.GetVmNicInfo(ctx, &cirrina.VmNicId{Value: s})
-	print("")
-	if err != nil {
-		return "", err
-	}
-	return *res.Name, nil
-}
+//func NicIdToName(s string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
+//	res, err := c.GetVmNicInfo(ctx, &cirrina.VmNicId{Value: s})
+//	print("")
+//	if err != nil {
+//		return "", err
+//	}
+//	return *res.Name, nil
+//}
 
 func GetVmNicOne(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
 	var rv string

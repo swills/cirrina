@@ -12,7 +12,6 @@ import (
 var ServerName string
 var ServerPort uint16
 var ServerTimeout uint64
-var ServerTimeoutDur time.Duration
 
 func SetupConn() (*grpc.ClientConn, cirrina.VMInfoClient, context.Context, context.CancelFunc, error) {
 	serverAddr := ServerName + ":" + strconv.FormatInt(int64(ServerPort), 10)

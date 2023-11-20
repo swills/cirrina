@@ -74,14 +74,14 @@ func RmVmNic(name *string, c cirrina.VMInfoClient, ctx context.Context) {
 	}
 }
 
-func GetVmNicsOne(c cirrina.VMInfoClient, ctx context.Context, idPtr *string) {
-	res, err := rpc.GetVmNicOne(idPtr, c, ctx)
-	if err != nil {
-		log.Fatalf("could not get Nic: %v", err)
-		return
-	}
-	fmt.Printf("VmNic: id: %v\n", res)
-}
+//func GetVmNicsOne(c cirrina.VMInfoClient, ctx context.Context, idPtr *string) {
+//	res, err := rpc.GetVmNicOne(idPtr, c, ctx)
+//	if err != nil {
+//		log.Fatalf("could not get Nic: %v", err)
+//		return
+//	}
+//	fmt.Printf("VmNic: id: %v\n", res)
+//}
 
 func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context, useHumanize bool) {
 	res, err := rpc.GetVmNicsAll(c, ctx)
@@ -205,54 +205,54 @@ func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context, useHumanize bool)
 	t.Render()
 }
 
-func GetVmNic(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
-	var netTypeString string
-	var netDevTypeString string
-	var descriptionStr string
-
-	if *idPtr == "" {
-		log.Fatalf("ID not specified")
-		return
-	}
-	res, err := rpc.GetVmNicInfo(idPtr, c, ctx)
-	if err != nil {
-		log.Fatalf("could not get VM: %v", err)
-	}
-
-	if res.Description != nil {
-		descriptionStr = *res.Description
-	}
-
-	if *res.Nettype == cirrina.NetType_VIRTIONET {
-		netTypeString = "VirtioNet"
-	} else if *res.Nettype == cirrina.NetType_E1000 {
-		netTypeString = "E1000"
-	}
-
-	if *res.Netdevtype == cirrina.NetDevType_TAP {
-		netDevTypeString = "TAP"
-	} else if *res.Netdevtype == cirrina.NetDevType_VMNET {
-		netDevTypeString = "VMNet"
-	} else if *res.Netdevtype == cirrina.NetDevType_NETGRAPH {
-		netDevTypeString = "Netgraph"
-	}
-
-	fmt.Printf(
-		"name: %v "+
-			"desc: %v "+
-			"Mac: %v "+
-			"Net_type: %v "+
-			"Net_dev_type: %v "+
-			"switch_id: %v "+
-			"\n",
-		*res.Name,
-		descriptionStr,
-		*res.Mac,
-		netTypeString,
-		netDevTypeString,
-		*res.Switchid,
-	)
-}
+//func GetVmNic(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) {
+//	var netTypeString string
+//	var netDevTypeString string
+//	var descriptionStr string
+//
+//	if *idPtr == "" {
+//		log.Fatalf("ID not specified")
+//		return
+//	}
+//	res, err := rpc.GetVmNicInfo(idPtr, c, ctx)
+//	if err != nil {
+//		log.Fatalf("could not get VM: %v", err)
+//	}
+//
+//	if res.Description != nil {
+//		descriptionStr = *res.Description
+//	}
+//
+//	if *res.Nettype == cirrina.NetType_VIRTIONET {
+//		netTypeString = "VirtioNet"
+//	} else if *res.Nettype == cirrina.NetType_E1000 {
+//		netTypeString = "E1000"
+//	}
+//
+//	if *res.Netdevtype == cirrina.NetDevType_TAP {
+//		netDevTypeString = "TAP"
+//	} else if *res.Netdevtype == cirrina.NetDevType_VMNET {
+//		netDevTypeString = "VMNet"
+//	} else if *res.Netdevtype == cirrina.NetDevType_NETGRAPH {
+//		netDevTypeString = "Netgraph"
+//	}
+//
+//	fmt.Printf(
+//		"name: %v "+
+//			"desc: %v "+
+//			"Mac: %v "+
+//			"Net_type: %v "+
+//			"Net_dev_type: %v "+
+//			"switch_id: %v "+
+//			"\n",
+//		*res.Name,
+//		descriptionStr,
+//		*res.Mac,
+//		netTypeString,
+//		netDevTypeString,
+//		*res.Switchid,
+//	)
+//}
 
 func NicSetSwitch(nicId string, switchId string, c cirrina.VMInfoClient, ctx context.Context) {
 	res, err := rpc.SetVmNicSwitch(c, ctx, nicId, switchId)
