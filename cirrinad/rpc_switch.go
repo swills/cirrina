@@ -263,7 +263,7 @@ func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq)
 	return &r, nil
 }
 
-func (s *server) SetSwitchInfo(c context.Context, siu *cirrina.SwitchInfoUpdate) (*cirrina.ReqBool, error) {
+func (s *server) SetSwitchInfo(_ context.Context, siu *cirrina.SwitchInfoUpdate) (*cirrina.ReqBool, error) {
 	var re cirrina.ReqBool
 	re.Success = false
 

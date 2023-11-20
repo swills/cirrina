@@ -324,7 +324,7 @@ func (s *server) GetVmNicVm(_ context.Context, i *cirrina.VmNicId) (v *cirrina.V
 	return &pvmId, nil
 }
 
-func (s *server) UpdateVmNic(context.Context, *cirrina.VmNicInfoUpdate) (*cirrina.ReqBool, error) {
+func (s *server) UpdateVmNic(_ context.Context, _ *cirrina.VmNicInfoUpdate) (_ *cirrina.ReqBool, _ error) {
 	var re cirrina.ReqBool
 	re.Success = false
 	return &re, errors.New("not implemented yet")
