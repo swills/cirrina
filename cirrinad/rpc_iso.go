@@ -143,12 +143,16 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 		_, err = isoFileBuffer.Write(chunk)
 		if err != nil {
 			slog.Error("UploadIso", "err", err)
-			return errors.New("failed writing image data")
+			return errors.New("failed writing iso image data")
 		}
 		hasher.Write(chunk)
 	}
 	// flush buffer
-	isoFileBuffer.Flush()
+	err = isoFileBuffer.Flush()
+	if err != nil {
+		slog.Error("UploadIso cannot send response", "err", err)
+		return errors.New("failed flushing iso image data")
+	}
 
 	// verify size
 	if imageSize != isoUploadReq.Size {
