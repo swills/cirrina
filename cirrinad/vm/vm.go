@@ -16,7 +16,6 @@ import (
 	"github.com/tarm/serial"
 	"golang.org/x/exp/slog"
 	exec "golang.org/x/sys/execabs"
-	"gorm.io/gorm"
 	"io"
 	"os"
 	"strconv"
@@ -24,11 +23,6 @@ import (
 	"sync"
 	"time"
 )
-
-func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
-	vm.ID = uuid.NewString()
-	return nil
-}
 
 func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, err error) {
 	var vmInst *VM

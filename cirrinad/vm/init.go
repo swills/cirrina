@@ -5,6 +5,7 @@ import (
 	"cirrina/cirrinad/util"
 	"database/sql"
 	"errors"
+	"github.com/google/uuid"
 	"github.com/kontera-technologies/go-supervisor/v2"
 	"github.com/tarm/serial"
 	"golang.org/x/exp/slog"
@@ -131,6 +132,11 @@ type ListType struct {
 
 var List = &ListType{
 	VmList: make(map[string]*VM),
+}
+
+func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
+	vm.ID = uuid.NewString()
+	return nil
 }
 
 func GetVmLogPath(logpath string) error {
