@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/google/uuid"
+	"golang.org/x/exp/slog"
 	"gorm.io/gorm"
 	"time"
 )
@@ -28,6 +29,11 @@ type Request struct {
 
 func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {
 	req.ID = uuid.NewString()
+	_, err = uuid.Parse(req.VmId)
+	if err != nil {
+		slog.Debug("request.BeforeCreate failed parsing VmId", "VmId", req.VmId)
+		return err
+	}
 	return nil
 }
 
