@@ -97,7 +97,7 @@ func main() {
 		return
 	}
 	programLevel := new(slog.LevelVar) // Info by default
-	logger := slog.New(slog.HandlerOptions{Level: programLevel}.NewTextHandler(logFile))
+	logger := slog.New(slog.NewTextHandler(logFile, &slog.HandlerOptions{Level: programLevel}))
 	slog.SetDefault(logger)
 	switch strings.ToLower(config.Config.Log.Level) {
 	case "debug":

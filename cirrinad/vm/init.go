@@ -177,7 +177,7 @@ func InitOneVm(vmInst *VM) {
 		slog.Error("failed to open VM log file", "err", err)
 	}
 	var programLevel = new(slog.LevelVar) // Info by default
-	vmLogger := slog.New(slog.HandlerOptions{Level: programLevel}.NewTextHandler(vmLogFile))
+	vmLogger := slog.New(slog.NewTextHandler(vmLogFile, &slog.HandlerOptions{Level: programLevel}))
 
 	vmInst.log = *vmLogger
 
