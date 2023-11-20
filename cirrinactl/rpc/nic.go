@@ -76,30 +76,30 @@ func NicNameToId(namePtr *string, c cirrina.VMInfoClient, ctx context.Context) (
 //	return *res.Name, nil
 //}
 
-func GetVmNicOne(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
-	var rv string
-	res, err := c.GetVmNics(ctx, &cirrina.VMID{Value: *idPtr})
-	if err != nil {
-		return "", err
-	}
-	found := false
-	for {
-		VMNicId, err := res.Recv()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return "", err
-		}
-		if found {
-			return "", errors.New("duplicate nic")
-		} else {
-			found = true
-			rv = VMNicId.Value
-		}
-	}
-	return rv, nil
-}
+//func GetVmNicOne(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
+//	var rv string
+//	res, err := c.GetVmNics(ctx, &cirrina.VMID{Value: *idPtr})
+//	if err != nil {
+//		return "", err
+//	}
+//	found := false
+//	for {
+//		VMNicId, err := res.Recv()
+//		if err == io.EOF {
+//			break
+//		}
+//		if err != nil {
+//			return "", err
+//		}
+//		if found {
+//			return "", errors.New("duplicate nic")
+//		} else {
+//			found = true
+//			rv = VMNicId.Value
+//		}
+//	}
+//	return rv, nil
+//}
 
 func GetVmNicsAll(c cirrina.VMInfoClient, ctx context.Context) ([]string, error) {
 	var rv []string
