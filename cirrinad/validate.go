@@ -16,6 +16,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -40,24 +41,26 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 	checkCmd.Stderr = &errBytes
 	err = checkCmd.Run()
 	if err != nil {
-		exitCode = checkCmd.ProcessState.ExitCode()
+		errType := reflect.TypeOf(err)
+		exitErrType := reflect.TypeOf(&execabs.ExitError{})
+		if errType != exitErrType {
+			slog.Debug("checkSudoCmd failed starting command", "command", checkCmd.String(), "err", err.Error())
+			return err
+		}
 	}
-
+	exitCode = checkCmd.ProcessState.ExitCode()
 	if exitCode != expectedExit {
 		slog.Debug("exitCode mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
 		return errors.New("exitCode mismatch running command")
 	}
-
 	if !strings.HasPrefix(outBytes.String(), expectedStdOut) {
 		slog.Debug("stdout prefix mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
 		return errors.New("stdout prefix mismatch running command")
 	}
-
 	if !strings.HasPrefix(errBytes.String(), expectedStdErr) {
 		slog.Debug("stderr prefix mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
 		return errors.New("stderr prefix mismatch running command")
 	}
-
 	return nil
 }
 
@@ -133,7 +136,6 @@ func validateVirt() {
 	var emptyBytes []byte
 	var outBytes bytes.Buffer
 	var errBytes bytes.Buffer
-	var exitCode int
 
 	checkCmd := execabs.Command("/sbin/sysctl", "-n", "hw.hv_vendor")
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
@@ -141,11 +143,7 @@ func validateVirt() {
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
 	if err != nil {
-		exitCode = checkCmd.ProcessState.ExitCode()
-	}
-	if exitCode != 0 {
-		slog.Error("Failed checking hypervisor", "exitCode", exitCode)
-		fmt.Print("Failed checking hypervisor\n")
+		slog.Error("Failed checking hypervisor", "command", checkCmd.String(), "err", err.Error())
 		os.Exit(1)
 	}
 	hvVendor := strings.TrimSpace(outBytes.String())
@@ -159,23 +157,18 @@ func validateJailed() {
 	var emptyBytes []byte
 	var outBytes bytes.Buffer
 	var errBytes bytes.Buffer
-	var exitCode int
 
 	checkCmd := execabs.Command("/sbin/sysctl", "-n", "security.jail.jailed")
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
-	jailed := strings.TrimSpace(outBytes.String())
-	slog.Debug("validateJailed", "jailed", jailed)
 	if err != nil {
-		exitCode = checkCmd.ProcessState.ExitCode()
-	}
-	if exitCode != 0 {
-		slog.Error("Failed checking jail")
-		fmt.Print("Failed checking jail\n")
+		slog.Error("Failed checking jail status", "command", checkCmd.String(), "err", err.Error())
 		os.Exit(1)
 	}
+	jailed := strings.TrimSpace(outBytes.String())
+	slog.Debug("validateJailed", "jailed", jailed)
 	if jailed != "0" {
 		slog.Error("Refusing to run inside jailed environment")
 		os.Exit(1)
@@ -187,31 +180,31 @@ func validateSudoCommands() {
 
 	err = checkSudoCmd(0, "", "", "/sbin/ifconfig")
 	if err != nil {
-		slog.Error("error running /sbin/ifconfig, check sudo config")
+		slog.Error("error running /sbin/ifconfig, check sudo config", "err", err.Error())
 		os.Exit(1)
 	}
 
 	err = checkSudoCmd(0, "", "", "/sbin/zfs", "-V")
 	if err != nil {
-		slog.Error("error running /sbin/zfs, check sudo config")
+		slog.Error("error running /sbin/zfs, check sudo config", "err", err.Error())
 		os.Exit(1)
 	}
 
 	err = checkSudoCmd(0, "", "", "/usr/bin/nice", "/bin/echo", "-n")
 	if err != nil {
-		slog.Error("error running /usr/bin/nice, check sudo config")
+		slog.Error("error running /usr/bin/nice, check sudo config", "err", err.Error())
 		os.Exit(1)
 	}
 
 	err = checkSudoCmd(0, "", "", "/usr/bin/protect", "/bin/echo", "-n")
 	if err != nil {
-		slog.Error("error running /usr/bin/protect, check sudo config")
+		slog.Error("error running /usr/bin/protect, check sudo config", "err", err.Error())
 		os.Exit(1)
 	}
 
 	err = checkSudoCmd(0, "", "", "/usr/bin/rctl")
 	if err != nil {
-		slog.Error("error running /usr/bin/rctl, check sudo config")
+		slog.Error("error running /usr/bin/rctl, check sudo config", "err", err.Error())
 		os.Exit(1)
 	}
 
@@ -223,31 +216,31 @@ func validateSudoCommands() {
 	slog.Debug("Checking tmp file", "name", name)
 	err = checkSudoCmd(0, "", "", "/usr/bin/truncate", "-c", "-s", "1", name)
 	if err != nil {
-		slog.Error("error running /usr/bin/truncate, check sudo config")
+		slog.Error("error running /usr/bin/truncate, check sudo config", "err", err.Error())
 		os.Exit(1)
 	}
 
 	err = checkSudoCmd(0, "", "", "/usr/sbin/bhyve", "-h")
 	if err != nil {
-		slog.Error("error running /usr/sbin/bhyve, check sudo config")
+		slog.Error("error running /usr/sbin/bhyve, check sudo config", "err", err.Error())
 		os.Exit(1)
 	}
 
 	err = checkSudoCmd(1, "", "Usage: bhyvectl", "/usr/sbin/bhyvectl")
 	if err != nil {
-		slog.Error("error running /usr/sbin/bhyvectl, check sudo config")
+		slog.Error("error running /usr/sbin/bhyvectl, check sudo config", "err", err.Error())
 		os.Exit(1)
 	}
 
 	err = checkSudoCmd(0, "Available commands:", "", "/usr/sbin/ngctl", "help")
 	if err != nil {
-		slog.Error("error running /usr/sbin/ngctl, check sudo config")
+		slog.Error("error running /usr/sbin/ngctl, check sudo config", "err", err.Error())
 		os.Exit(1)
 	}
 
 	err = checkSudoCmd(0, "1 init", "", "/bin/pgrep", "-a", "-l", "-x", "init")
 	if err != nil {
-		slog.Error("error running /bin/pgrep, check sudo config")
+		slog.Error("error running /bin/pgrep, check sudo config", "err", err.Error())
 		os.Exit(1)
 	}
 }
@@ -355,7 +348,6 @@ func validateZpoolConf() {
 	var emptyBytes []byte
 	var outBytes bytes.Buffer
 	var errBytes bytes.Buffer
-	var exitCode int
 
 	checkCmd := execabs.Command("/sbin/zpool", "status", config.Config.Disk.VM.Path.Zpool)
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
@@ -363,10 +355,7 @@ func validateZpoolConf() {
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
 	if err != nil {
-		exitCode = checkCmd.ProcessState.ExitCode()
-	}
-	if exitCode != 0 {
-		slog.Error("zpool not available, please fix or reconfigure", "exitCode", exitCode)
+		slog.Error("zpool not available, please fix or reconfigure", checkCmd.String(), "err", err.Error())
 		os.Exit(1)
 	}
 
@@ -701,73 +690,58 @@ func validateSysctls() {
 	var emptyBytes []byte
 	var outBytes bytes.Buffer
 	var errBytes bytes.Buffer
-	var exitCode int
 
 	checkCmd := execabs.Command("/sbin/sysctl", "-n", "security.bsd.see_other_gids")
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
-	seeOtherGids := strings.TrimSpace(outBytes.String())
-	slog.Debug("validateSysctls", "seeOtherGids", seeOtherGids)
 	if err != nil {
-		exitCode = checkCmd.ProcessState.ExitCode()
-	}
-	if exitCode != 0 {
-		slog.Error("Failed checking sysctl seeOtherGids")
+		slog.Error("Failed checking sysctl security.bsd.see_other_gids", checkCmd.String(), "err", err.Error())
 		os.Exit(1)
 	}
+	seeOtherGids := strings.TrimSpace(outBytes.String())
 	if seeOtherGids != "1" {
-		slog.Error("Unable to run with other GIDs are not visible")
+		slog.Error("Unable to run with other GIDs not visible", "security.bsd.see_other_gids", seeOtherGids)
 		os.Exit(1)
 	}
 
 	outBytes.Reset()
 	errBytes.Reset()
-	exitCode = 0
 	checkCmd = execabs.Command("/sbin/sysctl", "-n", "security.bsd.see_other_uids")
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
 	err = checkCmd.Run()
-	seeOtherUids := strings.TrimSpace(outBytes.String())
-	slog.Debug("validateSysctls", "seeOtherUids", seeOtherUids)
 	if err != nil {
-		exitCode = checkCmd.ProcessState.ExitCode()
-	}
-	if exitCode != 0 {
-		slog.Error("Failed checking sysctl seeOtherUids")
+		slog.Error("Failed checking sysctl security.bsd.see_other_uids", "command", checkCmd.String(), "err", err.Error())
 		os.Exit(1)
 	}
-	if exitCode != 0 || seeOtherGids != "1" {
-		slog.Error("Unable to run with other UIDs are not visible")
+	seeOtherUids := strings.TrimSpace(outBytes.String())
+	if seeOtherGids != "1" {
+		slog.Error("Unable to run with other UIDs not visible", "security.bsd.see_other_uids", seeOtherUids)
 		os.Exit(1)
 	}
 
 	outBytes.Reset()
 	errBytes.Reset()
-	exitCode = 0
 	checkCmd = execabs.Command("/sbin/sysctl", "-n", "kern.securelevel")
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
 	err = checkCmd.Run()
 	if err != nil {
-		exitCode = checkCmd.ProcessState.ExitCode()
-	}
-	if exitCode != 0 {
-		slog.Error("Failed checking sysctl secureLevel")
+		slog.Error("Failed checking sysctl kern.securelevel", "command", checkCmd.String(), "err", err.Error())
 		os.Exit(1)
 	}
 	secureLevelStr := strings.TrimSpace(outBytes.String())
-	slog.Debug("validateSysctls", "secureLevelStr", secureLevelStr)
-	secureLevel, err := strconv.ParseInt(secureLevelStr, 10, 8)
 	if err != nil {
-		slog.Error("Failed checking sysctl secureLevel")
+		slog.Error("Failed checking sysctl kern.securelevel", "secureLevelStr", secureLevelStr)
 		os.Exit(1)
 	}
+	secureLevel, err := strconv.ParseInt(secureLevelStr, 10, 8)
 	if secureLevel > 0 {
-		slog.Error("Unable to run with kern.securelevel > 0")
+		slog.Error("Unable to run with kern.securelevel > 0", "kern.securelevel", secureLevel)
 		os.Exit(1)
 	}
 }
