@@ -8,8 +8,8 @@ import (
 
 type Disk struct {
 	gorm.Model
-	ID          string `gorm:"uniqueIndex;not null"`
-	Name        string `gorm:"uniqueIndex;not null"`
+	ID          string `gorm:"uniqueIndex;not null;default:null"`
+	Name        string `gorm:"uniqueIndex;not null;default:null"`
 	Description string
 	Path        string       `gorm:"uniqueIndex;not null;default:null"`
 	Type        string       `gorm:"default:NVME;check:type IN (\"NVME\",\"AHCI-HD\",\"VIRTIO-BLK\")"`

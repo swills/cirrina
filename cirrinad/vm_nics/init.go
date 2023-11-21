@@ -7,8 +7,8 @@ import (
 
 type VmNic struct {
 	gorm.Model
-	ID          string `gorm:"uniqueIndex;not null"`
-	Name        string `gorm:"uniqueIndex;not null"`
+	ID          string `gorm:"uniqueIndex;not null;default:null"`
+	Name        string `gorm:"uniqueIndex;not null;default:null"`
 	Description string
 	Mac         string `gorm:"default:AUTO"`
 	NetDev      string

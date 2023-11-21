@@ -19,12 +19,12 @@ const (
 
 type Request struct {
 	gorm.Model
-	ID         string       `gorm:"uniqueIndex;not null"`
+	ID         string       `gorm:"uniqueIndex;not null;default:null"`
 	StartedAt  sql.NullTime `gorm:"index"`
 	Successful bool         `gorm:"default:False;check:successful IN (0,1)"`
 	Complete   bool         `gorm:"default:False;check:complete IN (0,1)"`
 	Type       reqType      `gorm:"type:req_type"`
-	VmId       string
+	VmId       string       `gorm:"not null;default:null"`
 }
 
 func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {

@@ -441,13 +441,13 @@ func ValidateDbConfig() {
 		os.Exit(1)
 	}
 	dbFilePathInfo, err := os.Stat(dbFilePath)
-	if err != nil {
-		slog.Error("database path invalid, please reconfigure")
-		os.Exit(1)
-	}
-	if dbFilePathInfo.IsDir() {
-		slog.Error("database path is a directory, please reconfigure to point to a file", "dbFilePath", dbFilePath)
-		os.Exit(1)
+	// db file will be created if it does not exist
+	if err == nil {
+		// however, if the path specified for the db does exist, it must not be a directory
+		if dbFilePathInfo.IsDir() {
+			slog.Error("database path is a directory, please reconfigure to point to a file", "dbFilePath", dbFilePath)
+			os.Exit(1)
+		}
 	}
 	dbDir := filepath.Dir(config.Config.DB.Path)
 	dbDirInfo, err := os.Stat(dbDir)

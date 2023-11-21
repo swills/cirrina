@@ -40,6 +40,7 @@ func Create(name string, description string) (iso *ISO, err error) {
 	isoInst = &ISO{
 		Name:        name,
 		Description: description,
+		Path:        path,
 	}
 	db := getIsoDb()
 	res := db.Create(&isoInst)

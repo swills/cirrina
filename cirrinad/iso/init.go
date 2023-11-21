@@ -7,10 +7,10 @@ import (
 
 type ISO struct {
 	gorm.Model
-	ID          string `gorm:"uniqueIndex;not null"`
-	Name        string `gorm:"uniqueIndex;not null"`
+	ID          string `gorm:"uniqueIndex;not null;default:null"`
+	Name        string `gorm:"uniqueIndex;not null;default:null"`
 	Description string
-	Path        string `gorm:"not null"`
+	Path        string `gorm:"not null;default:null"`
 	Size        uint64
 	Checksum    string
 }
