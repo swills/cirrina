@@ -3,10 +3,10 @@ package main
 import (
 	"cirrina/cirrina"
 	"cirrina/cirrinad/config"
-	"log/slog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/protobuf/reflect/protoreflect"
+	"log/slog"
 	"net"
 	"strconv"
 )

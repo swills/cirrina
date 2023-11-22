@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/tarm/serial"
-	"log/slog"
 	"io"
+	"log/slog"
 	"os"
 	"strconv"
 )

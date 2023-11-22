@@ -16,7 +16,6 @@ require (
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.17.0
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
-	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
 	golang.org/x/sys v0.14.0
 	golang.org/x/term v0.14.0
 	google.golang.org/grpc v1.59.0
@@ -58,6 +57,7 @@ require (
 	github.com/subosito/gotenv v1.6.0 // indirect
 	go.mongodb.org/mongo-driver v1.11.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
+	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
 	golang.org/x/net v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect

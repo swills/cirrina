@@ -3,8 +3,8 @@ package disk
 import (
 	"bufio"
 	"errors"
-	"log/slog"
 	exec "golang.org/x/sys/execabs"
+	"log/slog"
 	"strconv"
 	"strings"
 )

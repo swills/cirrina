@@ -8,9 +8,9 @@ import (
 	"context"
 	"errors"
 	"github.com/google/uuid"
-	"log/slog"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+	"log/slog"
 )
 
 func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrina.ReqStatus, error) {

@@ -2,11 +2,11 @@ package vm
 
 import (
 	"cirrina/cirrinad/config"
-	"log/slog"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"log"
+	"log/slog"
 	"os"
 	"sync"
 	"time"
