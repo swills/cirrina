@@ -5,7 +5,7 @@ import (
 	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 func Create(name string, description string) (iso *ISO, err error) {

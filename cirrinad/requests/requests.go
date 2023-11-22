@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"github.com/google/uuid"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	"gorm.io/gorm"
 	"time"
 )

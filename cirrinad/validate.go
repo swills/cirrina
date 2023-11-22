@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/hashicorp/go-version"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	"golang.org/x/sys/execabs"
 	"golang.org/x/sys/unix"
 	"io/fs"

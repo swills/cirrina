@@ -6,7 +6,7 @@ import (
 	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	exec "golang.org/x/sys/execabs"
 	"strconv"
 	"strings"

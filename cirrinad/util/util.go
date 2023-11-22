@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	exec "golang.org/x/sys/execabs"
 	"io/fs"
 	"net"

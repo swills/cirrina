@@ -3,7 +3,7 @@ package main
 import (
 	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/vm"
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 func startVM(rs *requests.Request) {

@@ -8,7 +8,7 @@ import (
 	"context"
 	"errors"
 	"github.com/google/uuid"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )

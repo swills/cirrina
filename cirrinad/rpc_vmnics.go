@@ -9,7 +9,7 @@ import (
 	"context"
 	"errors"
 	"github.com/google/uuid"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	"net"
 )
 

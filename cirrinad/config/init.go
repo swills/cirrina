@@ -3,7 +3,7 @@ package config
 import (
 	"flag"
 	"github.com/jinzhu/configor"
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 var configFile = flag.String("config", "config.yml", "Config File")

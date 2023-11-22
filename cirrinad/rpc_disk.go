@@ -15,7 +15,7 @@ import (
 	"cirrina/cirrinad/vm"
 
 	"github.com/google/uuid"
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 func (s *server) GetDisks(_ *cirrina.DisksQuery, stream cirrina.VMInfo_GetDisksServer) error {

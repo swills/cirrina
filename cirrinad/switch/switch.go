@@ -11,7 +11,7 @@ import (
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm_nics"
 
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 func GetById(id string) (s *Switch, err error) {

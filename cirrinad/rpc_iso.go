@@ -13,7 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	"io"
 	"os"
 )

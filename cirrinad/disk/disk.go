@@ -9,7 +9,7 @@ import (
 	exec "golang.org/x/sys/execabs"
 	"strconv"
 
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 func Create(name string, description string, size string, diskType string, diskDevType string, diskCache bool, diskDirect bool) (disk *Disk, err error) {

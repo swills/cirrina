@@ -14,7 +14,7 @@ import (
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm_nics"
 	"github.com/rxwycdh/rxhash"
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 type MacHashData struct {

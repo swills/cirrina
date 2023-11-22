@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/tarm/serial"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	"io"
 	"os"
 	"strconv"

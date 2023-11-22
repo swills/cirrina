@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/kontera-technologies/go-supervisor/v2"
 	"github.com/tarm/serial"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	exec "golang.org/x/sys/execabs"
 	"io"
 	"os"

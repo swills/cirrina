@@ -2,7 +2,7 @@ package vm
 
 import (
 	"cirrina/cirrinad/config"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

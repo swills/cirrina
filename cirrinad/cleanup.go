@@ -7,7 +7,7 @@ import (
 	"cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm"
-	"golang.org/x/exp/slog"
+	"log/slog"
 	"golang.org/x/sys/execabs"
 	"net"
 	"syscall"

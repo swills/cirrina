@@ -13,7 +13,7 @@ import (
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/vm"
 
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 var mainVersion = "unknown"
