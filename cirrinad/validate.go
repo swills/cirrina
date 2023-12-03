@@ -41,7 +41,7 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 	checkCmd.Stderr = &errBytes
 	err = checkCmd.Run()
 	if err != nil {
-		if errors.As(err, &exitErr) {
+		if !errors.As(err, &exitErr) {
 			slog.Debug("checkSudoCmd failed starting command", "command", checkCmd.String(), "err", err.Error())
 			return err
 		}
