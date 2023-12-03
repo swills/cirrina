@@ -1,5 +1,7 @@
 qodana:
   when: manual
+  tags:
+    - k8s
   only:
     - main
     - merge_requests
