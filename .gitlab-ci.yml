@@ -12,6 +12,10 @@ qodana:
     QODANA_TOKEN: $qodana_token
   script:
     - qodana --save-report --results-dir=$CI_PROJECT_DIR/.qodana
+  artifacts:
+    name: qodana-scan-results-"$CI_COMMIT_REF_NAME"
+    paths:
+      - ./.qodana/results
 
 cirranad:
   stage: build
