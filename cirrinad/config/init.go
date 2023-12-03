@@ -42,8 +42,10 @@ var Config = struct {
 		// https://standards-oui.ieee.org/oui/oui.txt
 		// as default, because why not?
 		// but you can customize it
-		// you probably want to stick to the non-multicast ones from that file
+		// you probably want to stick to the uni-cast (non-multicast) ones from that file
 		// grep -i private oui.txt | grep -Ei base | grep -v '^.[13579BDF]' | grep -vi limited | grep -vi ltd
+		// for more info, see:
+		// https://en.wikipedia.org/wiki/MAC_address#Universal_vs._local_(U/L_bit)
 		Mac struct {
 			Oui string `default:"00:18:25"`
 		}

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
@@ -10,13 +11,14 @@ import (
 	"golang.org/x/sys/execabs"
 	"log/slog"
 	"net"
+	"strings"
 	"syscall"
 	"time"
 )
 
-func cleanUpVms() {
-	vmList := vm.GetAll()
+func cleanupVms() {
 	// deal with any leftover running VMs
+	vmList := vm.GetAll()
 	for _, aVm := range vmList {
 		vmmPath := "/dev/vmm/" + aVm.Name
 		slog.Debug("checking VM", "name", aVm.Name, "path", vmmPath)
@@ -68,17 +70,18 @@ func cleanUpVms() {
 		slog.Debug("destroying VM", "name", aVm.Name)
 		aVm.MaybeForceKillVM()
 	}
+}
 
-	// clean up leftover nets and mark everything stopped
+func cleanupNet() {
+	// clean up leftover VM nets and mark everything stopped
+	vmList := vm.GetAll()
 	for _, aVm := range vmList {
 		slog.Debug("cleaning up VM net(s)", "name", aVm.Name)
 		aVm.NetCleanup()
 		slog.Debug("marking VM stopped", "name", aVm.Name)
 		aVm.SetStopped()
 	}
-}
 
-func cleanupNet() {
 	// destroy all the bridges we know about
 	_switch.DestroyBridges()
 
@@ -87,7 +90,7 @@ func cleanupNet() {
 	if err != nil {
 		panic(err)
 	}
-	slog.Debug("GetHostInterfaces", "netInterfaces", netInterfaces)
+	slog.Debug("cleanupNet", "netInterfaces", netInterfaces)
 	for _, inter := range netInterfaces {
 		intGroups, err := util.GetIntGroups(inter.Name)
 		if err != nil {
@@ -113,10 +116,22 @@ func cleanupNet() {
 func cleanupDb() {
 	rowsCleared := requests.FailAllPending()
 	slog.Debug("cleared failed requests", "rowsCleared", rowsCleared)
+	allDisks := disk.GetAll()
+	for _, diskInst := range allDisks {
+		if strings.HasSuffix(diskInst.Name, ".img") {
+			newName := strings.TrimSuffix(diskInst.Name, ".img")
+			slog.Debug("renaming disk", "name", diskInst.Name, "newName", newName)
+			diskInst.Name = newName
+			err := diskInst.Save()
+			if err != nil {
+				slog.Error("cleanupDb failed saving new disk name", "err", err)
+			}
+		}
+	}
 }
 
 func cleanupSystem() {
-	cleanUpVms()
+	cleanupVms()
 	cleanupNet()
 	cleanupDb()
 }

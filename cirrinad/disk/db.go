@@ -22,7 +22,7 @@ var once sync.Once
 func getDiskDb() *gorm.DB {
 
 	noColorLogger := logger.New(
-		log.New(os.Stdout, "\n", log.LstdFlags),
+		log.New(os.Stdout, "DiskDb: ", log.LstdFlags),
 		logger.Config{
 			SlowThreshold:             200 * time.Millisecond,
 			LogLevel:                  logger.Warn,

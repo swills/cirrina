@@ -22,7 +22,7 @@ var once sync.Once
 func getVmNicDb() *gorm.DB {
 
 	noColorLogger := logger.New(
-		log.New(os.Stdout, "\n", log.LstdFlags),
+		log.New(os.Stdout, "VmNicDb: ", log.LstdFlags),
 		logger.Config{
 			SlowThreshold:             200 * time.Millisecond,
 			LogLevel:                  logger.Warn,

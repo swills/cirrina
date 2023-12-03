@@ -758,6 +758,13 @@ func validateMyId() {
 	}
 }
 
+func validateDb() {
+	// validate db contents are sane: assume DB is correct, but maybe system state has changed
+	// TODO -- validate the backing (file, zvol, volpath) of every disk/iso exists
+	// TODO -- validate every switch's uplink interface exist
+}
+
+// TODO check that users home dir is /nonexistent and that their login shell is /sbin/nologin
 func validateSystem() {
 	slog.Debug("validating system")
 	validateArch()
@@ -770,4 +777,5 @@ func validateSystem() {
 	validateSudoCommands()
 	validateSysctls()
 	validateConfig()
+	validateDb()
 }

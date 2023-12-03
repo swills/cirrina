@@ -2,7 +2,6 @@
 # TODO
 
 * Convert all bool in database to `sql.NullBool`
-* Remove paths from db, construct it on the fly
 * Ensure all listing in client default to human-readable, add option for exact number (-p)
 * Add disk update to server/client
 * Add zvol support to GUI

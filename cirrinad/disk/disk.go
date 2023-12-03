@@ -20,14 +20,15 @@ func Create(name string, description string, size string, diskType string, diskD
 		return &Disk{}, errors.New("zfs pool not configured, cannot create zvol disks")
 	}
 
-	filePath := config.Config.Disk.VM.Path.Image + "/" + name
-	volName := config.Config.Disk.VM.Path.Zpool + "/" + name
-	volPath := "/dev/zvol/" + volName
-
 	// check disk name
 	if !util.ValidDiskName(name) {
-		return &Disk{}, errors.New("invalid name")
+		return &Disk{}, errors.New("invalid disk name")
 	}
+
+	// keep this in sync with GetPath()
+	filePath := config.Config.Disk.VM.Path.Image + "/" + name + ".img"
+	volName := config.Config.Disk.VM.Path.Zpool + "/" + name
+	volPath := "/dev/zvol/" + volName
 
 	// check db for existing disk
 	existingDisk, err := GetByName(name)
@@ -36,7 +37,7 @@ func Create(name string, description string, size string, diskType string, diskD
 		return &Disk{}, err
 	}
 	if existingDisk.Name != "" {
-		slog.Error("disk exists", "disk", name)
+		slog.Error("disk exists in DB", "disk", name, "id", existingDisk.ID, "type", existingDisk.Type)
 		return &Disk{}, errors.New("disk exists")
 	}
 
@@ -76,35 +77,34 @@ func Create(name string, description string, size string, diskType string, diskD
 	// check system for existing disk
 	if diskDevType == "FILE" {
 		// for files, just check the filePath
-		filePath = config.Config.Disk.VM.Path.Image + "/" + name + ".img"
 		diskExists, err := util.PathExists(filePath)
 		if err != nil {
 			slog.Error("error checking if disk exists", "filePath", filePath, "err", err)
 			return &Disk{}, err
 		}
 		if diskExists {
-			slog.Error("disk exists", "disk", name)
+			slog.Error("disk file exists", "disk", name, "id", existingDisk.ID, "type", existingDisk.Type, "filePath", filePath)
 			return &Disk{}, errors.New("disk exists")
 		}
 	} else if diskDevType == "ZVOL" {
 		// for zvols, check both the volPath and the volume name in zfs list
-		diskExists, err := util.PathExists(volPath)
-		if err != nil {
-			slog.Error("error checking if disk exists", "volPath", volPath, "err", err)
-			return diskInst, err
-		}
-		if diskExists {
-			slog.Error("disk exists", "disk", name, "volPath", volPath)
-			return &Disk{}, errors.New("disk exists")
-		}
-
 		allVolumes, err := GetAllZfsVolumes()
 		if err != nil {
 			slog.Error("error checking if disk exists", "volName", volName, "err", err)
 			return &Disk{}, err
 		}
 		if util.ContainsStr(allVolumes, volName) {
-			slog.Error("disk exists", "disk", name, "volName", volName)
+			slog.Error("disk volume exists", "disk", name, "id", existingDisk.ID, "type", existingDisk.Type, "volName", volName)
+			return &Disk{}, errors.New("disk exists")
+		}
+
+		diskExists, err := util.PathExists(volPath)
+		if err != nil {
+			slog.Error("error checking if disk exists", "volPath", volPath, "err", err)
+			return diskInst, err
+		}
+		if diskExists {
+			slog.Error("disk vol path exists", "disk", name, "id", existingDisk.ID, "type", existingDisk.Type, "volPath", volPath)
 			return &Disk{}, errors.New("disk exists")
 		}
 	}
@@ -127,8 +127,7 @@ func Create(name string, description string, size string, diskType string, diskD
 			slog.Error("failed to create disk", "err", err)
 			return &Disk{}, err
 		}
-		diskInst.Name = name + ".img"
-		diskInst.Path = filePath
+		diskInst.Name = name
 	} else if diskDevType == "ZVOL" {
 		args := []string{"zfs", "create", "-o", "volmode=dev", "-V", size, "-s", volName}
 		slog.Debug("creating disk", "volName", volName, "size", diskSize, "args", args)
@@ -139,7 +138,6 @@ func Create(name string, description string, size string, diskType string, diskD
 			return &Disk{}, err
 		}
 		diskInst.Name = name
-		diskInst.Path = volPath
 	}
 
 	db := getDiskDb()
@@ -162,7 +160,7 @@ func GetById(id string) (d *Disk, err error) {
 
 func GetByName(name string) (d *Disk, err error) {
 	db := getDiskDb()
-	db.Limit(1).Find(&d, "name = ?", name+".img")
+	db.Limit(1).Find(&d, "name = ?", name)
 	return d, nil
 }
 
@@ -192,6 +190,7 @@ func (d *Disk) Save() error {
 		Updates(map[string]interface{}{
 			"description": &d.Description,
 			"type":        &d.Type,
+			"name":        &d.Name,
 		},
 		)
 
@@ -200,4 +199,27 @@ func (d *Disk) Save() error {
 	}
 
 	return nil
+}
+
+func (d *Disk) GetPath() (diskPath string, err error) {
+	if d.DevType == "ZVOL" {
+		diskPath = "/dev/zvol/" + config.Config.Disk.VM.Path.Zpool + "/" + d.Name
+	} else if d.DevType == "FILE" {
+		diskPath = config.Config.Disk.VM.Path.Image + "/" + d.Name + ".img"
+	} else {
+		return "", errors.New("unknown disk dev type")
+	}
+	return diskPath, nil
+}
+
+func (d *Disk) VerifyExists() (exists bool, err error) {
+	var diskPath string
+	diskPath, err = d.GetPath()
+	if err != nil {
+		return false, err
+	}
+
+	// perhaps it's not necessary to check the volume -- as long as there's a /dev/zvol entry, we're fine, right?
+	exists, err = util.PathExists(diskPath)
+	return exists, err
 }

@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"errors"
 	"net"
 	"os"
 	"sort"
@@ -73,79 +74,78 @@ func (vm *VM) getCpuArg() []string {
 	return []string{"-c", strconv.Itoa(int(vm.Config.Cpu))}
 }
 
-func (vm *VM) getDiskArg(slot int) ([]string, int) {
-	originalSlot := slot
-	// TODO deal with multiple controller types
-	// TODO don't use one PCI slot per disk device, attach multiple disks to each controller
+func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (hdArg string, err error) {
+	diskController := ""
+	nocache := ""
+	direct := ""
 
-	//diskType := "nvme"
-	//diskPath := config.Config.Disk.VM.Path.Image + "/" + vm.Name + ".img"
-	//diskArg := []string{"-s", strconv.Itoa(slot) + "," + diskType + "," + diskPath}
-	//slot = slot + 1
-	//return diskArg, slot
-	//
+	diskPath, err := thisDisk.GetPath()
+	if err != nil {
+		slog.Error("error getting disk path", "diskId", thisDisk.ID, "diskName", thisDisk.Name, "diskPath", diskPath, "err", err)
+		return "", err
+	}
+	diskExists, err := thisDisk.VerifyExists()
+	if err != nil {
+		slog.Error("error checking disk path exists", "diskId", thisDisk.ID, "diskName", thisDisk.Name, "diskPath", diskPath)
+		return "", err
+	}
+	if !diskExists {
+		slog.Error("disk path does not exist", "diskId", thisDisk.ID, "diskName", thisDisk.Name, "diskPath", diskPath)
+		return "", err
+	}
+	if thisDisk.Type == "NVME" {
+		diskController = "nvme"
+	} else if thisDisk.Type == "AHCI-HD" {
+		diskController = "ahci-hd"
+	} else if thisDisk.Type == "VIRTIO-BLK" {
+		diskController = "virtio-blk"
+	} else {
+		slog.Error("unknown disk type", "type", thisDisk.Type)
+		return "", errors.New("unknown disk type")
+	}
+	if thisDisk.DiskCache.Valid && !thisDisk.DiskCache.Bool {
+		nocache = ",nocache"
+	}
+	if thisDisk.DiskDirect.Valid && thisDisk.DiskDirect.Bool {
+		direct = ",direct"
+	}
+
+	return diskController + "," + diskPath + nocache + direct, nil
+}
+
+func (vm *VM) getDiskArg(slot int) ([]string, int) {
+	// TODO don't use one PCI slot per ahci (SATA) disk device, attach multiple disks to each controller
+	maxSataDevs := 32 - slot - 1 // FIXME -- this is awful but needed until we attach multiple sata disks to each controller
+	sataDevCount := 0
 
 	var diskString []string
-	maxSataDevs := 32 - slot - 1
-	devCount := 0
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
-	diskList := strings.Split(vm.Config.Disks, ",")
-	for _, diskItem := range diskList {
-		if diskItem == "" {
+	diskIds := strings.Split(vm.Config.Disks, ",")
+	for _, diskId := range diskIds {
+		if diskId == "" {
 			continue
 		}
-		slog.Debug("adding disk", "disk", diskItem)
-		thisDisk, err := disk.GetById(diskItem)
+		thisDisk, err := disk.GetById(diskId)
 		if err != nil {
-			slog.Error("error getting Disk", "diskItem", diskItem, "err", err)
-			return []string{}, originalSlot
+			slog.Error("error getting disk, skipping", "diskId", diskId, "err", err)
+			continue
 		}
-		thisDiskExists, err := util.PathExists(thisDisk.Path)
-		if err != nil {
-			slog.Error("error getting disk path", "path", thisDisk.Path, "err", err)
-			return []string{}, originalSlot
+		if thisDisk.Type == "AHCI-HD" {
+			sataDevCount = sataDevCount + 1
 		}
-		if !thisDiskExists {
-			slog.Debug("disk path does not exist", "path", thisDisk.Path, "err", err)
-			return []string{}, originalSlot
+		if sataDevCount > maxSataDevs {
+			slog.Error("sata dev count exceeded, skipping disk", "diskId", diskId, "diskName")
+			continue
 		}
-		if thisDisk.Type == "NVME" {
-			nocache := ""
-			if thisDisk.DevType == "ZVOL" {
-				nocache = ",nocache"
-			}
-			thisHd := []string{"-s", strconv.Itoa(slot) + ",nvme," + thisDisk.Path + nocache}
-			diskString = append(diskString, thisHd...)
-			devCount = devCount + 1
-			slot = slot + 1
-		} else if thisDisk.Type == "AHCI-HD" {
-			if devCount <= maxSataDevs {
-				nocache := ""
-				if thisDisk.DevType == "ZVOL" {
-					nocache = ",nocache"
-				}
-				thisHd := []string{"-s", strconv.Itoa(slot) + ",ahci-hd," + thisDisk.Path + nocache}
-				diskString = append(diskString, thisHd...)
-				devCount = devCount + 1
-				slot = slot + 1
-			}
-		} else if thisDisk.Type == "VIRTIO-BLK" {
-			nocache := ""
-			direct := ""
-			if !thisDisk.DiskCache.Bool && thisDisk.DiskCache.Valid {
-				nocache = ",nocache"
-			}
-			if thisDisk.DiskDirect.Bool && thisDisk.DiskDirect.Valid {
-				direct = ",direct"
-			}
-			thisHd := []string{"-s", strconv.Itoa(slot) + ",virtio-blk," + thisDisk.Path + nocache + direct}
-			diskString = append(diskString, thisHd...)
-			devCount = devCount + 1
-			slot = slot + 1
-		} else {
-			slog.Error("unknown disk type", "type", thisDisk.Type)
-			return []string{}, originalSlot
+
+		oneHdString, err := vm.getOneDiskArg(thisDisk)
+		if err != nil || oneHdString == "" {
+			slog.Error("error adding disk, skipping", "diskId", diskId, "err", err)
+			continue
 		}
+		thisHd := []string{"-s", strconv.Itoa(slot) + "," + oneHdString}
+		diskString = append(diskString, thisHd...)
+		slot = slot + 1
 	}
 	return diskString, slot
 }

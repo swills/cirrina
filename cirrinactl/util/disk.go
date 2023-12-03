@@ -18,15 +18,15 @@ func AddDisk(namePtr *string, c cirrina.VMInfoClient, ctx context.Context, descr
 	var thisDiskType cirrina.DiskType
 	var thisDiskDevType cirrina.DiskDevType
 
-	if *namePtr == "" {
+	if namePtr == nil || *namePtr == "" {
 		return "", errors.New("name not specified")
 	}
 
-	if *diskTypePtr == "" {
+	if diskTypePtr == nil || *diskTypePtr == "" {
 		return "", errors.New("disk type not specified")
 	}
 
-	if *diskDevTypePtr == "" {
+	if diskDevTypePtr == nil || *diskDevTypePtr == "" {
 		return "", errors.New("disk dev type not specified")
 	}
 

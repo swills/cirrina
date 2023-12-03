@@ -43,7 +43,7 @@ func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskI
 	defaultDiskCache := true
 	defaultDiskDirect := false
 
-	if i.Name == nil {
+	if i.Name == nil || *i.Name == "" {
 		return &cirrina.DiskId{}, errors.New("name not specified")
 	}
 
@@ -150,7 +150,11 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 	}
 
 	if diskInst.DevType == "FILE" {
-		diskPath := config.Config.Disk.VM.Path.Image + "/" + diskInst.Name
+		diskPath, err := diskInst.GetPath()
+		if err != nil {
+			slog.Error("GetDiskInfo error getting disk size", "err", err)
+			return nil, errors.New("unable to get file size")
+		}
 
 		diskFileStat, err := os.Stat(diskPath)
 		if err != nil {
@@ -160,6 +164,7 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 
 		err = syscall.Stat(diskPath, &stat)
 		if err != nil {
+			slog.Error("unable to stat diskPath", "diskPath", diskPath)
 			return nil, errors.New("unable to stat")
 		}
 
