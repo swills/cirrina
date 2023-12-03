@@ -12,7 +12,6 @@ qodana:
     QODANA_TOKEN: $qodana_token
   script:
     - qodana --save-report --results-dir=$CI_PROJECT_DIR/.qodana
-    - qodana show -d
 
 cirranad:
   stage: build
