@@ -4,7 +4,7 @@ qodana:
     - main
     - merge_requests
   image:
-    name: jetbrains/qodana-go@2023.3-eap
+    name: jetbrains/qodana-go:2023.3-eap
     entrypoint: [""]
   variables:
     QODANA_TOKEN: $qodana_token
