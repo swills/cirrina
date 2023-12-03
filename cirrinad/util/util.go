@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	exec "golang.org/x/sys/execabs"
-	"io"
 	"io/fs"
 	"log/slog"
 	"net"
@@ -61,12 +60,6 @@ func PidExists(pid int) (bool, error) {
 		return true, nil
 	}
 	return false, err
-}
-
-func blah() error {
-	err := io.EOF
-	err1 := fmt.Errorf("unexpected error: %w", err)
-	return err1
 }
 
 func OSReadDir(root string) ([]string, error) {
