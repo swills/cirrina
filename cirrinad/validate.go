@@ -16,7 +16,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"runtime"
 	"strconv"
@@ -30,6 +29,7 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 	var outBytes bytes.Buffer
 	var errBytes bytes.Buffer
 	var exitCode int
+	var exitErr *execabs.ExitError
 	var c []string
 
 	c = append(c, "-S") // ensure no password prompt on tty
@@ -41,9 +41,7 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 	checkCmd.Stderr = &errBytes
 	err = checkCmd.Run()
 	if err != nil {
-		errType := reflect.TypeOf(err)
-		exitErrType := reflect.TypeOf(&execabs.ExitError{})
-		if errType != exitErrType {
+		if errors.As(err, &exitErr) {
 			slog.Debug("checkSudoCmd failed starting command", "command", checkCmd.String(), "err", err.Error())
 			return err
 		}
