@@ -15,7 +15,7 @@ qodana:
   artifacts:
     name: qodana-scan-results-"$CI_COMMIT_REF_NAME"
     paths:
-      - ./.qodana/results
+      - /data/results
 
 cirranad:
   stage: build
