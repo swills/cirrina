@@ -49,7 +49,7 @@ type Config struct {
 	ACPI             bool   `gorm:"default:True;check:acpi IN(0,1)"`
 	UseHLT           bool   `gorm:"default:True;check:use_hlt IN(0,1)"`
 	ExitOnPause      bool   `gorm:"default:True;check:exit_on_pause IN (0,1)"`
-	WireGuestMem     bool   `gorm:"default:True;check:wire_guest_mem IN (0,1)"`
+	WireGuestMem     bool   `gorm:"default:False;check:wire_guest_mem IN (0,1)"`
 	DestroyPowerOff  bool   `gorm:"default:True;check:destroy_power_off IN (0,1)"`
 	IgnoreUnknownMSR bool   `gorm:"default:True;check:ignore_unknown_msr IN (0,1)"`
 	KbdLayout        string `gorm:"default:default"`
