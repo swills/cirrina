@@ -1,4 +1,5 @@
 qodana:
+  when: manual
   tags:
     - k8s
   only:
