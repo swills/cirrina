@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net"
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -509,69 +508,22 @@ func GetVmnetDev() string {
 	return vmnetDev
 }
 
-func getNmdmNum(offset int) (nmdm string, err error) {
-	var nmdmDevs []string
-	var nmdmDev string
-	devList, err := os.ReadDir("/dev/")
-	if err != nil {
-		return "", err
-	}
-	for _, dev := range devList {
-		devName := dev.Name()
-		if strings.HasPrefix(devName, "nmdm") {
-			a := strings.TrimLeft(devName, "nmdm")
-			b := strings.TrimRight(a, "A")
-			c := strings.TrimRight(b, "B")
-			if !util.ContainsStr(nmdmDevs, c) {
-				nmdmDevs = append(nmdmDevs, c)
-			}
-		}
-	}
-	sort.Strings(nmdmDevs)
-	found := false
-	var lastNum int
-	if len(nmdmDevs) > 0 {
-		last := nmdmDevs[(len(nmdmDevs) - 1)]
-		lastNum, err = strconv.Atoi(last)
-		if err != nil {
-			panic("failed to convert nmdm num to int")
-		}
-		lastNum = lastNum + 1
-	}
-	num := offset + lastNum
-	for !found {
-		nmdmDev = strconv.Itoa(num)
-		if !util.ContainsStr(nmdmDevs, nmdmDev) {
-			found = true
-			nmdmDev = "/dev/nmdm" + nmdmDev + "A"
-		}
-		num = num + 1
-	}
-	return nmdmDev, nil
-}
-
-func getCom(comDev string, nmdmOffset int, num int) (int, []string, string) {
-	var err error
+func getCom(comDev string, vmName string, num int) ([]string, string) {
 	nmdm := ""
 	var comArg []string
 	if comDev == "AUTO" {
-		nmdm, err = getNmdmNum(nmdmOffset)
-		if err != nil {
-			return nmdmOffset + 1, comArg, ""
-		}
-		nmdmOffset = nmdmOffset + 1
+		nmdm = "/dev/nmdm-" + vmName + "-com" + strconv.Itoa(num) + "-A"
 	} else {
 		nmdm = comDev
 	}
 	slog.Debug("getCom", "nmdm", nmdm)
 	comArg = append(comArg, "-l", "com"+strconv.Itoa(num)+","+nmdm)
-	return nmdmOffset, comArg, nmdm
+	return comArg, nmdm
 }
 
 func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	name = config.Config.Sys.Sudo
 	slot := 0
-	nmdmOffset := 0
 	var com1Arg []string
 	var com2Arg []string
 	var com3Arg []string
@@ -600,16 +552,16 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	cdArg, slot = vm.getCDArg(slot)
 	soundArg, slot := vm.getSoundArg(slot)
 	if vm.Config.Com1 {
-		nmdmOffset, com1Arg, com1Dev = getCom(vm.Config.Com1Dev, nmdmOffset, 1)
+		com1Arg, com1Dev = getCom(vm.Config.Com1Dev, vm.Name, 1)
 	}
 	if vm.Config.Com2 {
-		nmdmOffset, com2Arg, com2Dev = getCom(vm.Config.Com2Dev, nmdmOffset, 2)
+		com2Arg, com2Dev = getCom(vm.Config.Com2Dev, vm.Name, 2)
 	}
 	if vm.Config.Com3 {
-		nmdmOffset, com3Arg, com3Dev = getCom(vm.Config.Com3Dev, nmdmOffset, 3)
+		com3Arg, com3Dev = getCom(vm.Config.Com3Dev, vm.Name, 3)
 	}
 	if vm.Config.Com4 {
-		nmdmOffset, com4Arg, com4Dev = getCom(vm.Config.Com4Dev, nmdmOffset, 4)
+		com4Arg, com4Dev = getCom(vm.Config.Com4Dev, vm.Name, 4)
 	}
 
 	vm.Com1Dev = com1Dev

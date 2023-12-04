@@ -23,7 +23,7 @@ pw adduser cirrinad
 Ensure you have `sudo` installed. Then, run `visudo` and add:
 
 ```
-Cmnd_Alias      CIRRINAD = /sbin/ifconfig, /sbin/zfs, /usr/bin/nice, /usr/bin/protect, /usr/bin/rctl, /usr/bin/truncate, /usr/sbin/bhyve, /usr/sbin/bhyvectl, /usr/sbin/ngctl, /bin/pgrep
+Cmnd_Alias      CIRRINAD = /sbin/ifconfig, /sbin/zfs, /usr/bin/nice, /usr/bin/protect, /usr/bin/rctl, /usr/bin/truncate, /usr/sbin/bhyve, /usr/sbin/bhyvectl, /usr/sbin/ngctl, /bin/pgrep, /usr/sbin/chown
 cirrinad ALL=(ALL) NOPASSWD: CIRRINAD
 ```
 

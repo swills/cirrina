@@ -241,6 +241,11 @@ func validateSudoCommands() {
 		slog.Error("error running /bin/pgrep, check sudo config", "err", err.Error())
 		os.Exit(1)
 	}
+	err = checkSudoCmd(1, "", "usage: chown", "/usr/sbin/chown")
+	if err != nil {
+		slog.Error("error running /usr/sbin/chown, check sudo config", "err", err.Error())
+		os.Exit(1)
+	}
 }
 
 func validateArch() {

@@ -18,9 +18,11 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"os/user"
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -882,8 +884,62 @@ func (vm *VM) killComLoggers() {
 	}
 }
 
+func ensureComDevReadable(comDev string) error {
+	if !strings.HasSuffix(comDev, "A") {
+		slog.Error("error checking com dev readable: invalid com dev", "comDev", comDev)
+		return errors.New("invalid com dev")
+	}
+	comBaseDev := comDev[:len(comDev)-1]
+	comReadDev := comBaseDev + "B"
+	slog.Debug("Checking com dev readable", "comDev", comDev, "comReadDev", comReadDev)
+	exists, err := util.PathExists(comReadDev)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return errors.New("comDev does not exists)")
+	}
+	comReadFileInfo, err := os.Stat(comReadDev)
+	if err != nil {
+		return err
+	}
+	if comReadFileInfo.IsDir() {
+		return errors.New("error checking com dev readable: comReadDev is directory")
+	}
+	comReadStat := comReadFileInfo.Sys().(*syscall.Stat_t)
+	if comReadStat == nil {
+		return errors.New("failed converting comReadFileInfo to Stat_t")
+	}
+	myUid, _, err := util.GetMyUidGid()
+	if err != nil {
+		return errors.New("failed getting my uid")
+	}
+	if comReadStat.Uid == myUid {
+		// everything is good, nothing to do
+		return nil
+	}
+	slog.Debug("ensureComDevReadable uid mismatch, fixing", "uid", comReadStat.Uid, "myUid", myUid)
+	myUser, err := user.Current()
+	if err != nil {
+		return err
+	}
+	args := []string{"/usr/sbin/chown", myUser.Username, comReadDev}
+	cmd := exec.Command(config.Config.Sys.Sudo, args...)
+	err = cmd.Run()
+	if err != nil {
+		return fmt.Errorf("failed to fix ownership of comReadDev %s: %w", comReadDev, err)
+	}
+	slog.Debug("ensureComDevReadable uid mismatch fixed")
+	return nil
+}
+
 func (vm *VM) setupComLoggers() {
 	if vm.Com1Dev != "" && vm.Com1 == nil {
+		err := ensureComDevReadable(vm.Com1Dev)
+		if err != nil {
+			slog.Error("ensureComDevReadable error", "err", err)
+			return
+		}
 		cr, err := startSerialPort(vm.Com1Dev, uint(vm.Config.Com1Speed))
 		if err != nil {
 			slog.Error("setupComLoggers", "err", err)
@@ -896,6 +952,11 @@ func (vm *VM) setupComLoggers() {
 		}
 	}
 	if vm.Com2Dev != "" && vm.Com2 == nil {
+		err := ensureComDevReadable(vm.Com2Dev)
+		if err != nil {
+			slog.Error("ensureComDevReadable error", "err", err)
+			return
+		}
 		cr, err := startSerialPort(vm.Com2Dev, uint(vm.Config.Com2Speed))
 		if err != nil {
 			slog.Error("setupComLoggers", "err", err)
@@ -908,6 +969,11 @@ func (vm *VM) setupComLoggers() {
 		}
 	}
 	if vm.Com3Dev != "" && vm.Com3 == nil {
+		err := ensureComDevReadable(vm.Com3Dev)
+		if err != nil {
+			slog.Error("ensureComDevReadable error", "err", err)
+			return
+		}
 		cr, err := startSerialPort(vm.Com3Dev, uint(vm.Config.Com3Speed))
 		if err != nil {
 			slog.Error("setupComLoggers", "err", err)
@@ -920,6 +986,11 @@ func (vm *VM) setupComLoggers() {
 		}
 	}
 	if vm.Com4Dev != "" && vm.Com4 == nil {
+		err := ensureComDevReadable(vm.Com4Dev)
+		if err != nil {
+			slog.Error("ensureComDevReadable error", "err", err)
+			return
+		}
 		cr, err := startSerialPort(vm.Com4Dev, uint(vm.Config.Com4Speed))
 		if err != nil {
 			slog.Error("setupComLoggers", "err", err)
@@ -1066,6 +1137,7 @@ func startSerialPort(comDev string, comSpeed uint) (*serial.Port, error) {
 		comReader, err := serial.OpenPort(c)
 		if err != nil {
 			slog.Error("startSerialPort error opening comReadDev", "error", err)
+			return nil, err
 		}
 		slog.Debug("startSerialLogger", "opened", comReadDev)
 		return comReader, nil
