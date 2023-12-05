@@ -352,22 +352,21 @@ func validateZpoolConf() {
 	var outBytes bytes.Buffer
 	var errBytes bytes.Buffer
 
-	checkCmd := execabs.Command("/sbin/zpool", "status", config.Config.Disk.VM.Path.Zpool)
+	checkCmd := execabs.Command("/sbin/zfs", "list", config.Config.Disk.VM.Path.Zpool)
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
 	if err != nil {
-		slog.Error("zpool not available, please fix or reconfigure", checkCmd.String(), "err", err.Error())
+		slog.Error("zfs dataset not available, please fix or reconfigure", checkCmd.String(), "err", err.Error())
 		os.Exit(1)
 	}
 
-	if config.Config.Disk.VM.Path.Zpool == "" {
-		return
-	}
+	poolParts := strings.Split(config.Config.Disk.VM.Path.Zpool, "/")
+	poolName := poolParts[0]
 
 	var rawCapacity string
-	cmd := execabs.Command("/sbin/zpool", "list", "-H", config.Config.Disk.VM.Path.Zpool)
+	cmd := execabs.Command("/sbin/zpool", "list", "-H", poolName)
 	defer func(cmd *execabs.Cmd) {
 		err := cmd.Wait()
 		if err != nil {
@@ -657,7 +656,7 @@ func validateDiskConfig() {
 		os.Exit(1)
 	}
 
-	//validateZpoolConf()
+	validateZpoolConf()
 }
 
 func validateConfig() {
