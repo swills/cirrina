@@ -17,4 +17,4 @@ else
   VER="unknown"
 fi
 
-rm cirrinactl ; go build -ldflags="-X cirrina/cirrinactl/cmd.mainVersion=${VER} -s -w -extldflags -static" . || exit 1
+rm cirrinactl ; go121 build -ldflags="-X cirrina/cirrinactl/cmd.mainVersion=${VER} -s -w -extldflags -static" . || exit 1
