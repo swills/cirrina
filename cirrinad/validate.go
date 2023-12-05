@@ -588,28 +588,10 @@ func validateDiskConfig() {
 		slog.Error("failed parsing disk vm path image, please reconfigure")
 		os.Exit(1)
 	}
-	diskImagePathInfo, err := os.Stat(diskImagePath)
-	if err != nil {
-		slog.Error("failed to stat disk image path")
-		os.Exit(1)
-	}
-	diskImagePathDir := diskImagePathInfo.IsDir()
-	if !diskImagePathDir {
-		slog.Error("disk image path is not a directory, please reconfigure")
-		os.Exit(1)
-	}
-	diskImageDirStat := diskImagePathInfo.Sys().(*syscall.Stat_t)
-	if diskImageDirStat == nil {
-		slog.Error("failed getting disk image dir sys info")
-		os.Exit(1)
-	}
-	diskDirMode := diskImagePathInfo.Mode()
-	if !util.ModeIsWriteOwner(diskDirMode) {
-		slog.Error("disk image dir not writable")
-		os.Exit(1)
-	}
-	if diskImageDirStat.Uid != myUid || diskImageDirStat.Gid != myGid {
-		slog.Error("disk image dir not owned by my user")
+
+	if unix.Access(diskImagePath, unix.W_OK) != nil {
+		errM := fmt.Sprintf("disk image dir %s not writable", diskImagePath)
+		slog.Error(errM)
 		os.Exit(1)
 	}
 
