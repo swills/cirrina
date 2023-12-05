@@ -5,6 +5,7 @@
 * Ensure all listing in client default to human-readable, add option for exact number (-p)
 * Add disk update to server/client
 * Add zvol support to GUI
+* Add vm priority (nice) stuff to GUI
 
 * Basics
     * Ensuring no crashes

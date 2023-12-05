@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	exec "golang.org/x/sys/execabs"
+	"golang.org/x/sys/unix"
 	"io/fs"
 	"log/slog"
 	"net"
@@ -450,29 +451,9 @@ func ValidateDbConfig() {
 		}
 	}
 	dbDir := filepath.Dir(config.Config.DB.Path)
-	dbDirInfo, err := os.Stat(dbDir)
-	if err != nil {
-		slog.Error("failed to stat db dir, please reconfigure")
-		os.Exit(1)
-	}
-	dbDirStat := dbDirInfo.Sys().(*syscall.Stat_t)
-	if dbDirStat == nil {
-		slog.Error("failed getting db dir sys info")
-		os.Exit(1)
-	}
-	myUid, myGid, err := GetMyUidGid()
-	if err != nil {
-		slog.Error("failed getting my uid/gid")
-		os.Exit(1)
-	}
-	dbDirMode := dbDirInfo.Mode()
-	if !ModeIsWriteOwner(dbDirMode) {
-		slog.Error("db dir not writable")
-		os.Exit(1)
-	}
-
-	if dbDirStat.Uid != myUid || dbDirStat.Gid != myGid {
-		slog.Error("db dir not owned by my user")
+	if unix.Access(dbDir, unix.W_OK) != nil {
+		errM := fmt.Sprintf("db dir %s not writable", dbDir)
+		slog.Error(errM)
 		os.Exit(1)
 	}
 }
