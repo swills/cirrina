@@ -9,10 +9,10 @@ if [ ${GITINSTALLED} -eq 1 ]; then
     R=$(git diff-index --quiet HEAD -- ; echo $?)
     if [ ${R} -ne 0 ]; then
       VER=${VER}-dirty
-    fi  
+    fi
   else
     VER="unknown"
-  fi  
+  fi
 else
   VER="unknown"
 fi
