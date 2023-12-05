@@ -657,7 +657,7 @@ func validateDiskConfig() {
 		os.Exit(1)
 	}
 
-	validateZpoolConf()
+	//validateZpoolConf()
 }
 
 func validateConfig() {
