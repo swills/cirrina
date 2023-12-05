@@ -30,10 +30,11 @@ load_rc_config $name
 : ${cirrinad_user:="cirrinad"}
 : ${cirrinad_group:="cirrinad"}
 : ${cirrinad_oomprotect:="YES"}
+: ${cirrinad_command:="/usr/local/bin/cirrinad"}
 
 pidfile=/var/run/cirrinad/cirrinad.pid
 required_files="${cirrinad_config}"
-procname="/usr/local/bin/cirrinad"
+procname="${cirrinad_command}"
 command="/usr/sbin/daemon"
 command_args="-S -T cirrinad -s info -m 3 -f -p ${pidfile} /usr/bin/env ${cirrinad_env} ${procname} ${cirrinad_args}"
 
