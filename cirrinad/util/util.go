@@ -426,7 +426,7 @@ func GetMyUidGid() (uid uint32, gid uint32, err error) {
 	if err != nil {
 		return 0, 0, err
 	}
-	myGid, err := strconv.Atoi(myUser.Uid)
+	myGid, err := strconv.Atoi(myUser.Gid)
 	if err != nil {
 		return 0, 0, err
 	}
