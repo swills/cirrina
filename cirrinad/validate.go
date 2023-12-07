@@ -543,28 +543,9 @@ func validateLogConfig() {
 		return
 	}
 	logDir := filepath.Dir(config.Config.Log.Path)
-	logDirInfo, err := os.Stat(logDir)
-	if err != nil {
-		slog.Error("failed to stat log dir, please reconfigure")
-		os.Exit(1)
-	}
-	logDirStat := logDirInfo.Sys().(*syscall.Stat_t)
-	if logDirStat == nil {
-		slog.Error("failed getting log dir sys info")
-		os.Exit(1)
-	}
-	myUid, myGid, err := util.GetMyUidGid()
-	if err != nil {
-		slog.Error("failed getting my uid/gid")
-		os.Exit(1)
-	}
-	logDirMode := logDirInfo.Mode()
-	if !util.ModeIsWriteOwner(logDirMode) {
-		slog.Error("log dir not writable")
-		os.Exit(1)
-	}
-	if logDirStat.Uid != myUid || logDirStat.Gid != myGid {
-		slog.Error("log dir not owned by my user")
+	if unix.Access(logDir, unix.W_OK) != nil {
+		errM := fmt.Sprintf("log dir %s not writable", logDir)
+		slog.Error(errM)
 		os.Exit(1)
 	}
 }
@@ -575,13 +556,7 @@ func validateDiskConfig() {
 		slog.Error("default disk size invalid")
 		os.Exit(1)
 	}
-	myUid, myGid, err := util.GetMyUidGid()
-	if err != nil {
-		slog.Error("failed getting my uid/gid")
-		os.Exit(1)
-	}
 
-	// config.Config.Disk.VM.Path.Image
 	diskImagePath, err := filepath.Abs(config.Config.Disk.VM.Path.Image)
 	if err != nil {
 		slog.Error("failed parsing disk vm path image, please reconfigure")
@@ -594,65 +569,25 @@ func validateDiskConfig() {
 		os.Exit(1)
 	}
 
-	//config.Config.Disk.VM.Path.State
 	diskStatePath, err := filepath.Abs(config.Config.Disk.VM.Path.State)
 	if err != nil {
 		slog.Error("failed parsing disk vm path state, please reconfigure")
 		os.Exit(1)
 	}
-	diskStatePathInfo, err := os.Stat(diskStatePath)
-	if err != nil {
-		slog.Error("failed to stat disk state path")
-		os.Exit(1)
-	}
-	diskStatePathDir := diskStatePathInfo.IsDir()
-	if !diskStatePathDir {
-		slog.Error("disk state path is not a directory, please reconfigure")
-		os.Exit(1)
-	}
-	diskDirStat := diskStatePathInfo.Sys().(*syscall.Stat_t)
-	if diskDirStat == nil {
-		slog.Error("failed getting disk state dir sys info")
-		os.Exit(1)
-	}
-	diskStateDirMode := diskStatePathInfo.Mode()
-	if !util.ModeIsWriteOwner(diskStateDirMode) {
-		slog.Error("disk state dir not writable")
-		os.Exit(1)
-	}
-	if diskDirStat.Uid != myUid || diskDirStat.Gid != myGid {
-		slog.Error("disk state dir not owned by my user")
+	if unix.Access(diskStatePath, unix.W_OK) != nil {
+		errM := fmt.Sprintf("disk state dir %s not writable", diskStatePath)
+		slog.Error(errM)
 		os.Exit(1)
 	}
 
-	//config.Config.Disk.VM.Path.Iso
 	diskIsoPath, err := filepath.Abs(config.Config.Disk.VM.Path.Iso)
 	if err != nil {
 		slog.Error("failed parsing disk vm path iso, please reconfigure")
 		os.Exit(1)
 	}
-	diskIsoPathInfo, err := os.Stat(diskIsoPath)
-	if err != nil {
-		slog.Error("failed to stat disk iso path")
-		os.Exit(1)
-	}
-	diskIsoPathDir := diskIsoPathInfo.IsDir()
-	if !diskIsoPathDir {
-		slog.Error("disk iso path is not a directory, please reconfigure")
-		os.Exit(1)
-	}
-	diskIsoStat := diskIsoPathInfo.Sys().(*syscall.Stat_t)
-	if diskIsoStat == nil {
-		slog.Error("failed getting disk iso dir sys info")
-		os.Exit(1)
-	}
-	diskIsoDirMode := diskIsoPathInfo.Mode()
-	if !util.ModeIsWriteOwner(diskIsoDirMode) {
-		slog.Error("disk iso dir not writable")
-		os.Exit(1)
-	}
-	if diskDirStat.Uid != myUid || diskDirStat.Gid != myGid {
-		slog.Error("disk iso dir not owned by my user")
+	if unix.Access(diskIsoPath, unix.W_OK) != nil {
+		errM := fmt.Sprintf("iso dir %s not writable", diskIsoPath)
+		slog.Error(errM)
 		os.Exit(1)
 	}
 
