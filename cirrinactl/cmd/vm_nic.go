@@ -152,12 +152,8 @@ var VmNicsAddCmd = &cobra.Command{
 }
 
 var VmNicsRmCmd = &cobra.Command{
-	Use:   "remove",
-	Short: "Un-attach a NIC from a VM",
-	Args: func(cmd *cobra.Command, args []string) error {
-		NicIdChanged = cmd.Flags().Changed("nic-id")
-		return nil
-	},
+	Use:          "remove",
+	Short:        "Un-attach a NIC from a VM",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error

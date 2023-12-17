@@ -80,12 +80,8 @@ var VmIsosGetCmd = &cobra.Command{
 }
 
 var VmIsosAddCmd = &cobra.Command{
-	Use:   "add",
-	Short: "Add ISO to VM",
-	Args: func(cmd *cobra.Command, args []string) error {
-		IsoIdChanged = cmd.Flags().Changed("Iso-id")
-		return nil
-	},
+	Use:          "add",
+	Short:        "Add ISO to VM",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
@@ -130,12 +126,8 @@ var VmIsosAddCmd = &cobra.Command{
 }
 
 var VmIsosRmCmd = &cobra.Command{
-	Use:   "remove",
-	Short: "Un-attach a ISO from a VM",
-	Args: func(cmd *cobra.Command, args []string) error {
-		IsoIdChanged = cmd.Flags().Changed("iso-id")
-		return nil
-	},
+	Use:          "remove",
+	Short:        "Un-attach a ISO from a VM",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error

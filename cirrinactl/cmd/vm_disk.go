@@ -11,8 +11,6 @@ import (
 	"strconv"
 )
 
-var DiskIdChanged bool
-
 var VmDisksGetCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "Get list of disks connected to VM",
@@ -97,10 +95,6 @@ var VmDiskAddCmd = &cobra.Command{
 	Use:          "add",
 	Short:        "Add disk to VM",
 	SilenceUsage: true,
-	Args: func(cmd *cobra.Command, args []string) error {
-		DiskIdChanged = cmd.Flags().Changed("disk-id")
-		return nil
-	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
@@ -144,12 +138,8 @@ var VmDiskAddCmd = &cobra.Command{
 }
 
 var VmDiskRmCmd = &cobra.Command{
-	Use:   "remove",
-	Short: "Detach a disk from a VM",
-	Args: func(cmd *cobra.Command, args []string) error {
-		DiskIdChanged = cmd.Flags().Changed("disk-id")
-		return nil
-	},
+	Use:          "remove",
+	Short:        "Detach a disk from a VM",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error

@@ -20,7 +20,6 @@ var NicDevType = "tap"
 var NicMac = "AUTO"
 var NicSwitchId = ""
 var NicId string
-var NicIdChanged bool
 var NicRateLimited bool
 var NicRateIn uint64
 var NicRateOut uint64

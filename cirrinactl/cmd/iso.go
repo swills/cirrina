@@ -18,7 +18,6 @@ var (
 	IsoName        string
 	IsoDescription string
 	IsoId          string
-	IsoIdChanged   bool
 	IsoFilePath    string
 )
 
