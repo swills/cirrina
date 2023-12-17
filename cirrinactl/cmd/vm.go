@@ -1,12 +1,15 @@
 package cmd
 
 import (
-	"cirrina/cirrina"
 	"cirrina/cirrinactl/rpc"
-	"cirrina/cirrinactl/util"
+	"errors"
+	"fmt"
+	"github.com/dustin/go-humanize"
+	"github.com/fatih/color"
+	"github.com/jedib0t/go-pretty/table"
 	"github.com/spf13/cobra"
-	"google.golang.org/grpc"
-	"log"
+	"os"
+	"sort"
 	"strconv"
 )
 
@@ -123,29 +126,17 @@ var Com4DevChanged bool
 var Com4Speed uint32 = 115200
 var Com4SpeedChanged bool
 
-var VmDiskUseHumanize bool
-var VmNicUseHumanize bool
-var VmIsoUseHumanize bool
-var VmUseHumanize bool
-
 var VmCreateCmd = &cobra.Command{
-	Use:   "create",
-	Short: "Create a VM",
+	Use:          "create",
+	Short:        "Create a VM",
+	SilenceUsage: true,
 	Args: func(cmd *cobra.Command, args []string) error {
 		VmDescriptionChanged = cmd.Flags().Changed("description")
 		CpusChanged = cmd.Flags().Changed("cpus")
 		MemChanged = cmd.Flags().Changed("mem")
 		return nil
 	},
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
+	RunE: func(cmd *cobra.Command, args []string) error {
 
 		var lDesc *string
 		var lCpus *uint32
@@ -170,120 +161,209 @@ var VmCreateCmd = &cobra.Command{
 			lMem = &Mem
 		}
 
-		util.AddVM(&VmName, c, ctx, lDesc, lCpus, lMem)
+		// FIXME -- check request status
+		_, err := rpc.AddVM(VmName, lDesc, lCpus, lMem)
+		if err != nil {
+			return err
+		}
+		fmt.Print("VM Created\n")
+		return nil
 	},
 }
 
 var VmListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "List VMs",
-	Long:  `List all VMs on specified server and their state`,
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
+	Use:          "list",
+	Short:        "List VMs",
+	Long:         `List all VMs on specified server and their state`,
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		ids, err := rpc.GetVmIds()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
-		util.GetVMs(c, ctx, VmUseHumanize)
+
+		var names []string
+		type vmListInfo struct {
+			id     string
+			status string
+			cpu    string
+			mem    string
+			descr  string
+		}
+
+		vmInfos := make(map[string]vmListInfo)
+		for _, id := range ids {
+			res, err := rpc.GetVMConfig(id)
+			if err != nil {
+				return err
+			}
+
+			if res.Name == nil {
+				return errors.New("vm without name")
+			}
+			var status string
+			status, _, _, err = rpc.GetVMState(id)
+			if err != nil {
+				return err
+			}
+			sstatus := "Unknown"
+
+			var cpus string
+			var mems string
+			if res.Mem != nil {
+				if Humanize {
+					mems = humanize.IBytes(uint64(*res.Mem) * 1024 * 1024)
+				} else {
+					mems = strconv.FormatUint(uint64(*res.Mem)*1024*1024, 10)
+				}
+			}
+			if res.Cpu != nil {
+				cpus = strconv.FormatUint(uint64(*res.Cpu), 10)
+			}
+
+			if status == "stopped" {
+				sstatus = color.RedString("STOPPED")
+			} else if status == "starting" {
+				sstatus = color.YellowString("STARTING")
+			} else if status == "running" {
+				sstatus = color.GreenString("RUNNING")
+			} else if status == "stopping" {
+				sstatus = color.YellowString("STOPPING")
+			}
+
+			var desc string
+			if res.Description != nil {
+				desc = *res.Description
+			}
+
+			vmInfos[*res.Name] = vmListInfo{
+				id:     id,
+				mem:    mems,
+				cpu:    cpus,
+				status: sstatus,
+				descr:  desc,
+			}
+			names = append(names, *res.Name)
+		}
+
+		sort.Strings(names)
+		t := table.NewWriter()
+		t.SetOutputMirror(os.Stdout)
+		t.AppendHeader(table.Row{"NAME", "UUID", "CPUS", "MEMORY", "STATE", "DESCRIPTION"})
+		t.SetStyle(myTableStyle)
+		for _, name := range names {
+			t.AppendRow(table.Row{
+				name,
+				vmInfos[name].id,
+				vmInfos[name].cpu,
+				vmInfos[name].mem,
+				vmInfos[name].status,
+				vmInfos[name].descr,
+			})
+		}
+		t.Render()
+		return nil
 	},
 }
 
 var VmDestroyCmd = &cobra.Command{
-	Use:   "destroy",
-	Short: "Remove a VM",
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
+	Use:          "destroy",
+	Short:        "Remove a VM",
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
 		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName, c, ctx)
+			VmId, err = rpc.VmNameToId(VmName)
 			if err != nil {
-				log.Fatalf("failed to convert VM name to id: %s", err.Error())
+				return err
 			}
 			if VmId == "" {
-				log.Fatalf("VM not found")
-			}
-		}
-		if VmName == "" {
-			VmName, err = rpc.VmIdToName(&VmId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
+				return errors.New("VM not found")
 			}
 		}
 
-		util.DeleteVM(VmName, c, ctx)
+		var stopped bool
+		stopped, err = rpc.VmStopped(VmId)
+		if err != nil {
+			return err
+		}
+		if !stopped {
+			return errors.New("VM must be stopped in order to be destroyed")
+		}
+
+		// FIXME check request ID completion and status
+		_, err = rpc.DeleteVM(VmId)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("VM Removed\n")
+		return nil
 	},
 }
 
 var VmStopCmd = &cobra.Command{
-	Use:   "stop",
-	Short: "Stop a VM",
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
+	Use:          "stop",
+	Short:        "Stop a VM",
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
 		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName, c, ctx)
+			VmId, err = rpc.VmNameToId(VmName)
 			if err != nil {
-				log.Fatalf(err.Error())
+				return err
 			}
 			if VmId == "" {
-				log.Fatalf("VM not found")
+				return errors.New("VM not found")
 			}
 		}
-		if VmName == "" {
-			VmName, err = rpc.VmIdToName(&VmId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
+		var running bool
+		running, err = rpc.VmRunning(VmId)
+		if err != nil {
+			return err
 		}
-		util.StopVM(VmName, c, ctx)
+		if !running {
+			return errors.New("VM not running")
+		}
+		_, err = rpc.StopVM(VmId)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("VM stopped\n")
+		return nil
 	},
 }
 
 var VmStartCmd = &cobra.Command{
-	Use:   "start",
-	Short: "Start a VM",
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
+	Use:          "start",
+	Short:        "Start a VM",
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
 
 		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName, c, ctx)
+			VmId, err = rpc.VmNameToId(VmName)
 			if err != nil {
-				log.Fatalf(err.Error())
+				return err
 			}
 			if VmId == "" {
-				log.Fatalf("VM not found")
-			}
-		}
-		if VmName == "" {
-			VmName, err = rpc.VmIdToName(&VmId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
+				return errors.New("VM not found")
 			}
 		}
 
-		util.StartVM(VmName, c, ctx)
+		var stopped bool
+		stopped, err = rpc.VmStopped(VmId)
+		if err != nil {
+			return err
+		}
+		if !stopped {
+			return errors.New("VM must be stopped in order to be started")
+		}
+		_, err = rpc.StartVM(VmId)
+		if err != nil {
+			return err
+		}
+		fmt.Print("VM started\n")
+		return nil
 	},
 }
 
@@ -347,35 +427,21 @@ var VmConfigCmd = &cobra.Command{
 		Com4SpeedChanged = cmd.Flags().Changed("com4-speed")
 		return nil
 	},
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
 
 		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName, c, ctx)
+			VmId, err = rpc.VmNameToId(VmName)
 			if err != nil {
-				log.Fatalf(err.Error())
+				return err
 			}
 			if VmId == "" {
-				log.Fatalf("VM not found")
-			}
-		}
-		if VmName == "" {
-			VmName, err = rpc.VmIdToName(&VmId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
+				return errors.New("VM not found")
 			}
 		}
 
-		newConfig := cirrina.VMConfig{
-			Id: VmId,
-		}
+		newConfig := rpc.VmConfig{}
 
 		if VmDescriptionChanged {
 			newConfig.Description = &VmDescription
@@ -403,8 +469,11 @@ var VmConfigCmd = &cobra.Command{
 
 		if PriorityChanged {
 			newPriority := Priority
-			if newPriority < -20 || newPriority > 20 {
-				newPriority = 0
+			if newPriority < -20 {
+				newPriority = -20
+			}
+			if newPriority > 20 {
+				newPriority = 20
 			}
 			newConfig.Priority = &newPriority
 		}
@@ -613,451 +682,265 @@ var VmConfigCmd = &cobra.Command{
 			newConfig.ExtraArgs = &ExtraArgs
 		}
 
-		err = rpc.UpdateVMConfig(&newConfig, c, ctx)
+		err = rpc.UpdateVMConfig(VmId, newConfig)
 		if err != nil {
-			log.Fatalf(err.Error())
+			return err
 		}
+		fmt.Printf("VM updated\n")
+		return nil
 	},
 }
 
 var VmGetCmd = &cobra.Command{
-	Use:   "get",
-	Short: "Get info on a VM",
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
+	Use:          "get",
+	Short:        "Get info on a VM",
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
 
 		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName, c, ctx)
+			VmId, err = rpc.VmNameToId(VmName)
 			if err != nil {
-				log.Fatalf(err.Error())
+				return err
 			}
 			if VmId == "" {
-				log.Fatalf("VM not found")
+				return errors.New("VM not found")
 			}
 		}
-		if VmName == "" {
-			VmName, err = rpc.VmIdToName(&VmId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-		}
-		util.GetVM(&VmId, c, ctx)
-	},
-}
-
-var VmDisksGetCmd = &cobra.Command{
-	Use:   "list",
-	Short: "Get list of disks connected to VM",
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
+		var vmConfig rpc.VmConfig
+		vmConfig, err = rpc.GetVMConfig(VmId)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-			if VmId == "" {
-				log.Fatalf("VM not found")
-			}
-		}
-		if VmName == "" {
-			VmName, err = rpc.VmIdToName(&VmId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-		}
-		util.GetVMDisks(VmName, c, ctx, VmDiskUseHumanize)
-	},
-}
 
-var VmDiskAddCmd = &cobra.Command{
-	Use:   "add",
-	Short: "Add disk to VM",
-	Args: func(cmd *cobra.Command, args []string) error {
-		DiskIdChanged = cmd.Flags().Changed("disk-id")
+		var vmState string
+		var vncPort string
+		var debugPort string
+		vmState, vncPort, debugPort, err = rpc.GetVMState(VmId)
+		if err != nil {
+			return err
+		}
+
+		// TODO JSON output
+
+		fmt.Printf("id: %v\n", VmId)
+
+		if vmConfig.Name != nil {
+			fmt.Printf("name: %v\n", *vmConfig.Name)
+		}
+
+		if vmConfig.Description != nil {
+			fmt.Printf("desc: %v\n", *vmConfig.Description)
+		}
+
+		if vmConfig.Cpu != nil {
+			fmt.Printf("cpus: %v\n", *vmConfig.Cpu)
+		}
+
+		if vmConfig.Mem != nil {
+			fmt.Printf("mem: %v\n", *vmConfig.Mem)
+		}
+
+		if vmConfig.Priority != nil {
+			fmt.Printf("priority: %v\n", *vmConfig.Priority)
+		}
+
+		if vmConfig.Protect != nil {
+			fmt.Printf("protect: %v\n", *vmConfig.Protect)
+		}
+
+		if vmConfig.Pcpu != nil {
+			fmt.Printf("pcpu: %v\n", *vmConfig.Pcpu)
+		}
+
+		if vmConfig.Rbps != nil {
+			fmt.Printf("rbps: %v\n", *vmConfig.Rbps)
+		}
+
+		if vmConfig.Wbps != nil {
+			fmt.Printf("Wbps: %v\n", *vmConfig.Wbps)
+		}
+
+		if vmConfig.Riops != nil {
+			fmt.Printf("Riops: %v\n", *vmConfig.Riops)
+		}
+
+		if vmConfig.Wiops != nil {
+			fmt.Printf("Wiops: %v\n", *vmConfig.Wiops)
+		}
+
+		if vmConfig.Com1 != nil {
+			fmt.Printf("com1: %v\n", *vmConfig.Com1)
+		}
+		if vmConfig.Com1Log != nil {
+			fmt.Printf("com1-log: %v\n", *vmConfig.Com1Log)
+		}
+		if vmConfig.Com1Dev != nil {
+			fmt.Printf("com1-dev: %v\n", *vmConfig.Com1Dev)
+		}
+		if vmConfig.Com1Speed != nil {
+			fmt.Printf("com1-speed: %v\n", *vmConfig.Com1Speed)
+		}
+
+		if vmConfig.Com2 != nil {
+			fmt.Printf("com2: %v\n", *vmConfig.Com2)
+		}
+		if vmConfig.Com2Log != nil {
+			fmt.Printf("com2-log: %v\n", *vmConfig.Com2Log)
+		}
+		if vmConfig.Com2Dev != nil {
+			fmt.Printf("com2-dev: %v\n", *vmConfig.Com2Dev)
+		}
+		if vmConfig.Com2Speed != nil {
+			fmt.Printf("com2-speed: %v\n", *vmConfig.Com2Speed)
+		}
+
+		if vmConfig.Com3 != nil {
+			fmt.Printf("com3: %v\n", *vmConfig.Com3)
+		}
+		if vmConfig.Com3Log != nil {
+			fmt.Printf("com3-log: %v\n", *vmConfig.Com3Log)
+		}
+		if vmConfig.Com3Dev != nil {
+			fmt.Printf("com3-dev: %v\n", *vmConfig.Com3Dev)
+		}
+		if vmConfig.Com3Speed != nil {
+			fmt.Printf("com3-speed: %v\n", *vmConfig.Com3Speed)
+		}
+
+		if vmConfig.Com4 != nil {
+			fmt.Printf("com4: %v\n", *vmConfig.Com4)
+		}
+		if vmConfig.Com4Log != nil {
+			fmt.Printf("com4-log: %v\n", *vmConfig.Com4Log)
+		}
+		if vmConfig.Com4Dev != nil {
+			fmt.Printf("com4-dev: %v\n", *vmConfig.Com4Dev)
+		}
+		if vmConfig.Com4Speed != nil {
+			fmt.Printf("com4-speed: %v\n", *vmConfig.Com4Speed)
+		}
+
+		if vmConfig.Screen != nil {
+			fmt.Printf("screen: %v\n", *vmConfig.Screen)
+		}
+		if vmConfig.Vncport != nil {
+			fmt.Printf("vnc-port: %v\n", *vmConfig.Vncport)
+		}
+		if vmConfig.ScreenWidth != nil {
+			fmt.Printf("screen-width: %v\n", *vmConfig.ScreenWidth)
+		}
+		if vmConfig.ScreenHeight != nil {
+			fmt.Printf("screen-height: %v\n", *vmConfig.ScreenHeight)
+		}
+		if vmConfig.Vncwait != nil {
+			fmt.Printf("vnc-wait: %v\n", *vmConfig.Vncwait)
+		}
+		if vmConfig.Tablet != nil {
+			fmt.Printf("tablet-mode: %v\n", *vmConfig.Tablet)
+		}
+		if vmConfig.Keyboard != nil {
+			fmt.Printf("Keyboard: %v\n", *vmConfig.Keyboard)
+		}
+
+		if vmConfig.Sound != nil {
+			fmt.Printf("sound: %v\n", *vmConfig.Sound)
+		}
+		if vmConfig.SoundIn != nil {
+			fmt.Printf("sound-input: %v\n", *vmConfig.SoundIn)
+		}
+		if vmConfig.SoundOut != nil {
+			fmt.Printf("sound-output: %v\n", *vmConfig.SoundOut)
+		}
+
+		if vmConfig.Autostart != nil {
+			fmt.Printf("auto-start: %v\n", *vmConfig.Autostart)
+		}
+		if vmConfig.AutostartDelay != nil {
+			fmt.Printf("auto-start-delay: %v\n", *vmConfig.AutostartDelay)
+		}
+		if vmConfig.Restart != nil {
+			fmt.Printf("restart: %v\n", *vmConfig.Restart)
+		}
+		if vmConfig.RestartDelay != nil {
+			fmt.Printf("restart-delay: %v\n", *vmConfig.RestartDelay)
+		}
+		if vmConfig.MaxWait != nil {
+			fmt.Printf("max-wait: %v\n", *vmConfig.MaxWait)
+		}
+
+		if vmConfig.Storeuefi != nil {
+			fmt.Printf("store-uefi-vars: %v\n", *vmConfig.Storeuefi)
+		}
+		if vmConfig.Utc != nil {
+			fmt.Printf("use-utc-time: %v\n", *vmConfig.Utc)
+		}
+		if vmConfig.Dpo != nil {
+			fmt.Printf("destroy-on-power-off: %v\n", *vmConfig.Dpo)
+		}
+		if vmConfig.Wireguestmem != nil {
+			fmt.Printf("wire-guest-mem: %v\n", *vmConfig.Wireguestmem)
+		}
+		if vmConfig.Hostbridge != nil {
+			fmt.Printf("use-host-bridge: %v\n", *vmConfig.Hostbridge)
+		}
+		if vmConfig.Acpi != nil {
+			fmt.Printf("generate-acpi-tables: %v\n", *vmConfig.Acpi)
+		}
+		if vmConfig.Eop != nil {
+			fmt.Printf("exit-on-PAUSE: %v\n", *vmConfig.Eop)
+		}
+		if vmConfig.Ium != nil {
+			fmt.Printf("ignore-unknown-MSR: %v\n", *vmConfig.Ium)
+		}
+		if vmConfig.Hlt != nil {
+			fmt.Printf("yield-on-HLT: %v\n", *vmConfig.Hlt)
+		}
+		if vmConfig.Debug != nil {
+			fmt.Printf("debug: %v\n", *vmConfig.Debug)
+		}
+		if vmConfig.DebugWait != nil {
+			fmt.Printf("debug-wait: %v\n", *vmConfig.DebugWait)
+		}
+		if vmConfig.DebugPort != nil {
+			fmt.Printf("debug-port: %v\n", *vmConfig.DebugPort)
+		}
+		if vmConfig.ExtraArgs != nil {
+			fmt.Printf("extra-args: %v\n", *vmConfig.ExtraArgs)
+		}
+		fmt.Printf("status: %v\n", vmState)
+		fmt.Printf("vnc-port: %v\n", vncPort)
+		fmt.Printf("debug-port: %v\n", debugPort)
 		return nil
 	},
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
-
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-			if VmId == "" {
-				log.Fatalf("VM not found")
-			}
-		}
-		if VmName == "" {
-			VmName, err = rpc.VmIdToName(&VmId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-		}
-		if DiskId == "" && !DiskIdChanged && DiskName != "" {
-			DiskId, err = rpc.DiskNameToId(&DiskName, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-			if DiskId == "" {
-				log.Fatalf("Disk not found")
-			}
-		}
-		util.VmDiskAdd(VmName, DiskId, c, ctx)
-	},
-}
-
-var VmDiskRmCmd = &cobra.Command{
-	Use:   "remove",
-	Short: "Un-attach a disk from a VM",
-	Args: func(cmd *cobra.Command, args []string) error {
-		DiskIdChanged = cmd.Flags().Changed("disk-id")
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
-
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-			if VmId == "" {
-				log.Fatalf("VM not found")
-			}
-		}
-		if VmName == "" {
-			VmName, err = rpc.VmIdToName(&VmId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-		}
-		if DiskId == "" && !DiskIdChanged && DiskName != "" {
-			DiskId, err = rpc.DiskNameToId(&DiskName, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-			if DiskId == "" {
-				log.Fatalf("Disk not found")
-			}
-		}
-		util.VmDiskRm(VmName, DiskId, c, ctx)
-	},
-}
-
-var VmDisksCmd = &cobra.Command{
-	Use:   "disk",
-	Short: "Disk related operations on VMs",
-	Long:  "List disks attached to VMs, attach disks to VMs and un-attach disks from VMs",
-}
-
-var VmIsosGetCmd = &cobra.Command{
-	Use:   "list",
-	Short: "Get list of ISOs connected to VM",
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-			if VmId == "" {
-				log.Fatalf("VM not found")
-			}
-		}
-		if VmName == "" {
-			VmName, err = rpc.VmIdToName(&VmId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-		}
-		util.GetVMIsos(VmName, c, ctx, VmIsoUseHumanize)
-	},
-}
-
-var VmIsosAddCmd = &cobra.Command{
-	Use:   "add",
-	Short: "Add ISO to VM",
-	Args: func(cmd *cobra.Command, args []string) error {
-		IsoIdChanged = cmd.Flags().Changed("Iso-id")
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
-
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-			if VmId == "" {
-				log.Fatalf("VM not found")
-			}
-		}
-		if VmName == "" {
-			VmName, err = rpc.VmIdToName(&VmId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-		}
-		if IsoId == "" && !IsoIdChanged && IsoName != "" {
-			IsoId, err = rpc.IsoNameToId(&IsoName, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-			if IsoId == "" {
-				log.Fatalf("Isos not found")
-			}
-		}
-		util.VmIsoAdd(VmName, IsoId, c, ctx)
-	},
-}
-
-var VmIsosRmCmd = &cobra.Command{
-	Use:   "remove",
-	Short: "Un-attach a ISO from a VM",
-	Args: func(cmd *cobra.Command, args []string) error {
-		IsoIdChanged = cmd.Flags().Changed("iso-id")
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
-
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-			if VmId == "" {
-				log.Fatalf("VM not found")
-			}
-		}
-		if VmName == "" {
-			VmName, err = rpc.VmIdToName(&VmId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-		}
-		if IsoId == "" && !IsoIdChanged && IsoName != "" {
-			IsoId, err = rpc.IsoNameToId(&IsoName, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-			if IsoId == "" {
-				log.Fatalf("Isos not found")
-			}
-		}
-		util.VmIsoRm(VmName, IsoId, c, ctx)
-	},
-}
-
-var VmIsosCmd = &cobra.Command{
-	Use:   "iso",
-	Short: "ISO related operations on VMs",
-	Long:  "List ISOs attached to VMs, attach ISOs to VMs and un-attach ISOs from VMs",
-}
-
-var VmNicsGetCmd = &cobra.Command{
-	Use:   "list",
-	Short: "Get list of NICs connected to VM",
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-			if VmId == "" {
-				log.Fatalf("VM not found")
-			}
-		}
-		if VmName == "" {
-			VmName, err = rpc.VmIdToName(&VmId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-		}
-		util.GetVmNics(VmName, c, ctx, VmNicUseHumanize)
-	},
-}
-
-var VmNicsAddCmd = &cobra.Command{
-	Use:   "add",
-	Short: "Add NIC to VM",
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
-
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-			if VmId == "" {
-				log.Fatalf("VM not found")
-			}
-		}
-		if VmName == "" {
-			VmName, err = rpc.VmIdToName(&VmId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-		}
-		if NicId == "" && !NicIdChanged && NicName != "" {
-			NicId, err = rpc.NicNameToId(&NicName, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-			if NicId == "" {
-				log.Fatalf("NIC not found")
-			}
-		}
-		util.VmNicAdd(VmName, NicId, c, ctx)
-	},
-}
-
-var VmNicsRmCmd = &cobra.Command{
-	Use:   "remove",
-	Short: "Un-attach a NIC from a VM",
-	Args: func(cmd *cobra.Command, args []string) error {
-		NicIdChanged = cmd.Flags().Changed("nic-id")
-		return nil
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
-
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-			if VmId == "" {
-				log.Fatalf("VM not found")
-			}
-		}
-		if VmName == "" {
-			VmName, err = rpc.VmIdToName(&VmId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-		}
-		if NicId == "" && !NicIdChanged && NicName != "" {
-			NicId, err = rpc.NicNameToId(&NicName, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-			if NicId == "" {
-				log.Fatalf("Nic not found")
-			}
-		}
-		util.VmNicRm(VmName, NicId, c, ctx)
-	},
-}
-
-var VmNicsCmd = &cobra.Command{
-	Use:   "nic",
-	Short: "NIC related operations on VMs",
-	Long:  "List NICs attached to VMs, attach NICs to VMs and un-attach NICs from VMs",
 }
 
 var VmClearUefiVarsCmd = &cobra.Command{
-	Use:   "clearuefivars",
-	Short: "Clear UEFI variable state",
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
+	Use:          "clearuefivars",
+	Short:        "Clear UEFI variable state",
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
 
 		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName, c, ctx)
+			VmId, err = rpc.VmNameToId(VmName)
 			if err != nil {
-				log.Fatalf(err.Error())
+				return err
 			}
 			if VmId == "" {
-				log.Fatalf("VM not found")
+				return errors.New("VM not found")
 			}
 		}
-		if VmName == "" {
-			VmName, err = rpc.VmIdToName(&VmId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
+		var res bool
+		res, err = rpc.VmClearUefiVars(VmId)
+		if err != nil {
+			return err
 		}
-		util.ClearUefiVars(VmName, c, ctx)
+		if !res {
+			return errors.New("failed")
+		}
+		fmt.Printf("UEFI Vars cleared\n")
+		return nil
 	},
 }
 
@@ -1072,35 +955,54 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	VmCreateCmd.Flags().StringVarP(&VmDescription, "description", "d", SwitchDescription, "SwitchDescription of VM")
+	VmCreateCmd.Flags().StringVarP(&VmDescription,
+		"description", "d", SwitchDescription, "SwitchDescription of VM",
+	)
 	VmCreateCmd.Flags().Uint8VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
-	VmCreateCmd.Flags().Uint32VarP(&Mem, "mem", "m", Mem, "Amount of virtual memory in megabytes")
+	VmCreateCmd.Flags().Uint32VarP(&Mem,
+		"mem", "m", Mem, "Amount of virtual memory in megabytes",
+	)
 
 	VmStartCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmStartCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmStartCmd.MarkFlagsOneRequired("name", "id")
+	VmStartCmd.MarkFlagsMutuallyExclusive("name", "id")
 
 	VmStopCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmStopCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmStopCmd.MarkFlagsOneRequired("name", "id")
+	VmStopCmd.MarkFlagsMutuallyExclusive("name", "id")
 
 	VmDestroyCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmDestroyCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmDestroyCmd.MarkFlagsOneRequired("name", "id")
+	VmDestroyCmd.MarkFlagsMutuallyExclusive("name", "id")
 
 	VmConfigCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmConfigCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmConfigCmd.MarkFlagsOneRequired("name", "id")
-	VmConfigCmd.Flags().StringVarP(&VmDescription, "description", "d", VmDescription, "SwitchDescription of VM")
+	VmConfigCmd.MarkFlagsMutuallyExclusive("name", "id")
+
+	VmConfigCmd.Flags().StringVarP(&VmDescription,
+		"description", "d", VmDescription, "SwitchDescription of VM",
+	)
 	VmConfigCmd.Flags().Uint8VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
-	VmConfigCmd.Flags().Uint32VarP(&Mem, "mem", "m", Mem, "Amount of virtual memory in megabytes")
+	VmConfigCmd.Flags().Uint32VarP(&Mem,
+		"mem", "m", Mem, "Amount of virtual memory in megabytes",
+	)
 	VmConfigCmd.Flags().Int32Var(&Priority, "priority", Priority, "Priority of VM (nice)")
-	VmConfigCmd.Flags().BoolVar(&Protect, "protect", Protect, "Protect VM from being killed when swap space is exhausted")
+	VmConfigCmd.Flags().BoolVar(&Protect,
+		"protect", Protect, "Protect VM from being killed when swap space is exhausted",
+	)
 	VmConfigCmd.Flags().Uint32Var(&Pcpu, "pcpu", Pcpu, "Max CPU usage in percent of a single CPU core")
 	VmConfigCmd.Flags().Uint32Var(&Rbps, "rbps", Rbps, "Limit VM filesystem reads, in bytes per second")
 	VmConfigCmd.Flags().Uint32Var(&Wbps, "wbps", Wbps, "Limit VM filesystem writes, in bytes per second")
-	VmConfigCmd.Flags().Uint32Var(&Riops, "riops", Riops, "Limit VM filesystem reads, in operations per second")
-	VmConfigCmd.Flags().Uint32Var(&Wiops, "wiops", Wiops, "Limit VM filesystem writes, in operations per second")
+	VmConfigCmd.Flags().Uint32Var(&Riops,
+		"riops", Riops, "Limit VM filesystem reads, in operations per second",
+	)
+	VmConfigCmd.Flags().Uint32Var(&Wiops,
+		"wiops", Wiops, "Limit VM filesystem writes, in operations per second",
+	)
 	VmConfigCmd.Flags().BoolVar(&Com1, "com1", Com1, "Enable COM1")
 	VmConfigCmd.Flags().BoolVar(&Com1Log, "com1-log", Com1Log, "Log input and output of COM1")
 	VmConfigCmd.Flags().StringVar(&Com1Dev, "com1-dev", Com1Dev, "Device to use for COM1")
@@ -1118,17 +1020,33 @@ func init() {
 	VmConfigCmd.Flags().StringVar(&Com4Dev, "com4-dev", Com4Dev, "Device to use for COM4")
 	VmConfigCmd.Flags().Uint32Var(&Com4Speed, "com4-speed", Com4Speed, "Speed of COM4")
 	VmConfigCmd.Flags().BoolVar(&AutoStart, "autostart", AutoStart, "Autostart VM")
-	VmConfigCmd.Flags().Uint32Var(&AutoStartDelay, "autostart-delay", AutoStartDelay, "How long to wait before starting this VM")
-	VmConfigCmd.Flags().BoolVar(&Restart, "restart", Restart, "Restart this VM if it stops, crashes, shuts down, reboots, etc.")
-	VmConfigCmd.Flags().Uint32Var(&RestartDelay, "restart-delay", RestartDelay, "How long to wait before restarting this VM")
-	VmConfigCmd.Flags().Uint32Var(&MaxWait, "max-wait", MaxWait, "How long to wait for this VM to shutdown before forcibly killing it")
+	VmConfigCmd.Flags().Uint32Var(&AutoStartDelay,
+		"autostart-delay", AutoStartDelay, "How long to wait before starting this VM",
+	)
+	VmConfigCmd.Flags().BoolVar(&Restart,
+		"restart", Restart, "Restart this VM if it stops, crashes, shuts down, reboots, etc.",
+	)
+	VmConfigCmd.Flags().Uint32Var(&RestartDelay,
+		"restart-delay", RestartDelay, "How long to wait before restarting this VM",
+	)
+	VmConfigCmd.Flags().Uint32Var(&MaxWait,
+		"max-wait", MaxWait, "How long to wait for this VM to shutdown before forcibly killing it",
+	)
 	VmConfigCmd.Flags().BoolVar(&Screen, "screen", Screen, "Start VNC Server for this VM")
 	VmConfigCmd.Flags().Uint32Var(&ScreenWidth, "screen-width", ScreenWidth, "Width of VNC server screen")
-	VmConfigCmd.Flags().Uint32Var(&ScreenHeight, "screen-height", ScreenHeight, "Height of VNC server screen")
-	VmConfigCmd.Flags().StringVar(&VncPort, "vnc-port", VncPort, "Port to run VNC server on, AUTO for automatic, or TCP port number")
-	VmConfigCmd.Flags().BoolVar(&VncWait, "vnc-wait", VncWait, "Wait for VNC connection before starting VM")
+	VmConfigCmd.Flags().Uint32Var(&ScreenHeight,
+		"screen-height", ScreenHeight, "Height of VNC server screen",
+	)
+	VmConfigCmd.Flags().StringVar(&VncPort,
+		"vnc-port", VncPort, "Port to run VNC server on, AUTO for automatic, or TCP port number",
+	)
+	VmConfigCmd.Flags().BoolVar(&VncWait,
+		"vnc-wait", VncWait, "Wait for VNC connection before starting VM",
+	)
 	VmConfigCmd.Flags().BoolVar(&VncTablet, "vnc-tablet", VncTablet, "VNC server in tablet mode")
-	VmConfigCmd.Flags().StringVar(&VncKeyboard, "vnc-keyboard", VncKeyboard, "Keyboard layout used by VNC server")
+	VmConfigCmd.Flags().StringVar(&VncKeyboard,
+		"vnc-keyboard", VncKeyboard, "Keyboard layout used by VNC server",
+	)
 	VmConfigCmd.Flags().BoolVar(&Sound, "sound", Sound, "Enabled Sound output on this VM")
 	VmConfigCmd.Flags().StringVar(&SoundIn, "sound-in", SoundIn, "Device to use for sound input")
 	VmConfigCmd.Flags().StringVar(&SoundOut, "sound-out", SoundOut, "Device to use for sound output")
@@ -1137,99 +1055,34 @@ func init() {
 	VmConfigCmd.Flags().BoolVar(&Utc, "utc", Utc, "Store VM time in UTC")
 	VmConfigCmd.Flags().BoolVar(&HostBridge, "host-bridge", HostBridge, "Enable host bridge")
 	VmConfigCmd.Flags().BoolVar(&Acpi, "acpi", Acpi, "Enable ACPI tables")
-	VmConfigCmd.Flags().BoolVar(&Hlt, "hlt", Hlt, "Yield the virtual CPU(s), when a HTL instruction is detected")
-	VmConfigCmd.Flags().BoolVar(&Eop, "eop", Eop, "Force the virtual CPU(s) to exit when a PAUSE instruction is detected")
+	VmConfigCmd.Flags().BoolVar(&Hlt,
+		"hlt", Hlt, "Yield the virtual CPU(s), when a HTL instruction is detected",
+	)
+	VmConfigCmd.Flags().BoolVar(&Eop,
+		"eop", Eop, "Force the virtual CPU(s) to exit when a PAUSE instruction is detected",
+	)
 	VmConfigCmd.Flags().BoolVar(&Dpo, "dpo", Dpo, "Destroy the VM on guest initiated power off")
 	VmConfigCmd.Flags().BoolVar(&Ium, "ium", Ium, "Ignore unimplemented model specific register access")
 	VmConfigCmd.Flags().BoolVar(&Debug, "debug", Debug, "Enable Debug server")
-	VmConfigCmd.Flags().BoolVar(&DebugWait, "debug-wait", DebugWait, "Wait for connection to debug server before starting VM")
+	VmConfigCmd.Flags().BoolVar(&DebugWait,
+		"debug-wait", DebugWait, "Wait for connection to debug server before starting VM",
+	)
 	VmConfigCmd.Flags().Uint32Var(&DebugPort, "debug-port", DebugPort, "TCP port to use for debug server")
 	VmConfigCmd.Flags().StringVar(&ExtraArgs, "extra-args", ExtraArgs, "Extra args to pass to bhyve")
 
 	VmGetCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmGetCmd.MarkFlagsOneRequired("name", "id")
-
-	VmDisksGetCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmDisksGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmDisksGetCmd.MarkFlagsOneRequired("name", "id")
-	VmDisksGetCmd.Flags().BoolVarP(&VmDiskUseHumanize, "human", "H", VmDiskUseHumanize, "Print sizes in human readable form")
-
-	VmDiskAddCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmDiskAddCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmDiskAddCmd.MarkFlagsOneRequired("name", "id")
-
-	VmDiskAddCmd.Flags().StringVarP(&DiskName, "disk-name", "N", DiskName, "Name of Disk")
-	VmDiskAddCmd.Flags().StringVarP(&DiskId, "disk-id", "I", DiskId, "Id of Disk")
-	VmDiskAddCmd.MarkFlagsOneRequired("disk-name", "disk-id")
-
-	VmDiskRmCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmDiskRmCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmDiskRmCmd.MarkFlagsOneRequired("name", "id")
-
-	VmDiskRmCmd.Flags().StringVarP(&DiskName, "disk-name", "N", DiskName, "Name of Disk")
-	VmDiskRmCmd.Flags().StringVarP(&DiskId, "disk-id", "I", DiskId, "Id of Disk")
-	VmDiskRmCmd.MarkFlagsOneRequired("disk-name", "disk-id")
-
-	VmIsosGetCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmIsosGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmIsosGetCmd.MarkFlagsOneRequired("name", "id")
-	VmIsosGetCmd.Flags().BoolVarP(&VmIsoUseHumanize, "human", "H", VmIsoUseHumanize, "Print sizes in human readable form")
-
-	VmIsosAddCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmIsosAddCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmIsosAddCmd.MarkFlagsOneRequired("name", "id")
-
-	VmIsosAddCmd.Flags().StringVarP(&IsoName, "iso-name", "N", IsoName, "Name of Iso")
-	VmIsosAddCmd.Flags().StringVarP(&IsoId, "iso-id", "I", IsoId, "Id of Iso")
-	VmIsosAddCmd.MarkFlagsOneRequired("iso-name", "iso-id")
-
-	VmIsosRmCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmIsosRmCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmIsosRmCmd.MarkFlagsOneRequired("name", "id")
-
-	VmIsosRmCmd.Flags().StringVarP(&IsoName, "iso-name", "N", IsoName, "Name of Iso")
-	VmIsosRmCmd.Flags().StringVarP(&IsoId, "iso-id", "I", IsoId, "Id of Iso")
-	VmIsosRmCmd.MarkFlagsOneRequired("iso-name", "iso-id")
-
-	VmNicsGetCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmNicsGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmNicsGetCmd.MarkFlagsOneRequired("name", "id")
-	VmNicsGetCmd.Flags().BoolVarP(&VmNicUseHumanize, "human", "H", VmNicUseHumanize, "Print sizes in human readable form")
-
-	VmNicsAddCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmNicsAddCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmNicsAddCmd.MarkFlagsOneRequired("name", "id")
-
-	VmNicsAddCmd.Flags().StringVarP(&NicName, "nic-name", "N", NicName, "Name of Nic")
-	VmNicsAddCmd.Flags().StringVarP(&NicId, "nic-id", "I", NicId, "Id of Nic")
-	VmNicsAddCmd.MarkFlagsOneRequired("nic-name", "nic-id")
-
-	VmNicsRmCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmNicsRmCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmNicsRmCmd.MarkFlagsOneRequired("name", "id")
-
-	VmNicsRmCmd.Flags().StringVarP(&NicName, "nic-name", "N", NicName, "Name of Nic")
-	VmNicsRmCmd.Flags().StringVarP(&NicId, "nic-id", "I", NicId, "Id of Nic")
-	VmNicsRmCmd.MarkFlagsOneRequired("nic-name", "nic-id")
+	VmGetCmd.MarkFlagsMutuallyExclusive("name", "id")
 
 	VmClearUefiVarsCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmClearUefiVarsCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmClearUefiVarsCmd.MarkFlagsOneRequired("name", "id")
+	VmClearUefiVarsCmd.MarkFlagsMutuallyExclusive("name", "id")
 
-	VmListCmd.Flags().BoolVarP(&VmUseHumanize, "human", "H", VmUseHumanize, "Print sizes in human readable form")
-
-	VmDisksCmd.AddCommand(VmDisksGetCmd)
-	VmDisksCmd.AddCommand(VmDiskAddCmd)
-	VmDisksCmd.AddCommand(VmDiskRmCmd)
-
-	VmIsosCmd.AddCommand(VmIsosGetCmd)
-	VmIsosCmd.AddCommand(VmIsosAddCmd)
-	VmIsosCmd.AddCommand(VmIsosRmCmd)
-
-	VmNicsCmd.AddCommand(VmNicsGetCmd)
-	VmNicsCmd.AddCommand(VmNicsAddCmd)
-	VmNicsCmd.AddCommand(VmNicsRmCmd)
+	VmListCmd.Flags().BoolVarP(&Humanize,
+		"human", "H", Humanize, "Print sizes in human readable form",
+	)
 
 	VmCmd.AddCommand(VmCreateCmd)
 	VmCmd.AddCommand(VmListCmd)
@@ -1243,9 +1096,5 @@ func init() {
 	VmCmd.AddCommand(VmCom3Cmd)
 	VmCmd.AddCommand(VmCom4Cmd)
 	VmCmd.AddCommand(VmClearUefiVarsCmd)
-
-	VmCmd.AddCommand(VmDisksCmd)
-	VmCmd.AddCommand(VmIsosCmd)
-	VmCmd.AddCommand(VmNicsCmd)
 
 }

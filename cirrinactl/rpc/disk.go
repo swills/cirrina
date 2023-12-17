@@ -2,34 +2,124 @@ package rpc
 
 import (
 	"cirrina/cirrina"
-	"context"
 	"errors"
+	"fmt"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 	"io"
 )
 
-func AddDisk(aDiskInfo *cirrina.DiskInfo, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
-	res, err := c.AddDisk(ctx, aDiskInfo)
+func AddDisk(diskName string, diskDescription string, diskSize string,
+	diskType string, diskDevType string, diskCache bool, diskDirect bool,
+) (string, error) {
+
+	var thisDiskType cirrina.DiskType
+	var thisDiskDevType cirrina.DiskDevType
+
+	if diskType == "NVME" || diskType == "nvme" {
+		thisDiskType = cirrina.DiskType_NVME
+	} else if diskType == "AHCI" || diskType == "ahci" || diskType == "ahcihd" {
+		thisDiskType = cirrina.DiskType_AHCIHD
+	} else if diskType == "VIRTIOBLK" || diskType == "virtioblk" || diskType == "virtio-blk" {
+		thisDiskType = cirrina.DiskType_VIRTIOBLK
+	} else {
+		return "", fmt.Errorf("invalid disk type %s", diskType)
+	}
+
+	if diskDevType == "FILE" || diskDevType == "file" {
+		thisDiskDevType = cirrina.DiskDevType_FILE
+	} else if diskDevType == "ZVOL" || diskDevType == "zvol" {
+		thisDiskDevType = cirrina.DiskDevType_ZVOL
+	} else {
+		return "", fmt.Errorf("invalid disk dev type %s", diskDevType)
+	}
+
+	newDiskInfo := &cirrina.DiskInfo{
+		Name:        &diskName,
+		Description: &diskDescription,
+		Size:        &diskSize,
+		DiskType:    &thisDiskType,
+		DiskDevType: &thisDiskDevType,
+		Cache:       &diskCache,
+		Direct:      &diskDirect,
+	}
+
+	conn, c, ctx, cancel, err := SetupConn()
 	if err != nil {
 		return "", err
 	}
-	return res.Value, nil
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
+	defer cancel()
+	var diskId *cirrina.DiskId
+	diskId, err = c.AddDisk(ctx, newDiskInfo)
+	if err != nil {
+		return "", errors.New(status.Convert(err).Message())
+	}
+	return diskId.Value, nil
 }
 
-func GetDiskInfo(diskId string, c cirrina.VMInfoClient, ctx context.Context) (*cirrina.DiskInfo, error) {
-	k, err := c.GetDiskInfo(ctx, &cirrina.DiskId{Value: diskId})
+func GetDiskInfo(diskId string) (DiskInfo, error) {
+	conn, c, ctx, cancel, err := SetupConn()
 	if err != nil {
-		return nil, err
+		return DiskInfo{}, err
+	}
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
+	defer cancel()
+
+	var k *cirrina.DiskInfo
+	k, err = c.GetDiskInfo(ctx, &cirrina.DiskId{Value: diskId})
+	if err != nil {
+		return DiskInfo{}, errors.New(status.Convert(err).Message())
 	}
 
-	return k, nil
+	aDiskType := "unknown"
+	if *k.DiskType == cirrina.DiskType_NVME {
+		aDiskType = "nvme"
+	} else if *k.DiskType == cirrina.DiskType_AHCIHD {
+		aDiskType = "ahcihd"
+	} else if *k.DiskType == cirrina.DiskType_VIRTIOBLK {
+		aDiskType = "virtio-blk"
+	}
+
+	aDiskDevType := "unknown"
+	if *k.DiskDevType == cirrina.DiskDevType_FILE {
+		aDiskDevType = "file"
+	} else if *k.DiskDevType == cirrina.DiskDevType_ZVOL {
+		aDiskDevType = "zvol"
+	}
+
+	return DiskInfo{
+		Name:        *k.Name,
+		Descr:       *k.Description,
+		Size:        *k.SizeNum,
+		Usage:       *k.UsageNum,
+		DiskType:    aDiskType,
+		DiskDevType: aDiskDevType,
+		Cache:       *k.Cache,
+		Direct:      *k.Direct,
+	}, nil
 }
 
-func GetDisks(c cirrina.VMInfoClient, ctx context.Context) ([]string, error) {
-	var rv []string
-
-	res, err := c.GetDisks(ctx, &cirrina.DisksQuery{})
+func GetDisks() ([]string, error) {
+	conn, c, ctx, cancel, err := SetupConn()
 	if err != nil {
 		return []string{}, err
+	}
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
+	defer cancel()
+
+	var rv []string
+
+	var res cirrina.VMInfo_GetDisksClient
+	res, err = c.GetDisks(ctx, &cirrina.DisksQuery{})
+	if err != nil {
+		return []string{}, errors.New(status.Convert(err).Message())
 	}
 
 	for {
@@ -37,41 +127,54 @@ func GetDisks(c cirrina.VMInfoClient, ctx context.Context) ([]string, error) {
 		if err == io.EOF {
 			break
 		}
-
 		rv = append(rv, VmDisk.Value)
 	}
 
-	return rv, err
+	return rv, nil
 }
 
-func RmDisk(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (bool, error) {
-	res, err := c.RemoveDisk(ctx, &cirrina.DiskId{Value: *idPtr})
+func RmDisk(idPtr string) error {
+	conn, c, ctx, cancel, err := SetupConn()
 	if err != nil {
-		return false, err
+		return err
 	}
-	return res.Success, err
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
+	defer cancel()
+
+	var res *cirrina.ReqBool
+	res, err = c.RemoveDisk(ctx, &cirrina.DiskId{Value: idPtr})
+	if err != nil {
+		return errors.New(status.Convert(err).Message())
+	}
+	if !res.Success {
+		return errors.New("disk delete failure")
+	}
+	return nil
 }
 
-func DiskNameToId(namePtr *string, c cirrina.VMInfoClient, ctx context.Context) (diskId string, err error) {
-	if namePtr == nil || *namePtr == "" {
+func DiskNameToId(name string) (string, error) {
+	var diskId string
+	var err error
+	if name == "" {
 		return "", errors.New("disk name not specified")
 	}
 
-	diskIds, err := GetDisks(c, ctx)
+	var diskIds []string
+	diskIds, err = GetDisks()
 	if err != nil {
 		return "", err
 	}
 
 	found := false
+	var res DiskInfo
 	for _, aDiskId := range diskIds {
-		res, err := GetDiskInfo(aDiskId, c, ctx)
+		res, err = GetDiskInfo(aDiskId)
 		if err != nil {
 			return "", err
 		}
-		if err != nil {
-			return "", err
-		}
-		if *res.Name == *namePtr {
+		if res.Name == name {
 			if found {
 				return "", errors.New("duplicate disk found")
 			}
@@ -85,42 +188,97 @@ func DiskNameToId(namePtr *string, c cirrina.VMInfoClient, ctx context.Context) 
 	return diskId, nil
 }
 
-func DiskIdToName(s string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
-	res, err := c.GetDiskInfo(ctx, &cirrina.DiskId{Value: s})
+func DiskIdToName(id string) (string, error) {
+	conn, c, ctx, cancel, err := SetupConn()
 	if err != nil {
 		return "", err
+	}
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
+	defer cancel()
+
+	var res *cirrina.DiskInfo
+	res, err = c.GetDiskInfo(ctx, &cirrina.DiskId{Value: id})
+	if err != nil {
+		return "", errors.New(status.Convert(err).Message())
 	}
 	return *res.Name, nil
 }
 
-func DiskGetVm(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (vmName string, err error) {
-	if idPtr == nil || *idPtr == "" {
-		return "", errors.New("disk id not specified")
-	}
-
-	res, err := c.GetDiskVm(ctx, &cirrina.DiskId{Value: *idPtr})
-	if err != nil {
-		return "", nil
-	}
-	if res.Value == "" {
-		return "", nil
-	}
-	res2, err := VmIdToName(&res.Value, c, ctx)
+func DiskGetVm(id string) (string, error) {
+	conn, c, ctx, cancel, err := SetupConn()
 	if err != nil {
 		return "", err
 	}
-	return res2, nil
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
+	defer cancel()
+
+	if id == "" {
+		return "", errors.New("disk id not specified")
+	}
+
+	var vmId *cirrina.VMID
+	vmId, err = c.GetDiskVm(ctx, &cirrina.DiskId{Value: id})
+	if err != nil {
+		return "", errors.New(status.Convert(err).Message())
+	}
+	if vmId.Value == "" {
+		return "", nil
+	}
+	var vmName string
+	vmName, err = VmIdToName(vmId.Value)
+	if err != nil {
+		return "", err
+	}
+	return vmName, nil
 }
 
-func UpdateDisk(idPtr *string, c cirrina.VMInfoClient, ctx context.Context, diu *cirrina.DiskInfoUpdate) (err error) {
-	if *idPtr == "" {
-		return errors.New("id not specified")
-	}
-	reqId, err := c.SetDiskInfo(ctx, diu)
+func UpdateDisk(id string, newDesc *string, newType *string) error {
+	conn, c, ctx, cancel, err := SetupConn()
 	if err != nil {
 		return err
 	}
-	if !reqId.Success {
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
+	defer cancel()
+
+	if id == "" {
+		return errors.New("id not specified")
+	}
+
+	diu := cirrina.DiskInfoUpdate{
+		Id: id,
+	}
+
+	if newDesc != nil {
+		diu.Description = newDesc
+	}
+
+	DiskTypeNvme := cirrina.DiskType_NVME
+	DiskTypeAHCIHD := cirrina.DiskType_AHCIHD
+	DiskTypeVirtIoBlk := cirrina.DiskType_VIRTIOBLK
+	if newType != nil {
+		if *newType == "NVME" || *newType == "nvme" {
+			diu.DiskType = &DiskTypeNvme
+		} else if *newType == "AHCIHD" || *newType == "ahcihd" || *newType == "AHCI" || *newType == "ahci" {
+			diu.DiskType = &DiskTypeAHCIHD
+		} else if *newType == "VIRTIO-BLK" || *newType == "virtio-blk" ||
+			*newType == "VIRTIOBLK" || *newType == "virtioblk" {
+			diu.DiskType = &DiskTypeVirtIoBlk
+		} else {
+			return errors.New("invalid disk type specified " + *newType)
+		}
+	}
+	var res *cirrina.ReqBool
+	res, err = c.SetDiskInfo(ctx, &diu)
+	if err != nil {
+		return errors.New(status.Convert(err).Message())
+	}
+	if !res.Success {
 		return errors.New("failed to update disk")
 	}
 	return nil

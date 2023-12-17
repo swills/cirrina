@@ -500,6 +500,9 @@ func ParseDiskSize(size string) (sizeBytes uint64, err error) {
 	if err != nil {
 		return 0, err
 	}
+	if nu < 1 {
+		return 0, fmt.Errorf("invalid disk size %s", size)
+	}
 	n = uint(nu)
 	r := uint64(n) * m
 	return r, nil

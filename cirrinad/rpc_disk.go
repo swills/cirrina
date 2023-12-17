@@ -287,10 +287,6 @@ func (s *server) GetDiskVm(_ context.Context, i *cirrina.DiskId) (v *cirrina.VMI
 		}
 	}
 
-	if pvmId.Value == "" {
-		// no VMs use this disk
-		return &pvmId, errors.New("not found")
-	}
 	return &pvmId, nil
 }
 

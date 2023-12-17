@@ -6,12 +6,25 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/term"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 	"os"
 	"time"
 )
 
-func UseCom(c cirrina.VMInfoClient, idPtr *string, comNum int) (err error) {
-	if *idPtr == "" {
+func UseCom(id string, comNum int) error {
+	var conn *grpc.ClientConn
+	var c cirrina.VMInfoClient
+	var err error
+	conn, c, err = SetupConnNoTimeoutNoContext()
+	if err != nil {
+		return err
+	}
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
+
+	if id == "" {
 		return errors.New("id not specified")
 	}
 	ctx, ctxCancel := context.WithCancel(context.Background())
@@ -29,10 +42,10 @@ func UseCom(c cirrina.VMInfoClient, idPtr *string, comNum int) (err error) {
 		stream, err = c.Com4Interactive(ctx)
 	}
 	if err != nil {
-		return err
+		return errors.New(status.Convert(err).Message())
 	}
 
-	vmId := &cirrina.VMID{Value: *idPtr}
+	vmId := &cirrina.VMID{Value: id}
 	req := &cirrina.ComDataRequest{
 		Data: &cirrina.ComDataRequest_VmId{
 			VmId: vmId,
@@ -43,8 +56,8 @@ func UseCom(c cirrina.VMInfoClient, idPtr *string, comNum int) (err error) {
 	if err != nil {
 		return err
 	}
-
-	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
+	var oldState *term.State
+	oldState, err = term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		return err
 	}
@@ -103,7 +116,8 @@ func UseCom(c cirrina.VMInfoClient, idPtr *string, comNum int) (err error) {
 				_ = term.Restore(int(os.Stdin.Fd()), oldState)
 				return
 			default:
-				out, err := stream.Recv()
+				var out *cirrina.ComDataResponse
+				out, err = stream.Recv()
 				if err != nil {
 					_ = stream.CloseSend()
 					ctxCancel()
@@ -125,7 +139,8 @@ func UseCom(c cirrina.VMInfoClient, idPtr *string, comNum int) (err error) {
 			_ = term.Restore(int(os.Stdin.Fd()), oldState)
 			return nil
 		default:
-			res, _, _, err := GetVMState(idPtr, c, ctx)
+			var res string
+			res, _, _, err = GetVMState(id)
 			if err != nil {
 				_ = stream.CloseSend()
 				ctxCancel()

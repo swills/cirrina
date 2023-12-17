@@ -2,41 +2,37 @@ package cmd
 
 import (
 	"cirrina/cirrinactl/rpc"
-	"cirrina/cirrinactl/util"
+	"fmt"
 	"github.com/spf13/cobra"
-	"google.golang.org/grpc"
-	"log"
 )
 
 var HostNicsCmd = &cobra.Command{
-	Use:   "getnics",
-	Short: "Get list of host nics",
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
+	Use:          "getnics",
+	Short:        "Get list of host nics",
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		res, err := rpc.GetHostNics()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
-		util.GetNics(c, ctx)
+		for _, nic := range res {
+			fmt.Printf("nic: %s\n", nic.InterfaceName)
+		}
+		return nil
 	},
 }
 
 var HostVersionCmd = &cobra.Command{
-	Use:   "version",
-	Short: "Get host daemon version",
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
+	Use:          "version",
+	Short:        "Get host daemon version",
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		res, err := rpc.GetHostVersion()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
-		util.GetHostVersion(c, ctx)
+		fmt.Printf("version: %s\n", res)
+		return nil
 	},
 }
 

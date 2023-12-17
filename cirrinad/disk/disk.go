@@ -38,7 +38,7 @@ func Create(name string, description string, size string, diskType string, diskD
 	}
 	if existingDisk.Name != "" {
 		slog.Error("disk exists in DB", "disk", name, "id", existingDisk.ID, "type", existingDisk.Type)
-		return &Disk{}, errors.New("disk exists")
+		return &Disk{}, fmt.Errorf("disk %s exists in db", name)
 	}
 
 	// check disk size
@@ -50,7 +50,7 @@ func Create(name string, description string, size string, diskType string, diskD
 	} else {
 		diskSize, err = util.ParseDiskSize(size)
 		if diskSize == 0 || err != nil {
-			return &Disk{}, errors.New("invalid disk size")
+			return &Disk{}, err
 		}
 		// limit disks to min 512 bytes
 		if diskSize < 512 {

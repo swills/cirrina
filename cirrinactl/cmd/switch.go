@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"cirrina/cirrinactl/rpc"
-	"cirrina/cirrinactl/util"
+	"errors"
+	"fmt"
+	"github.com/jedib0t/go-pretty/table"
 	"github.com/spf13/cobra"
-	"google.golang.org/grpc"
-	"log"
+	"os"
+	"sort"
 )
 
 var SwitchName string
@@ -23,137 +25,152 @@ var SwitchCmd = &cobra.Command{
 }
 
 var SwitchListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "list virtual switches",
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
+	Use:          "list",
+	Short:        "list virtual switches",
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		res, err := rpc.GetSwitches()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
-		util.GetSwitches(c, ctx)
+
+		var names []string
+		type switchListInfo struct {
+			switchId   string
+			switchInfo rpc.SwitchInfo
+		}
+
+		switchInfos := make(map[string]switchListInfo)
+		for _, id := range res {
+			res, err := rpc.GetSwitch(id)
+			if err != nil {
+				return err
+			}
+			names = append(names, res.Name)
+			switchInfos[res.Name] = switchListInfo{
+				switchId:   id,
+				switchInfo: res,
+			}
+		}
+
+		sort.Strings(names)
+		t := table.NewWriter()
+		t.SetOutputMirror(os.Stdout)
+		t.AppendHeader(table.Row{"NAME", "UUID", "TYPE", "UPLINK", "DESCRIPTION"})
+		t.SetStyle(myTableStyle)
+		for _, name := range names {
+			t.AppendRow(table.Row{
+				name,
+				switchInfos[name].switchId,
+				switchInfos[name].switchInfo.SwitchType,
+				switchInfos[name].switchInfo.Uplink,
+				switchInfos[name].switchInfo.Descr,
+			})
+		}
+		t.Render()
+		return nil
 	},
 }
 
 var SwitchCreateCmd = &cobra.Command{
-	Use:   "create",
-	Short: "create virtual switch",
+	Use:          "create",
+	Short:        "create virtual switch",
+	SilenceUsage: true,
 	Long: "Create a virtual switch.\n\nSwitches may be one of two types: \n\n" +
 		"if_bridge (also called IF)\nnetgraph (also called NG)\n\nSwitches " +
 		"of type if_bridge must be named starting with \"bridge\" followed " +
 		"by a number, for example \"bridge0\".\nSwitches of type netgraph " +
 		"must be named starting with \"bnet\" followed by a number, for example \"bnet0\".",
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		res, err := rpc.AddSwitch(SwitchName, &SwitchDescription, &SwitchType)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
-		util.AddSwitch(SwitchName, c, ctx, SwitchDescription, SwitchType)
+		fmt.Printf("Switch created. id: %s\n", res)
+		return nil
 	},
 }
 
 var SwitchDestroyCmd = &cobra.Command{
-	Use:   "destroy",
-	Short: "destroy virtual switch",
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
+	Use:          "destroy",
+	Short:        "destroy virtual switch",
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
 		if SwitchId == "" {
-			SwitchId, err = rpc.SwitchNameToId(&SwitchName, c, ctx)
+			SwitchId, err = rpc.SwitchNameToId(SwitchName)
 			if err != nil {
-				log.Fatalf(err.Error())
+				return err
 			}
 			if SwitchId == "" {
-				log.Fatalf("Switch not found")
+				return errors.New("switch not found")
 			}
 		}
-		if SwitchName == "" {
-			SwitchName, err = rpc.SwitchIdToName(SwitchId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
+
+		err = rpc.RemoveSwitch(SwitchId)
+		if err != nil {
+			return err
 		}
-		util.RmSwitch(SwitchName, c, ctx)
+		fmt.Printf("Switch deleted\n")
+		return nil
 	},
 }
 
 var SwitchUplinkCmd = &cobra.Command{
-	Use:   "set-uplink",
-	Short: "set switch uplink",
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
+	Use:          "set-uplink",
+	Short:        "set switch uplink",
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
 		if SwitchId == "" {
-			SwitchId, err = rpc.SwitchNameToId(&SwitchName, c, ctx)
+			SwitchId, err = rpc.SwitchNameToId(SwitchName)
 			if err != nil {
-				log.Fatalf(err.Error())
+				return err
 			}
 			if SwitchId == "" {
-				log.Fatalf("Switch not found")
+				return errors.New("switch not found")
 			}
 		}
-		if SwitchName == "" {
-			SwitchName, err = rpc.SwitchIdToName(SwitchId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
+		err = rpc.SetSwitchUplink(SwitchId, &SwitchUplinkName)
+		if err != nil {
+			return err
 		}
-		util.SetUplink(SwitchName, c, ctx, SwitchUplinkName)
+		fmt.Printf("Switch uplink set\n")
+		return nil
 	},
 }
 
 var SwitchUpdateCmd = &cobra.Command{
-	Use:   "update",
-	Short: "update switch",
+	Use:          "update",
+	Short:        "update switch",
+	SilenceUsage: true,
 	Args: func(cmd *cobra.Command, args []string) error {
 		SwitchDescriptionChanged = cmd.Flags().Changed("description")
 		return nil
 	},
-	Run: func(cmd *cobra.Command, args []string) {
-		conn, c, ctx, cancel, err := rpc.SetupConn()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-		defer cancel()
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
 		if SwitchId == "" {
-			SwitchId, err = rpc.SwitchNameToId(&SwitchName, c, ctx)
+			SwitchId, err = rpc.SwitchNameToId(SwitchName)
 			if err != nil {
-				log.Fatalf(err.Error())
+				return err
 			}
 			if SwitchId == "" {
-				log.Fatalf("Switch not found")
+				return errors.New("switch not found")
 			}
 		}
-		if SwitchName == "" {
-			SwitchName, err = rpc.SwitchIdToName(SwitchId, c, ctx)
-			if err != nil {
-				log.Fatalf(err.Error())
-			}
-		}
+
 		// currently only support changing switch description
-		util.UpdateSwitch(SwitchName, c, ctx, SwitchDescriptionChanged, SwitchDescription)
+		var newDesc *string
+		if SwitchDescriptionChanged {
+			newDesc = &SwitchDescription
+		}
+		err = rpc.UpdateSwitch(SwitchId, newDesc)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Switch updated\n")
+		return nil
 	},
 }
 
@@ -161,32 +178,40 @@ func init() {
 	SwitchCreateCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of switch")
 	err := SwitchCreateCmd.MarkFlagRequired("name")
 	if err != nil {
-		log.Fatalf(err.Error())
+		panic(err)
 	}
-	SwitchCreateCmd.Flags().StringVarP(&SwitchDescription, "description", "d", SwitchDescription, "description of switch")
+	SwitchCreateCmd.Flags().StringVarP(&SwitchDescription,
+		"description", "d", SwitchDescription, "description of switch",
+	)
 	SwitchCreateCmd.Flags().StringVarP(&SwitchType, "type", "t", SwitchType, "type of switch")
 
 	SwitchDestroyCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of switch")
 	err = SwitchDestroyCmd.MarkFlagRequired("name")
 	if err != nil {
-		log.Fatalf(err.Error())
+		panic(err)
 	}
 
 	SwitchUplinkCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of switch")
 	err = SwitchUplinkCmd.MarkFlagRequired("name")
 	if err != nil {
-		log.Fatalf(err.Error())
+		panic(err)
 	}
-	SwitchUplinkCmd.Flags().StringVarP(&SwitchUplinkName, "uplink", "u", SwitchName, "uplink name")
+	SwitchUplinkCmd.Flags().StringVarP(&SwitchUplinkName,
+		"uplink", "u", SwitchName, "uplink name",
+	)
 	err = SwitchUplinkCmd.MarkFlagRequired("uplink")
 	if err != nil {
-		log.Fatalf(err.Error())
+		panic(err)
 	}
 
 	SwitchUpdateCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of Switch")
 	SwitchUpdateCmd.Flags().StringVarP(&SwitchId, "id", "i", SwitchId, "id of Switch")
 	SwitchUpdateCmd.MarkFlagsOneRequired("name", "id")
-	SwitchUpdateCmd.Flags().StringVarP(&SwitchDescription, "description", "d", SwitchDescription, "description of switch")
+	SwitchUpdateCmd.MarkFlagsMutuallyExclusive("name", "id")
+
+	SwitchUpdateCmd.Flags().StringVarP(&SwitchDescription,
+		"description", "d", SwitchDescription, "description of switch",
+	)
 
 	SwitchCmd.AddCommand(SwitchListCmd)
 	SwitchCmd.AddCommand(SwitchCreateCmd)

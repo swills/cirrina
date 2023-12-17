@@ -79,6 +79,10 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 		slog.Error("UploadIso", "msg", "cannot receive image info")
 	}
 	isoUploadReq := req.GetIsouploadinfo()
+	if isoUploadReq == nil || isoUploadReq.Isoid == nil {
+		slog.Error("nil isoUploadReq or iso id")
+		return errors.New("nil isoUploadReq or iso id")
+	}
 	isoId := isoUploadReq.Isoid
 
 	isoUuid, err := uuid.Parse(isoId.Value)
@@ -111,6 +115,7 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 		err = stream.SendAndClose(&re)
 		if err != nil {
 			slog.Error("UploadIso cannot send response", "err", err)
+			return errors.New("failed sending response")
 		}
 		return nil
 	}
@@ -131,7 +136,7 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 			break
 		}
 		if err != nil {
-			slog.Error("UploadIso", "err", err)
+			slog.Error("UploadIso failed receiving", "err", err)
 			return errors.New("failed reading image date")
 		}
 
@@ -142,7 +147,7 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 		imageSize += uint64(size)
 		_, err = isoFileBuffer.Write(chunk)
 		if err != nil {
-			slog.Error("UploadIso", "err", err)
+			slog.Error("UploadIso failed writing", "err", err)
 			return errors.New("failed writing iso image data")
 		}
 		hasher.Write(chunk)

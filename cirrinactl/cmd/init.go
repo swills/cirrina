@@ -1,19 +1,42 @@
 package cmd
 
 import (
-	conn2 "cirrina/cirrinactl/rpc"
+	"cirrina/cirrinactl/rpc"
+	"github.com/jedib0t/go-pretty/table"
+	"github.com/jedib0t/go-pretty/text"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"log"
 	"os"
 )
+
+var myTableStyle = table.Style{
+	Name: "myNewStyle",
+	Box: table.BoxStyle{
+		MiddleHorizontal: "-", // bug in go-pretty causes panic if this is empty
+		PaddingRight:     "  ",
+	},
+	Format: table.FormatOptions{
+		Footer: text.FormatUpper,
+		Header: text.FormatUpper,
+		Row:    text.FormatDefault,
+	},
+	Options: table.Options{
+		DrawBorder:      false,
+		SeparateColumns: false,
+		SeparateFooter:  false,
+		SeparateHeader:  false,
+		SeparateRows:    false,
+	},
+}
 
 var cfgFile string
 var VmName string
 var VmId string
+var Humanize = true
 
 var rootCmd = &cobra.Command{
-	Use: "cirrinactl",
+	Use:     "cirrinactl",
+	Version: mainVersion,
 }
 
 func Execute() {
@@ -26,24 +49,25 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "C", cfgFile, "config file (default is $HOME/.cirrinactl.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile,
+		"config", "C", cfgFile, "config file (default is $HOME/.cirrinactl.yaml)")
 
 	rootCmd.PersistentFlags().StringP("server", "S", "localhost", "server")
 	err := viper.BindPFlag("server", rootCmd.PersistentFlags().Lookup("server"))
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	rootCmd.PersistentFlags().Uint16P("port", "P", uint16(50051), "port")
 	err = viper.BindPFlag("port", rootCmd.PersistentFlags().Lookup("port"))
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	rootCmd.PersistentFlags().Uint64P("timeout", "T", uint64(2), "timeout in seconds")
 	err = viper.BindPFlag("timeout", rootCmd.PersistentFlags().Lookup("timeout"))
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 
 	rootCmd.AddCommand(VmCmd)
@@ -54,7 +78,6 @@ func init() {
 	rootCmd.AddCommand(TuiCmd)
 	rootCmd.AddCommand(ReqStatCmd)
 	rootCmd.AddCommand(HostCmd)
-	rootCmd.AddCommand(VersionCmd)
 }
 
 func initConfig() {
@@ -72,7 +95,9 @@ func initConfig() {
 	viper.AutomaticEnv()
 	_ = viper.ReadInConfig()
 
-	conn2.ServerName = viper.GetString("server")
-	conn2.ServerPort = viper.GetUint16("port")
-	conn2.ServerTimeout = viper.GetUint64("timeout")
+	rpc.ServerName = viper.GetString("server")
+	rpc.ServerPort = viper.GetUint16("port")
+	rpc.ServerTimeout = viper.GetUint64("timeout")
 }
+
+var mainVersion = "unknown"
