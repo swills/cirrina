@@ -11,6 +11,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"time"
 )
 
 var AutoStart bool
@@ -324,11 +325,38 @@ var VmStopCmd = &cobra.Command{
 		if !running {
 			return errors.New("VM not running")
 		}
-		_, err = rpc.StopVM(VmId)
+
+		var vmConfig rpc.VmConfig
+		vmConfig, err = rpc.GetVMConfig(VmId)
 		if err != nil {
 			return err
 		}
-		fmt.Printf("VM stopped\n")
+
+		// max wait + 10 seconds just in case
+		timeout := time.Now().Add((time.Duration(int64(*vmConfig.MaxWait)) * time.Second) + (time.Second * 10))
+
+		var reqId string
+		var reqStat rpc.ReqStatus
+		reqId, err = rpc.StopVM(VmId)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("VM Stopping (timeout: %ds): ", *vmConfig.MaxWait)
+		for time.Now().Before(timeout) {
+			reqStat, err = rpc.ReqStat(reqId)
+			if err != nil {
+				return err
+			}
+			if reqStat.Success {
+				fmt.Printf(" done")
+			}
+			if reqStat.Complete {
+				break
+			}
+			fmt.Printf(".")
+			time.Sleep(time.Second)
+		}
+		fmt.Printf("\n")
 		return nil
 	},
 }
