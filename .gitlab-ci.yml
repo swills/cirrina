@@ -44,6 +44,7 @@ cirranactl:
   script:
     - VER=$(git rev-parse --short HEAD)
     - cd cirrinactl
+    - export GOPROXY=http://10.0.1.152:3000
     - export CGO_ENABLED=0
     - export GO_LDFLAGS="-X cirrina/cirrinactl/cmd.mainVersion=${VER} -s -w -extldflags -static -buildid=${CI_COMMIT_SHA}"
     - export GOFLAGS="-trimpath"
