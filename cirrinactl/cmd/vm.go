@@ -2,12 +2,14 @@ package cmd
 
 import (
 	"cirrina/cirrinactl/rpc"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v3"
 	"os"
 	"sort"
 	"strconv"
@@ -341,6 +343,12 @@ var VmStopCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
+		if !CheckReqStat {
+			fmt.Printf("VM stopped\n")
+			return nil
+		}
+
 		fmt.Printf("VM Stopping (timeout: %ds): ", *vmConfig.MaxWait)
 		for time.Now().Before(timeout) {
 			reqStat, err = rpc.ReqStat(reqId)
@@ -386,11 +394,46 @@ var VmStartCmd = &cobra.Command{
 		if !stopped {
 			return errors.New("VM must be stopped in order to be started")
 		}
-		_, err = rpc.StartVM(VmId)
+
+		// borrow the max stop time as a timeout for waiting on startup
+		var vmConfig rpc.VmConfig
+		vmConfig, err = rpc.GetVMConfig(VmId)
 		if err != nil {
 			return err
 		}
-		fmt.Print("VM started\n")
+
+		// max wait + 10 seconds just in case
+		timeout := time.Now().Add((time.Duration(int64(*vmConfig.MaxWait)) * time.Second) + (time.Second * 10))
+
+		var reqId string
+		var reqStat rpc.ReqStatus
+
+		reqId, err = rpc.StartVM(VmId)
+		if err != nil {
+			return err
+		}
+
+		if !CheckReqStat {
+			fmt.Print("VM started\n")
+			return nil
+		}
+
+		fmt.Printf("VM Starting (timeout: %ds): ", *vmConfig.MaxWait)
+		for time.Now().Before(timeout) {
+			reqStat, err = rpc.ReqStat(reqId)
+			if err != nil {
+				return err
+			}
+			if reqStat.Success {
+				fmt.Printf(" done")
+			}
+			if reqStat.Complete {
+				break
+			}
+			fmt.Printf(".")
+			time.Sleep(time.Second)
+		}
+		fmt.Printf("\n")
 		return nil
 	},
 }
@@ -720,8 +763,27 @@ var VmConfigCmd = &cobra.Command{
 }
 
 var VmGetCmd = &cobra.Command{
-	Use:          "get",
-	Short:        "Get info on a VM",
+	Use:   "get",
+	Short: "Get info on a VM",
+	Args: func(cmd *cobra.Command, args []string) error {
+		switch outputFormatString {
+		case "TXT":
+			outputFormat = TXT
+		case "txt":
+			outputFormat = TXT
+		case "JSON":
+			outputFormat = JSON
+		case "json":
+			outputFormat = JSON
+		case "YAML":
+			outputFormat = YAML
+		case "yaml":
+			outputFormat = YAML
+		default:
+			return errors.New("unknown output format")
+		}
+		return nil
+	},
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
@@ -749,196 +811,221 @@ var VmGetCmd = &cobra.Command{
 			return err
 		}
 
-		// TODO JSON output
-
-		fmt.Printf("id: %v\n", VmId)
-
-		if vmConfig.Name != nil {
-			fmt.Printf("name: %v\n", *vmConfig.Name)
+		type vmOutStat struct {
+			Status    string
+			Vncport   string
+			Debugport string
+		}
+		type vmOutThing struct {
+			Config rpc.VmConfig
+			State  vmOutStat
+		}
+		vmOutSt := vmOutStat{
+			Status:    vmState,
+			Vncport:   vncPort,
+			Debugport: debugPort,
+		}
+		vmOutStr := vmOutThing{
+			Config: vmConfig,
+			State:  vmOutSt,
 		}
 
-		if vmConfig.Description != nil {
-			fmt.Printf("desc: %v\n", *vmConfig.Description)
-		}
+		switch outputFormat {
+		case TXT:
+			fmt.Printf("id: %v\n", VmId)
 
-		if vmConfig.Cpu != nil {
-			fmt.Printf("cpus: %v\n", *vmConfig.Cpu)
-		}
+			if vmConfig.Name != nil {
+				fmt.Printf("name: %v\n", *vmConfig.Name)
+			}
+			if vmConfig.Description != nil {
+				fmt.Printf("desc: %v\n", *vmConfig.Description)
+			}
+			if vmConfig.Cpu != nil {
+				fmt.Printf("cpus: %v\n", *vmConfig.Cpu)
+			}
+			if vmConfig.Mem != nil {
+				fmt.Printf("mem: %v\n", *vmConfig.Mem)
+			}
 
-		if vmConfig.Mem != nil {
-			fmt.Printf("mem: %v\n", *vmConfig.Mem)
-		}
+			if vmConfig.Priority != nil {
+				fmt.Printf("priority: %v\n", *vmConfig.Priority)
+			}
+			if vmConfig.Protect != nil {
+				fmt.Printf("protect: %v\n", *vmConfig.Protect)
+			}
+			if vmConfig.Pcpu != nil {
+				fmt.Printf("pcpu: %v\n", *vmConfig.Pcpu)
+			}
+			if vmConfig.Rbps != nil {
+				fmt.Printf("rbps: %v\n", *vmConfig.Rbps)
+			}
+			if vmConfig.Wbps != nil {
+				fmt.Printf("Wbps: %v\n", *vmConfig.Wbps)
+			}
+			if vmConfig.Riops != nil {
+				fmt.Printf("Riops: %v\n", *vmConfig.Riops)
+			}
+			if vmConfig.Wiops != nil {
+				fmt.Printf("Wiops: %v\n", *vmConfig.Wiops)
+			}
 
-		if vmConfig.Priority != nil {
-			fmt.Printf("priority: %v\n", *vmConfig.Priority)
-		}
+			if vmConfig.Com1 != nil {
+				fmt.Printf("com1: %v\n", *vmConfig.Com1)
+			}
+			if vmConfig.Com1Log != nil {
+				fmt.Printf("com1-log: %v\n", *vmConfig.Com1Log)
+			}
+			if vmConfig.Com1Dev != nil {
+				fmt.Printf("com1-dev: %v\n", *vmConfig.Com1Dev)
+			}
+			if vmConfig.Com1Speed != nil {
+				fmt.Printf("com1-speed: %v\n", *vmConfig.Com1Speed)
+			}
 
-		if vmConfig.Protect != nil {
-			fmt.Printf("protect: %v\n", *vmConfig.Protect)
-		}
+			if vmConfig.Com2 != nil {
+				fmt.Printf("com2: %v\n", *vmConfig.Com2)
+			}
+			if vmConfig.Com2Log != nil {
+				fmt.Printf("com2-log: %v\n", *vmConfig.Com2Log)
+			}
+			if vmConfig.Com2Dev != nil {
+				fmt.Printf("com2-dev: %v\n", *vmConfig.Com2Dev)
+			}
+			if vmConfig.Com2Speed != nil {
+				fmt.Printf("com2-speed: %v\n", *vmConfig.Com2Speed)
+			}
 
-		if vmConfig.Pcpu != nil {
-			fmt.Printf("pcpu: %v\n", *vmConfig.Pcpu)
-		}
+			if vmConfig.Com3 != nil {
+				fmt.Printf("com3: %v\n", *vmConfig.Com3)
+			}
+			if vmConfig.Com3Log != nil {
+				fmt.Printf("com3-log: %v\n", *vmConfig.Com3Log)
+			}
+			if vmConfig.Com3Dev != nil {
+				fmt.Printf("com3-dev: %v\n", *vmConfig.Com3Dev)
+			}
+			if vmConfig.Com3Speed != nil {
+				fmt.Printf("com3-speed: %v\n", *vmConfig.Com3Speed)
+			}
 
-		if vmConfig.Rbps != nil {
-			fmt.Printf("rbps: %v\n", *vmConfig.Rbps)
-		}
+			if vmConfig.Com4 != nil {
+				fmt.Printf("com4: %v\n", *vmConfig.Com4)
+			}
+			if vmConfig.Com4Log != nil {
+				fmt.Printf("com4-log: %v\n", *vmConfig.Com4Log)
+			}
+			if vmConfig.Com4Dev != nil {
+				fmt.Printf("com4-dev: %v\n", *vmConfig.Com4Dev)
+			}
+			if vmConfig.Com4Speed != nil {
+				fmt.Printf("com4-speed: %v\n", *vmConfig.Com4Speed)
+			}
 
-		if vmConfig.Wbps != nil {
-			fmt.Printf("Wbps: %v\n", *vmConfig.Wbps)
-		}
+			if vmConfig.Screen != nil {
+				fmt.Printf("screen: %v\n", *vmConfig.Screen)
+			}
+			if vmConfig.Vncport != nil {
+				fmt.Printf("vnc-port: %v\n", *vmConfig.Vncport)
+			}
+			if vmConfig.ScreenWidth != nil {
+				fmt.Printf("screen-width: %v\n", *vmConfig.ScreenWidth)
+			}
+			if vmConfig.ScreenHeight != nil {
+				fmt.Printf("screen-height: %v\n", *vmConfig.ScreenHeight)
+			}
+			if vmConfig.Vncwait != nil {
+				fmt.Printf("vnc-wait: %v\n", *vmConfig.Vncwait)
+			}
+			if vmConfig.Tablet != nil {
+				fmt.Printf("tablet-mode: %v\n", *vmConfig.Tablet)
+			}
+			if vmConfig.Keyboard != nil {
+				fmt.Printf("Keyboard: %v\n", *vmConfig.Keyboard)
+			}
 
-		if vmConfig.Riops != nil {
-			fmt.Printf("Riops: %v\n", *vmConfig.Riops)
-		}
+			if vmConfig.Sound != nil {
+				fmt.Printf("sound: %v\n", *vmConfig.Sound)
+			}
+			if vmConfig.SoundIn != nil {
+				fmt.Printf("sound-input: %v\n", *vmConfig.SoundIn)
+			}
+			if vmConfig.SoundOut != nil {
+				fmt.Printf("sound-output: %v\n", *vmConfig.SoundOut)
+			}
 
-		if vmConfig.Wiops != nil {
-			fmt.Printf("Wiops: %v\n", *vmConfig.Wiops)
-		}
+			if vmConfig.Autostart != nil {
+				fmt.Printf("auto-start: %v\n", *vmConfig.Autostart)
+			}
+			if vmConfig.AutostartDelay != nil {
+				fmt.Printf("auto-start-delay: %v\n", *vmConfig.AutostartDelay)
+			}
+			if vmConfig.Restart != nil {
+				fmt.Printf("restart: %v\n", *vmConfig.Restart)
+			}
+			if vmConfig.RestartDelay != nil {
+				fmt.Printf("restart-delay: %v\n", *vmConfig.RestartDelay)
+			}
+			if vmConfig.MaxWait != nil {
+				fmt.Printf("max-wait: %v\n", *vmConfig.MaxWait)
+			}
 
-		if vmConfig.Com1 != nil {
-			fmt.Printf("com1: %v\n", *vmConfig.Com1)
+			if vmConfig.Storeuefi != nil {
+				fmt.Printf("store-uefi-vars: %v\n", *vmConfig.Storeuefi)
+			}
+			if vmConfig.Utc != nil {
+				fmt.Printf("use-utc-time: %v\n", *vmConfig.Utc)
+			}
+			if vmConfig.Dpo != nil {
+				fmt.Printf("destroy-on-power-off: %v\n", *vmConfig.Dpo)
+			}
+			if vmConfig.Wireguestmem != nil {
+				fmt.Printf("wire-guest-mem: %v\n", *vmConfig.Wireguestmem)
+			}
+			if vmConfig.Hostbridge != nil {
+				fmt.Printf("use-host-bridge: %v\n", *vmConfig.Hostbridge)
+			}
+			if vmConfig.Acpi != nil {
+				fmt.Printf("generate-acpi-tables: %v\n", *vmConfig.Acpi)
+			}
+			if vmConfig.Eop != nil {
+				fmt.Printf("exit-on-PAUSE: %v\n", *vmConfig.Eop)
+			}
+			if vmConfig.Ium != nil {
+				fmt.Printf("ignore-unknown-MSR: %v\n", *vmConfig.Ium)
+			}
+			if vmConfig.Hlt != nil {
+				fmt.Printf("yield-on-HLT: %v\n", *vmConfig.Hlt)
+			}
+			if vmConfig.Debug != nil {
+				fmt.Printf("debug: %v\n", *vmConfig.Debug)
+			}
+			if vmConfig.DebugWait != nil {
+				fmt.Printf("debug-wait: %v\n", *vmConfig.DebugWait)
+			}
+			if vmConfig.DebugPort != nil {
+				fmt.Printf("debug-port: %v\n", *vmConfig.DebugPort)
+			}
+			if vmConfig.ExtraArgs != nil {
+				fmt.Printf("extra-args: %v\n", *vmConfig.ExtraArgs)
+			}
+			fmt.Printf("status: %v\n", vmState)
+			fmt.Printf("vnc-port: %v\n", vncPort)
+			fmt.Printf("debug-port: %v\n", debugPort)
+		case JSON:
+			bar, err := json.MarshalIndent(vmOutStr, "", "  ")
+			if err != nil {
+				return err
+			}
+			fmt.Printf("%s\n", string(bar))
+		case YAML:
+			bar, err := yaml.Marshal(vmOutStr)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("%s\n", string(bar))
+		default:
+			fmt.Printf("unknown output format\n")
 		}
-		if vmConfig.Com1Log != nil {
-			fmt.Printf("com1-log: %v\n", *vmConfig.Com1Log)
-		}
-		if vmConfig.Com1Dev != nil {
-			fmt.Printf("com1-dev: %v\n", *vmConfig.Com1Dev)
-		}
-		if vmConfig.Com1Speed != nil {
-			fmt.Printf("com1-speed: %v\n", *vmConfig.Com1Speed)
-		}
-
-		if vmConfig.Com2 != nil {
-			fmt.Printf("com2: %v\n", *vmConfig.Com2)
-		}
-		if vmConfig.Com2Log != nil {
-			fmt.Printf("com2-log: %v\n", *vmConfig.Com2Log)
-		}
-		if vmConfig.Com2Dev != nil {
-			fmt.Printf("com2-dev: %v\n", *vmConfig.Com2Dev)
-		}
-		if vmConfig.Com2Speed != nil {
-			fmt.Printf("com2-speed: %v\n", *vmConfig.Com2Speed)
-		}
-
-		if vmConfig.Com3 != nil {
-			fmt.Printf("com3: %v\n", *vmConfig.Com3)
-		}
-		if vmConfig.Com3Log != nil {
-			fmt.Printf("com3-log: %v\n", *vmConfig.Com3Log)
-		}
-		if vmConfig.Com3Dev != nil {
-			fmt.Printf("com3-dev: %v\n", *vmConfig.Com3Dev)
-		}
-		if vmConfig.Com3Speed != nil {
-			fmt.Printf("com3-speed: %v\n", *vmConfig.Com3Speed)
-		}
-
-		if vmConfig.Com4 != nil {
-			fmt.Printf("com4: %v\n", *vmConfig.Com4)
-		}
-		if vmConfig.Com4Log != nil {
-			fmt.Printf("com4-log: %v\n", *vmConfig.Com4Log)
-		}
-		if vmConfig.Com4Dev != nil {
-			fmt.Printf("com4-dev: %v\n", *vmConfig.Com4Dev)
-		}
-		if vmConfig.Com4Speed != nil {
-			fmt.Printf("com4-speed: %v\n", *vmConfig.Com4Speed)
-		}
-
-		if vmConfig.Screen != nil {
-			fmt.Printf("screen: %v\n", *vmConfig.Screen)
-		}
-		if vmConfig.Vncport != nil {
-			fmt.Printf("vnc-port: %v\n", *vmConfig.Vncport)
-		}
-		if vmConfig.ScreenWidth != nil {
-			fmt.Printf("screen-width: %v\n", *vmConfig.ScreenWidth)
-		}
-		if vmConfig.ScreenHeight != nil {
-			fmt.Printf("screen-height: %v\n", *vmConfig.ScreenHeight)
-		}
-		if vmConfig.Vncwait != nil {
-			fmt.Printf("vnc-wait: %v\n", *vmConfig.Vncwait)
-		}
-		if vmConfig.Tablet != nil {
-			fmt.Printf("tablet-mode: %v\n", *vmConfig.Tablet)
-		}
-		if vmConfig.Keyboard != nil {
-			fmt.Printf("Keyboard: %v\n", *vmConfig.Keyboard)
-		}
-
-		if vmConfig.Sound != nil {
-			fmt.Printf("sound: %v\n", *vmConfig.Sound)
-		}
-		if vmConfig.SoundIn != nil {
-			fmt.Printf("sound-input: %v\n", *vmConfig.SoundIn)
-		}
-		if vmConfig.SoundOut != nil {
-			fmt.Printf("sound-output: %v\n", *vmConfig.SoundOut)
-		}
-
-		if vmConfig.Autostart != nil {
-			fmt.Printf("auto-start: %v\n", *vmConfig.Autostart)
-		}
-		if vmConfig.AutostartDelay != nil {
-			fmt.Printf("auto-start-delay: %v\n", *vmConfig.AutostartDelay)
-		}
-		if vmConfig.Restart != nil {
-			fmt.Printf("restart: %v\n", *vmConfig.Restart)
-		}
-		if vmConfig.RestartDelay != nil {
-			fmt.Printf("restart-delay: %v\n", *vmConfig.RestartDelay)
-		}
-		if vmConfig.MaxWait != nil {
-			fmt.Printf("max-wait: %v\n", *vmConfig.MaxWait)
-		}
-
-		if vmConfig.Storeuefi != nil {
-			fmt.Printf("store-uefi-vars: %v\n", *vmConfig.Storeuefi)
-		}
-		if vmConfig.Utc != nil {
-			fmt.Printf("use-utc-time: %v\n", *vmConfig.Utc)
-		}
-		if vmConfig.Dpo != nil {
-			fmt.Printf("destroy-on-power-off: %v\n", *vmConfig.Dpo)
-		}
-		if vmConfig.Wireguestmem != nil {
-			fmt.Printf("wire-guest-mem: %v\n", *vmConfig.Wireguestmem)
-		}
-		if vmConfig.Hostbridge != nil {
-			fmt.Printf("use-host-bridge: %v\n", *vmConfig.Hostbridge)
-		}
-		if vmConfig.Acpi != nil {
-			fmt.Printf("generate-acpi-tables: %v\n", *vmConfig.Acpi)
-		}
-		if vmConfig.Eop != nil {
-			fmt.Printf("exit-on-PAUSE: %v\n", *vmConfig.Eop)
-		}
-		if vmConfig.Ium != nil {
-			fmt.Printf("ignore-unknown-MSR: %v\n", *vmConfig.Ium)
-		}
-		if vmConfig.Hlt != nil {
-			fmt.Printf("yield-on-HLT: %v\n", *vmConfig.Hlt)
-		}
-		if vmConfig.Debug != nil {
-			fmt.Printf("debug: %v\n", *vmConfig.Debug)
-		}
-		if vmConfig.DebugWait != nil {
-			fmt.Printf("debug-wait: %v\n", *vmConfig.DebugWait)
-		}
-		if vmConfig.DebugPort != nil {
-			fmt.Printf("debug-port: %v\n", *vmConfig.DebugPort)
-		}
-		if vmConfig.ExtraArgs != nil {
-			fmt.Printf("extra-args: %v\n", *vmConfig.ExtraArgs)
-		}
-		fmt.Printf("status: %v\n", vmState)
-		fmt.Printf("vnc-port: %v\n", vncPort)
-		fmt.Printf("debug-port: %v\n", debugPort)
 		return nil
 	},
 }
@@ -995,11 +1082,13 @@ func init() {
 	VmStartCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmStartCmd.MarkFlagsOneRequired("name", "id")
 	VmStartCmd.MarkFlagsMutuallyExclusive("name", "id")
+	VmStartCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
 
 	VmStopCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmStopCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmStopCmd.MarkFlagsOneRequired("name", "id")
 	VmStopCmd.MarkFlagsMutuallyExclusive("name", "id")
+	VmStopCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
 
 	VmDestroyCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmDestroyCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
@@ -1102,6 +1191,7 @@ func init() {
 	VmGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmGetCmd.MarkFlagsOneRequired("name", "id")
 	VmGetCmd.MarkFlagsMutuallyExclusive("name", "id")
+	VmGetCmd.Flags().StringVarP(&outputFormatString, "format", "f", outputFormatString, "Output format (txt, json, yaml")
 
 	VmClearUefiVarsCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmClearUefiVarsCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")

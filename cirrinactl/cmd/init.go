@@ -33,6 +33,17 @@ var cfgFile string
 var VmName string
 var VmId string
 var Humanize = true
+var CheckReqStat = true
+
+const (
+	TXT = iota
+	JSON
+	YAML
+)
+
+var outputFormat = TXT
+
+var outputFormatString = "TXT"
 
 var rootCmd = &cobra.Command{
 	Use:     "cirrinactl",

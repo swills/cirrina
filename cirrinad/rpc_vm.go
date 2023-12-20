@@ -381,6 +381,7 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	if vmInst.Name == "" {
 		return &pvm, errors.New("not found")
 	}
+	pvm.Id = v.Value
 	pvm.Name = &vmInst.Name
 	pvm.Description = &vmInst.Description
 	pvm.Cpu = &vmInst.Config.Cpu

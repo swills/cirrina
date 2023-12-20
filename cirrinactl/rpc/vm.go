@@ -130,6 +130,7 @@ func GetVMConfig(id string) (VmConfig, error) {
 		return VmConfig{}, errors.New(status.Convert(err).Message())
 	}
 	var rv VmConfig
+	rv.Id = res.Id
 	if res.Name != nil {
 		rv.Name = res.Name
 	}
