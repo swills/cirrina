@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-func getAllIfBridges() (bridges []string, err error) {
+func GetAllIfBridges() (bridges []string, err error) {
 	var r []string
 	cmd := exec.Command("/sbin/ifconfig", "-g", "bridge")
 	defer func(cmd *exec.Cmd) {
@@ -90,7 +90,7 @@ func createIfBridge(name string) error {
 		slog.Error("invalid bridge name", "name", name)
 		return errors.New("invalid bridge name, bridge name must start with \"bridge\"")
 	}
-	allIfBridges, err := getAllIfBridges()
+	allIfBridges, err := GetAllIfBridges()
 	if err != nil {
 		slog.Debug("failed to get all if bridges", "err", err)
 		return err
@@ -174,7 +174,7 @@ func GetDummyBridgeName() string {
 	// highest if_bridge num
 	bridgeNum := 32767
 
-	bridgeList, err := getAllIfBridges()
+	bridgeList, err := GetAllIfBridges()
 	if err != nil {
 		return ""
 	}

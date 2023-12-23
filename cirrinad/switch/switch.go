@@ -141,11 +141,11 @@ func CreateBridges() {
 func DestroyBridges() {
 	allBridges := GetAll()
 
-	exitingIfBridges, err := getAllIfBridges()
+	exitingIfBridges, err := GetAllIfBridges()
 	if err != nil {
 		slog.Error("error getting all if bridges")
 	}
-	exitingNgBridges, err := getAllNgBridges()
+	exitingNgBridges, err := GetAllNgBridges()
 	if err != nil {
 		slog.Error("error getting all ng bridges")
 	}
@@ -237,27 +237,21 @@ func BridgeIfAddMember(bridgeName string, memberName string, learn bool, mac str
 
 func BuildNgBridge(switchInst *Switch) error {
 	var members []string
-	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
-	memberList := strings.Split(switchInst.Uplink, ",")
-	for _, member := range memberList {
-		if member == "" {
-			continue
-		}
-		members = append(members, member)
+	allBridges, err := GetAllNgBridges()
+	if err != nil {
+		slog.Error("error getting all if bridges", "err", err)
 	}
-
-	err := createNgBridgeWithMembers(switchInst.Name, members)
-	return err
-}
-
-func BuildIfBridge(switchInst *Switch) error {
-	var members []string
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	memberList := strings.Split(switchInst.Uplink, ",")
+
+	// sanity checking of bridge members
+memberListLoop:
 	for _, member := range memberList {
+		// it can't be empty
 		if member == "" {
 			continue
 		}
+		// it has to exist
 		exists := CheckInterfaceExists(member)
 		if !exists {
 			slog.Error("attempt to add non-existent member to bridge, ignoring",
@@ -265,14 +259,80 @@ func BuildIfBridge(switchInst *Switch) error {
 			)
 			continue
 		}
+		// it can't be a member of another bridge already
+		for _, aBridge := range allBridges {
+			var allNgBridgeMembers []ngPeer
+			var existingMembers []string
+
+			// extra work here since this returns a ngPeer
+			allNgBridgeMembers, err = GetNgBridgeMembers(aBridge)
+			if err != nil {
+				slog.Error("error getting ng bridge members", "bridge", switchInst.Name)
+				continue
+			}
+			for _, m := range allNgBridgeMembers {
+				existingMembers = append(existingMembers, m.PeerName)
+			}
+			if util.ContainsStr(existingMembers, member) {
+				slog.Error("another bridge already contains member, member can not be in two bridges of "+
+					"same type, skipping adding", "bridge", switchInst.Name, "member", member,
+				)
+				continue memberListLoop
+			}
+		}
 		members = append(members, member)
 	}
-	err := CreateIfBridgeWithMembers(switchInst.Name, members)
+
+	err = createNgBridgeWithMembers(switchInst.Name, members)
+	return err
+}
+
+func BuildIfBridge(switchInst *Switch) error {
+	var members []string
+	allBridges, err := GetAllIfBridges()
+	if err != nil {
+		slog.Error("error getting all if bridges", "err", err)
+	}
+	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
+	memberList := strings.Split(switchInst.Uplink, ",")
+
+	// sanity checking of bridge members
+memberListLoop:
+	for _, member := range memberList {
+		// it can't be empty
+		if member == "" {
+			continue
+		}
+		// it has to exist
+		exists := CheckInterfaceExists(member)
+		if !exists {
+			slog.Error("attempt to add non-existent member to bridge, ignoring",
+				"bridge", switchInst.Name, "uplink", member,
+			)
+			continue
+		}
+		// it can't be a member of another bridge already
+		for _, aBridge := range allBridges {
+			existingMembers, err := GetIfBridgeMembers(aBridge)
+			if err != nil {
+				slog.Warn("error getting if bridge members", "bridge", switchInst.Name)
+				continue
+			}
+			if util.ContainsStr(existingMembers, member) {
+				slog.Error("another bridge already contains member, member can not be in two bridges of "+
+					"same type, skipping adding", "bridge", switchInst.Name, "member", member,
+				)
+				continue memberListLoop
+			}
+		}
+		members = append(members, member)
+	}
+	err = CreateIfBridgeWithMembers(switchInst.Name, members)
 	return err
 }
 
 func ngGetBridgeNextLink(bridge string) (nextLink string, err error) {
-	bridgePeers, err := ngGetBridgePeers(bridge)
+	bridgePeers, err := GetNgBridgeMembers(bridge)
 	if err != nil {
 		return nextLink, err
 	}
@@ -287,7 +347,7 @@ func GetNgDev(switchId string) (bridge string, peer string, err error) {
 		slog.Error("switch lookup error", "switchid", switchId)
 	}
 
-	bridgePeers, err := ngGetBridgePeers(thisSwitch.Name)
+	bridgePeers, err := GetNgBridgeMembers(thisSwitch.Name)
 	if err != nil {
 		return "", "", err
 	}

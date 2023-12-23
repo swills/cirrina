@@ -81,7 +81,7 @@ func ngGetNodes() (ngNodes []NgNode, err error) {
 	return ngNodes, nil
 }
 
-func getAllNgBridges() (bridges []string, err error) {
+func GetAllNgBridges() (bridges []string, err error) {
 	netgraphNodes, err := ngGetNodes()
 	if err != nil {
 		return nil, err
@@ -95,7 +95,7 @@ func getAllNgBridges() (bridges []string, err error) {
 	return bridges, nil
 }
 
-func ngGetBridgePeers(bridge string) (peers []ngPeer, err error) {
+func GetNgBridgeMembers(bridge string) (peers []ngPeer, err error) {
 	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "show",
 		bridge+":")
 	defer func(cmd *exec.Cmd) {
@@ -167,7 +167,7 @@ func createNgBridge(name string) (err error) {
 		return errors.New("invalid bridge name, bridge name must start with \"bnet\"")
 	}
 
-	allIfBridges, err := getAllNgBridges()
+	allIfBridges, err := GetAllNgBridges()
 	if err != nil {
 		slog.Debug("failed to get all if bridges", "err", err)
 		return err
@@ -291,14 +291,14 @@ func createNgBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 				"member", member,
 				"err", err,
 			)
-			return err
+			continue
 		}
 	}
 	return nil
 }
 
 func bridgeNgDeleteAllPeers(name string) error {
-	bridgePeers, err := ngGetBridgePeers(name)
+	bridgePeers, err := GetNgBridgeMembers(name)
 	slog.Debug("deleting all ng bridge members", "bridge", name, "members", bridgePeers)
 	if err != nil {
 		return err
@@ -328,7 +328,7 @@ func bridgeNgDeletePeer(bridgeName string, hook string) error {
 
 func bridgeNgRemoveUplink(bridgeName string, peerName string) error {
 	var thisPeer ngPeer
-	bridgePeers, err := ngGetBridgePeers(bridgeName)
+	bridgePeers, err := GetNgBridgeMembers(bridgeName)
 	if err != nil {
 		return err
 	}
