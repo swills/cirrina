@@ -99,6 +99,17 @@ func CheckSwitchInUse(id string) error {
 	return nil
 }
 
+func CheckInterfaceExists(interfaceName string) bool {
+	netDevs := util.GetHostInterfaces()
+
+	for _, nic := range netDevs {
+		if nic == interfaceName {
+			return true
+		}
+	}
+	return false
+}
+
 func CreateBridges() {
 	allBridges := GetAll()
 
@@ -245,6 +256,13 @@ func BuildIfBridge(switchInst *Switch) error {
 	memberList := strings.Split(switchInst.Uplink, ",")
 	for _, member := range memberList {
 		if member == "" {
+			continue
+		}
+		exists := CheckInterfaceExists(member)
+		if !exists {
+			slog.Error("attempt to add non-existent member to bridge, ignoring",
+				"bridge", switchInst.Name, "uplink", member,
+			)
 			continue
 		}
 		members = append(members, member)

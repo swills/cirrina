@@ -277,6 +277,13 @@ func createNgBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 		return err
 	}
 	for _, member := range bridgeMembers {
+		exists := CheckInterfaceExists(member)
+		if !exists {
+			slog.Error("attempt to add non-existent member to bridge, ignoring",
+				"bridge", bridgeName, "uplink", member,
+			)
+			continue
+		}
 		err = BridgeNgAddMember(bridgeName, member)
 		if err != nil {
 			slog.Error("createNgBridgeWithMembers error adding bridge member",

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"cirrina/cirrinad/config"
+	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
@@ -680,7 +681,18 @@ func validateMyId() {
 func validateDb() {
 	// validate db contents are sane: assume DB is correct, but maybe system state has changed
 	// TODO -- validate the backing (file, zvol, volpath) of every disk/iso exists
-	// TODO -- validate every switch's uplink interface exist
+
+	// validate every switch's uplink interface exist
+	allBridges := _switch.GetAll()
+	for _, bridge := range allBridges {
+		if bridge.Uplink != "" {
+			exists := _switch.CheckInterfaceExists(bridge.Uplink)
+			if !exists {
+				slog.Warn("bridge uplink does not exist, will be ignored", "bridge", bridge.Name, "uplink", bridge.Uplink)
+				continue
+			}
+		}
+	}
 }
 
 // TODO check that users home dir is /nonexistent and that their login shell is /sbin/nologin
