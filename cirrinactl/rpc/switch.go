@@ -120,7 +120,7 @@ func GetSwitches() ([]string, error) {
 	return rv, nil
 }
 
-func AddSwitch(name string, descrPtr *string, switchTypePtr *string) (string, error) {
+func AddSwitch(name string, descrPtr *string, switchTypePtr *string, switchUplinkName *string) (string, error) {
 	conn, c, ctx, cancel, err := SetupConn()
 	if err != nil {
 		return "", err
@@ -149,6 +149,7 @@ func AddSwitch(name string, descrPtr *string, switchTypePtr *string) (string, er
 	thisSwitchInfo.Name = &name
 	thisSwitchInfo.Description = descrPtr
 	thisSwitchInfo.SwitchType = &thisSwitchType
+	thisSwitchInfo.Uplink = switchUplinkName
 	var res *cirrina.SwitchId
 	res, err = c.AddSwitch(ctx, &thisSwitchInfo)
 	if err != nil {

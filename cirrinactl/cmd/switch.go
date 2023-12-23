@@ -82,7 +82,7 @@ var SwitchCreateCmd = &cobra.Command{
 		"by a number, for example \"bridge0\".\nSwitches of type netgraph " +
 		"must be named starting with \"bnet\" followed by a number, for example \"bnet0\".",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		res, err := rpc.AddSwitch(SwitchName, &SwitchDescription, &SwitchType)
+		res, err := rpc.AddSwitch(SwitchName, &SwitchDescription, &SwitchType, &SwitchUplinkName)
 		if err != nil {
 			return err
 		}
@@ -184,18 +184,19 @@ func init() {
 		"description", "d", SwitchDescription, "description of switch",
 	)
 	SwitchCreateCmd.Flags().StringVarP(&SwitchType, "type", "t", SwitchType, "type of switch")
+	SwitchCreateCmd.Flags().StringVarP(&SwitchUplinkName,
+		"uplink", "u", SwitchName, "uplink name",
+	)
 
 	SwitchDestroyCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of switch")
-	err = SwitchDestroyCmd.MarkFlagRequired("name")
-	if err != nil {
-		panic(err)
-	}
+	SwitchDestroyCmd.Flags().StringVarP(&SwitchId, "id", "i", SwitchId, "id of Switch")
+	SwitchDestroyCmd.MarkFlagsOneRequired("name", "id")
+	SwitchDestroyCmd.MarkFlagsMutuallyExclusive("name", "id")
 
 	SwitchUplinkCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of switch")
-	err = SwitchUplinkCmd.MarkFlagRequired("name")
-	if err != nil {
-		panic(err)
-	}
+	SwitchUplinkCmd.Flags().StringVarP(&SwitchId, "id", "i", SwitchId, "id of Switch")
+	SwitchUplinkCmd.MarkFlagsOneRequired("name", "id")
+	SwitchUplinkCmd.MarkFlagsMutuallyExclusive("name", "id")
 	SwitchUplinkCmd.Flags().StringVarP(&SwitchUplinkName,
 		"uplink", "u", SwitchName, "uplink name",
 	)
