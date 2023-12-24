@@ -1191,7 +1191,9 @@ func init() {
 	VmGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmGetCmd.MarkFlagsOneRequired("name", "id")
 	VmGetCmd.MarkFlagsMutuallyExclusive("name", "id")
-	VmGetCmd.Flags().StringVarP(&outputFormatString, "format", "f", outputFormatString, "Output format (txt, json, yaml")
+	VmGetCmd.Flags().StringVarP(&outputFormatString, "format", "f", outputFormatString,
+		"Output format (txt, json, yaml",
+	)
 
 	VmClearUefiVarsCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmClearUefiVarsCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")

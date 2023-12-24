@@ -43,7 +43,7 @@ const (
 
 var outputFormat = TXT
 
-var outputFormatString = "TXT"
+var outputFormatString = "txt"
 
 var rootCmd = &cobra.Command{
 	Use:     "cirrinactl",
@@ -59,9 +59,10 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+	cobra.EnableCommandSorting = false
 
 	rootCmd.PersistentFlags().StringVarP(&cfgFile,
-		"config", "C", cfgFile, "config file (default is $HOME/.cirrinactl.yaml)")
+		"config", "C", cfgFile, "config file (default $HOME/.cirrinactl.yaml)")
 
 	rootCmd.PersistentFlags().StringP("server", "S", "localhost", "server")
 	err := viper.BindPFlag("server", rootCmd.PersistentFlags().Lookup("server"))
