@@ -227,7 +227,5 @@ func StartTui(serverAddr string) error {
 }
 
 func init() {
-	TuiCmd.Flags().SortFlags = false
-	TuiCmd.PersistentFlags().SortFlags = false
-	TuiCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(TuiCmd)
 }

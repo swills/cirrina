@@ -210,9 +210,7 @@ var VmNicsCmd = &cobra.Command{
 }
 
 func init() {
-	VmNicsCmd.Flags().SortFlags = false
-	VmNicsCmd.PersistentFlags().SortFlags = false
-	VmNicsCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmNicsCmd)
 
 	VmNicsGetCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmNicsGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
@@ -221,17 +219,13 @@ func init() {
 	VmNicsGetCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
 	)
-	VmNicsGetCmd.Flags().SortFlags = false
-	VmNicsGetCmd.PersistentFlags().SortFlags = false
-	VmNicsGetCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmNicsGetCmd)
 
 	VmNicsAddCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmNicsAddCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmNicsAddCmd.MarkFlagsOneRequired("name", "id")
 	VmNicsAddCmd.MarkFlagsMutuallyExclusive("name", "id")
-	VmNicsAddCmd.Flags().SortFlags = false
-	VmNicsAddCmd.PersistentFlags().SortFlags = false
-	VmNicsAddCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmNicsAddCmd)
 
 	VmNicsAddCmd.Flags().StringVarP(&NicName, "nic-name", "N", NicName, "Name of Nic")
 	VmNicsAddCmd.Flags().StringVarP(&NicId, "nic-id", "I", NicId, "Id of Nic")
@@ -242,9 +236,7 @@ func init() {
 	VmNicsRmCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmNicsRmCmd.MarkFlagsOneRequired("name", "id")
 	VmNicsRmCmd.MarkFlagsOneRequired("name", "id")
-	VmNicsRmCmd.Flags().SortFlags = false
-	VmNicsRmCmd.PersistentFlags().SortFlags = false
-	VmNicsRmCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmNicsRmCmd)
 
 	VmNicsRmCmd.Flags().StringVarP(&NicName, "nic-name", "N", NicName, "Name of Nic")
 	VmNicsRmCmd.Flags().StringVarP(&NicId, "nic-id", "I", NicId, "Id of Nic")

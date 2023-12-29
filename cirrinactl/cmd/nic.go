@@ -193,10 +193,7 @@ var NicCmd = &cobra.Command{
 }
 
 func init() {
-	NicCmd.Flags().SortFlags = false
-	NicCmd.PersistentFlags().SortFlags = false
-	NicCmd.InheritedFlags().SortFlags = false
-
+	disableFlagSorting(NicCmd)
 	NicCreateCmd.Flags().StringVarP(&NicName, "name", "n", NicName, "name of NIC")
 	err := NicCreateCmd.MarkFlagRequired("name")
 	if err != nil {
@@ -214,33 +211,24 @@ func init() {
 	NicCreateCmd.Flags().BoolVar(&NicRateLimited, "rate-limit", NicRateLimited, "Rate limit the NIC")
 	NicCreateCmd.Flags().Uint64Var(&NicRateIn, "rate-in", NicRateIn, "Inbound rate limit of NIC")
 	NicCreateCmd.Flags().Uint64Var(&NicRateOut, "rate-out", NicRateOut, "Outbound rate limit of NIC")
-	NicCreateCmd.Flags().SortFlags = false
-	NicCreateCmd.PersistentFlags().SortFlags = false
-	NicCreateCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(NicCreateCmd)
 
 	NicRemoveCmd.Flags().StringVarP(&NicName, "name", "n", NicName, "name of NIC")
 	err = NicRemoveCmd.MarkFlagRequired("name")
 	if err != nil {
 		panic(err)
 	}
-	NicRemoveCmd.Flags().SortFlags = false
-	NicRemoveCmd.PersistentFlags().SortFlags = false
-	NicRemoveCmd.InheritedFlags().SortFlags = false
-
+	disableFlagSorting(NicRemoveCmd)
 	NicListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print speeds in human readable form",
 	)
-	NicListCmd.Flags().SortFlags = false
-	NicListCmd.PersistentFlags().SortFlags = false
-	NicListCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(NicListCmd)
 
 	NicSetSwitchCmd.Flags().StringVarP(&NicName, "name", "n", NicName, "Name of Nic")
 	NicSetSwitchCmd.Flags().StringVarP(&NicId, "id", "i", NicId, "Id of Nic")
 	NicSetSwitchCmd.MarkFlagsOneRequired("name", "id")
 	NicSetSwitchCmd.MarkFlagsMutuallyExclusive("name", "id")
-	NicSetSwitchCmd.Flags().SortFlags = false
-	NicSetSwitchCmd.PersistentFlags().SortFlags = false
-	NicSetSwitchCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(NicListCmd)
 
 	NicSetSwitchCmd.Flags().StringVarP(&SwitchName,
 		"switch-name", "N", SwitchName, "Name of Switch",
@@ -248,6 +236,7 @@ func init() {
 	NicSetSwitchCmd.Flags().StringVarP(&SwitchId, "switch-id", "I", SwitchId, "Id of Switch")
 	NicSetSwitchCmd.MarkFlagsOneRequired("switch-name", "switch-id")
 	NicSetSwitchCmd.MarkFlagsMutuallyExclusive("switch-name", "switch-id")
+	disableFlagSorting(NicSetSwitchCmd)
 
 	NicCmd.AddCommand(NicListCmd)
 	NicCmd.AddCommand(NicCreateCmd)

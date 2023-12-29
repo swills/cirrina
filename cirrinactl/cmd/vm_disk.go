@@ -195,17 +195,13 @@ var VmDisksCmd = &cobra.Command{
 }
 
 func init() {
-	VmDisksCmd.Flags().SortFlags = false
-	VmDisksCmd.PersistentFlags().SortFlags = false
-	VmDisksCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmDisksCmd)
 
 	VmDisksGetCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmDisksGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmDisksGetCmd.MarkFlagsOneRequired("name", "id")
 	VmDisksGetCmd.MarkFlagsMutuallyExclusive("name", "id")
-	VmDisksGetCmd.Flags().SortFlags = false
-	VmDisksGetCmd.PersistentFlags().SortFlags = false
-	VmDisksGetCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmDisksGetCmd)
 
 	VmDisksGetCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
@@ -215,9 +211,7 @@ func init() {
 	VmDiskAddCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmDiskAddCmd.MarkFlagsOneRequired("name", "id")
 	VmDiskAddCmd.MarkFlagsMutuallyExclusive("name", "id")
-	VmDiskAddCmd.Flags().SortFlags = false
-	VmDiskAddCmd.PersistentFlags().SortFlags = false
-	VmDiskAddCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmDiskAddCmd)
 
 	VmDiskAddCmd.Flags().StringVarP(&DiskName, "disk-name", "N", DiskName, "Name of Disk")
 	VmDiskAddCmd.Flags().StringVarP(&DiskId, "disk-id", "I", DiskId, "Id of Disk")
@@ -228,9 +222,7 @@ func init() {
 	VmDiskRmCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmDiskRmCmd.MarkFlagsOneRequired("name", "id")
 	VmDiskRmCmd.MarkFlagsMutuallyExclusive("name", "id")
-	VmDiskRmCmd.Flags().SortFlags = false
-	VmDiskRmCmd.PersistentFlags().SortFlags = false
-	VmDiskRmCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmDiskRmCmd)
 
 	VmDiskRmCmd.Flags().StringVarP(&DiskName, "disk-name", "N", DiskName, "Name of Disk")
 	VmDiskRmCmd.Flags().StringVarP(&DiskId, "disk-id", "I", DiskId, "Id of Disk")
@@ -240,9 +232,7 @@ func init() {
 	VmDisksCmd.AddCommand(VmDisksGetCmd)
 	VmDisksCmd.AddCommand(VmDiskAddCmd)
 	VmDisksCmd.AddCommand(VmDiskRmCmd)
-	VmDisksCmd.Flags().SortFlags = false
-	VmDisksCmd.PersistentFlags().SortFlags = false
-	VmDisksCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmDisksCmd)
 
 	VmCmd.AddCommand(VmDisksCmd)
 }

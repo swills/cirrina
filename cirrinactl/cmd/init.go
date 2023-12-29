@@ -57,12 +57,16 @@ func Execute() {
 	}
 }
 
+func disableFlagSorting(cmd *cobra.Command) {
+	cmd.Flags().SortFlags = false
+	cmd.PersistentFlags().SortFlags = false
+	cmd.InheritedFlags().SortFlags = false
+}
+
 func init() {
 	cobra.OnInitialize(initConfig)
 	cobra.EnableCommandSorting = false
-	rootCmd.Flags().SortFlags = false
-	rootCmd.PersistentFlags().SortFlags = false
-	rootCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(rootCmd)
 
 	rootCmd.PersistentFlags().StringVarP(&cfgFile,
 		"config", "C", cfgFile, "config file (default $HOME/.cirrinactl.yaml)")

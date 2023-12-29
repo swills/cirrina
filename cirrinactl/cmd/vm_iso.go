@@ -184,9 +184,7 @@ var VmIsosCmd = &cobra.Command{
 }
 
 func init() {
-	VmIsosCmd.Flags().SortFlags = false
-	VmIsosCmd.PersistentFlags().SortFlags = false
-	VmIsosCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmIsosCmd)
 
 	VmIsosGetCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmIsosGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
@@ -195,17 +193,13 @@ func init() {
 	VmIsosGetCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
 	)
-	VmIsosGetCmd.Flags().SortFlags = false
-	VmIsosGetCmd.PersistentFlags().SortFlags = false
-	VmIsosGetCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmIsosCmd)
 
 	VmIsosAddCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmIsosAddCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmIsosAddCmd.MarkFlagsOneRequired("name", "id")
 	VmIsosAddCmd.MarkFlagsMutuallyExclusive("name", "id")
-	VmIsosAddCmd.Flags().SortFlags = false
-	VmIsosAddCmd.PersistentFlags().SortFlags = false
-	VmIsosAddCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmIsosAddCmd)
 
 	VmIsosAddCmd.Flags().StringVarP(&IsoName, "iso-name", "N", IsoName, "Name of Iso")
 	VmIsosAddCmd.Flags().StringVarP(&DiskId, "iso-id", "I", DiskId, "Id of Iso")
@@ -216,9 +210,7 @@ func init() {
 	VmIsosRmCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmIsosRmCmd.MarkFlagsOneRequired("name", "id")
 	VmIsosRmCmd.MarkFlagsMutuallyExclusive("name", "id")
-	VmIsosRmCmd.Flags().SortFlags = false
-	VmIsosRmCmd.PersistentFlags().SortFlags = false
-	VmIsosRmCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmIsosRmCmd)
 
 	VmIsosRmCmd.Flags().StringVarP(&IsoName, "iso-name", "N", IsoName, "Name of Iso")
 	VmIsosRmCmd.Flags().StringVarP(&DiskId, "iso-id", "I", DiskId, "Id of Iso")

@@ -24,10 +24,7 @@ var ReqStatCmd = &cobra.Command{
 }
 
 func init() {
-	ReqStatCmd.Flags().SortFlags = false
-	ReqStatCmd.PersistentFlags().SortFlags = false
-	ReqStatCmd.InheritedFlags().SortFlags = false
-
+	disableFlagSorting(ReqStatCmd)
 	ReqStatCmd.Flags().StringVarP(&ReqId, "id", "i", ReqId, "Id of request")
 	err := ReqStatCmd.MarkFlagRequired("id")
 	if err != nil {

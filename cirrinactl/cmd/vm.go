@@ -1065,9 +1065,7 @@ var VmCmd = &cobra.Command{
 }
 
 func init() {
-	VmCmd.Flags().SortFlags = false
-	VmCmd.PersistentFlags().SortFlags = false
-	VmCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmCmd)
 
 	VmCreateCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	err := VmCreateCmd.MarkFlagRequired("name")
@@ -1081,43 +1079,33 @@ func init() {
 	VmCreateCmd.Flags().Uint32VarP(&Mem,
 		"mem", "m", Mem, "Amount of virtual memory in megabytes",
 	)
-	VmCreateCmd.Flags().SortFlags = false
-	VmCreateCmd.PersistentFlags().SortFlags = false
-	VmCreateCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmCreateCmd)
 
 	VmStartCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmStartCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmStartCmd.MarkFlagsOneRequired("name", "id")
 	VmStartCmd.MarkFlagsMutuallyExclusive("name", "id")
 	VmStartCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
-	VmStartCmd.Flags().SortFlags = false
-	VmStartCmd.PersistentFlags().SortFlags = false
-	VmStartCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmStartCmd)
 
 	VmStopCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmStopCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmStopCmd.MarkFlagsOneRequired("name", "id")
 	VmStopCmd.MarkFlagsMutuallyExclusive("name", "id")
 	VmStopCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
-	VmStopCmd.Flags().SortFlags = false
-	VmStopCmd.PersistentFlags().SortFlags = false
-	VmStopCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmStopCmd)
 
 	VmDestroyCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmDestroyCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmDestroyCmd.MarkFlagsOneRequired("name", "id")
 	VmDestroyCmd.MarkFlagsMutuallyExclusive("name", "id")
-	VmDestroyCmd.Flags().SortFlags = false
-	VmDestroyCmd.PersistentFlags().SortFlags = false
-	VmDestroyCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmDestroyCmd)
 
 	VmConfigCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmConfigCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmConfigCmd.MarkFlagsOneRequired("name", "id")
 	VmConfigCmd.MarkFlagsMutuallyExclusive("name", "id")
-	VmConfigCmd.Flags().SortFlags = false
-	VmConfigCmd.PersistentFlags().SortFlags = false
-	VmConfigCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmConfigCmd)
 
 	VmConfigCmd.Flags().StringVarP(&VmDescription,
 		"description", "d", VmDescription, "SwitchDescription of VM",
@@ -1213,9 +1201,7 @@ func init() {
 	VmGetCmd.Flags().StringVarP(&outputFormatString, "format", "f", outputFormatString,
 		"Output format (txt, json, yaml",
 	)
-	VmGetCmd.Flags().SortFlags = false
-	VmGetCmd.PersistentFlags().SortFlags = false
-	VmGetCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmGetCmd)
 
 	VmClearUefiVarsCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmClearUefiVarsCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
@@ -1225,9 +1211,7 @@ func init() {
 	VmListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
 	)
-	VmListCmd.Flags().SortFlags = false
-	VmListCmd.PersistentFlags().SortFlags = false
-	VmListCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(VmListCmd)
 
 	VmCmd.AddCommand(VmCreateCmd)
 	VmCmd.AddCommand(VmListCmd)

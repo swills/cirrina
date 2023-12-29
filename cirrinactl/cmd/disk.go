@@ -270,9 +270,7 @@ var DiskCmd = &cobra.Command{
 }
 
 func init() {
-	DiskCmd.Flags().SortFlags = false
-	DiskCmd.PersistentFlags().SortFlags = false
-	DiskCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(DiskCmd)
 
 	DiskCreateCmd.Flags().StringVarP(&DiskName, "name", "n", DiskName, "name of disk")
 	err := DiskCreateCmd.MarkFlagRequired("name")
@@ -287,7 +285,7 @@ func init() {
 	DiskCreateCmd.Flags().StringVarP(&DiskDescription,
 		"description", "d", DiskDescription, "description of disk",
 	)
-	DiskCreateCmd.Flags().StringVarP(&DiskType, "type", "t", DiskType, "type of disk")
+	DiskCreateCmd.Flags().StringVarP(&DiskType, "type", "t", DiskType, "type of disk - nvme, ahci, or virtioblk")
 	DiskCreateCmd.Flags().StringVar(&DiskDevType,
 		"dev-type", DiskDevType, "Dev type of disk - file or zvol",
 	)
@@ -297,24 +295,18 @@ func init() {
 	DiskCreateCmd.Flags().BoolVar(&DiskDirect,
 		"direct", DiskDirect, "Enable or disable synchronous writes for this disk",
 	)
-	DiskCreateCmd.Flags().SortFlags = false
-	DiskCreateCmd.PersistentFlags().SortFlags = false
-	DiskCreateCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(DiskCreateCmd)
 
 	DiskRemoveCmd.Flags().StringVarP(&DiskName, "name", "n", DiskName, "name of disk")
 	DiskRemoveCmd.Flags().StringVarP(&DiskId, "id", "i", DiskId, "id of disk")
 	DiskRemoveCmd.MarkFlagsOneRequired("name", "id")
 	DiskRemoveCmd.MarkFlagsMutuallyExclusive("name", "id")
-	DiskRemoveCmd.Flags().SortFlags = false
-	DiskRemoveCmd.PersistentFlags().SortFlags = false
-	DiskRemoveCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(DiskRemoveCmd)
 
 	DiskListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
 	)
-	DiskListCmd.Flags().SortFlags = false
-	DiskListCmd.PersistentFlags().SortFlags = false
-	DiskListCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(DiskListCmd)
 
 	DiskUpdateCmd.Flags().StringVarP(&DiskName, "name", "n", DiskName, "name of disk")
 	DiskUpdateCmd.Flags().StringVarP(&DiskId, "id", "i", DiskId, "id of disk")
@@ -324,10 +316,8 @@ func init() {
 	DiskUpdateCmd.Flags().StringVarP(&DiskDescription,
 		"description", "d", DiskDescription, "description of disk",
 	)
-	DiskUpdateCmd.Flags().StringVarP(&DiskType, "type", "t", DiskType, "type of disk")
-	DiskUpdateCmd.Flags().SortFlags = false
-	DiskUpdateCmd.PersistentFlags().SortFlags = false
-	DiskUpdateCmd.InheritedFlags().SortFlags = false
+	DiskUpdateCmd.Flags().StringVarP(&DiskType, "type", "t", DiskType, "type of disk - nvme, ahci, or virtioblk")
+	disableFlagSorting(DiskUpdateCmd)
 
 	DiskUploadCmd.Flags().StringVarP(&DiskId, "id", "i", DiskId, "Id of Disk to upload")
 	DiskUploadCmd.Flags().StringVarP(&DiskFilePath,
@@ -341,9 +331,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	DiskUploadCmd.Flags().SortFlags = false
-	DiskUploadCmd.PersistentFlags().SortFlags = false
-	DiskUploadCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(DiskUploadCmd)
 
 	DiskCmd.AddCommand(DiskListCmd)
 	DiskCmd.AddCommand(DiskCreateCmd)

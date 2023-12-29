@@ -204,9 +204,7 @@ var IsoCmd = &cobra.Command{
 }
 
 func init() {
-	IsoCmd.Flags().SortFlags = false
-	IsoCmd.PersistentFlags().SortFlags = false
-	IsoCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(IsoCmd)
 
 	IsoCreateCmd.Flags().StringVarP(&IsoName,
 		"name", "n", IsoName, "name of ISO",
@@ -221,9 +219,7 @@ func init() {
 	IsoListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
 	)
-	IsoCreateCmd.Flags().SortFlags = false
-	IsoCreateCmd.PersistentFlags().SortFlags = false
-	IsoCreateCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(IsoCreateCmd)
 
 	IsoUploadCmd.Flags().StringVarP(&IsoId, "id", "i", IsoId, "Id of ISO to upload")
 	IsoUploadCmd.Flags().StringVarP(&IsoFilePath,
@@ -237,17 +233,13 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	IsoUploadCmd.Flags().SortFlags = false
-	IsoUploadCmd.PersistentFlags().SortFlags = false
-	IsoUploadCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(IsoUploadCmd)
 
 	IsoRemoveCmd.Flags().StringVarP(&IsoName, "name", "n", IsoName, "name of iso")
 	IsoRemoveCmd.Flags().StringVarP(&IsoId, "id", "i", DiskId, "id of iso")
 	IsoRemoveCmd.MarkFlagsOneRequired("name", "id")
 	IsoRemoveCmd.MarkFlagsMutuallyExclusive("name", "id")
-	IsoRemoveCmd.Flags().SortFlags = false
-	IsoRemoveCmd.PersistentFlags().SortFlags = false
-	IsoRemoveCmd.InheritedFlags().SortFlags = false
+	disableFlagSorting(IsoRemoveCmd)
 
 	IsoCmd.AddCommand(IsoListCmd)
 	IsoCmd.AddCommand(IsoCreateCmd)
