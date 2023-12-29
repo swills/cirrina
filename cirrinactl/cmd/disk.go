@@ -193,6 +193,10 @@ var DiskCmd = &cobra.Command{
 }
 
 func init() {
+	DiskCmd.Flags().SortFlags = false
+	DiskCmd.PersistentFlags().SortFlags = false
+	DiskCmd.InheritedFlags().SortFlags = false
+
 	DiskCreateCmd.Flags().StringVarP(&DiskName, "name", "n", DiskName, "name of disk")
 	err := DiskCreateCmd.MarkFlagRequired("name")
 	if err != nil {
@@ -216,16 +220,25 @@ func init() {
 	DiskCreateCmd.Flags().BoolVar(&DiskDirect,
 		"direct", DiskDirect, "Enable or disable synchronous writes for this disk",
 	)
+	DiskCreateCmd.Flags().SortFlags = false
+	DiskCreateCmd.PersistentFlags().SortFlags = false
+	DiskCreateCmd.InheritedFlags().SortFlags = false
 
 	DiskRemoveCmd.Flags().StringVarP(&DiskName, "name", "n", DiskName, "name of disk")
-	err = DiskRemoveCmd.MarkFlagRequired("name")
-	if err != nil {
-		panic(err)
-	}
+	DiskRemoveCmd.Flags().StringVarP(&DiskId, "id", "i", DiskId, "id of disk")
+	DiskRemoveCmd.MarkFlagsOneRequired("name", "id")
+	DiskRemoveCmd.MarkFlagsMutuallyExclusive("name", "id")
+	DiskRemoveCmd.Flags().SortFlags = false
+	DiskRemoveCmd.PersistentFlags().SortFlags = false
+	DiskRemoveCmd.InheritedFlags().SortFlags = false
 
 	DiskListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
 	)
+	DiskListCmd.Flags().SortFlags = false
+	DiskListCmd.PersistentFlags().SortFlags = false
+	DiskListCmd.InheritedFlags().SortFlags = false
+
 	DiskUpdateCmd.Flags().StringVarP(&DiskName, "name", "n", DiskName, "name of disk")
 	DiskUpdateCmd.Flags().StringVarP(&DiskId, "id", "i", DiskId, "id of disk")
 	DiskUpdateCmd.MarkFlagsOneRequired("name", "id")
@@ -235,6 +248,9 @@ func init() {
 		"description", "d", DiskDescription, "description of disk",
 	)
 	DiskUpdateCmd.Flags().StringVarP(&DiskType, "type", "t", DiskType, "type of disk")
+	DiskUpdateCmd.Flags().SortFlags = false
+	DiskUpdateCmd.PersistentFlags().SortFlags = false
+	DiskUpdateCmd.InheritedFlags().SortFlags = false
 
 	DiskCmd.AddCommand(DiskListCmd)
 	DiskCmd.AddCommand(DiskCreateCmd)

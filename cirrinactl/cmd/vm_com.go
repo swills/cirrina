@@ -95,19 +95,31 @@ func init() {
 	VmCom1Cmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmCom1Cmd.MarkFlagsOneRequired("name", "id")
 	VmCom1Cmd.MarkFlagsMutuallyExclusive("name", "id")
+	VmCom1Cmd.Flags().SortFlags = false
+	VmCom1Cmd.PersistentFlags().SortFlags = false
+	VmCom1Cmd.InheritedFlags().SortFlags = false
 
 	VmCom2Cmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmCom2Cmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmCom2Cmd.MarkFlagsOneRequired("name", "id")
 	VmCom2Cmd.MarkFlagsMutuallyExclusive("name", "id")
+	VmCom2Cmd.Flags().SortFlags = false
+	VmCom2Cmd.PersistentFlags().SortFlags = false
+	VmCom2Cmd.InheritedFlags().SortFlags = false
 
 	VmCom3Cmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmCom3Cmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmCom3Cmd.MarkFlagsOneRequired("name", "id")
 	VmCom3Cmd.MarkFlagsMutuallyExclusive("name", "id")
+	VmCom3Cmd.Flags().SortFlags = false
+	VmCom3Cmd.PersistentFlags().SortFlags = false
+	VmCom3Cmd.InheritedFlags().SortFlags = false
 
 	VmCom4Cmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	VmCom4Cmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
 	VmCom4Cmd.MarkFlagsOneRequired("name", "id")
 	VmCom4Cmd.MarkFlagsMutuallyExclusive("name", "id")
+	VmCom4Cmd.Flags().SortFlags = false
+	VmCom4Cmd.PersistentFlags().SortFlags = false
+	VmCom4Cmd.InheritedFlags().SortFlags = false
 }

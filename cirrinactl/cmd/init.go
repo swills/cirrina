@@ -62,6 +62,7 @@ func init() {
 	cobra.EnableCommandSorting = false
 	rootCmd.Flags().SortFlags = false
 	rootCmd.PersistentFlags().SortFlags = false
+	rootCmd.InheritedFlags().SortFlags = false
 
 	rootCmd.PersistentFlags().StringVarP(&cfgFile,
 		"config", "C", cfgFile, "config file (default $HOME/.cirrinactl.yaml)")

@@ -175,6 +175,14 @@ var SwitchUpdateCmd = &cobra.Command{
 }
 
 func init() {
+	SwitchCmd.Flags().SortFlags = false
+	SwitchCmd.PersistentFlags().SortFlags = false
+	SwitchCmd.InheritedFlags().SortFlags = false
+
+	SwitchListCmd.Flags().SortFlags = false
+	SwitchListCmd.PersistentFlags().SortFlags = false
+	SwitchListCmd.InheritedFlags().SortFlags = false
+
 	SwitchCreateCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of switch")
 	err := SwitchCreateCmd.MarkFlagRequired("name")
 	if err != nil {
@@ -187,11 +195,17 @@ func init() {
 	SwitchCreateCmd.Flags().StringVarP(&SwitchUplinkName,
 		"uplink", "u", SwitchName, "uplink name",
 	)
+	SwitchCreateCmd.Flags().SortFlags = false
+	SwitchCreateCmd.PersistentFlags().SortFlags = false
+	SwitchCreateCmd.InheritedFlags().SortFlags = false
 
 	SwitchDestroyCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of switch")
 	SwitchDestroyCmd.Flags().StringVarP(&SwitchId, "id", "i", SwitchId, "id of Switch")
 	SwitchDestroyCmd.MarkFlagsOneRequired("name", "id")
 	SwitchDestroyCmd.MarkFlagsMutuallyExclusive("name", "id")
+	SwitchDestroyCmd.Flags().SortFlags = false
+	SwitchDestroyCmd.PersistentFlags().SortFlags = false
+	SwitchDestroyCmd.InheritedFlags().SortFlags = false
 
 	SwitchUplinkCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of switch")
 	SwitchUplinkCmd.Flags().StringVarP(&SwitchId, "id", "i", SwitchId, "id of Switch")
@@ -204,11 +218,17 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	SwitchUplinkCmd.Flags().SortFlags = false
+	SwitchUplinkCmd.PersistentFlags().SortFlags = false
+	SwitchUplinkCmd.InheritedFlags().SortFlags = false
 
 	SwitchUpdateCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of Switch")
 	SwitchUpdateCmd.Flags().StringVarP(&SwitchId, "id", "i", SwitchId, "id of Switch")
 	SwitchUpdateCmd.MarkFlagsOneRequired("name", "id")
 	SwitchUpdateCmd.MarkFlagsMutuallyExclusive("name", "id")
+	SwitchUpdateCmd.Flags().SortFlags = false
+	SwitchUpdateCmd.PersistentFlags().SortFlags = false
+	SwitchUpdateCmd.InheritedFlags().SortFlags = false
 
 	SwitchUpdateCmd.Flags().StringVarP(&SwitchDescription,
 		"description", "d", SwitchDescription, "description of switch",

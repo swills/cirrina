@@ -42,6 +42,18 @@ var HostCmd = &cobra.Command{
 }
 
 func init() {
+	HostCmd.Flags().SortFlags = false
+	HostCmd.PersistentFlags().SortFlags = false
+	HostCmd.InheritedFlags().SortFlags = false
+
+	HostVersionCmd.Flags().SortFlags = false
+	HostVersionCmd.PersistentFlags().SortFlags = false
+	HostVersionCmd.InheritedFlags().SortFlags = false
+
+	HostNicsCmd.Flags().SortFlags = false
+	HostNicsCmd.PersistentFlags().SortFlags = false
+	HostNicsCmd.InheritedFlags().SortFlags = false
+
 	HostCmd.AddCommand(HostNicsCmd)
 	HostCmd.AddCommand(HostVersionCmd)
 }

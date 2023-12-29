@@ -193,6 +193,10 @@ var NicCmd = &cobra.Command{
 }
 
 func init() {
+	NicCmd.Flags().SortFlags = false
+	NicCmd.PersistentFlags().SortFlags = false
+	NicCmd.InheritedFlags().SortFlags = false
+
 	NicCreateCmd.Flags().StringVarP(&NicName, "name", "n", NicName, "name of NIC")
 	err := NicCreateCmd.MarkFlagRequired("name")
 	if err != nil {
@@ -210,25 +214,33 @@ func init() {
 	NicCreateCmd.Flags().BoolVar(&NicRateLimited, "rate-limit", NicRateLimited, "Rate limit the NIC")
 	NicCreateCmd.Flags().Uint64Var(&NicRateIn, "rate-in", NicRateIn, "Inbound rate limit of NIC")
 	NicCreateCmd.Flags().Uint64Var(&NicRateOut, "rate-out", NicRateOut, "Outbound rate limit of NIC")
+	NicCreateCmd.Flags().SortFlags = false
+	NicCreateCmd.PersistentFlags().SortFlags = false
+	NicCreateCmd.InheritedFlags().SortFlags = false
 
 	NicRemoveCmd.Flags().StringVarP(&NicName, "name", "n", NicName, "name of NIC")
 	err = NicRemoveCmd.MarkFlagRequired("name")
 	if err != nil {
 		panic(err)
 	}
+	NicRemoveCmd.Flags().SortFlags = false
+	NicRemoveCmd.PersistentFlags().SortFlags = false
+	NicRemoveCmd.InheritedFlags().SortFlags = false
 
 	NicListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print speeds in human readable form",
 	)
-
-	NicCmd.AddCommand(NicListCmd)
-	NicCmd.AddCommand(NicCreateCmd)
-	NicCmd.AddCommand(NicRemoveCmd)
+	NicListCmd.Flags().SortFlags = false
+	NicListCmd.PersistentFlags().SortFlags = false
+	NicListCmd.InheritedFlags().SortFlags = false
 
 	NicSetSwitchCmd.Flags().StringVarP(&NicName, "name", "n", NicName, "Name of Nic")
 	NicSetSwitchCmd.Flags().StringVarP(&NicId, "id", "i", NicId, "Id of Nic")
 	NicSetSwitchCmd.MarkFlagsOneRequired("name", "id")
 	NicSetSwitchCmd.MarkFlagsMutuallyExclusive("name", "id")
+	NicSetSwitchCmd.Flags().SortFlags = false
+	NicSetSwitchCmd.PersistentFlags().SortFlags = false
+	NicSetSwitchCmd.InheritedFlags().SortFlags = false
 
 	NicSetSwitchCmd.Flags().StringVarP(&SwitchName,
 		"switch-name", "N", SwitchName, "Name of Switch",
@@ -237,5 +249,8 @@ func init() {
 	NicSetSwitchCmd.MarkFlagsOneRequired("switch-name", "switch-id")
 	NicSetSwitchCmd.MarkFlagsMutuallyExclusive("switch-name", "switch-id")
 
+	NicCmd.AddCommand(NicListCmd)
+	NicCmd.AddCommand(NicCreateCmd)
+	NicCmd.AddCommand(NicRemoveCmd)
 	NicCmd.AddCommand(NicSetSwitchCmd)
 }
