@@ -274,6 +274,19 @@ message ISOImageRequest {
   }
 }
 
+message DiskUploadInfo {
+  DiskId diskid = 1;
+  uint64 size = 2;
+  string sha512sum = 3;
+}
+
+message DiskImageRequest {
+  oneof data {
+    DiskUploadInfo diskuploadinfo = 1;
+    bytes image = 2;
+  }
+}
+
 message ComDataRequest {
   oneof data {
     VMID vm_id = 1;
@@ -317,6 +330,7 @@ service VMInfo {
   rpc SetVmDisks(SetDiskReq) returns (ReqBool);
   rpc GetVmDisks(VMID) returns (stream DiskId);
   rpc GetDiskVm(DiskId) returns (VMID);
+  rpc UploadDisk(stream DiskImageRequest) returns (ReqBool);
 
   rpc GetSwitches(SwitchesQuery) returns (stream SwitchId);
   rpc GetSwitchInfo(SwitchId) returns (SwitchInfo);

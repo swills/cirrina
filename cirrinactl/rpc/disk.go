@@ -1,12 +1,16 @@
 package rpc
 
 import (
+	"bufio"
 	"cirrina/cirrina"
+	"context"
 	"errors"
 	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 	"io"
+	"os"
+	"time"
 )
 
 func AddDisk(diskName string, diskDescription string, diskSize string,
@@ -282,4 +286,124 @@ func UpdateDisk(id string, newDesc *string, newType *string) error {
 		return errors.New("failed to update disk")
 	}
 	return nil
+}
+
+func DiskUpload(diskId string, diskChecksum string,
+	diskSize uint64, diskFile *os.File) (<-chan UploadStat, error) {
+	uploadStatChan := make(chan UploadStat, 1)
+
+	// actually send file, sending status to status channel
+	go func(diskFile *os.File, uploadStatChan chan<- UploadStat) {
+		defer func(diskFile *os.File) {
+			_ = diskFile.Close()
+		}(diskFile)
+
+		conn, c, err := SetupConnNoTimeoutNoContext()
+		if err != nil {
+			uploadStatChan <- UploadStat{
+				UploadedChunk: false,
+				Complete:      false,
+				Err:           err,
+			}
+		}
+		defer func(conn *grpc.ClientConn) {
+			_ = conn.Close()
+		}(conn)
+
+		timeout := 1 * time.Hour
+		longCtx, longCancel := context.WithTimeout(context.Background(), timeout)
+		defer longCancel()
+
+		thisdiskId := cirrina.DiskId{Value: diskId}
+
+		req := &cirrina.DiskImageRequest{
+			Data: &cirrina.DiskImageRequest_Diskuploadinfo{
+				Diskuploadinfo: &cirrina.DiskUploadInfo{
+					Diskid:    &thisdiskId,
+					Size:      diskSize,
+					Sha512Sum: diskChecksum,
+				},
+			},
+		}
+
+		var stream cirrina.VMInfo_UploadDiskClient
+		stream, err = c.UploadDisk(longCtx)
+		if err != nil {
+			uploadStatChan <- UploadStat{
+				UploadedChunk: false,
+				Complete:      false,
+				Err:           errors.New(status.Convert(err).Message()),
+			}
+		}
+
+		err = stream.Send(req)
+		if err != nil {
+			uploadStatChan <- UploadStat{
+				UploadedChunk: false,
+				Complete:      false,
+				Err:           errors.New(status.Convert(err).Message()),
+			}
+		}
+
+		reader := bufio.NewReader(diskFile)
+		buffer := make([]byte, 1024*1024)
+
+		var complete bool
+		var n int
+		for !complete {
+			n, err = reader.Read(buffer)
+			if err == io.EOF {
+				complete = true
+			}
+			if err != nil && err != io.EOF {
+				uploadStatChan <- UploadStat{
+					UploadedChunk: false,
+					Complete:      false,
+					Err:           err,
+				}
+			}
+			req := &cirrina.DiskImageRequest{
+				Data: &cirrina.DiskImageRequest_Image{
+					Image: buffer[:n],
+				},
+			}
+			err = stream.Send(req)
+			if err != nil {
+				uploadStatChan <- UploadStat{
+					UploadedChunk: false,
+					Complete:      false,
+					Err:           errors.New(status.Convert(err).Message()),
+				}
+			}
+			uploadStatChan <- UploadStat{
+				UploadedChunk: true,
+				Complete:      false,
+				Err:           nil,
+			}
+		}
+		var reply *cirrina.ReqBool
+		reply, err = stream.CloseAndRecv()
+		if err != nil {
+			uploadStatChan <- UploadStat{
+				UploadedChunk: false,
+				Complete:      false,
+				Err:           errors.New(status.Convert(err).Message()),
+			}
+		}
+		if !reply.Success {
+			uploadStatChan <- UploadStat{
+				UploadedChunk: false,
+				Complete:      false,
+				Err:           errors.New("failed"),
+			}
+		}
+
+		// finished!
+		uploadStatChan <- UploadStat{
+			UploadedChunk: false,
+			Complete:      true,
+			Err:           nil,
+		}
+	}(diskFile, uploadStatChan)
+	return uploadStatChan, nil
 }

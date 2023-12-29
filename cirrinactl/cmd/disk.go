@@ -2,12 +2,15 @@ package cmd
 
 import (
 	"cirrina/cirrinactl/rpc"
+	"crypto/sha512"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/dustin/go-humanize"
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/jedib0t/go-pretty/text"
 	"github.com/spf13/cobra"
+	"io"
 	"os"
 	"sort"
 	"strconv"
@@ -23,6 +26,7 @@ var DiskSize = "1G"
 var DiskId string
 var DiskCache = true
 var DiskDirect = false
+var DiskFilePath string
 
 var DiskListCmd = &cobra.Command{
 	Use:          "list",
@@ -187,6 +191,79 @@ var DiskUpdateCmd = &cobra.Command{
 	},
 }
 
+var DiskUploadCmd = &cobra.Command{
+	Use:          "upload",
+	Short:        "Upload a disk image",
+	Long:         "Upload a disk image from local storage",
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
+
+		var fi os.FileInfo
+		fi, err = os.Stat(DiskFilePath)
+		if err != nil {
+			return err
+		}
+		diskSize := fi.Size()
+
+		var f *os.File
+		f, err = os.Open(DiskFilePath)
+		if err != nil {
+			return err
+		}
+
+		hasher := sha512.New()
+
+		fmt.Printf("Calculating disk checksum\n")
+		if _, err = io.Copy(hasher, f); err != nil {
+			return err
+		}
+
+		diskChecksum := hex.EncodeToString(hasher.Sum(nil))
+		err = f.Close()
+		if err != nil {
+			return err
+		}
+		var f2 *os.File
+		f2, err = os.Open(DiskFilePath)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Uploading disk. file-path=%s, id=%s, size=%d, checksum=%s\n",
+			DiskFilePath,
+			DiskId,
+			diskSize,
+			diskChecksum,
+		)
+
+		fmt.Printf("Streaming: ")
+		var upload <-chan rpc.UploadStat
+		upload, err = rpc.DiskUpload(DiskId, diskChecksum, uint64(diskSize), f2)
+		if err != nil {
+			return err
+		}
+	UploadLoop:
+		for {
+			select {
+			case uploadStatEvent := <-upload:
+				if uploadStatEvent.Err != nil {
+					return uploadStatEvent.Err
+				}
+				if uploadStatEvent.UploadedChunk {
+					fmt.Printf(".")
+				}
+				if uploadStatEvent.Complete {
+					break UploadLoop
+				}
+			}
+		}
+		fmt.Printf("\n")
+		fmt.Printf("Disk Upload complete\n")
+		return nil
+	},
+}
+
 var DiskCmd = &cobra.Command{
 	Use:   "disk",
 	Short: "Create, list, modify, destroy virtual disks",
@@ -252,8 +329,25 @@ func init() {
 	DiskUpdateCmd.PersistentFlags().SortFlags = false
 	DiskUpdateCmd.InheritedFlags().SortFlags = false
 
+	DiskUploadCmd.Flags().StringVarP(&DiskId, "id", "i", DiskId, "Id of Disk to upload")
+	DiskUploadCmd.Flags().StringVarP(&DiskFilePath,
+		"path", "p", DiskFilePath, "Path to Disk File to upload",
+	)
+	err = DiskUploadCmd.MarkFlagRequired("id")
+	if err != nil {
+		panic(err)
+	}
+	err = DiskUploadCmd.MarkFlagRequired("path")
+	if err != nil {
+		panic(err)
+	}
+	DiskUploadCmd.Flags().SortFlags = false
+	DiskUploadCmd.PersistentFlags().SortFlags = false
+	DiskUploadCmd.InheritedFlags().SortFlags = false
+
 	DiskCmd.AddCommand(DiskListCmd)
 	DiskCmd.AddCommand(DiskCreateCmd)
 	DiskCmd.AddCommand(DiskRemoveCmd)
 	DiskCmd.AddCommand(DiskUpdateCmd)
+	DiskCmd.AddCommand(DiskUploadCmd)
 }

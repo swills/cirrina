@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"context"
+	"crypto/sha512"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -334,4 +338,160 @@ func (s *server) SetDiskInfo(_ context.Context, diu *cirrina.DiskInfoUpdate) (*c
 	re.Success = true
 
 	return &re, nil
+}
+
+func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
+	var re cirrina.ReqBool
+	re.Success = false
+	var imageSize uint64
+	imageSize = 0
+
+	req, err := stream.Recv()
+	if err != nil {
+		slog.Error("UploadDisk", "msg", "cannot receive image info")
+	}
+	diskUploadReq := req.GetDiskuploadinfo()
+	if diskUploadReq == nil || diskUploadReq.Diskid == nil {
+		slog.Error("nil diskUploadReq or disk id")
+		return errors.New("nil diskUploadReq or disk id")
+	}
+	diskId := diskUploadReq.Diskid
+
+	diskUuid, err := uuid.Parse(diskId.Value)
+	if err != nil {
+		return errors.New("id not specified or invalid")
+	}
+	diskInst, err := disk.GetById(diskUuid.String())
+	if err != nil {
+		slog.Error("error getting disk", "id", diskUuid.String(), "err", err)
+		return errors.New("not found")
+	}
+	if diskInst.Name == "" {
+		slog.Debug("disk not found")
+		return errors.New("not found")
+	}
+
+	slog.Debug("UploadDisk",
+		"diskId", diskId.Value,
+		"diskName", diskInst.Name,
+		"size", diskUploadReq.Size, "checksum", diskUploadReq.Sha512Sum,
+	)
+
+	// XXX FIXME - copied this from isos, but isos are always files and disks are sometimes files and sometimes other
+	// things so need to handle those other cases as well
+	if diskInst.DevType != "FILE" {
+		slog.Error("UploadDisk unsupported disk dev type")
+		return errors.New("upload of non file disk types not supported yet")
+	}
+
+	diskPath, err := diskInst.GetPath()
+	if err != nil {
+		return err
+	}
+	if diskPath == "" {
+		diskPath = config.Config.Disk.VM.Path.Image + string(os.PathSeparator) + diskInst.Name
+	}
+
+	err = diskInst.Save()
+	if err != nil {
+		slog.Error("UploadDisk", "msg", "Failed saving to db")
+		err = stream.SendAndClose(&re)
+		if err != nil {
+			slog.Error("UploadDisk cannot send response", "err", err)
+			return errors.New("failed sending response")
+		}
+		return nil
+	}
+
+	diskFile, err := os.Create(diskPath)
+	if err != nil {
+		slog.Error("Failed to open disk file", "err", err.Error())
+		return err
+	}
+	diskFileBuffer := bufio.NewWriter(diskFile)
+
+	hasher := sha512.New()
+
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			slog.Debug("UploadDisk", "msg", "no more data")
+			break
+		}
+		if err != nil {
+			slog.Error("UploadDisk failed receiving", "err", err)
+			return errors.New("failed reading image date")
+		}
+
+		chunk := req.GetImage()
+		size := len(chunk)
+		slog.Debug("UploadDisk got data", "size", size)
+
+		imageSize += uint64(size)
+		_, err = diskFileBuffer.Write(chunk)
+		if err != nil {
+			slog.Error("UploadDisk failed writing", "err", err)
+			return errors.New("failed writing disk image data")
+		}
+		hasher.Write(chunk)
+	}
+
+	// flush buffer
+	err = diskFileBuffer.Flush()
+	if err != nil {
+		slog.Error("UploadDisk cannot send response", "err", err)
+		return errors.New("failed flushing disk image data")
+	}
+
+	// verify size
+	if imageSize != diskUploadReq.Size {
+		slog.Error("UploadDisk", "image upload size incorrect")
+		err = stream.SendAndClose(&re)
+		if err != nil {
+			slog.Error("UploadDisk cannot send response", "err", err)
+		}
+		return nil
+	}
+
+	// verify checksum
+	diskChecksum := hex.EncodeToString(hasher.Sum(nil))
+	if diskChecksum != diskUploadReq.Sha512Sum {
+		slog.Debug("UploadDisk", "image upload checksum incorrect")
+		err = stream.SendAndClose(&re)
+		if err != nil {
+			slog.Error("UploadDisk cannot send response", "err", err)
+		}
+		return nil
+	}
+
+	// finish saving file
+	err = diskFile.Close()
+	if err != nil {
+		slog.Debug("UploadDisk", "msg", "Failed writing disk", "err", err)
+		err = stream.SendAndClose(&re)
+		if err != nil {
+			slog.Error("UploadDisk cannot send response", "err", err)
+		}
+		return nil
+	}
+
+	// save to db
+	err = diskInst.Save()
+	if err != nil {
+		slog.Debug("UploadDisk", "msg", "Failed saving to db")
+		err = stream.SendAndClose(&re)
+		if err != nil {
+			slog.Error("UploadDisk cannot send response", "err", err)
+		}
+		return nil
+	}
+
+	// we're done, return success to client
+	re.Success = true
+	err = stream.SendAndClose(&re)
+	if err != nil {
+		slog.Error("UploadDisk cannot send response", "err", err)
+	}
+	slog.Debug("UploadDisk complete")
+	return nil
 }

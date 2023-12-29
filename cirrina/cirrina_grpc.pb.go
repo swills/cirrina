@@ -49,6 +49,7 @@ const (
 	VMInfo_SetVmDisks_FullMethodName         = "/cirrina.VMInfo/SetVmDisks"
 	VMInfo_GetVmDisks_FullMethodName         = "/cirrina.VMInfo/GetVmDisks"
 	VMInfo_GetDiskVm_FullMethodName          = "/cirrina.VMInfo/GetDiskVm"
+	VMInfo_UploadDisk_FullMethodName         = "/cirrina.VMInfo/UploadDisk"
 	VMInfo_GetSwitches_FullMethodName        = "/cirrina.VMInfo/GetSwitches"
 	VMInfo_GetSwitchInfo_FullMethodName      = "/cirrina.VMInfo/GetSwitchInfo"
 	VMInfo_AddSwitch_FullMethodName          = "/cirrina.VMInfo/AddSwitch"
@@ -102,6 +103,7 @@ type VMInfoClient interface {
 	SetVmDisks(ctx context.Context, in *SetDiskReq, opts ...grpc.CallOption) (*ReqBool, error)
 	GetVmDisks(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmDisksClient, error)
 	GetDiskVm(ctx context.Context, in *DiskId, opts ...grpc.CallOption) (*VMID, error)
+	UploadDisk(ctx context.Context, opts ...grpc.CallOption) (VMInfo_UploadDiskClient, error)
 	GetSwitches(ctx context.Context, in *SwitchesQuery, opts ...grpc.CallOption) (VMInfo_GetSwitchesClient, error)
 	GetSwitchInfo(ctx context.Context, in *SwitchId, opts ...grpc.CallOption) (*SwitchInfo, error)
 	AddSwitch(ctx context.Context, in *SwitchInfo, opts ...grpc.CallOption) (*SwitchId, error)
@@ -569,8 +571,42 @@ func (c *vMInfoClient) GetDiskVm(ctx context.Context, in *DiskId, opts ...grpc.C
 	return out, nil
 }
 
+func (c *vMInfoClient) UploadDisk(ctx context.Context, opts ...grpc.CallOption) (VMInfo_UploadDiskClient, error) {
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[8], VMInfo_UploadDisk_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &vMInfoUploadDiskClient{stream}
+	return x, nil
+}
+
+type VMInfo_UploadDiskClient interface {
+	Send(*DiskImageRequest) error
+	CloseAndRecv() (*ReqBool, error)
+	grpc.ClientStream
+}
+
+type vMInfoUploadDiskClient struct {
+	grpc.ClientStream
+}
+
+func (x *vMInfoUploadDiskClient) Send(m *DiskImageRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *vMInfoUploadDiskClient) CloseAndRecv() (*ReqBool, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(ReqBool)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func (c *vMInfoClient) GetSwitches(ctx context.Context, in *SwitchesQuery, opts ...grpc.CallOption) (VMInfo_GetSwitchesClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[8], VMInfo_GetSwitches_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[9], VMInfo_GetSwitches_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -647,7 +683,7 @@ func (c *vMInfoClient) SetSwitchUplink(ctx context.Context, in *SwitchUplinkReq,
 }
 
 func (c *vMInfoClient) GetVmNicsAll(ctx context.Context, in *VmNicsQuery, opts ...grpc.CallOption) (VMInfo_GetVmNicsAllClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[9], VMInfo_GetVmNicsAll_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[10], VMInfo_GetVmNicsAll_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -742,7 +778,7 @@ func (c *vMInfoClient) SetVmNics(ctx context.Context, in *SetNicReq, opts ...grp
 }
 
 func (c *vMInfoClient) GetVmNics(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmNicsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[10], VMInfo_GetVmNics_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[11], VMInfo_GetVmNics_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -774,7 +810,7 @@ func (x *vMInfoGetVmNicsClient) Recv() (*VmNicId, error) {
 }
 
 func (c *vMInfoClient) Com1Interactive(ctx context.Context, opts ...grpc.CallOption) (VMInfo_Com1InteractiveClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[11], VMInfo_Com1Interactive_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[12], VMInfo_Com1Interactive_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -805,7 +841,7 @@ func (x *vMInfoCom1InteractiveClient) Recv() (*ComDataResponse, error) {
 }
 
 func (c *vMInfoClient) Com2Interactive(ctx context.Context, opts ...grpc.CallOption) (VMInfo_Com2InteractiveClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[12], VMInfo_Com2Interactive_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[13], VMInfo_Com2Interactive_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -836,7 +872,7 @@ func (x *vMInfoCom2InteractiveClient) Recv() (*ComDataResponse, error) {
 }
 
 func (c *vMInfoClient) Com3Interactive(ctx context.Context, opts ...grpc.CallOption) (VMInfo_Com3InteractiveClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[13], VMInfo_Com3Interactive_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[14], VMInfo_Com3Interactive_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -867,7 +903,7 @@ func (x *vMInfoCom3InteractiveClient) Recv() (*ComDataResponse, error) {
 }
 
 func (c *vMInfoClient) Com4Interactive(ctx context.Context, opts ...grpc.CallOption) (VMInfo_Com4InteractiveClient, error) {
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[14], VMInfo_Com4Interactive_FullMethodName, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[15], VMInfo_Com4Interactive_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -929,6 +965,7 @@ type VMInfoServer interface {
 	SetVmDisks(context.Context, *SetDiskReq) (*ReqBool, error)
 	GetVmDisks(*VMID, VMInfo_GetVmDisksServer) error
 	GetDiskVm(context.Context, *DiskId) (*VMID, error)
+	UploadDisk(VMInfo_UploadDiskServer) error
 	GetSwitches(*SwitchesQuery, VMInfo_GetSwitchesServer) error
 	GetSwitchInfo(context.Context, *SwitchId) (*SwitchInfo, error)
 	AddSwitch(context.Context, *SwitchInfo) (*SwitchId, error)
@@ -1038,6 +1075,9 @@ func (UnimplementedVMInfoServer) GetVmDisks(*VMID, VMInfo_GetVmDisksServer) erro
 }
 func (UnimplementedVMInfoServer) GetDiskVm(context.Context, *DiskId) (*VMID, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetDiskVm not implemented")
+}
+func (UnimplementedVMInfoServer) UploadDisk(VMInfo_UploadDiskServer) error {
+	return status.Errorf(codes.Unimplemented, "method UploadDisk not implemented")
 }
 func (UnimplementedVMInfoServer) GetSwitches(*SwitchesQuery, VMInfo_GetSwitchesServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetSwitches not implemented")
@@ -1642,6 +1682,32 @@ func _VMInfo_GetDiskVm_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VMInfo_UploadDisk_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(VMInfoServer).UploadDisk(&vMInfoUploadDiskServer{stream})
+}
+
+type VMInfo_UploadDiskServer interface {
+	SendAndClose(*ReqBool) error
+	Recv() (*DiskImageRequest, error)
+	grpc.ServerStream
+}
+
+type vMInfoUploadDiskServer struct {
+	grpc.ServerStream
+}
+
+func (x *vMInfoUploadDiskServer) SendAndClose(m *ReqBool) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *vMInfoUploadDiskServer) Recv() (*DiskImageRequest, error) {
+	m := new(DiskImageRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 func _VMInfo_GetSwitches_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(SwitchesQuery)
 	if err := stream.RecvMsg(m); err != nil {
@@ -2201,6 +2267,11 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "GetVmDisks",
 			Handler:       _VMInfo_GetVmDisks_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "UploadDisk",
+			Handler:       _VMInfo_UploadDisk_Handler,
+			ClientStreams: true,
 		},
 		{
 			StreamName:    "GetSwitches",
