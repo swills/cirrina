@@ -27,8 +27,10 @@ cirranad:
   stage: build
   tags:
     - FreeBSD
+  variables:
+    VER: ${CI_COMMIT_REF_NAME}-$(git rev-parse --short HEAD)
   script:
-    - VER=${CI_COMMIT_REF_NAME}-$(git rev-parse --short HEAD)
+    - echo VER is ${VER}
     - export GOFLAGS="-trimpath"
     - git clone -b swillsv2 https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/swills/go-supervisor.git go-supervisor
     - cd cirrinad
@@ -46,8 +48,10 @@ cirranactl:
   stage: build
   tags:
     - FreeBSD
+  variables:
+    VER: ${CI_COMMIT_REF_NAME}-$(git rev-parse --short HEAD)
   script:
-    - VER=${CI_COMMIT_REF_NAME}-$(git rev-parse --short HEAD)
+    - echo VER is ${VER}
     - cd cirrinactl
     - export GOPROXY=http://10.0.1.152:3000
     - export CGO_ENABLED=0
