@@ -27,6 +27,7 @@ qodana:
     name: qodana-scan-results-"$CI_COMMIT_REF_NAME"
     paths:
       - $CI_PROJECT_DIR/.qodana
+    expire_in: 1 week
 
 cirranad:
   stage: build
@@ -45,6 +46,7 @@ cirranad:
     name: cirrinad-"$CI_COMMIT_REF_NAME"
     paths:
       - ./cirrinad/cirrinad-freebsd-amd64-${VER}
+    expire_in: 1 week
 
 cirranactl:
   stage: build
@@ -96,6 +98,7 @@ cirranactl:
       - ./cirrinactl/cirrinactl-linux-amd64-${VER}
       - ./cirrinactl/cirrinactl-linux-386-${VER}
       - ./cirrinactl/cirrinactl-linux-arm64-${VER}
+    expire_in: 1 week
 
 cirrinad-upload:
   stage: upload
@@ -171,3 +174,4 @@ release:
         --assets-link "{\"name\":\"cirrinactl-linux-amd64\",\"url\":\"${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinactl-linux-amd64\"}" \
         --assets-link "{\"name\":\"cirrinactl-linux-i386\",\"url\":\"${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinactl-linux-i386\"}" \
         --assets-link "{\"name\":\"cirrinactl-linux-arm64\",\"url\":\"${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinactl-linux-arm64\"}"
+    - echo
