@@ -23,7 +23,7 @@ cirranad:
   tags:
     - FreeBSD
   script:
-    - VER=$(git rev-parse --short HEAD)
+    - VER=${CI_COMMIT_REF_SLUG}-$(git rev-parse --short HEAD)
     - export GOFLAGS="-trimpath"
     - git clone -b swillsv2 https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/swills/go-supervisor.git go-supervisor
     - cd cirrinad
@@ -42,7 +42,7 @@ cirranactl:
   tags:
     - FreeBSD
   script:
-    - VER=$(git rev-parse --short HEAD)
+    - VER=${CI_COMMIT_REF_SLUG}-$(git rev-parse --short HEAD)
     - cd cirrinactl
     - export GOPROXY=http://10.0.1.152:3000
     - export CGO_ENABLED=0
