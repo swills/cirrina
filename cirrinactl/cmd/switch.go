@@ -56,16 +56,29 @@ var SwitchListCmd = &cobra.Command{
 		sort.Strings(names)
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
-		t.AppendHeader(table.Row{"NAME", "UUID", "TYPE", "UPLINK", "DESCRIPTION"})
+		if ShowUUID {
+			t.AppendHeader(table.Row{"NAME", "UUID", "TYPE", "UPLINK", "DESCRIPTION"})
+		} else {
+			t.AppendHeader(table.Row{"NAME", "TYPE", "UPLINK", "DESCRIPTION"})
+		}
 		t.SetStyle(myTableStyle)
 		for _, name := range names {
-			t.AppendRow(table.Row{
-				name,
-				switchInfos[name].switchId,
-				switchInfos[name].switchInfo.SwitchType,
-				switchInfos[name].switchInfo.Uplink,
-				switchInfos[name].switchInfo.Descr,
-			})
+			if ShowUUID {
+				t.AppendRow(table.Row{
+					name,
+					switchInfos[name].switchId,
+					switchInfos[name].switchInfo.SwitchType,
+					switchInfos[name].switchInfo.Uplink,
+					switchInfos[name].switchInfo.Descr,
+				})
+			} else {
+				t.AppendRow(table.Row{
+					name,
+					switchInfos[name].switchInfo.SwitchType,
+					switchInfos[name].switchInfo.Uplink,
+					switchInfos[name].switchInfo.Descr,
+				})
+			}
 		}
 		t.Render()
 		return nil
@@ -181,6 +194,9 @@ func init() {
 	disableFlagSorting(SwitchCmd)
 
 	disableFlagSorting(SwitchListCmd)
+	SwitchListCmd.Flags().BoolVarP(&ShowUUID,
+		"uuid", "u", ShowUUID, "Show UUIDs",
+	)
 
 	disableFlagSorting(SwitchCreateCmd)
 	SwitchCreateCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of switch")

@@ -68,23 +68,42 @@ var VmDisksListCmd = &cobra.Command{
 
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
+		if ShowUUID {
+			t.AppendHeader(
+				table.Row{"NAME", "UUID", "TYPE", "SIZE", "USAGE", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
+			)
+		} else {
+			t.AppendHeader(
+				table.Row{"NAME", "TYPE", "SIZE", "USAGE", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
+			)
+		}
 
-		t.AppendHeader(
-			table.Row{"NAME", "UUID", "TYPE", "SIZE", "USAGE", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
-		)
 		t.SetStyle(myTableStyle)
 		for _, diskName := range names {
-			t.AppendRow(table.Row{
-				diskName,
-				diskInfos[diskName].id,
-				diskInfos[diskName].info.DiskType,
-				diskInfos[diskName].size,
-				diskInfos[diskName].usage,
-				diskInfos[diskName].info.DiskDevType,
-				diskInfos[diskName].info.Cache,
-				diskInfos[diskName].info.Direct,
-				diskInfos[diskName].info.Descr,
-			})
+			if ShowUUID {
+				t.AppendRow(table.Row{
+					diskName,
+					diskInfos[diskName].id,
+					diskInfos[diskName].info.DiskType,
+					diskInfos[diskName].size,
+					diskInfos[diskName].usage,
+					diskInfos[diskName].info.DiskDevType,
+					diskInfos[diskName].info.Cache,
+					diskInfos[diskName].info.Direct,
+					diskInfos[diskName].info.Descr,
+				})
+			} else {
+				t.AppendRow(table.Row{
+					diskName,
+					diskInfos[diskName].info.DiskType,
+					diskInfos[diskName].size,
+					diskInfos[diskName].usage,
+					diskInfos[diskName].info.DiskDevType,
+					diskInfos[diskName].info.Cache,
+					diskInfos[diskName].info.Direct,
+					diskInfos[diskName].info.Descr,
+				})
+			}
 		}
 		t.Render()
 		return nil
@@ -201,6 +220,9 @@ func init() {
 	addNameOrIdArgs(VmDisksListCmd, &VmName, &VmId, "VM")
 	VmDisksListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
+	)
+	VmDisksListCmd.Flags().BoolVarP(&ShowUUID,
+		"uuid", "u", ShowUUID, "Show UUIDs",
 	)
 
 	disableFlagSorting(VmDiskAddCmd)

@@ -64,15 +64,27 @@ var VmIsoListCmd = &cobra.Command{
 
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
-		t.AppendHeader(table.Row{"NAME", "UUID", "SIZE", "DESCRIPTION"})
+		if ShowUUID {
+			t.AppendHeader(table.Row{"NAME", "UUID", "SIZE", "DESCRIPTION"})
+		} else {
+			t.AppendHeader(table.Row{"NAME", "SIZE", "DESCRIPTION"})
+		}
 		t.SetStyle(myTableStyle)
 		for _, name := range names {
-			t.AppendRow(table.Row{
-				name,
-				isoInfos[name].id,
-				isoInfos[name].size,
-				isoInfos[name].info.Descr,
-			})
+			if ShowUUID {
+				t.AppendRow(table.Row{
+					name,
+					isoInfos[name].id,
+					isoInfos[name].size,
+					isoInfos[name].info.Descr,
+				})
+			} else {
+				t.AppendRow(table.Row{
+					name,
+					isoInfos[name].size,
+					isoInfos[name].info.Descr,
+				})
+			}
 		}
 		t.Render()
 		return nil
@@ -190,6 +202,9 @@ func init() {
 	addNameOrIdArgs(VmIsoListCmd, &VmName, &VmId, "VM")
 	VmIsoListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
+	)
+	VmIsoListCmd.Flags().BoolVarP(&ShowUUID,
+		"uuid", "u", ShowUUID, "Show UUIDs",
 	)
 
 	disableFlagSorting(VmIsosAddCmd)

@@ -255,17 +255,31 @@ var VmListCmd = &cobra.Command{
 		sort.Strings(names)
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
-		t.AppendHeader(table.Row{"NAME", "UUID", "CPUS", "MEMORY", "STATE", "DESCRIPTION"})
+		if ShowUUID {
+			t.AppendHeader(table.Row{"NAME", "UUID", "CPUS", "MEMORY", "STATE", "DESCRIPTION"})
+		} else {
+			t.AppendHeader(table.Row{"NAME", "CPUS", "MEMORY", "STATE", "DESCRIPTION"})
+		}
 		t.SetStyle(myTableStyle)
 		for _, name := range names {
-			t.AppendRow(table.Row{
-				name,
-				vmInfos[name].id,
-				vmInfos[name].cpu,
-				vmInfos[name].mem,
-				vmInfos[name].status,
-				vmInfos[name].descr,
-			})
+			if ShowUUID {
+				t.AppendRow(table.Row{
+					name,
+					vmInfos[name].id,
+					vmInfos[name].cpu,
+					vmInfos[name].mem,
+					vmInfos[name].status,
+					vmInfos[name].descr,
+				})
+			} else {
+				t.AppendRow(table.Row{
+					name,
+					vmInfos[name].cpu,
+					vmInfos[name].mem,
+					vmInfos[name].status,
+					vmInfos[name].descr,
+				})
+			}
 		}
 		t.Render()
 		return nil
@@ -1073,6 +1087,9 @@ func init() {
 	disableFlagSorting(VmListCmd)
 	VmListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
+	)
+	VmListCmd.Flags().BoolVarP(&ShowUUID,
+		"uuid", "u", ShowUUID, "Show UUIDs",
 	)
 
 	disableFlagSorting(VmCreateCmd)

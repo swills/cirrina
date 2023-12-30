@@ -82,24 +82,45 @@ var VmNicsListCmd = &cobra.Command{
 		sort.Strings(names)
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
-		t.AppendHeader(
-			table.Row{"NAME", "UUID", "MAC", "TYPE", "DEV-TYPE", "SWITCH",
-				"RATE-LIMITED", "RATE-IN", "RATE-OUT", "DESCRIPTION"},
-		)
+		if ShowUUID {
+			t.AppendHeader(
+				table.Row{"NAME", "UUID", "MAC", "TYPE", "DEV-TYPE", "SWITCH",
+					"RATE-LIMITED", "RATE-IN", "RATE-OUT", "DESCRIPTION"},
+			)
+		} else {
+			t.AppendHeader(
+				table.Row{"NAME", "MAC", "TYPE", "DEV-TYPE", "SWITCH",
+					"RATE-LIMITED", "RATE-IN", "RATE-OUT", "DESCRIPTION"},
+			)
+		}
 		t.SetStyle(myTableStyle)
 		for _, name := range names {
-			t.AppendRow(table.Row{
-				name,
-				nicInfos[name].nicId,
-				nicInfos[name].info.Mac,
-				nicInfos[name].info.NetType,
-				nicInfos[name].info.NetDevType,
-				nicInfos[name].info.Uplink,
-				nicInfos[name].rateLimited,
-				nicInfos[name].rateIn,
-				nicInfos[name].rateOut,
-				nicInfos[name].info.Descr,
-			})
+			if ShowUUID {
+				t.AppendRow(table.Row{
+					name,
+					nicInfos[name].nicId,
+					nicInfos[name].info.Mac,
+					nicInfos[name].info.NetType,
+					nicInfos[name].info.NetDevType,
+					nicInfos[name].info.Uplink,
+					nicInfos[name].rateLimited,
+					nicInfos[name].rateIn,
+					nicInfos[name].rateOut,
+					nicInfos[name].info.Descr,
+				})
+			} else {
+				t.AppendRow(table.Row{
+					name,
+					nicInfos[name].info.Mac,
+					nicInfos[name].info.NetType,
+					nicInfos[name].info.NetDevType,
+					nicInfos[name].info.Uplink,
+					nicInfos[name].rateLimited,
+					nicInfos[name].rateIn,
+					nicInfos[name].rateOut,
+					nicInfos[name].info.Descr,
+				})
+			}
 		}
 		t.Render()
 		return nil
@@ -216,6 +237,9 @@ func init() {
 	addNameOrIdArgs(VmNicsListCmd, &VmName, &VmId, "VM")
 	VmNicsListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
+	)
+	VmNicsListCmd.Flags().BoolVarP(&ShowUUID,
+		"uuid", "u", ShowUUID, "Show UUIDs",
 	)
 
 	disableFlagSorting(VmNicsAddCmd)

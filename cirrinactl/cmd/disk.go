@@ -82,27 +82,47 @@ var DiskListCmd = &cobra.Command{
 		sort.Strings(names)
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
-		t.AppendHeader(
-			table.Row{"NAME", "UUID", "TYPE", "SIZE", "USAGE", "VM", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
-		)
+		if ShowUUID {
+			t.AppendHeader(
+				table.Row{"NAME", "UUID", "TYPE", "SIZE", "USAGE", "VM", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
+			)
+		} else {
+			t.AppendHeader(
+				table.Row{"NAME", "TYPE", "SIZE", "USAGE", "VM", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
+			)
+		}
 		t.SetStyle(myTableStyle)
 		t.SetColumnConfigs([]table.ColumnConfig{
 			{Number: 4, Align: text.AlignRight, AlignHeader: text.AlignRight},
 			{Number: 5, Align: text.AlignRight, AlignHeader: text.AlignRight},
 		})
 		for _, diskName := range names {
-			t.AppendRow(table.Row{
-				diskName,
-				diskInfos[diskName].id,
-				diskInfos[diskName].info.DiskType,
-				diskInfos[diskName].size,
-				diskInfos[diskName].usage,
-				diskInfos[diskName].vmName,
-				diskInfos[diskName].info.DiskDevType,
-				diskInfos[diskName].info.Cache,
-				diskInfos[diskName].info.Direct,
-				diskInfos[diskName].info.Descr,
-			})
+			if ShowUUID {
+				t.AppendRow(table.Row{
+					diskName,
+					diskInfos[diskName].id,
+					diskInfos[diskName].info.DiskType,
+					diskInfos[diskName].size,
+					diskInfos[diskName].usage,
+					diskInfos[diskName].vmName,
+					diskInfos[diskName].info.DiskDevType,
+					diskInfos[diskName].info.Cache,
+					diskInfos[diskName].info.Direct,
+					diskInfos[diskName].info.Descr,
+				})
+			} else {
+				t.AppendRow(table.Row{
+					diskName,
+					diskInfos[diskName].info.DiskType,
+					diskInfos[diskName].size,
+					diskInfos[diskName].usage,
+					diskInfos[diskName].vmName,
+					diskInfos[diskName].info.DiskDevType,
+					diskInfos[diskName].info.Cache,
+					diskInfos[diskName].info.Direct,
+					diskInfos[diskName].info.Descr,
+				})
+			}
 		}
 		t.Render()
 		return nil
@@ -283,6 +303,9 @@ func init() {
 	disableFlagSorting(DiskListCmd)
 	DiskListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
+	)
+	DiskListCmd.Flags().BoolVarP(&ShowUUID,
+		"uuid", "u", ShowUUID, "Show UUIDs",
 	)
 
 	disableFlagSorting(DiskCreateCmd)

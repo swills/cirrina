@@ -34,6 +34,7 @@ var cfgFile string
 var VmName string
 var VmId string
 var Humanize = true
+var ShowUUID = false
 var CheckReqStat = true
 
 const (
