@@ -1,3 +1,8 @@
+stages:
+  - build
+  - test
+  - upload
+
 qodana:
   when: manual
   tags:
@@ -31,11 +36,11 @@ cirranad:
     - export GO_LDFLAGS="-X main.mainVersion=${VER} -s -w -extldflags -static -buildid=${CI_COMMIT_SHA}"
     - export GOOS=freebsd
     - export GOARCH=amd64
-    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinad-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinad-${GOOS}-${GOARCH}-${VER} .
   artifacts:
     name: cirrinad-"$CI_COMMIT_REF_NAME"
     paths:
-      - ./cirrinad/cirrinad-freebsd-amd64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
+      - ./cirrinad/cirrinad-freebsd-amd64-${VER}
 
 cirranactl:
   stage: build
@@ -50,41 +55,58 @@ cirranactl:
     - export GOFLAGS="-trimpath"
     - export GOOS=freebsd
     - export GOARCH=amd64
-    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${VER} .
     - export GOARCH=386
-    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${VER} .
     - export GOARCH=arm64
-    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${VER} .
     - export GOOS=windows
     - export GOARCH=amd64
-    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}.exe .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${VER}.exe .
     - export GOARCH=386
-    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}.exe .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${VER}.exe .
     - export GOARCH=arm64
-    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}.exe .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${VER}.exe .
     - export GOOS=darwin
     - export GOARCH=amd64
-    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${VER} .
     - export GOARCH=arm64
-    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${VER} .
     - export GOOS=linux
     - export GOARCH=amd64
-    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${VER} .
     - export GOARCH=386
-    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${VER} .
     - export GOARCH=arm64
-    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA} .
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${VER} .
   artifacts:
     name: cirrinactl-"$CI_COMMIT_REF_NAME"
     paths:
-      - ./cirrinactl/cirrinactl-freebsd-amd64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
-      - ./cirrinactl/cirrinactl-freebsd-386-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
-      - ./cirrinactl/cirrinactl-freebsd-arm64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
-      - ./cirrinactl/cirrinactl-windows-amd64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}.exe
-      - ./cirrinactl/cirrinactl-windows-386-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}.exe
-      - ./cirrinactl/cirrinactl-windows-arm64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}.exe
-      - ./cirrinactl/cirrinactl-darwin-amd64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
-      - ./cirrinactl/cirrinactl-darwin-arm64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
-      - ./cirrinactl/cirrinactl-linux-amd64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
-      - ./cirrinactl/cirrinactl-linux-386-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
-      - ./cirrinactl/cirrinactl-linux-arm64-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}
+      - ./cirrinactl/cirrinactl-freebsd-amd64-${VER}
+      - ./cirrinactl/cirrinactl-freebsd-386-${VER}
+      - ./cirrinactl/cirrinactl-freebsd-arm64-${VER}
+      - ./cirrinactl/cirrinactl-windows-amd64-${VER}.exe
+      - ./cirrinactl/cirrinactl-windows-386-${VER}.exe
+      - ./cirrinactl/cirrinactl-windows-arm64-${VER}.exe
+      - ./cirrinactl/cirrinactl-darwin-amd64-${VER}
+      - ./cirrinactl/cirrinactl-darwin-arm64-${VER}
+      - ./cirrinactl/cirrinactl-linux-amd64-${VER}
+      - ./cirrinactl/cirrinactl-linux-386-${VER}
+      - ./cirrinactl/cirrinactl-linux-arm64-${VER}
+
+cirrinad-upload:
+  stage: upload
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file cirrinad-${GOOS}-${GOARCH}-${VER} "${PACKAGE_REGISTRY_URL}/cirrinad-${GOOS}-${GOARCH}-${VER}"
+
+cirrinactl-upload:
+  stage: upload
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file cirrinactl/cirrinactl-freebsd-arm64-${VER} "${PACKAGE_REGISTRY_URL}/cirrinactl-freebsd-arm64-${VER}"
+
