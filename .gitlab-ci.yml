@@ -121,5 +121,5 @@ cirrinactl-upload:
     - export GOOS=freebsd
     - export GOARCH=amd64
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file cirrinactl/cirrinad-${GOOS}-${GOARCH}-${VER} "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/cirrinactl/${CI_COMMIT_TAG}/cirrinactl-${GOOS}-${GOARCH}"
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file cirrinactl/cirrinactl-${GOOS}-${GOARCH}-${VER} "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/cirrinactl/${CI_COMMIT_TAG}/cirrinactl-${GOOS}-${GOARCH}"
 
