@@ -104,6 +104,8 @@ cirrinad-upload:
   stage: upload
   rules:
     - if: $CI_COMMIT_TAG
+  dependencies:
+    - cirrinad
   script:
     - |
       curl -s --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file cirrinad/cirrinad-freebsd-amd64-${VER} "${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinad-freebsd-amd64"
@@ -113,6 +115,8 @@ cirrinactl-upload:
   stage: upload
   rules:
     - if: $CI_COMMIT_TAG
+  dependencies:
+    - cirrinactl
   script:
     - export GOOS=freebsd
     - export GOARCH=amd64
@@ -159,6 +163,9 @@ release:
     - FreeBSD
   rules:
     - if: $CI_COMMIT_TAG
+  dependencies:
+    - cirrinad-upload
+    - cirrinactl-upload
   script:
     - |
       release-cli create --name "Release $CI_COMMIT_TAG" --tag-name $CI_COMMIT_TAG \
