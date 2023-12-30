@@ -29,7 +29,7 @@ qodana:
       - $CI_PROJECT_DIR/.qodana
     expire_in: 1 week
 
-cirranad:
+cirrinad:
   stage: build
   tags:
     - FreeBSD
