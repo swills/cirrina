@@ -48,7 +48,7 @@ cirrinad:
       - ./cirrinad/cirrinad-freebsd-amd64-${VER}
     expire_in: 1 week
 
-cirranactl:
+cirrinactl:
   stage: build
   tags:
     - FreeBSD
