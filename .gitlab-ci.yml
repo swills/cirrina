@@ -160,5 +160,4 @@ release:
     - |
       release-cli create --name "Release $CI_COMMIT_TAG" --tag-name $CI_COMMIT_TAG \
         --assets-link "{\"name\":\"cirrinad-freebsd-amd64\",\"url\":\"${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinad-freebsd-amd64\"}" \
-        --assets-link "{\"name\":\"cirrinactl-freebsd-amd64\",\"url\":\"${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinactl-freebsd-amd64\"}" \
         --assets-link "{\"name\":\"cirrinactl-freebsd-amd64\",\"url\":\"${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinactl-freebsd-amd64\"}"
