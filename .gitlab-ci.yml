@@ -107,7 +107,7 @@ cirrinad-upload:
   script:
     - echo VER is ${VER}
     - |
-      curl -s --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file cirrinad/cirrinad-freebsd-amd64-${VER} "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/cirrinad/${CI_COMMIT_TAG}/cirrinad-freebsd-amd64?select=package_file"
+      curl -s --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file cirrinad/cirrinad-freebsd-amd64-${VER} "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/v${CI_COMMIT_TAG}/cirrinad-freebsd-amd64?select=package_file"
 
 cirrinactl-upload:
   stage: upload
@@ -121,5 +121,5 @@ cirrinactl-upload:
     - export GOARCH=amd64
     - env | sort
     - |
-      curl -s --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file cirrinactl/cirrinactl-${GOOS}-${GOARCH}-${VER} "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/cirrinactl/${CI_COMMIT_TAG}/cirrinactl-${GOOS}-${GOARCH}?select=package_file"
+      curl -s --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file cirrinactl/cirrinactl-${GOOS}-${GOARCH}-${VER} "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/v${CI_COMMIT_TAG}/cirrinactl-${GOOS}-${GOARCH}?select=package_file"
 
