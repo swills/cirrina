@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-var VmIsosGetCmd = &cobra.Command{
+var VmIsoListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "Get list of ISOs connected to VM",
 	SilenceUsage: true,
@@ -186,38 +186,27 @@ var VmIsosCmd = &cobra.Command{
 func init() {
 	disableFlagSorting(VmIsosCmd)
 
-	VmIsosGetCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmIsosGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmIsosGetCmd.MarkFlagsOneRequired("name", "id")
-	VmIsosGetCmd.MarkFlagsMutuallyExclusive("name", "id")
-	VmIsosGetCmd.Flags().BoolVarP(&Humanize,
+	disableFlagSorting(VmIsoListCmd)
+	addNameOrIdArgs(VmIsoListCmd, &VmName, &VmId, "VM")
+	VmIsoListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
 	)
-	disableFlagSorting(VmIsosCmd)
 
-	VmIsosAddCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmIsosAddCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmIsosAddCmd.MarkFlagsOneRequired("name", "id")
-	VmIsosAddCmd.MarkFlagsMutuallyExclusive("name", "id")
 	disableFlagSorting(VmIsosAddCmd)
-
+	addNameOrIdArgs(VmIsosAddCmd, &VmName, &VmId, "VM")
 	VmIsosAddCmd.Flags().StringVarP(&IsoName, "iso-name", "N", IsoName, "Name of Iso")
 	VmIsosAddCmd.Flags().StringVarP(&DiskId, "iso-id", "I", DiskId, "Id of Iso")
 	VmIsosAddCmd.MarkFlagsOneRequired("iso-name", "iso-id")
 	VmIsosAddCmd.MarkFlagsMutuallyExclusive("iso-name", "iso-id")
 
-	VmIsosRmCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmIsosRmCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmIsosRmCmd.MarkFlagsOneRequired("name", "id")
-	VmIsosRmCmd.MarkFlagsMutuallyExclusive("name", "id")
 	disableFlagSorting(VmIsosRmCmd)
-
+	addNameOrIdArgs(VmIsosRmCmd, &VmName, &VmId, "VM")
 	VmIsosRmCmd.Flags().StringVarP(&IsoName, "iso-name", "N", IsoName, "Name of Iso")
 	VmIsosRmCmd.Flags().StringVarP(&DiskId, "iso-id", "I", DiskId, "Id of Iso")
 	VmIsosRmCmd.MarkFlagsOneRequired("iso-name", "iso-id")
 	VmIsosRmCmd.MarkFlagsMutuallyExclusive("iso-name", "iso-id")
 
-	VmIsosCmd.AddCommand(VmIsosGetCmd)
+	VmIsosCmd.AddCommand(VmIsoListCmd)
 	VmIsosCmd.AddCommand(VmIsosAddCmd)
 	VmIsosCmd.AddCommand(VmIsosRmCmd)
 

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"cirrina/cirrinactl/rpc"
+	"fmt"
 	"github.com/jedib0t/go-pretty/table"
 	"github.com/jedib0t/go-pretty/text"
 	"github.com/spf13/cobra"
@@ -63,6 +64,13 @@ func disableFlagSorting(cmd *cobra.Command) {
 	cmd.InheritedFlags().SortFlags = false
 }
 
+func addNameOrIdArgs(cmd *cobra.Command, nameArg *string, idArg *string, objTypeName string) {
+	cmd.Flags().StringVarP(nameArg, "name", "n", *nameArg, fmt.Sprintf("Name of %s", objTypeName))
+	cmd.Flags().StringVarP(idArg, "id", "i", *idArg, fmt.Sprintf("Id of %s", objTypeName))
+	cmd.MarkFlagsOneRequired("name", "id")
+	cmd.MarkFlagsMutuallyExclusive("name", "id")
+}
+
 func init() {
 	cobra.OnInitialize(initConfig)
 	cobra.EnableCommandSorting = false
@@ -91,12 +99,12 @@ func init() {
 
 	rootCmd.AddCommand(VmCmd)
 	rootCmd.AddCommand(DiskCmd)
+	rootCmd.AddCommand(IsoCmd)
 	rootCmd.AddCommand(NicCmd)
 	rootCmd.AddCommand(SwitchCmd)
-	rootCmd.AddCommand(IsoCmd)
 	rootCmd.AddCommand(TuiCmd)
-	rootCmd.AddCommand(ReqStatCmd)
 	rootCmd.AddCommand(HostCmd)
+	rootCmd.AddCommand(ReqStatCmd)
 }
 
 func initConfig() {

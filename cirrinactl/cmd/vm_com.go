@@ -91,27 +91,15 @@ func startCom(comNum int) error {
 }
 
 func init() {
-	VmCom1Cmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmCom1Cmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmCom1Cmd.MarkFlagsOneRequired("name", "id")
-	VmCom1Cmd.MarkFlagsMutuallyExclusive("name", "id")
 	disableFlagSorting(VmCom1Cmd)
+	addNameOrIdArgs(VmCom1Cmd, &VmName, &VmId, "VM")
 
-	VmCom2Cmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmCom2Cmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmCom2Cmd.MarkFlagsOneRequired("name", "id")
-	VmCom2Cmd.MarkFlagsMutuallyExclusive("name", "id")
 	disableFlagSorting(VmCom2Cmd)
+	addNameOrIdArgs(VmCom2Cmd, &VmName, &VmId, "VM")
 
-	VmCom3Cmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmCom3Cmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmCom3Cmd.MarkFlagsOneRequired("name", "id")
-	VmCom3Cmd.MarkFlagsMutuallyExclusive("name", "id")
 	disableFlagSorting(VmCom3Cmd)
+	addNameOrIdArgs(VmCom3Cmd, &VmName, &VmId, "VM")
 
-	VmCom4Cmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmCom4Cmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmCom4Cmd.MarkFlagsOneRequired("name", "id")
-	VmCom4Cmd.MarkFlagsMutuallyExclusive("name", "id")
 	disableFlagSorting(VmCom4Cmd)
+	addNameOrIdArgs(VmCom4Cmd, &VmName, &VmId, "VM")
 }

@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-var VmDisksGetCmd = &cobra.Command{
+var VmDisksListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "Get list of disks connected to VM",
 	SilenceUsage: true,
@@ -197,42 +197,29 @@ var VmDisksCmd = &cobra.Command{
 func init() {
 	disableFlagSorting(VmDisksCmd)
 
-	VmDisksGetCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmDisksGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmDisksGetCmd.MarkFlagsOneRequired("name", "id")
-	VmDisksGetCmd.MarkFlagsMutuallyExclusive("name", "id")
-	disableFlagSorting(VmDisksGetCmd)
-
-	VmDisksGetCmd.Flags().BoolVarP(&Humanize,
+	disableFlagSorting(VmDisksListCmd)
+	addNameOrIdArgs(VmDisksListCmd, &VmName, &VmId, "VM")
+	VmDisksListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
 	)
 
-	VmDiskAddCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmDiskAddCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmDiskAddCmd.MarkFlagsOneRequired("name", "id")
-	VmDiskAddCmd.MarkFlagsMutuallyExclusive("name", "id")
 	disableFlagSorting(VmDiskAddCmd)
-
+	addNameOrIdArgs(VmDiskAddCmd, &VmName, &VmId, "VM")
 	VmDiskAddCmd.Flags().StringVarP(&DiskName, "disk-name", "N", DiskName, "Name of Disk")
 	VmDiskAddCmd.Flags().StringVarP(&DiskId, "disk-id", "I", DiskId, "Id of Disk")
 	VmDiskAddCmd.MarkFlagsOneRequired("disk-name", "disk-id")
 	VmDiskAddCmd.MarkFlagsMutuallyExclusive("disk-name", "disk-id")
 
-	VmDiskRmCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmDiskRmCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmDiskRmCmd.MarkFlagsOneRequired("name", "id")
-	VmDiskRmCmd.MarkFlagsMutuallyExclusive("name", "id")
 	disableFlagSorting(VmDiskRmCmd)
-
+	addNameOrIdArgs(VmDiskRmCmd, &VmName, &VmId, "VM")
 	VmDiskRmCmd.Flags().StringVarP(&DiskName, "disk-name", "N", DiskName, "Name of Disk")
 	VmDiskRmCmd.Flags().StringVarP(&DiskId, "disk-id", "I", DiskId, "Id of Disk")
 	VmDiskRmCmd.MarkFlagsOneRequired("disk-name", "disk-id")
 	VmDiskRmCmd.MarkFlagsMutuallyExclusive("disk-name", "disk-id")
 
-	VmDisksCmd.AddCommand(VmDisksGetCmd)
+	VmDisksCmd.AddCommand(VmDisksListCmd)
 	VmDisksCmd.AddCommand(VmDiskAddCmd)
 	VmDisksCmd.AddCommand(VmDiskRmCmd)
-	disableFlagSorting(VmDisksCmd)
 
 	VmCmd.AddCommand(VmDisksCmd)
 }

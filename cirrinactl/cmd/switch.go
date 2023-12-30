@@ -82,6 +82,9 @@ var SwitchCreateCmd = &cobra.Command{
 		"by a number, for example \"bridge0\".\nSwitches of type netgraph " +
 		"must be named starting with \"bnet\" followed by a number, for example \"bnet0\".",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if SwitchName == "" {
+			return errors.New("empty switch name")
+		}
 		res, err := rpc.AddSwitch(SwitchName, &SwitchDescription, &SwitchType, &SwitchUplinkName)
 		if err != nil {
 			return err
@@ -176,8 +179,10 @@ var SwitchUpdateCmd = &cobra.Command{
 
 func init() {
 	disableFlagSorting(SwitchCmd)
+
 	disableFlagSorting(SwitchListCmd)
 
+	disableFlagSorting(SwitchCreateCmd)
 	SwitchCreateCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of switch")
 	err := SwitchCreateCmd.MarkFlagRequired("name")
 	if err != nil {
@@ -190,18 +195,12 @@ func init() {
 	SwitchCreateCmd.Flags().StringVarP(&SwitchUplinkName,
 		"uplink", "u", SwitchName, "uplink name",
 	)
-	disableFlagSorting(SwitchCreateCmd)
 
-	SwitchDestroyCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of switch")
-	SwitchDestroyCmd.Flags().StringVarP(&SwitchId, "id", "i", SwitchId, "id of Switch")
-	SwitchDestroyCmd.MarkFlagsOneRequired("name", "id")
-	SwitchDestroyCmd.MarkFlagsMutuallyExclusive("name", "id")
 	disableFlagSorting(SwitchDestroyCmd)
+	addNameOrIdArgs(SwitchDestroyCmd, &SwitchName, &SwitchId, "switch")
 
-	SwitchUplinkCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of switch")
-	SwitchUplinkCmd.Flags().StringVarP(&SwitchId, "id", "i", SwitchId, "id of Switch")
-	SwitchUplinkCmd.MarkFlagsOneRequired("name", "id")
-	SwitchUplinkCmd.MarkFlagsMutuallyExclusive("name", "id")
+	disableFlagSorting(SwitchUplinkCmd)
+	addNameOrIdArgs(SwitchUplinkCmd, &SwitchName, &SwitchId, "switch")
 	SwitchUplinkCmd.Flags().StringVarP(&SwitchUplinkName,
 		"uplink", "u", SwitchName, "uplink name",
 	)
@@ -209,14 +208,9 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	disableFlagSorting(SwitchUplinkCmd)
 
-	SwitchUpdateCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of Switch")
-	SwitchUpdateCmd.Flags().StringVarP(&SwitchId, "id", "i", SwitchId, "id of Switch")
-	SwitchUpdateCmd.MarkFlagsOneRequired("name", "id")
-	SwitchUpdateCmd.MarkFlagsMutuallyExclusive("name", "id")
 	disableFlagSorting(SwitchUpdateCmd)
-
+	addNameOrIdArgs(SwitchUpdateCmd, &SwitchName, &SwitchId, "switch")
 	SwitchUpdateCmd.Flags().StringVarP(&SwitchDescription,
 		"description", "d", SwitchDescription, "description of switch",
 	)
@@ -224,6 +218,6 @@ func init() {
 	SwitchCmd.AddCommand(SwitchListCmd)
 	SwitchCmd.AddCommand(SwitchCreateCmd)
 	SwitchCmd.AddCommand(SwitchDestroyCmd)
-	SwitchCmd.AddCommand(SwitchUplinkCmd)
 	SwitchCmd.AddCommand(SwitchUpdateCmd)
+	SwitchCmd.AddCommand(SwitchUplinkCmd)
 }

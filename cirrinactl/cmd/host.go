@@ -43,7 +43,9 @@ var HostCmd = &cobra.Command{
 
 func init() {
 	disableFlagSorting(HostCmd)
+
 	disableFlagSorting(HostVersionCmd)
+
 	disableFlagSorting(HostNicsCmd)
 
 	HostCmd.AddCommand(HostNicsCmd)

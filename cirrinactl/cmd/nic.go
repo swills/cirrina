@@ -117,6 +117,9 @@ var NicCreateCmd = &cobra.Command{
 	Short:        "create virtual NIC",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if NicName == "" {
+			return errors.New("empty NIC name")
+		}
 		res, err := rpc.AddNic(
 			NicName, NicDescription, NicMac, NicType, NicDevType,
 			NicRateLimited, NicRateIn, NicRateOut, NicSwitchId,
@@ -134,11 +137,16 @@ var NicRemoveCmd = &cobra.Command{
 	Short:        "remove virtual nic",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		nicId, err := rpc.NicNameToId(NicName)
-		if err != nil {
-			return err
+		if NicId == "" {
+			NicId, err := rpc.NicNameToId(NicName)
+			if err != nil {
+				return err
+			}
+			if NicId == "" {
+				return errors.New("NIC not found")
+			}
 		}
-		err = rpc.RmNic(nicId)
+		err := rpc.RmNic(NicId)
 		if err != nil {
 			return err
 		}
@@ -194,6 +202,13 @@ var NicCmd = &cobra.Command{
 
 func init() {
 	disableFlagSorting(NicCmd)
+
+	disableFlagSorting(NicListCmd)
+	NicListCmd.Flags().BoolVarP(&Humanize,
+		"human", "H", Humanize, "Print speeds in human readable form",
+	)
+
+	disableFlagSorting(NicCreateCmd)
 	NicCreateCmd.Flags().StringVarP(&NicName, "name", "n", NicName, "name of NIC")
 	err := NicCreateCmd.MarkFlagRequired("name")
 	if err != nil {
@@ -211,32 +226,18 @@ func init() {
 	NicCreateCmd.Flags().BoolVar(&NicRateLimited, "rate-limit", NicRateLimited, "Rate limit the NIC")
 	NicCreateCmd.Flags().Uint64Var(&NicRateIn, "rate-in", NicRateIn, "Inbound rate limit of NIC")
 	NicCreateCmd.Flags().Uint64Var(&NicRateOut, "rate-out", NicRateOut, "Outbound rate limit of NIC")
-	disableFlagSorting(NicCreateCmd)
 
-	NicRemoveCmd.Flags().StringVarP(&NicName, "name", "n", NicName, "name of NIC")
-	err = NicRemoveCmd.MarkFlagRequired("name")
-	if err != nil {
-		panic(err)
-	}
 	disableFlagSorting(NicRemoveCmd)
-	NicListCmd.Flags().BoolVarP(&Humanize,
-		"human", "H", Humanize, "Print speeds in human readable form",
-	)
-	disableFlagSorting(NicListCmd)
+	addNameOrIdArgs(NicRemoveCmd, &NicName, &NicId, "NIC")
 
-	NicSetSwitchCmd.Flags().StringVarP(&NicName, "name", "n", NicName, "Name of Nic")
-	NicSetSwitchCmd.Flags().StringVarP(&NicId, "id", "i", NicId, "Id of Nic")
-	NicSetSwitchCmd.MarkFlagsOneRequired("name", "id")
-	NicSetSwitchCmd.MarkFlagsMutuallyExclusive("name", "id")
-	disableFlagSorting(NicListCmd)
-
+	disableFlagSorting(NicSetSwitchCmd)
+	addNameOrIdArgs(NicSetSwitchCmd, &NicName, &NicId, "NIC")
 	NicSetSwitchCmd.Flags().StringVarP(&SwitchName,
 		"switch-name", "N", SwitchName, "Name of Switch",
 	)
 	NicSetSwitchCmd.Flags().StringVarP(&SwitchId, "switch-id", "I", SwitchId, "Id of Switch")
 	NicSetSwitchCmd.MarkFlagsOneRequired("switch-name", "switch-id")
 	NicSetSwitchCmd.MarkFlagsMutuallyExclusive("switch-name", "switch-id")
-	disableFlagSorting(NicSetSwitchCmd)
 
 	NicCmd.AddCommand(NicListCmd)
 	NicCmd.AddCommand(NicCreateCmd)

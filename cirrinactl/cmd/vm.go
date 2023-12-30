@@ -140,6 +140,9 @@ var VmCreateCmd = &cobra.Command{
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if VmName == "" {
+			return errors.New("empty VM name")
+		}
 
 		var lDesc *string
 		var lCpus *uint32
@@ -1067,6 +1070,12 @@ var VmCmd = &cobra.Command{
 func init() {
 	disableFlagSorting(VmCmd)
 
+	disableFlagSorting(VmListCmd)
+	VmListCmd.Flags().BoolVarP(&Humanize,
+		"human", "H", Humanize, "Print sizes in human readable form",
+	)
+
+	disableFlagSorting(VmCreateCmd)
 	VmCreateCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
 	err := VmCreateCmd.MarkFlagRequired("name")
 	if err != nil {
@@ -1079,34 +1088,20 @@ func init() {
 	VmCreateCmd.Flags().Uint32VarP(&Mem,
 		"mem", "m", Mem, "Amount of virtual memory in megabytes",
 	)
-	disableFlagSorting(VmCreateCmd)
 
-	VmStartCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmStartCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmStartCmd.MarkFlagsOneRequired("name", "id")
-	VmStartCmd.MarkFlagsMutuallyExclusive("name", "id")
-	VmStartCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
+	disableFlagSorting(VmDestroyCmd)
+	addNameOrIdArgs(VmDestroyCmd, &VmName, &VmId, "VM")
+
 	disableFlagSorting(VmStartCmd)
+	addNameOrIdArgs(VmStartCmd, &VmName, &VmId, "VM")
+	VmStartCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
 
-	VmStopCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmStopCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmStopCmd.MarkFlagsOneRequired("name", "id")
-	VmStopCmd.MarkFlagsMutuallyExclusive("name", "id")
+	addNameOrIdArgs(VmStopCmd, &VmName, &VmId, "VM")
 	VmStopCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
 	disableFlagSorting(VmStopCmd)
 
-	VmDestroyCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmDestroyCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmDestroyCmd.MarkFlagsOneRequired("name", "id")
-	VmDestroyCmd.MarkFlagsMutuallyExclusive("name", "id")
-	disableFlagSorting(VmDestroyCmd)
-
-	VmConfigCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmConfigCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmConfigCmd.MarkFlagsOneRequired("name", "id")
-	VmConfigCmd.MarkFlagsMutuallyExclusive("name", "id")
+	addNameOrIdArgs(VmConfigCmd, &VmName, &VmId, "VM")
 	disableFlagSorting(VmConfigCmd)
-
 	VmConfigCmd.Flags().StringVarP(&VmDescription,
 		"description", "d", VmDescription, "SwitchDescription of VM",
 	)
@@ -1194,32 +1189,22 @@ func init() {
 	VmConfigCmd.Flags().Uint32Var(&DebugPort, "debug-port", DebugPort, "TCP port to use for debug server")
 	VmConfigCmd.Flags().StringVar(&ExtraArgs, "extra-args", ExtraArgs, "Extra args to pass to bhyve")
 
-	VmGetCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmGetCmd.MarkFlagsOneRequired("name", "id")
-	VmGetCmd.MarkFlagsMutuallyExclusive("name", "id")
+	disableFlagSorting(VmGetCmd)
+	addNameOrIdArgs(VmGetCmd, &VmName, &VmId, "VM")
 	VmGetCmd.Flags().StringVarP(&outputFormatString, "format", "f", outputFormatString,
 		"Output format (txt, json, yaml",
 	)
-	disableFlagSorting(VmGetCmd)
 
-	VmClearUefiVarsCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmClearUefiVarsCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmClearUefiVarsCmd.MarkFlagsOneRequired("name", "id")
-	VmClearUefiVarsCmd.MarkFlagsMutuallyExclusive("name", "id")
+	disableFlagSorting(VmClearUefiVarsCmd)
+	addNameOrIdArgs(VmClearUefiVarsCmd, &VmName, &VmId, "VM")
 
-	VmListCmd.Flags().BoolVarP(&Humanize,
-		"human", "H", Humanize, "Print sizes in human readable form",
-	)
-	disableFlagSorting(VmListCmd)
-
-	VmCmd.AddCommand(VmCreateCmd)
 	VmCmd.AddCommand(VmListCmd)
-	VmCmd.AddCommand(VmStartCmd)
-	VmCmd.AddCommand(VmStopCmd)
+	VmCmd.AddCommand(VmCreateCmd)
 	VmCmd.AddCommand(VmDestroyCmd)
 	VmCmd.AddCommand(VmConfigCmd)
 	VmCmd.AddCommand(VmGetCmd)
+	VmCmd.AddCommand(VmStartCmd)
+	VmCmd.AddCommand(VmStopCmd)
 	VmCmd.AddCommand(VmCom1Cmd)
 	VmCmd.AddCommand(VmCom2Cmd)
 	VmCmd.AddCommand(VmCom3Cmd)

@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-var VmNicsGetCmd = &cobra.Command{
+var VmNicsListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "Get list of NICs connected to VM",
 	SilenceUsage: true,
@@ -212,38 +212,27 @@ var VmNicsCmd = &cobra.Command{
 func init() {
 	disableFlagSorting(VmNicsCmd)
 
-	VmNicsGetCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmNicsGetCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmNicsGetCmd.MarkFlagsOneRequired("name", "id")
-	VmNicsGetCmd.MarkFlagsMutuallyExclusive("name", "id")
-	VmNicsGetCmd.Flags().BoolVarP(&Humanize,
+	disableFlagSorting(VmNicsListCmd)
+	addNameOrIdArgs(VmNicsListCmd, &VmName, &VmId, "VM")
+	VmNicsListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
 	)
-	disableFlagSorting(VmNicsGetCmd)
 
-	VmNicsAddCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmNicsAddCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmNicsAddCmd.MarkFlagsOneRequired("name", "id")
-	VmNicsAddCmd.MarkFlagsMutuallyExclusive("name", "id")
 	disableFlagSorting(VmNicsAddCmd)
-
+	addNameOrIdArgs(VmNicsAddCmd, &VmName, &VmId, "VM")
 	VmNicsAddCmd.Flags().StringVarP(&NicName, "nic-name", "N", NicName, "Name of Nic")
 	VmNicsAddCmd.Flags().StringVarP(&NicId, "nic-id", "I", NicId, "Id of Nic")
 	VmNicsAddCmd.MarkFlagsOneRequired("nic-name", "nic-id")
 	VmNicsAddCmd.MarkFlagsMutuallyExclusive("nic-name", "nic-id")
 
-	VmNicsRmCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	VmNicsRmCmd.Flags().StringVarP(&VmId, "id", "i", VmId, "Id of VM")
-	VmNicsRmCmd.MarkFlagsOneRequired("name", "id")
-	VmNicsRmCmd.MarkFlagsOneRequired("name", "id")
 	disableFlagSorting(VmNicsRmCmd)
-
+	addNameOrIdArgs(VmNicsRmCmd, &VmName, &VmId, "VM")
 	VmNicsRmCmd.Flags().StringVarP(&NicName, "nic-name", "N", NicName, "Name of Nic")
 	VmNicsRmCmd.Flags().StringVarP(&NicId, "nic-id", "I", NicId, "Id of Nic")
 	VmNicsRmCmd.MarkFlagsOneRequired("nic-name", "nic-id")
 	VmNicsRmCmd.MarkFlagsMutuallyExclusive("nic-name", "nic-id")
 
-	VmNicsCmd.AddCommand(VmNicsGetCmd)
+	VmNicsCmd.AddCommand(VmNicsListCmd)
 	VmNicsCmd.AddCommand(VmNicsAddCmd)
 	VmNicsCmd.AddCommand(VmNicsRmCmd)
 

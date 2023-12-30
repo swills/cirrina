@@ -131,11 +131,16 @@ var DiskRemoveCmd = &cobra.Command{
 	Short:        "remove virtual disk",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		diskId, err := rpc.DiskNameToId(DiskName)
-		if err != nil {
-			return err
+		if DiskId == "" {
+			DiskId, err := rpc.DiskNameToId(DiskName)
+			if err != nil {
+				return err
+			}
+			if DiskId == "" {
+				return errors.New("disk not found")
+			}
 		}
-		err = rpc.RmDisk(diskId)
+		err := rpc.RmDisk(DiskId)
 		if err != nil {
 			return err
 		}
@@ -167,12 +172,6 @@ var DiskUpdateCmd = &cobra.Command{
 				return errors.New("disk not found")
 			}
 		}
-		if DiskName == "" {
-			DiskName, err = rpc.DiskIdToName(DiskId)
-			if err != nil {
-				return err
-			}
-		}
 
 		// currently only support changing disk description, and type
 		if DiskDescriptionChanged {
@@ -198,6 +197,15 @@ var DiskUploadCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
+		if DiskId == "" {
+			DiskId, err := rpc.DiskNameToId(DiskName)
+			if err != nil {
+				return err
+			}
+			if DiskId == "" {
+				return errors.New("disk not found")
+			}
+		}
 
 		var fi os.FileInfo
 		fi, err = os.Stat(DiskFilePath)
@@ -272,6 +280,12 @@ var DiskCmd = &cobra.Command{
 func init() {
 	disableFlagSorting(DiskCmd)
 
+	disableFlagSorting(DiskListCmd)
+	DiskListCmd.Flags().BoolVarP(&Humanize,
+		"human", "H", Humanize, "Print sizes in human readable form",
+	)
+
+	disableFlagSorting(DiskCreateCmd)
 	DiskCreateCmd.Flags().StringVarP(&DiskName, "name", "n", DiskName, "name of disk")
 	err := DiskCreateCmd.MarkFlagRequired("name")
 	if err != nil {
@@ -295,43 +309,26 @@ func init() {
 	DiskCreateCmd.Flags().BoolVar(&DiskDirect,
 		"direct", DiskDirect, "Enable or disable synchronous writes for this disk",
 	)
-	disableFlagSorting(DiskCreateCmd)
 
-	DiskRemoveCmd.Flags().StringVarP(&DiskName, "name", "n", DiskName, "name of disk")
-	DiskRemoveCmd.Flags().StringVarP(&DiskId, "id", "i", DiskId, "id of disk")
-	DiskRemoveCmd.MarkFlagsOneRequired("name", "id")
-	DiskRemoveCmd.MarkFlagsMutuallyExclusive("name", "id")
 	disableFlagSorting(DiskRemoveCmd)
+	addNameOrIdArgs(DiskRemoveCmd, &DiskName, &DiskId, "disk")
 
-	DiskListCmd.Flags().BoolVarP(&Humanize,
-		"human", "H", Humanize, "Print sizes in human readable form",
-	)
-	disableFlagSorting(DiskListCmd)
-
-	DiskUpdateCmd.Flags().StringVarP(&DiskName, "name", "n", DiskName, "name of disk")
-	DiskUpdateCmd.Flags().StringVarP(&DiskId, "id", "i", DiskId, "id of disk")
-	DiskUpdateCmd.MarkFlagsOneRequired("name", "id")
-	DiskUpdateCmd.MarkFlagsMutuallyExclusive("name", "id")
-
+	disableFlagSorting(DiskUpdateCmd)
+	addNameOrIdArgs(DiskUpdateCmd, &DiskName, &DiskId, "disk")
 	DiskUpdateCmd.Flags().StringVarP(&DiskDescription,
 		"description", "d", DiskDescription, "description of disk",
 	)
 	DiskUpdateCmd.Flags().StringVarP(&DiskType, "type", "t", DiskType, "type of disk - nvme, ahci, or virtioblk")
-	disableFlagSorting(DiskUpdateCmd)
 
-	DiskUploadCmd.Flags().StringVarP(&DiskId, "id", "i", DiskId, "Id of Disk to upload")
+	disableFlagSorting(DiskUploadCmd)
+	addNameOrIdArgs(DiskUploadCmd, &DiskName, &DiskId, "disk")
 	DiskUploadCmd.Flags().StringVarP(&DiskFilePath,
 		"path", "p", DiskFilePath, "Path to Disk File to upload",
 	)
-	err = DiskUploadCmd.MarkFlagRequired("id")
-	if err != nil {
-		panic(err)
-	}
 	err = DiskUploadCmd.MarkFlagRequired("path")
 	if err != nil {
 		panic(err)
 	}
-	disableFlagSorting(DiskUploadCmd)
 
 	DiskCmd.AddCommand(DiskListCmd)
 	DiskCmd.AddCommand(DiskCreateCmd)
