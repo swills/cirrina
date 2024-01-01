@@ -292,13 +292,20 @@ func DiskUpload(diskId string, diskChecksum string,
 	diskSize uint64, diskFile *os.File) (<-chan UploadStat, error) {
 	uploadStatChan := make(chan UploadStat, 1)
 
+	if diskId == "" {
+		return uploadStatChan, errors.New("empty disk id")
+	}
+
 	// actually send file, sending status to status channel
 	go func(diskFile *os.File, uploadStatChan chan<- UploadStat) {
 		defer func(diskFile *os.File) {
 			_ = diskFile.Close()
 		}(diskFile)
+		var conn *grpc.ClientConn
+		var c cirrina.VMInfoClient
+		var err error
 
-		conn, c, err := SetupConnNoTimeoutNoContext()
+		conn, c, err = SetupConnNoTimeoutNoContext()
 		if err != nil {
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,
@@ -311,15 +318,18 @@ func DiskUpload(diskId string, diskChecksum string,
 		}(conn)
 
 		timeout := 1 * time.Hour
-		longCtx, longCancel := context.WithTimeout(context.Background(), timeout)
+		var longCtx context.Context
+		var longCancel context.CancelFunc
+
+		longCtx, longCancel = context.WithTimeout(context.Background(), timeout)
 		defer longCancel()
 
-		thisdiskId := cirrina.DiskId{Value: diskId}
+		thisDiskId := cirrina.DiskId{Value: diskId}
 
-		req := &cirrina.DiskImageRequest{
+		setupReq := &cirrina.DiskImageRequest{
 			Data: &cirrina.DiskImageRequest_Diskuploadinfo{
 				Diskuploadinfo: &cirrina.DiskUploadInfo{
-					Diskid:    &thisdiskId,
+					Diskid:    &thisDiskId,
 					Size:      diskSize,
 					Sha512Sum: diskChecksum,
 				},
@@ -336,7 +346,7 @@ func DiskUpload(diskId string, diskChecksum string,
 			}
 		}
 
-		err = stream.Send(req)
+		err = stream.Send(setupReq)
 		if err != nil {
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,
@@ -362,12 +372,12 @@ func DiskUpload(diskId string, diskChecksum string,
 					Err:           err,
 				}
 			}
-			req := &cirrina.DiskImageRequest{
+			dataReq := &cirrina.DiskImageRequest{
 				Data: &cirrina.DiskImageRequest_Image{
 					Image: buffer[:n],
 				},
 			}
-			err = stream.Send(req)
+			err = stream.Send(dataReq)
 			if err != nil {
 				uploadStatChan <- UploadStat{
 					UploadedChunk: false,
@@ -378,9 +388,11 @@ func DiskUpload(diskId string, diskChecksum string,
 			uploadStatChan <- UploadStat{
 				UploadedChunk: true,
 				Complete:      false,
+				UploadedBytes: n,
 				Err:           nil,
 			}
 		}
+
 		var reply *cirrina.ReqBool
 		reply, err = stream.CloseAndRecv()
 		if err != nil {

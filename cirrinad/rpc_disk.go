@@ -359,6 +359,7 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 
 	diskUuid, err := uuid.Parse(diskId.Value)
 	if err != nil {
+		slog.Error("disk id not specified or invalid on upload")
 		return errors.New("id not specified or invalid")
 	}
 	diskInst, err := disk.GetById(diskUuid.String())

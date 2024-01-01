@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dustin/go-humanize"
+	"github.com/jedib0t/go-pretty/v6/progress"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/cobra"
@@ -14,6 +15,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"time"
 )
 
 var DiskName string
@@ -151,8 +153,9 @@ var DiskRemoveCmd = &cobra.Command{
 	Short:        "remove virtual disk",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
 		if DiskId == "" {
-			DiskId, err := rpc.DiskNameToId(DiskName)
+			DiskId, err = rpc.DiskNameToId(DiskName)
 			if err != nil {
 				return err
 			}
@@ -160,7 +163,7 @@ var DiskRemoveCmd = &cobra.Command{
 				return errors.New("disk not found")
 			}
 		}
-		err := rpc.RmDisk(DiskId)
+		err = rpc.RmDisk(DiskId)
 		if err != nil {
 			return err
 		}
@@ -210,6 +213,202 @@ var DiskUpdateCmd = &cobra.Command{
 	},
 }
 
+func trackDiskUpload(pw progress.Writer, diskSize int64, f2 *os.File) {
+	var err error
+
+	checksumTracker := progress.Tracker{
+		Message: "Calculating checksum",
+		Total:   diskSize,
+		Units:   progress.UnitsBytes,
+	}
+	pw.AppendTracker(&checksumTracker)
+	checksumTracker.Start()
+
+	var f *os.File
+	f, err = os.Open(DiskFilePath)
+	if err != nil {
+		fmt.Printf("error opening file: %s\n", err)
+	}
+
+	hasher := sha512.New()
+
+	var complete bool
+	var n int64
+	var checksumTotal int64
+	for !complete {
+		n, err = io.CopyN(hasher, f, 1024*1024)
+		checksumTotal = checksumTotal + n
+		checksumTracker.SetValue(checksumTotal)
+		if err != nil {
+			if err == io.EOF {
+				complete = true
+			} else {
+				checksumTracker.MarkAsErrored()
+			}
+		}
+	}
+
+	diskChecksum := hex.EncodeToString(hasher.Sum(nil))
+	err = f.Close()
+	if err != nil {
+		fmt.Printf("error closing file: %s\n", err)
+	}
+	checksumTracker.MarkAsDone()
+
+	uploadTracker := progress.Tracker{
+		Message: "Uploading",
+		Total:   diskSize,
+		Units:   progress.UnitsBytes,
+	}
+	pw.AppendTracker(&uploadTracker)
+	uploadTracker.Start()
+
+	if DiskId == "" {
+		panic("empty disk id")
+	}
+	var upload <-chan rpc.UploadStat
+	upload, err = rpc.DiskUpload(DiskId, diskChecksum, uint64(diskSize), f2)
+	if err != nil {
+		uploadTracker.MarkAsErrored()
+		return
+	}
+	for !uploadTracker.IsDone() {
+		select {
+		case uploadStatEvent := <-upload:
+			if uploadStatEvent.Err != nil {
+				uploadTracker.MarkAsErrored()
+			}
+			if uploadStatEvent.UploadedChunk {
+				newTotal := uploadTracker.Value() + int64(uploadStatEvent.UploadedBytes)
+				if newTotal > diskSize {
+					panic("uploaded more bytes than size of file")
+				}
+				// prevent uploadTracker being done before the Complete message arrives
+				if newTotal == diskSize {
+					newTotal--
+				}
+				uploadTracker.SetValue(newTotal)
+			}
+			if uploadStatEvent.Complete {
+				uploadTracker.MarkAsDone()
+			}
+		}
+	}
+	return
+}
+
+func uploadDiskWithStatus() error {
+	var err error
+	var fi os.FileInfo
+	fi, err = os.Stat(DiskFilePath)
+	if err != nil {
+		return err
+	}
+	diskSize := fi.Size()
+
+	var f2 *os.File
+	f2, err = os.Open(DiskFilePath)
+	if err != nil {
+		return err
+	}
+
+	pw := progress.NewWriter()
+	pw.SetTrackerPosition(progress.PositionRight)
+	pw.SetStyle(progress.StyleBlocks)
+	pw.Style().Visibility.ETA = true
+	pw.Style().Options.ETAPrecision = time.Second
+	pw.Style().Options.SpeedPrecision = time.Second
+	pw.Style().Options.TimeInProgressPrecision = time.Second
+	pw.Style().Options.TimeDonePrecision = time.Second
+	pw.Style().Options.TimeOverallPrecision = time.Second
+	pw.SetAutoStop(false)
+	pw.SetMessageWidth(20)
+
+	go pw.Render()
+	go trackDiskUpload(pw, diskSize, f2)
+
+	// wait for upload to start
+	for !pw.IsRenderInProgress() {
+		time.Sleep(time.Millisecond * 100)
+	}
+
+	// wait for upload to finish
+	for pw.IsRenderInProgress() {
+		if pw.LengthActive() == 0 {
+			pw.Stop()
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
+	return nil
+}
+
+func uploadDiskWithoutStatus() error {
+	var err error
+
+	var fi os.FileInfo
+	fi, err = os.Stat(DiskFilePath)
+	if err != nil {
+		return err
+	}
+	diskSize := fi.Size()
+
+	var f *os.File
+	f, err = os.Open(DiskFilePath)
+	if err != nil {
+		return err
+	}
+
+	hasher := sha512.New()
+
+	fmt.Printf("Calculating disk checksum\n")
+	if _, err = io.Copy(hasher, f); err != nil {
+		return err
+	}
+
+	diskChecksum := hex.EncodeToString(hasher.Sum(nil))
+	err = f.Close()
+	if err != nil {
+		return err
+	}
+	var f2 *os.File
+	f2, err = os.Open(DiskFilePath)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Uploading disk. file-path=%s, id=%s, size=%d, checksum=%s\n",
+		DiskFilePath,
+		DiskId,
+		diskSize,
+		diskChecksum,
+	)
+
+	fmt.Printf("Streaming: ")
+	var upload <-chan rpc.UploadStat
+	upload, err = rpc.DiskUpload(DiskId, diskChecksum, uint64(diskSize), f2)
+	if err != nil {
+		return err
+	}
+UploadLoop:
+	for {
+		select {
+		case uploadStatEvent := <-upload:
+			if uploadStatEvent.Err != nil {
+				return uploadStatEvent.Err
+			}
+			if uploadStatEvent.UploadedChunk {
+				fmt.Printf(".")
+			}
+			if uploadStatEvent.Complete {
+				break UploadLoop
+			}
+		}
+	}
+	fmt.Printf("\n")
+	fmt.Printf("Disk Upload complete\n")
+	return nil
+}
+
 var DiskUploadCmd = &cobra.Command{
 	Use:          "upload",
 	Short:        "Upload a disk image",
@@ -217,8 +416,13 @@ var DiskUploadCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
+		err = hostPing()
+		if err != nil {
+			return errors.New("host not available")
+		}
+
 		if DiskId == "" {
-			DiskId, err := rpc.DiskNameToId(DiskName)
+			DiskId, err = rpc.DiskNameToId(DiskName)
 			if err != nil {
 				return err
 			}
@@ -227,68 +431,11 @@ var DiskUploadCmd = &cobra.Command{
 			}
 		}
 
-		var fi os.FileInfo
-		fi, err = os.Stat(DiskFilePath)
-		if err != nil {
-			return err
+		if CheckReqStat {
+			return uploadDiskWithStatus()
+		} else {
+			return uploadDiskWithoutStatus()
 		}
-		diskSize := fi.Size()
-
-		var f *os.File
-		f, err = os.Open(DiskFilePath)
-		if err != nil {
-			return err
-		}
-
-		hasher := sha512.New()
-
-		fmt.Printf("Calculating disk checksum\n")
-		if _, err = io.Copy(hasher, f); err != nil {
-			return err
-		}
-
-		diskChecksum := hex.EncodeToString(hasher.Sum(nil))
-		err = f.Close()
-		if err != nil {
-			return err
-		}
-		var f2 *os.File
-		f2, err = os.Open(DiskFilePath)
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("Uploading disk. file-path=%s, id=%s, size=%d, checksum=%s\n",
-			DiskFilePath,
-			DiskId,
-			diskSize,
-			diskChecksum,
-		)
-
-		fmt.Printf("Streaming: ")
-		var upload <-chan rpc.UploadStat
-		upload, err = rpc.DiskUpload(DiskId, diskChecksum, uint64(diskSize), f2)
-		if err != nil {
-			return err
-		}
-	UploadLoop:
-		for {
-			select {
-			case uploadStatEvent := <-upload:
-				if uploadStatEvent.Err != nil {
-					return uploadStatEvent.Err
-				}
-				if uploadStatEvent.UploadedChunk {
-					fmt.Printf(".")
-				}
-				if uploadStatEvent.Complete {
-					break UploadLoop
-				}
-			}
-		}
-		fmt.Printf("\n")
-		fmt.Printf("Disk Upload complete\n")
-		return nil
 	},
 }
 
@@ -352,6 +499,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	DiskUploadCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
 
 	DiskCmd.AddCommand(DiskListCmd)
 	DiskCmd.AddCommand(DiskCreateCmd)

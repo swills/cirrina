@@ -107,12 +107,12 @@ var VmIsosAddCmd = &cobra.Command{
 				return errors.New("VM not found")
 			}
 		}
-		if DiskId == "" {
-			DiskId, err = rpc.IsoNameToId(IsoName)
+		if IsoId == "" {
+			IsoId, err = rpc.IsoNameToId(IsoName)
 			if err != nil {
 				return err
 			}
-			if DiskId == "" {
+			if IsoId == "" {
 				return errors.New("ISO not found")
 			}
 		}
@@ -123,7 +123,7 @@ var VmIsosAddCmd = &cobra.Command{
 			return err
 		}
 
-		isoIds = append(isoIds, DiskId)
+		isoIds = append(isoIds, IsoId)
 		var res bool
 		res, err = rpc.VmSetIsos(VmId, isoIds)
 		if err != nil {
@@ -153,12 +153,12 @@ var VmIsosRmCmd = &cobra.Command{
 				return errors.New("VM not found")
 			}
 		}
-		if DiskId == "" {
-			DiskId, err = rpc.IsoNameToId(IsoName)
+		if IsoId == "" {
+			IsoId, err = rpc.IsoNameToId(IsoName)
 			if err != nil {
 				return err
 			}
-			if DiskId == "" {
+			if IsoId == "" {
 				return errors.New("ISO not found")
 			}
 		}
@@ -171,7 +171,7 @@ var VmIsosRmCmd = &cobra.Command{
 
 		var newIsoIds []string
 		for _, id := range isoIds {
-			if id != DiskId {
+			if id != IsoId {
 				newIsoIds = append(newIsoIds, id)
 			}
 		}
@@ -210,14 +210,14 @@ func init() {
 	disableFlagSorting(VmIsosAddCmd)
 	addNameOrIdArgs(VmIsosAddCmd, &VmName, &VmId, "VM")
 	VmIsosAddCmd.Flags().StringVarP(&IsoName, "iso-name", "N", IsoName, "Name of Iso")
-	VmIsosAddCmd.Flags().StringVarP(&DiskId, "iso-id", "I", DiskId, "Id of Iso")
+	VmIsosAddCmd.Flags().StringVarP(&IsoId, "iso-id", "I", IsoId, "Id of Iso")
 	VmIsosAddCmd.MarkFlagsOneRequired("iso-name", "iso-id")
 	VmIsosAddCmd.MarkFlagsMutuallyExclusive("iso-name", "iso-id")
 
 	disableFlagSorting(VmIsosRmCmd)
 	addNameOrIdArgs(VmIsosRmCmd, &VmName, &VmId, "VM")
 	VmIsosRmCmd.Flags().StringVarP(&IsoName, "iso-name", "N", IsoName, "Name of Iso")
-	VmIsosRmCmd.Flags().StringVarP(&DiskId, "iso-id", "I", DiskId, "Id of Iso")
+	VmIsosRmCmd.Flags().StringVarP(&IsoId, "iso-id", "I", IsoId, "Id of Iso")
 	VmIsosRmCmd.MarkFlagsOneRequired("iso-name", "iso-id")
 	VmIsosRmCmd.MarkFlagsMutuallyExclusive("iso-name", "iso-id")
 

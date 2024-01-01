@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	exec "golang.org/x/sys/execabs"
+	"os/user"
 	"strconv"
 
 	"log/slog"
@@ -121,6 +122,10 @@ func Create(name string, description string, size string, diskType string, diskD
 	if diskDevType == "FILE" {
 		args := []string{"/usr/bin/truncate", "-s", strconv.FormatUint(diskSize, 10), filePath}
 		slog.Debug("creating disk", "filePath", filePath, "size", diskSize, "args", args)
+		myUser, err := user.Current()
+		if err != nil {
+			return &Disk{}, err
+		}
 		cmd := exec.Command(config.Config.Sys.Sudo, args...)
 		err = cmd.Run()
 		if err != nil {
@@ -128,6 +133,14 @@ func Create(name string, description string, size string, diskType string, diskD
 			return &Disk{}, err
 		}
 		diskInst.Name = name
+		args = []string{"/usr/sbin/chown", myUser.Username, filePath}
+		cmd = exec.Command(config.Config.Sys.Sudo, args...)
+		err = cmd.Run()
+		if err != nil {
+			return &Disk{}, fmt.Errorf("failed to fix ownership of disk file %s: %w", filePath, err)
+		}
+		slog.Debug("disk.Create uid mismatch fixed")
+
 	} else if diskDevType == "ZVOL" {
 		args := []string{"zfs", "create", "-o", "volmode=dev", "-V", size, "-s", volName}
 		slog.Debug("creating disk", "volName", volName, "size", diskSize, "args", args)

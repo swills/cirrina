@@ -87,6 +87,7 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 
 	isoUuid, err := uuid.Parse(isoId.Value)
 	if err != nil {
+		slog.Error("iso id not specified or invalid on upload")
 		return errors.New("id not specified or invalid")
 	}
 	isoInst, err := iso.GetById(isoUuid.String())

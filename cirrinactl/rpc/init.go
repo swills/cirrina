@@ -109,6 +109,7 @@ type VmConfig struct {
 
 type UploadStat struct {
 	UploadedChunk bool
+	UploadedBytes int
 	Complete      bool
 	Err           error
 }

@@ -165,13 +165,20 @@ func IsoUpload(isoId string, isoChecksum string,
 	isoSize uint64, isoFile *os.File) (<-chan UploadStat, error) {
 	uploadStatChan := make(chan UploadStat, 1)
 
+	if isoId == "" {
+		return uploadStatChan, errors.New("empty iso id")
+	}
+
 	// actually send file, sending status to status channel
 	go func(isoFile *os.File, uploadStatChan chan<- UploadStat) {
 		defer func(isoFile *os.File) {
 			_ = isoFile.Close()
 		}(isoFile)
+		var conn *grpc.ClientConn
+		var c cirrina.VMInfoClient
+		var err error
 
-		conn, c, err := SetupConnNoTimeoutNoContext()
+		conn, c, err = SetupConnNoTimeoutNoContext()
 		if err != nil {
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,
@@ -184,12 +191,15 @@ func IsoUpload(isoId string, isoChecksum string,
 		}(conn)
 
 		timeout := 1 * time.Hour
-		longCtx, longCancel := context.WithTimeout(context.Background(), timeout)
+		var longCtx context.Context
+		var longCancel context.CancelFunc
+
+		longCtx, longCancel = context.WithTimeout(context.Background(), timeout)
 		defer longCancel()
 
 		thisIsoId := cirrina.ISOID{Value: isoId}
 
-		req := &cirrina.ISOImageRequest{
+		setupReq := &cirrina.ISOImageRequest{
 			Data: &cirrina.ISOImageRequest_Isouploadinfo{
 				Isouploadinfo: &cirrina.ISOUploadInfo{
 					Isoid:     &thisIsoId,
@@ -209,7 +219,7 @@ func IsoUpload(isoId string, isoChecksum string,
 			}
 		}
 
-		err = stream.Send(req)
+		err = stream.Send(setupReq)
 		if err != nil {
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,
@@ -235,12 +245,12 @@ func IsoUpload(isoId string, isoChecksum string,
 					Err:           err,
 				}
 			}
-			req := &cirrina.ISOImageRequest{
+			dataReq := &cirrina.ISOImageRequest{
 				Data: &cirrina.ISOImageRequest_Image{
 					Image: buffer[:n],
 				},
 			}
-			err = stream.Send(req)
+			err = stream.Send(dataReq)
 			if err != nil {
 				uploadStatChan <- UploadStat{
 					UploadedChunk: false,
@@ -251,9 +261,11 @@ func IsoUpload(isoId string, isoChecksum string,
 			uploadStatChan <- UploadStat{
 				UploadedChunk: true,
 				Complete:      false,
+				UploadedBytes: n,
 				Err:           nil,
 			}
 		}
+
 		var reply *cirrina.ReqBool
 		reply, err = stream.CloseAndRecv()
 		if err != nil {

@@ -41,6 +41,11 @@ var HostCmd = &cobra.Command{
 	Short: "Commands related to VM server host",
 }
 
+func hostPing() error {
+	_, err := rpc.GetHostVersion()
+	return err
+}
+
 func init() {
 	disableFlagSorting(HostCmd)
 

@@ -7,12 +7,14 @@ import (
 	"errors"
 	"fmt"
 	"github.com/dustin/go-humanize"
+	"github.com/jedib0t/go-pretty/v6/progress"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"sort"
 	"strconv"
+	"time"
 )
 
 var (
@@ -111,6 +113,196 @@ var IsoCreateCmd = &cobra.Command{
 	},
 }
 
+func trackIsoUpload(pw progress.Writer, isoSize int64, f2 *os.File) {
+	var err error
+
+	checksumTracker := progress.Tracker{
+		Message: "Calculating checksum",
+		Total:   isoSize,
+		Units:   progress.UnitsBytes,
+	}
+	pw.AppendTracker(&checksumTracker)
+	checksumTracker.Start()
+
+	var f *os.File
+	f, err = os.Open(IsoFilePath)
+	if err != nil {
+		fmt.Printf("error opening file: %s\n", err)
+	}
+
+	hasher := sha512.New()
+
+	var complete bool
+	var n int64
+	var checksumTotal int64
+	for !complete {
+		n, err = io.CopyN(hasher, f, 1024*1024)
+		checksumTotal = checksumTotal + n
+		checksumTracker.SetValue(checksumTotal)
+		if err != nil {
+			if err == io.EOF {
+				complete = true
+			} else {
+				checksumTracker.MarkAsErrored()
+			}
+		}
+	}
+
+	isoChecksum := hex.EncodeToString(hasher.Sum(nil))
+	err = f.Close()
+	if err != nil {
+		fmt.Printf("error closing file: %s\n", err)
+	}
+	checksumTracker.MarkAsDone()
+
+	uploadTracker := progress.Tracker{
+		Message: "Uploading",
+		Total:   isoSize,
+		Units:   progress.UnitsBytes,
+	}
+	pw.AppendTracker(&uploadTracker)
+	uploadTracker.Start()
+
+	if IsoId == "" {
+		panic("empty iso id")
+	}
+	var upload <-chan rpc.UploadStat
+	upload, err = rpc.IsoUpload(IsoId, isoChecksum, uint64(isoSize), f2)
+	if err != nil {
+		uploadTracker.MarkAsErrored()
+		return
+	}
+	for !uploadTracker.IsDone() {
+		select {
+		case uploadStatEvent := <-upload:
+			if uploadStatEvent.Err != nil {
+				uploadTracker.MarkAsErrored()
+			}
+			if uploadStatEvent.UploadedChunk {
+				newTotal := uploadTracker.Value() + int64(uploadStatEvent.UploadedBytes)
+				if newTotal > isoSize {
+					panic("uploaded more bytes than size of file")
+				}
+				// prevent uploadTracker being done before the Complete message arrives
+				if newTotal == isoSize {
+					newTotal--
+				}
+				uploadTracker.SetValue(newTotal)
+			}
+			if uploadStatEvent.Complete {
+				uploadTracker.MarkAsDone()
+			}
+		}
+	}
+	return
+}
+
+func uploadIsoWithStatus() error {
+	var err error
+	var fi os.FileInfo
+	fi, err = os.Stat(IsoFilePath)
+	if err != nil {
+		return err
+	}
+	isoSize := fi.Size()
+
+	var f2 *os.File
+	f2, err = os.Open(IsoFilePath)
+	if err != nil {
+		return err
+	}
+
+	pw := progress.NewWriter()
+	pw.SetTrackerPosition(progress.PositionRight)
+	pw.SetStyle(progress.StyleBlocks)
+	pw.Style().Visibility.ETA = true
+	pw.Style().Options.ETAPrecision = time.Second
+	pw.Style().Options.SpeedPrecision = time.Second
+	pw.Style().Options.TimeInProgressPrecision = time.Second
+	pw.Style().Options.TimeDonePrecision = time.Second
+	pw.Style().Options.TimeOverallPrecision = time.Second
+	pw.SetAutoStop(false)
+	pw.SetMessageWidth(20)
+
+	go pw.Render()
+	go trackIsoUpload(pw, isoSize, f2)
+
+	// wait for upload to start
+	for !pw.IsRenderInProgress() {
+		time.Sleep(time.Millisecond * 100)
+	}
+
+	// wait for upload to finish
+	for pw.IsRenderInProgress() {
+		if pw.LengthActive() == 0 {
+			pw.Stop()
+		}
+		time.Sleep(time.Millisecond * 100)
+	}
+	return nil
+}
+
+func uploadIsoWithoutStatus() error {
+	var err error
+	var fi os.FileInfo
+	fi, err = os.Stat(IsoFilePath)
+	if err != nil {
+		return err
+	}
+	isoSize := fi.Size()
+	var f *os.File
+	f, err = os.Open(IsoFilePath)
+	if err != nil {
+		return err
+	}
+	hasher := sha512.New()
+	fmt.Printf("Calculating iso checksum\n")
+	if _, err = io.Copy(hasher, f); err != nil {
+		return err
+	}
+	isoChecksum := hex.EncodeToString(hasher.Sum(nil))
+	err = f.Close()
+	if err != nil {
+		return err
+	}
+	var f2 *os.File
+	f2, err = os.Open(IsoFilePath)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Uploading iso. file-path=%s, id=%s, size=%d, checksum=%s\n",
+		IsoFilePath,
+		IsoId,
+		isoSize,
+		isoChecksum,
+	)
+	fmt.Printf("Streaming: ")
+	var upload <-chan rpc.UploadStat
+	upload, err = rpc.IsoUpload(IsoId, isoChecksum, uint64(isoSize), f2)
+	if err != nil {
+		return err
+	}
+UploadLoop:
+	for {
+		select {
+		case uploadStatEvent := <-upload:
+			if uploadStatEvent.Err != nil {
+				return uploadStatEvent.Err
+			}
+			if uploadStatEvent.UploadedChunk {
+				fmt.Printf(".")
+			}
+			if uploadStatEvent.Complete {
+				break UploadLoop
+			}
+		}
+	}
+
+	fmt.Printf("\n")
+	fmt.Printf("ISO Upload complete\n")
+	return nil
+}
+
 var IsoUploadCmd = &cobra.Command{
 	Use:          "upload",
 	Short:        "Upload an ISO",
@@ -118,6 +310,11 @@ var IsoUploadCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
+		err = hostPing()
+		if err != nil {
+			return errors.New("host not available")
+		}
+
 		if IsoId == "" {
 			IsoId, err = rpc.IsoNameToId(IsoName)
 			if err != nil {
@@ -128,68 +325,11 @@ var IsoUploadCmd = &cobra.Command{
 			}
 		}
 
-		var fi os.FileInfo
-		fi, err = os.Stat(IsoFilePath)
-		if err != nil {
-			return err
+		if CheckReqStat {
+			return uploadIsoWithStatus()
+		} else {
+			return uploadIsoWithoutStatus()
 		}
-		isoSize := fi.Size()
-
-		var f *os.File
-		f, err = os.Open(IsoFilePath)
-		if err != nil {
-			return err
-		}
-
-		hasher := sha512.New()
-
-		fmt.Printf("Calculating iso checksum\n")
-		if _, err = io.Copy(hasher, f); err != nil {
-			return err
-		}
-
-		isoChecksum := hex.EncodeToString(hasher.Sum(nil))
-		err = f.Close()
-		if err != nil {
-			return err
-		}
-		var f2 *os.File
-		f2, err = os.Open(IsoFilePath)
-		if err != nil {
-			return err
-		}
-
-		fmt.Printf("Uploading iso. file-path=%s, id=%s, size=%d, checksum=%s\n",
-			IsoFilePath,
-			IsoId,
-			isoSize,
-			isoChecksum,
-		)
-
-		fmt.Printf("Streaming: ")
-		var upload <-chan rpc.UploadStat
-		upload, err = rpc.IsoUpload(IsoId, isoChecksum, uint64(isoSize), f2)
-		if err != nil {
-			return err
-		}
-	UploadLoop:
-		for {
-			select {
-			case uploadStatEvent := <-upload:
-				if uploadStatEvent.Err != nil {
-					return uploadStatEvent.Err
-				}
-				if uploadStatEvent.UploadedChunk {
-					fmt.Printf(".")
-				}
-				if uploadStatEvent.Complete {
-					break UploadLoop
-				}
-			}
-		}
-		fmt.Printf("\n")
-		fmt.Printf("ISO Upload complete\n")
-		return nil
 	},
 }
 
@@ -248,8 +388,8 @@ func init() {
 	disableFlagSorting(IsoRemoveCmd)
 	addNameOrIdArgs(IsoRemoveCmd, &IsoName, &IsoId, "ISO")
 
-	addNameOrIdArgs(IsoUploadCmd, &IsoName, &IsoId, "ISO")
 	disableFlagSorting(IsoUploadCmd)
+	addNameOrIdArgs(IsoUploadCmd, &IsoName, &IsoId, "ISO")
 	IsoUploadCmd.Flags().StringVarP(&IsoFilePath,
 		"path", "p", IsoFilePath, "Path to ISO File to upload",
 	)
@@ -257,6 +397,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
+	IsoUploadCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
 
 	IsoCmd.AddCommand(IsoListCmd)
 	IsoCmd.AddCommand(IsoCreateCmd)
