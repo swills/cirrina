@@ -139,7 +139,7 @@ func IsoNameToId(name string) (string, error) {
 		}
 	}
 	if !found {
-		return "", errors.New("iso not found")
+		return "", &NotFoundError{}
 	}
 	return isoId, nil
 }

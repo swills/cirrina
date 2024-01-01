@@ -422,12 +422,17 @@ var DiskUploadCmd = &cobra.Command{
 		}
 
 		if DiskId == "" {
+			var aNotFoundErr *rpc.NotFoundError
 			DiskId, err = rpc.DiskNameToId(DiskName)
 			if err != nil {
-				return err
-			}
-			if DiskId == "" {
-				return errors.New("disk not found")
+				if errors.As(err, &aNotFoundErr) {
+					DiskId, err = rpc.AddDisk(DiskName, DiskDescription, DiskSize, DiskType, DiskDevType, DiskCache, DiskDirect)
+					if err != nil {
+						return err
+					}
+				} else {
+					return err
+				}
 			}
 		}
 

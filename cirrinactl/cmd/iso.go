@@ -316,12 +316,17 @@ var IsoUploadCmd = &cobra.Command{
 		}
 
 		if IsoId == "" {
+			var aNotFoundErr *rpc.NotFoundError
 			IsoId, err = rpc.IsoNameToId(IsoName)
 			if err != nil {
-				return err
-			}
-			if IsoId == "" {
-				return errors.New("ISO not found")
+				if errors.As(err, &aNotFoundErr) {
+					IsoId, err = rpc.AddIso(IsoName, IsoDescription)
+					if err != nil {
+						return err
+					}
+				} else {
+					return err
+				}
 			}
 		}
 

@@ -11,6 +11,12 @@ import (
 	"time"
 )
 
+type NotFoundError struct{}
+
+func (m NotFoundError) Error() string {
+	return "not found"
+}
+
 type DiskInfo struct {
 	Name        string
 	Descr       string

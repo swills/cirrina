@@ -187,7 +187,7 @@ func DiskNameToId(name string) (string, error) {
 		}
 	}
 	if !found {
-		return "", errors.New("disk not found")
+		return "", &NotFoundError{}
 	}
 	return diskId, nil
 }
