@@ -929,7 +929,7 @@ func ensureComDevReadable(comDev string) error {
 	if err != nil {
 		return fmt.Errorf("failed to fix ownership of comReadDev %s: %w", comReadDev, err)
 	}
-	slog.Debug("ensureComDevReadable uid mismatch fixed")
+	slog.Debug("ensureComDevReadable user mismatch fixed")
 	return nil
 }
 

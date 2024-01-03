@@ -143,7 +143,6 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 
 		chunk := req.GetImage()
 		size := len(chunk)
-		slog.Debug("UploadIso got data", "size", size)
 
 		imageSize += uint64(size)
 		_, err = isoFileBuffer.Write(chunk)

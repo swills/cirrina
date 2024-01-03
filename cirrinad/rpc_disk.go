@@ -378,19 +378,27 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 		"size", diskUploadReq.Size, "checksum", diskUploadReq.Sha512Sum,
 	)
 
-	// XXX FIXME - copied this from isos, but isos are always files and disks are sometimes files and sometimes other
-	// things so need to handle those other cases as well
-	if diskInst.DevType != "FILE" {
-		slog.Error("UploadDisk unsupported disk dev type")
-		return errors.New("upload of non file disk types not supported yet")
-	}
-
 	diskPath, err := diskInst.GetPath()
 	if err != nil {
 		return err
 	}
+
 	if diskPath == "" {
-		diskPath = config.Config.Disk.VM.Path.Image + string(os.PathSeparator) + diskInst.Name
+		return errors.New("disk path empty")
+	}
+
+	slog.Debug("UploadDisk debug",
+		"devtype", diskInst.DevType,
+		"path", diskPath,
+		"newsize", diskUploadReq.Size,
+	)
+
+	if diskInst.DevType == "ZVOL" {
+		err = disk.SetZfsVolumeSize(config.Config.Disk.VM.Path.Zpool+"/"+diskInst.Name, diskUploadReq.Size)
+		if err != nil {
+			slog.Error("UploadDisk", "msg", "failed setting new volume size", "err", err)
+			return err
+		}
 	}
 
 	err = diskInst.Save()
@@ -426,7 +434,6 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 
 		chunk := req.GetImage()
 		size := len(chunk)
-		slog.Debug("UploadDisk got data", "size", size)
 
 		imageSize += uint64(size)
 		_, err = diskFileBuffer.Write(chunk)

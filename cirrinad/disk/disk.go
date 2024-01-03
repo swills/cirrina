@@ -139,7 +139,7 @@ func Create(name string, description string, size string, diskType string, diskD
 		if err != nil {
 			return &Disk{}, fmt.Errorf("failed to fix ownership of disk file %s: %w", filePath, err)
 		}
-		slog.Debug("disk.Create uid mismatch fixed")
+		slog.Debug("disk.Create user mismatch fixed")
 
 	} else if diskDevType == "ZVOL" {
 		args := []string{"zfs", "create", "-o", "volmode=dev", "-V", size, "-s", volName}

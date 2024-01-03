@@ -4,8 +4,16 @@
 * Convert all bool in database to `sql.NullBool`
 * Ensure all listing in client default to human-readable, add option for exact number (-p)
 * Add disk update to server/client
-* Add zvol support to GUI
+* Add zvol support to GUI - including listing dev type in disk list
 * Add vm priority (nice) stuff to GUI
+* Add locking of VMs during disk uploads
+* Add check for disk size reduction in file based image uploads
+* Disk resize -- include force flag to allow reducing disk size which includes data loss
+* Disk cloning
+* NIC cloning
+* VM cloning
+* Auto decompress isos/disk images
+* Add progress bar for vm stop/start
 
 * Basics
     * Ensuring no crashes
