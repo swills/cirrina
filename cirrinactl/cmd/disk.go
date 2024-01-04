@@ -26,8 +26,10 @@ var DiskTypeChanged bool
 var DiskDevType = "FILE"
 var DiskSize = "1G"
 var DiskId string
-var DiskCache = true
 var DiskDirect = false
+var DiskDirectChanged = false
+var DiskCache = true
+var DiskCacheChanged = false
 var DiskFilePath string
 
 var DiskListCmd = &cobra.Command{
@@ -186,12 +188,16 @@ var DiskUpdateCmd = &cobra.Command{
 	Args: func(cmd *cobra.Command, args []string) error {
 		DiskDescriptionChanged = cmd.Flags().Changed("description")
 		DiskTypeChanged = cmd.Flags().Changed("type")
+		DiskDirectChanged = cmd.Flags().Changed("direct")
+		DiskCacheChanged = cmd.Flags().Changed("cache")
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 		var newDescr *string
 		var newType *string
+		var newDirect *bool
+		var newCache *bool
 
 		if DiskId == "" {
 			DiskId, err = rpc.DiskNameToId(DiskName)
@@ -203,15 +209,25 @@ var DiskUpdateCmd = &cobra.Command{
 			}
 		}
 
-		// currently only support changing disk description, and type
 		if DiskDescriptionChanged {
 			newDescr = &DiskDescription
 		}
+
 		if DiskTypeChanged {
 			newType = &DiskType
 		}
 
-		err = rpc.UpdateDisk(DiskId, newDescr, newType)
+		if DiskDirectChanged {
+			newDirect = &DiskDirect
+		}
+
+		if DiskCacheChanged {
+			newCache = &DiskCache
+		}
+
+		// TODO size
+
+		err = rpc.UpdateDisk(DiskId, newDescr, newType, newDirect, newCache)
 		if err != nil {
 			return err
 		}
@@ -518,6 +534,12 @@ func init() {
 		"description", "d", DiskDescription, "description of disk",
 	)
 	DiskUpdateCmd.Flags().StringVarP(&DiskType, "type", "t", DiskType, "type of disk - nvme, ahci, or virtioblk")
+	DiskUpdateCmd.Flags().BoolVar(&DiskCache,
+		"cache", DiskCache, "Enable or disable OS caching for this disk",
+	)
+	DiskUpdateCmd.Flags().BoolVar(&DiskDirect,
+		"direct", DiskDirect, "Enable or disable synchronous writes for this disk",
+	)
 
 	disableFlagSorting(DiskUploadCmd)
 	addNameOrIdArgs(DiskUploadCmd, &DiskName, &DiskId, "disk")

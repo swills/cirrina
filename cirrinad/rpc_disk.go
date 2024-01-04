@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"crypto/sha512"
+	"database/sql"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -319,31 +320,39 @@ func (s *server) SetDiskInfo(_ context.Context, diu *cirrina.DiskInfoUpdate) (*c
 		return &re, errors.New("id not specified or invalid")
 	}
 
-	DiskInst, err := disk.GetById(DiskUuid.String())
+	diskInst, err := disk.GetById(DiskUuid.String())
 	if err != nil {
 		return &re, err
 	}
 
 	if diu.Description != nil {
-		DiskInst.Description = *diu.Description
+		diskInst.Description = *diu.Description
 		slog.Debug("SetDiskInfo", "description", *diu.Description)
 	}
 
 	if diu.DiskType != nil {
 		if *diu.DiskType == cirrina.DiskType_NVME {
-			DiskInst.Type = "NVME"
+			diskInst.Type = "NVME"
 		} else if *diu.DiskType == cirrina.DiskType_AHCIHD {
-			DiskInst.Type = "AHCI-HD"
+			diskInst.Type = "AHCI-HD"
 		} else if *diu.DiskType == cirrina.DiskType_VIRTIOBLK {
-			DiskInst.Type = "VIRTIO-BLK"
+			diskInst.Type = "VIRTIO-BLK"
 		} else {
 			return &re, errors.New("invalid disk type")
 		}
-		slog.Debug("SetDiskInfo", "type", DiskInst.Type)
+		slog.Debug("SetDiskInfo", "type", diskInst.Type)
+	}
+
+	if diu.Cache != nil {
+		diskInst.DiskCache = sql.NullBool{Bool: *diu.Cache, Valid: true}
+	}
+
+	if diu.Direct != nil {
+		diskInst.DiskDirect = sql.NullBool{Bool: *diu.Direct, Valid: true}
 	}
 
 	slog.Debug("SetDiskInfo saving disk")
-	err = DiskInst.Save()
+	err = diskInst.Save()
 	if err != nil {
 		return &re, errors.New("failed to update Disk")
 	}

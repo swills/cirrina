@@ -232,7 +232,7 @@ func DiskGetVmId(id string) (string, error) {
 	return vmId.Value, nil
 }
 
-func UpdateDisk(id string, newDesc *string, newType *string) error {
+func UpdateDisk(id string, newDesc *string, newType *string, direct *bool, cache *bool) error {
 	conn, c, ctx, cancel, err := SetupConn()
 	if err != nil {
 		return err
@@ -269,6 +269,15 @@ func UpdateDisk(id string, newDesc *string, newType *string) error {
 			return errors.New("invalid disk type specified " + *newType)
 		}
 	}
+
+	if direct != nil {
+		diu.Direct = direct
+	}
+
+	if cache != nil {
+		diu.Cache = cache
+	}
+
 	var res *cirrina.ReqBool
 	res, err = c.SetDiskInfo(ctx, &diu)
 	if err != nil {
