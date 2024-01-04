@@ -194,7 +194,7 @@ var DiskUpdateCmd = &cobra.Command{
 		var newType *string
 
 		if DiskId == "" {
-			DiskId, err := rpc.DiskNameToId(DiskName)
+			DiskId, err = rpc.DiskNameToId(DiskName)
 			if err != nil {
 				return err
 			}
