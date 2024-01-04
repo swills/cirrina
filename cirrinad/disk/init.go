@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"log/slog"
+	"sync"
 )
 
 type Disk struct {
@@ -17,6 +18,16 @@ type Disk struct {
 	DevType     string       `gorm:"default:FILE;check:dev_type IN (\"FILE\",\"ZVOL\")"`
 	DiskCache   sql.NullBool `gorm:"default:True;check:disk_cache IN(0,1)"`
 	DiskDirect  sql.NullBool `gorm:"default:False;check:disk_direct IN(0,1)"`
+	mu          sync.Mutex
+}
+
+type ListType struct {
+	Mu       sync.RWMutex
+	DiskList map[string]*Disk
+}
+
+var List = &ListType{
+	DiskList: make(map[string]*Disk),
 }
 
 func (d *Disk) BeforeCreate(_ *gorm.DB) (err error) {
@@ -37,4 +48,13 @@ func init() {
 	if err != nil {
 		slog.Error("DiskDb init failed to drop path column, continuing anyway")
 	}
+	for _, diskInst := range GetAll() {
+		InitOneDisk(diskInst)
+	}
+}
+
+func InitOneDisk(diskInst *Disk) {
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
+	List.DiskList[diskInst.ID] = diskInst
 }

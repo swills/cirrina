@@ -155,6 +155,7 @@ func Create(name string, description string, size string, diskType string, diskD
 
 	db := getDiskDb()
 	res := db.Create(&diskInst)
+	List.DiskList[diskInst.ID] = diskInst
 	return diskInst, res.Error
 }
 
@@ -165,22 +166,36 @@ func GetAll() []*Disk {
 	return result
 }
 
-func GetById(id string) (d *Disk, err error) {
-	db := getDiskDb()
-	db.Limit(1).Find(&d, "id = ?", id)
-	return d, nil
+func GetById(id string) (*Disk, error) {
+	defer List.Mu.RUnlock()
+	List.Mu.RLock()
+	diskInst, valid := List.DiskList[id]
+	if valid {
+		return diskInst, nil
+	}
+	return nil, errors.New("not found")
 }
 
-func GetByName(name string) (d *Disk, err error) {
-	db := getDiskDb()
-	db.Limit(1).Find(&d, "name = ?", name)
-	return d, nil
+func GetByName(name string) (*Disk, error) {
+	for _, diskInst := range List.DiskList {
+		if diskInst.Name == name {
+			return diskInst, nil
+		}
+	}
+	return &Disk{}, nil
 }
 
 func Delete(id string) (err error) {
 	if id == "" {
 		return errors.New("unable to delete, disk id empty")
 	}
+
+	_, valid := List.DiskList[id]
+	if !valid {
+		return errors.New("invalid disk id")
+	}
+	delete(List.DiskList, id)
+
 	db := getDiskDb()
 	dDisk, err := GetById(id)
 	if err != nil {
@@ -235,4 +250,12 @@ func (d *Disk) VerifyExists() (exists bool, err error) {
 	// perhaps it's not necessary to check the volume -- as long as there's a /dev/zvol entry, we're fine, right?
 	exists, err = util.PathExists(diskPath)
 	return exists, err
+}
+
+func (d *Disk) Lock() {
+	d.mu.Lock()
+}
+
+func (d *Disk) Unlock() {
+	d.mu.Unlock()
 }

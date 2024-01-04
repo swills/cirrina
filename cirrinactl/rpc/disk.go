@@ -210,7 +210,7 @@ func DiskIdToName(id string) (string, error) {
 	return *res.Name, nil
 }
 
-func DiskGetVm(id string) (string, error) {
+func DiskGetVmId(id string) (string, error) {
 	conn, c, ctx, cancel, err := SetupConn()
 	if err != nil {
 		return "", err
@@ -229,15 +229,7 @@ func DiskGetVm(id string) (string, error) {
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
-	if vmId.Value == "" {
-		return "", nil
-	}
-	var vmName string
-	vmName, err = VmIdToName(vmId.Value)
-	if err != nil {
-		return "", err
-	}
-	return vmName, nil
+	return vmId.Value, nil
 }
 
 func UpdateDisk(id string, newDesc *string, newType *string) error {
@@ -344,6 +336,14 @@ func DiskUpload(diskId string, diskChecksum string,
 				Complete:      false,
 				Err:           errors.New(status.Convert(err).Message()),
 			}
+		}
+		if stream == nil {
+			uploadStatChan <- UploadStat{
+				UploadedChunk: false,
+				Complete:      false,
+				Err:           errors.New("nil stream"),
+			}
+			return
 		}
 
 		err = stream.Send(setupReq)

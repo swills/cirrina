@@ -77,6 +77,10 @@ func (vm *VM) Start() (err error) {
 	}
 	vm.SetStarting()
 	events := make(chan supervisor.Event)
+	err = vm.lockDisks()
+	if err != nil {
+		return err
+	}
 
 	cmdName, cmdArgs, err := vm.generateCommandLine()
 	vm.log.Info("start", "cmd", cmdName, "args", cmdArgs)
@@ -142,6 +146,10 @@ func (vm *VM) Stop() (err error) {
 	if err != nil {
 		slog.Error("Failed to stop VM", "vm", vm.Name, "pid", vm.proc.Pid())
 		return errors.New("stop failed")
+	}
+	err = vm.unlockDisks()
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -393,6 +401,28 @@ func (vm *VM) netStartup() {
 	}
 }
 
+func (vm *VM) lockDisks() error {
+	vmDisks, err := vm.GetDisks()
+	if err != nil {
+		return err
+	}
+	for _, vmDisk := range vmDisks {
+		vmDisk.Lock()
+	}
+	return nil
+}
+
+func (vm *VM) unlockDisks() error {
+	vmDisks, err := vm.GetDisks()
+	if err != nil {
+		return err
+	}
+	for _, vmDisk := range vmDisks {
+		vmDisk.Unlock()
+	}
+	return nil
+}
+
 func (vm *VM) applyResourceLimits(vmPid string) {
 	if vm.proc == nil || vm.proc.Pid() == 0 || vm.BhyvePid == 0 {
 		slog.Error("attempted to apply resource limits to vm that may not be running")
@@ -634,10 +664,10 @@ func (vm *VM) GetNics() ([]vm_nics.VmNic, error) {
 	return nics, nil
 }
 
-func (vm *VM) GetDisks() ([]disk.Disk, error) {
+func (vm *VM) GetDisks() ([]*disk.Disk, error) {
 	defer vm.mu.RUnlock()
 	vm.mu.RLock()
-	var disks []disk.Disk
+	var disks []*disk.Disk
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	for _, cv := range strings.Split(vm.Config.Disks, ",") {
 		if cv == "" {
@@ -645,7 +675,7 @@ func (vm *VM) GetDisks() ([]disk.Disk, error) {
 		}
 		aDisk, err := disk.GetById(cv)
 		if err == nil {
-			disks = append(disks, *aDisk)
+			disks = append(disks, aDisk)
 		} else {
 			slog.Error("bad disk", "disk", cv, "vm", vm.ID)
 		}

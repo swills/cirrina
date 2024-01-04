@@ -23,11 +23,9 @@ import (
 )
 
 func (s *server) GetDisks(_ *cirrina.DisksQuery, stream cirrina.VMInfo_GetDisksServer) error {
-	var disks []*disk.Disk
 	var DiskId cirrina.DiskId
-	disks = disk.GetAll()
-	for e := range disks {
-		DiskId.Value = disks[e].ID
+	for _, diskInst := range disk.List.DiskList {
+		DiskId.Value = diskInst.ID
 		err := stream.Send(&DiskId)
 		if err != nil {
 			return err
@@ -40,7 +38,7 @@ func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskI
 	var diskType string
 	var diskDevType string
 
-	deafultDiskDescription := ""
+	defaultDiskDescription := ""
 	defaultDiskType := cirrina.DiskType_NVME
 	defaultDiskSize := config.Config.Disk.Default.Size
 	defaultDiskDevType := cirrina.DiskDevType_FILE
@@ -56,7 +54,7 @@ func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskI
 	}
 
 	if i.Description == nil {
-		i.Description = &deafultDiskDescription
+		i.Description = &defaultDiskDescription
 	}
 
 	if i.DiskType == nil {
@@ -236,20 +234,20 @@ func (s *server) RemoveDisk(_ context.Context, i *cirrina.DiskId) (*cirrina.ReqB
 	}
 
 	// check that disk is not in use by a VM
-	allVMs := vm.GetAll()
-	for _, thisVm := range allVMs {
-		slog.Debug("vm checks", "vm", thisVm)
-		thisVmDisks, err := thisVm.GetDisks()
-		if err != nil {
-			return &re, err
-		}
-		for _, vmDisk := range thisVmDisks {
-			if vmDisk.ID == diskUuid.String() {
-				errorMessage := fmt.Sprintf("disk in use by VM %s", thisVm.ID)
-				return &re, errors.New(errorMessage)
-			}
-		}
+	var diskVm *vm.VM
+	diskVm, err = getDiskVm(diskUuid)
+	if err != nil {
+		return &re, err
 	}
+
+	if diskVm != nil {
+		errorMessage := fmt.Sprintf("disk in use by VM %s", diskVm.ID)
+		return &re, errors.New(errorMessage)
+	}
+
+	// prevent deleting disk while it's being uploaded etc
+	defer diskInst.Unlock()
+	diskInst.Lock()
 
 	res := disk.Delete(diskUuid.String())
 	if res != nil {
@@ -269,29 +267,43 @@ func (s *server) GetDiskVm(_ context.Context, i *cirrina.DiskId) (v *cirrina.VMI
 		return &pvmId, errors.New("invalid disk id")
 	}
 
+	var rv *vm.VM
+	rv, err = getDiskVm(diskUuid)
+	if err != nil {
+		return &cirrina.VMID{}, err
+	}
+
+	if rv != nil {
+		pvmId.Value = rv.ID
+	}
+	return &pvmId, nil
+}
+
+func getDiskVm(diskUuid uuid.UUID) (*vm.VM, error) {
 	allVMs := vm.GetAll()
 	found := false
+	var rv *vm.VM
+
 	for _, thisVm := range allVMs {
 		thisVmDisks, err := thisVm.GetDisks()
 		if err != nil {
-			return nil, err
+			return &vm.VM{}, err
 		}
 		for _, vmDisk := range thisVmDisks {
 			if vmDisk.ID == diskUuid.String() {
 				if found == true {
 					slog.Error("GetDiskVm disk in use by more than one VM",
-						"diskid", i.Value,
+						"diskUuid", diskUuid,
 						"vmid", thisVm.ID,
 					)
-					return nil, errors.New("disk in use by more than one VM")
+					return &vm.VM{}, errors.New("disk in use by more than one VM")
 				}
 				found = true
-				pvmId.Value = thisVm.ID
+				rv = thisVm
 			}
 		}
 	}
-
-	return &pvmId, nil
+	return rv, nil
 }
 
 func (s *server) SetDiskInfo(_ context.Context, diu *cirrina.DiskInfoUpdate) (*cirrina.ReqBool, error) {
@@ -367,6 +379,7 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 		slog.Error("error getting disk", "id", diskUuid.String(), "err", err)
 		return errors.New("not found")
 	}
+
 	if diskInst.Name == "" {
 		slog.Debug("disk not found")
 		return errors.New("not found")
@@ -387,11 +400,27 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 		return errors.New("disk path empty")
 	}
 
+	var diskVm *vm.VM
+	diskVm, err = getDiskVm(diskUuid)
+	if err != nil {
+		return err
+	}
+
+	if diskVm != nil {
+		if diskVm.Status != "STOPPED" {
+			slog.Error("UploadDisk can not upload disk to VM that is not stopped")
+			return errors.New("can not upload disk to VM that is not stopped")
+		}
+	}
+
 	slog.Debug("UploadDisk debug",
 		"devtype", diskInst.DevType,
 		"path", diskPath,
 		"newsize", diskUploadReq.Size,
 	)
+
+	defer diskInst.Unlock()
+	diskInst.Lock()
 
 	if diskInst.DevType == "ZVOL" {
 		err = disk.SetZfsVolumeSize(config.Config.Disk.VM.Path.Zpool+"/"+diskInst.Name, diskUploadReq.Size)
@@ -409,7 +438,7 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 			slog.Error("UploadDisk cannot send response", "err", err)
 			return errors.New("failed sending response")
 		}
-		return nil
+		return err
 	}
 
 	diskFile, err := os.Create(diskPath)
@@ -486,7 +515,7 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 	// save to db
 	err = diskInst.Save()
 	if err != nil {
-		slog.Debug("UploadDisk", "msg", "Failed saving to db")
+		slog.Error("UploadDisk", "msg", "Failed saving to db")
 		err = stream.SendAndClose(&re)
 		if err != nil {
 			slog.Error("UploadDisk cannot send response", "err", err)
@@ -499,6 +528,7 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 	err = stream.SendAndClose(&re)
 	if err != nil {
 		slog.Error("UploadDisk cannot send response", "err", err)
+		return err
 	}
 	slog.Debug("UploadDisk complete")
 	return nil

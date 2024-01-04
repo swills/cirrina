@@ -50,14 +50,19 @@ var DiskListCmd = &cobra.Command{
 		}
 
 		diskInfos := make(map[string]diskListInfo)
-		for _, id := range res {
-			diskInfo, err := rpc.GetDiskInfo(id)
+		for _, diskId := range res {
+			diskInfo, err := rpc.GetDiskInfo(diskId)
 			if err != nil {
 				return err
 			}
 
+			var vmId string
+			vmId, err = rpc.DiskGetVmId(diskId)
+			if err != nil {
+				return err
+			}
 			var vmName string
-			vmName, err = rpc.DiskGetVm(id)
+			vmName, err = rpc.VmIdToName(vmId)
 			if err != nil {
 				return err
 			}
@@ -72,7 +77,7 @@ var DiskListCmd = &cobra.Command{
 				diskUsage = strconv.FormatUint(diskInfo.Usage, 10)
 			}
 			diskInfos[diskInfo.Name] = diskListInfo{
-				id:     id,
+				id:     diskId,
 				vmName: vmName,
 				info:   diskInfo,
 				size:   diskSize,
@@ -95,8 +100,8 @@ var DiskListCmd = &cobra.Command{
 		}
 		t.SetStyle(myTableStyle)
 		t.SetColumnConfigs([]table.ColumnConfig{
+			{Number: 3, Align: text.AlignRight, AlignHeader: text.AlignRight},
 			{Number: 4, Align: text.AlignRight, AlignHeader: text.AlignRight},
-			{Number: 5, Align: text.AlignRight, AlignHeader: text.AlignRight},
 		})
 		for _, diskName := range names {
 			if ShowUUID {
@@ -416,6 +421,9 @@ var DiskUploadCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
+		var diskVmId string
+		var diskVmStatus string
+
 		err = hostPing()
 		if err != nil {
 			return errors.New("host not available")
@@ -433,6 +441,20 @@ var DiskUploadCmd = &cobra.Command{
 				} else {
 					return err
 				}
+			}
+		}
+
+		diskVmId, err = rpc.DiskGetVmId(DiskId)
+		if err != nil {
+			return err
+		}
+		if diskVmId != "" {
+			diskVmStatus, _, _, err = rpc.GetVMState(diskVmId)
+			if err != nil {
+				return err
+			}
+			if diskVmStatus != "stopped" {
+				return errors.New("unable to upload disk used by running VM")
 			}
 		}
 
