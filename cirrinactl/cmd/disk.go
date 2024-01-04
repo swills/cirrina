@@ -62,9 +62,11 @@ var DiskListCmd = &cobra.Command{
 				return err
 			}
 			var vmName string
-			vmName, err = rpc.VmIdToName(vmId)
-			if err != nil {
-				return err
+			if vmId != "" {
+				vmName, err = rpc.VmIdToName(vmId)
+				if err != nil {
+					return err
+				}
 			}
 
 			var diskSize string
