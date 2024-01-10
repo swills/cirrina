@@ -22,6 +22,7 @@ qodana:
     QODANA_TOKEN: $qodana_token
   script:
     - export GOPROXY=http://10.0.1.152:3000
+    - git clone -b swillsv2 https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/swills/go-supervisor.git go-supervisor
     - qodana --save-report --results-dir=$CI_PROJECT_DIR/.qodana
   artifacts:
     name: qodana-scan-results-"$CI_COMMIT_REF_NAME"
