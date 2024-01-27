@@ -61,13 +61,6 @@ func (vm *VM) SetRunning(pid int) {
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = RUNNING
-	defer List.Mu.Unlock()
-	List.Mu.Lock()
-	for _, vmInst := range List.VmList {
-		if vmInst.ID == vm.ID {
-			vmInst.Status = RUNNING
-		}
-	}
 	vm.BhyvePid = uint32(pid)
 	res := db.Select([]string{
 		"status",
@@ -92,13 +85,6 @@ func (vm *VM) SetStarting() {
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = STARTING
-	defer List.Mu.Unlock()
-	List.Mu.Lock()
-	for _, vmInst := range List.VmList {
-		if vmInst.ID == vm.ID {
-			vmInst.Status = STARTING
-		}
-	}
 	res := db.Select([]string{
 		"status",
 	}).Model(&vm).
@@ -116,13 +102,6 @@ func (vm *VM) SetStopped() {
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = STOPPED
-	defer List.Mu.Unlock()
-	List.Mu.Lock()
-	for _, vmInst := range List.VmList {
-		if vmInst.ID == vm.ID {
-			vmInst.Status = STOPPED
-		}
-	}
 	vm.VNCPort = 0
 	vm.DebugPort = 0
 	vm.BhyvePid = 0
@@ -161,13 +140,6 @@ func (vm *VM) SetStopping() {
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = STOPPING
-	defer List.Mu.Unlock()
-	List.Mu.Lock()
-	for _, vmInst := range List.VmList {
-		if vmInst.ID == vm.ID {
-			vmInst.Status = STOPPING
-		}
-	}
 	res := db.Select([]string{
 		"status",
 	}).Model(&vm).

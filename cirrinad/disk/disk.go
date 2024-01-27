@@ -159,7 +159,7 @@ func Create(name string, description string, size string, diskType string, diskD
 	return diskInst, res.Error
 }
 
-func GetAll() []*Disk {
+func GetAllDb() []*Disk {
 	var result []*Disk
 	db := getDiskDb()
 	db.Find(&result)

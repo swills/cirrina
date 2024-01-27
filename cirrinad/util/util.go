@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -506,4 +507,12 @@ func ParseDiskSize(size string) (sizeBytes uint64, err error) {
 	n = uint(nu)
 	r := uint64(n) * m
 	return r, nil
+}
+
+func Trace() {
+	pc := make([]uintptr, 15)
+	n := runtime.Callers(2, pc)
+	frames := runtime.CallersFrames(pc[:n])
+	frame, _ := frames.Next()
+	slog.Debug("Trace", "File", frame.File, "Function", frame.Function, "Line", frame.Line)
 }

@@ -14,6 +14,7 @@ import (
 )
 
 func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrina.ReqStatus, error) {
+	util.Trace()
 	reqUuid, err := uuid.Parse(r.Value)
 	if err != nil {
 		return &cirrina.ReqStatus{}, errors.New("invalid id")
@@ -34,6 +35,7 @@ func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrin
 }
 
 func (s *server) ClearUEFIState(_ context.Context, v *cirrina.VMID) (*cirrina.ReqBool, error) {
+	util.Trace()
 	re := cirrina.ReqBool{}
 	re.Success = false
 
@@ -59,6 +61,7 @@ func (s *server) ClearUEFIState(_ context.Context, v *cirrina.VMID) (*cirrina.Re
 }
 
 func (s *server) GetNetInterfaces(_ *cirrina.NetInterfacesReq, st cirrina.VMInfo_GetNetInterfacesServer) error {
+	util.Trace()
 	netDevs := util.GetHostInterfaces()
 
 	for _, nic := range netDevs {
@@ -72,5 +75,6 @@ func (s *server) GetNetInterfaces(_ *cirrina.NetInterfacesReq, st cirrina.VMInfo
 }
 
 func (s *server) GetVersion(_ context.Context, _ *emptypb.Empty) (_ *wrapperspb.StringValue, _ error) {
+	util.Trace()
 	return wrapperspb.String(mainVersion), nil
 }

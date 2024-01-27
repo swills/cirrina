@@ -18,7 +18,7 @@ import (
 
 func cleanupVms() {
 	// deal with any leftover running VMs
-	vmList := vm.GetAll()
+	vmList := vm.GetAllDb()
 	for _, aVm := range vmList {
 		vmmPath := "/dev/vmm/" + aVm.Name
 		slog.Debug("checking VM", "name", aVm.Name, "path", vmmPath)
@@ -74,7 +74,7 @@ func cleanupVms() {
 
 func cleanupNet() {
 	// clean up leftover VM nets and mark everything stopped
-	vmList := vm.GetAll()
+	vmList := vm.GetAllDb()
 	for _, aVm := range vmList {
 		slog.Debug("cleaning up VM net(s)", "name", aVm.Name)
 		aVm.NetCleanup()
@@ -116,7 +116,7 @@ func cleanupNet() {
 func cleanupDb() {
 	rowsCleared := requests.FailAllPending()
 	slog.Debug("cleared failed requests", "rowsCleared", rowsCleared)
-	allDisks := disk.GetAll()
+	allDisks := disk.GetAllDb()
 	for _, diskInst := range allDisks {
 		if strings.HasSuffix(diskInst.Name, ".img") {
 			newName := strings.TrimSuffix(diskInst.Name, ".img")

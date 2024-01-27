@@ -164,14 +164,14 @@ func init() {
 		panic("failed to auto-migrate Configs")
 	}
 
-	for _, vmInst := range GetAll() {
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
+	for _, vmInst := range GetAllDb() {
 		InitOneVm(vmInst)
 	}
 }
 
 func InitOneVm(vmInst *VM) {
-	defer List.Mu.Unlock()
-	List.Mu.Lock()
 	vmLogPath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name
 	err := GetVmLogPath(vmLogPath)
 	if err != nil {
@@ -224,13 +224,20 @@ func doAutostart(vmInst *VM) {
 	}
 }
 
-func GetAll() []*VM {
+func GetAllDb() []*VM {
 	var result []*VM
 
 	db := getVmDb()
 	db.Preload("Config").Find(&result)
 
 	return result
+}
+
+func GetAll() (allVMs []*VM) {
+	for _, value := range List.VmList {
+		allVMs = append(allVMs, value)
+	}
+	return allVMs
 }
 
 func GetByName(name string) (v *VM, err error) {
