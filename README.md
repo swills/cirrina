@@ -15,7 +15,16 @@ This is still fairly new software. Only UEFI boot is supported, no bhyveload.
 Run (as `root`):
 
 ```
-pw adduser cirrinad
+pw groupadd -n cirrinad -g 10001
+pw useradd -n cirrinad -u 10001 -g cirrinad -s /usr/sbin/nologin -d /nonexistent
+```
+
+### edk2
+
+Run (as `root`):
+
+```
+pkg install sudo edk2-bhyve
 ```
 
 ### sudo
@@ -32,6 +41,8 @@ cirrinad ALL=(ALL) NOPASSWD: CIRRINAD
 Run (as `root`):
 
 ```
+echo kern.racct.enable=1 >> /boot/loader.conf
+reboot
 sysrc kld_list="vmm nmdm if_bridge if_epair ng_bridge ng_ether ng_pipe"
 service kld restart
 ```
@@ -56,8 +67,8 @@ cp cirrinactl /usr/local/bin
 Run (as `root`):
 
 ```
-mkdir -p /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve/isos
-chown -R cirrinad:cirrinad /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve/isos
+mkdir -p /var/run/cirrinad /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve/isos
+chown -R cirrinad:cirrinad /var/run/cirrinad /var/db/cirrinad /var/log/cirrinad /var/tmp/cirrinad /bhyve/disk /bhyve/isos
 ```
 
 ### Config
@@ -70,13 +81,9 @@ and iso paths must be directories.
 Run (as `root`):
 
 ```
-crontab -e
-```
-
-and add:
-
-```
-@reboot /usr/sbin/daemon -u cirrinad -f -r -S -P /var/run/cirrinad/cirrinad.daemon.pid -p /var/run/cirrinad/cirrinad.pid /usr/local/bin/cirrinad -config /usr/local/etc/cirrinad/config.yml
+cp rc/cirrinad /usr/local/etc/rc.d/
+sysrc cirrinad_enable=yes
+service cirrinad start
 ```
 
 # How to use
@@ -101,9 +108,7 @@ and add:
   * Set it's uplink
     * `./cirrinactl switch set-uplink -n bridge0 -u em0`
   * Add an iso for your VM to use:
-    * `./cirrinactl iso add -n something.iso`
-    * This returns an iso id (UUID). Use this ID to upload the iso file:
-    * `./cirrinactl iso upload -i <isoid> -P /some/file/path/something.iso`
+    * `./cirrinactl iso upload -n something.iso -P /some/file/path/something.iso`
   * Add a disk for a VM:
     * `./cirrinactl disk create -n somediskname -s 32G`
   * Add a NIC for a VM:
