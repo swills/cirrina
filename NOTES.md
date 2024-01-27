@@ -17,6 +17,7 @@
 * Basics
     * Ensuring no crashes
     * Fixing race conditions
+    * Prevent modifying things that are in use and/or make it clear which changes will take effect when
     * Fetching logs from server to client
     * Implement VM rename
     * Switch from polling to streaming for VM status

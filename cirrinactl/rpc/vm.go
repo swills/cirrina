@@ -5,6 +5,7 @@ import (
 	"errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"io"
 	"strconv"
 )
@@ -109,6 +110,48 @@ func StartVM(id string) (string, error) {
 		return "", errors.New(status.Convert(err).Message())
 	}
 	return reqId.Value, nil
+}
+
+func GetVmName(id string) (string, error) {
+	conn, c, ctx, cancel, err := SetupConn()
+	if err != nil {
+		return "", err
+	}
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
+	defer cancel()
+
+	if id == "" {
+		return "", errors.New("id not specified")
+	}
+	var res *wrapperspb.StringValue
+	res, err = c.GetVmName(ctx, &cirrina.VMID{Value: id})
+	if err != nil {
+		return "", errors.New(status.Convert(err).Message())
+	}
+	return res.String(), nil
+}
+
+func GetVmId(name string) (string, error) {
+	conn, c, ctx, cancel, err := SetupConn()
+	if err != nil {
+		return "", err
+	}
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
+	defer cancel()
+
+	if name == "" {
+		return "", errors.New("name not specified")
+	}
+	var res *cirrina.VMID
+	res, err = c.GetVmId(ctx, wrapperspb.String(name))
+	if err != nil {
+		return "", errors.New(status.Convert(err).Message())
+	}
+	return res.Value, nil
 }
 
 func GetVMConfig(id string) (VmConfig, error) {
@@ -396,42 +439,25 @@ func VmStopped(id string) (bool, error) {
 }
 
 func VmNameToId(name string) (string, error) {
-
-	found := false
-	ids, err := GetVmIds()
-	if err != nil {
-		return "", errors.New(status.Convert(err).Message())
-	}
-	var rid string
-	for _, id := range ids {
-		res, err := GetVMConfig(id)
-		if err != nil {
-			// if one of the VMs (perhaps not even the one we're looking for) got deleted, this can fail
-			// ignore it
-			continue
-		}
-		if res.Name != nil && *res.Name == name {
-			if found == true {
-				return "", errors.New("duplicate VM name")
-			} else {
-				found = true
-				rid = id
-			}
-		}
-	}
-	return rid, nil
-}
-
-func VmIdToName(id string) (string, error) {
-	res, err := GetVMConfig(id)
+	res, err := GetVmId(name)
 	if err != nil {
 		return "", err
 	}
-	if res.Name == nil {
-		return "", errors.New("not found")
+	if res == "" {
+		return "", errors.New("VM not found")
 	}
-	return *res.Name, nil
+	return res, nil
+}
 
+func VmIdToName(id string) (string, error) {
+	res, err := GetVmName(id)
+	if err != nil {
+		return "", err
+	}
+	if res == "" {
+		return "", errors.New("VM not found")
+	}
+	return res, nil
 }
 
 func UpdateVMConfig(id string, newConfig VmConfig) error {

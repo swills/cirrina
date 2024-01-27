@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -364,6 +365,35 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	}
 	re.Success = true
 	return &re, nil
+}
+
+func (s *server) GetVmId(_ context.Context, v *wrapperspb.StringValue) (*cirrina.VMID, error) {
+	var vmName string
+
+	if v == nil {
+		return &cirrina.VMID{}, errors.New("name not specified or invalid")
+	}
+
+	vmName = v.String()
+	vmInst, err := vm.GetByName(vmName)
+	if err != nil {
+		return &cirrina.VMID{}, errors.New("VM not found")
+	}
+
+	return &cirrina.VMID{Value: vmInst.ID}, nil
+}
+
+func (s *server) GetVmName(_ context.Context, v *cirrina.VMID) (*wrapperspb.StringValue, error) {
+	vmUuid, err := uuid.Parse(v.Value)
+	if err != nil {
+		return wrapperspb.String(""), errors.New("id not specified or invalid")
+	}
+	vmInst, err := vm.GetById(vmUuid.String())
+	if err != nil {
+		slog.Error("GetVMConfig error getting vm", "vm", v.Value, "err", err)
+		return wrapperspb.String(""), errors.New("VM not found")
+	}
+	return wrapperspb.String(vmInst.Name), nil
 }
 
 func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMConfig, error) {

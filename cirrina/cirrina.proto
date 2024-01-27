@@ -302,6 +302,8 @@ service VMInfo {
   rpc AddVM(VMConfig) returns (VMID);
   rpc GetVMs(VMsQuery) returns (stream VMID);
   rpc GetVMConfig(VMID) returns (VMConfig);
+  rpc GetVmName(VMID) returns (google.protobuf.StringValue);
+  rpc GetVmId(google.protobuf.StringValue) returns (VMID);
   rpc GetVMState(VMID) returns (VMState);
   rpc UpdateVM(VMConfig) returns (ReqBool);
   rpc StartVM(VMID) returns (RequestID);
