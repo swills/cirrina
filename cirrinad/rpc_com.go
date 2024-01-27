@@ -3,7 +3,6 @@ package main
 import (
 	"cirrina/cirrina"
 	"cirrina/cirrinad/config"
-	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm"
 	"errors"
 	"fmt"
@@ -16,7 +15,6 @@ import (
 )
 
 func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) error {
-	util.Trace()
 	in, err := stream.Recv()
 	if err == io.EOF {
 		return nil
@@ -43,7 +41,6 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 }
 
 func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) error {
-	util.Trace()
 	in, err := stream.Recv()
 	if err == io.EOF {
 		return nil
@@ -70,7 +67,6 @@ func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) er
 }
 
 func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) error {
-	util.Trace()
 	in, err := stream.Recv()
 	if err == io.EOF {
 		return nil
@@ -97,7 +93,6 @@ func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) er
 }
 
 func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) error {
-	util.Trace()
 	in, err := stream.Recv()
 	if err == io.EOF {
 		return nil
@@ -125,7 +120,6 @@ func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) er
 
 // FIXME -- cheating a bit here
 func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, comNum int) error {
-	util.Trace()
 
 	var thisCom *serial.Port
 	var thisComLog bool

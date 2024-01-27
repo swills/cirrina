@@ -12,7 +12,6 @@ import (
 const kbdlayoutpath = "/usr/share/bhyve/kbdlayout"
 
 func (s *server) GetKeyboardLayouts(_ *cirrina.KbdQuery, stream cirrina.VMInfo_GetKeyboardLayoutsServer) error {
-	util.Trace()
 	var layout cirrina.KbdLayout
 	var err error
 
@@ -36,14 +35,12 @@ func (s *server) GetKeyboardLayouts(_ *cirrina.KbdQuery, stream cirrina.VMInfo_G
 }
 
 func GetKbdLayoutNames() (kbdlayouts []string) {
-	util.Trace()
 	// ignore errors and just return empty list if err
 	kbdlayouts, _ = util.OSReadDir(kbdlayoutpath)
 	return kbdlayouts
 }
 
 func GetKbdDescription(path string) (description string, err error) {
-	util.Trace()
 	file, err := os.Open(path)
 	if err != nil {
 		fmt.Println(err)

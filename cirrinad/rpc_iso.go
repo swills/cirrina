@@ -19,7 +19,6 @@ import (
 )
 
 func (s *server) GetISOs(_ *cirrina.ISOsQuery, stream cirrina.VMInfo_GetISOsServer) error {
-	util.Trace()
 	var isos []*iso.ISO
 	var ISOId cirrina.ISOID
 	isos = iso.GetAll()
@@ -34,7 +33,6 @@ func (s *server) GetISOs(_ *cirrina.ISOsQuery, stream cirrina.VMInfo_GetISOsServ
 }
 
 func (s *server) GetISOInfo(_ context.Context, i *cirrina.ISOID) (*cirrina.ISOInfo, error) {
-	util.Trace()
 	var ic cirrina.ISOInfo
 	isoUuid, err := uuid.Parse(i.Value)
 	if err != nil {
@@ -56,7 +54,6 @@ func (s *server) GetISOInfo(_ context.Context, i *cirrina.ISOID) (*cirrina.ISOIn
 }
 
 func (s *server) AddISO(_ context.Context, i *cirrina.ISOInfo) (*cirrina.ISOID, error) {
-	util.Trace()
 	defaultDescription := ""
 	if i.Name == nil || !util.ValidIsoName(*i.Name) {
 		return &cirrina.ISOID{}, errors.New("invalid name")
@@ -72,7 +69,6 @@ func (s *server) AddISO(_ context.Context, i *cirrina.ISOInfo) (*cirrina.ISOID, 
 }
 
 func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
-	util.Trace()
 	var re cirrina.ReqBool
 	re.Success = false
 	var imageSize uint64
@@ -220,7 +216,6 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 }
 
 func (s *server) RemoveISO(_ context.Context, i *cirrina.ISOID) (*cirrina.ReqBool, error) {
-	util.Trace()
 	re := cirrina.ReqBool{}
 	re.Success = false
 

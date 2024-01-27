@@ -14,7 +14,6 @@ import (
 import "context"
 
 func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.SwitchId, error) {
-	util.Trace()
 	var switchType string
 	defaultSwitchType := cirrina.SwitchType_IF
 	defaultSwitchDescription := ""
@@ -133,7 +132,6 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 }
 
 func (s *server) GetSwitches(_ *cirrina.SwitchesQuery, stream cirrina.VMInfo_GetSwitchesServer) error {
-	util.Trace()
 	var switches []*_switch.Switch
 	var pSwitchId cirrina.SwitchId
 
@@ -150,7 +148,6 @@ func (s *server) GetSwitches(_ *cirrina.SwitchesQuery, stream cirrina.VMInfo_Get
 }
 
 func (s *server) GetSwitchInfo(_ context.Context, v *cirrina.SwitchId) (*cirrina.SwitchInfo, error) {
-	util.Trace()
 	var pvmswitchinfo cirrina.SwitchInfo
 
 	switchUuid, err := uuid.Parse(v.Value)
@@ -182,7 +179,6 @@ func (s *server) GetSwitchInfo(_ context.Context, v *cirrina.SwitchId) (*cirrina
 }
 
 func (s *server) RemoveSwitch(_ context.Context, si *cirrina.SwitchId) (*cirrina.ReqBool, error) {
-	util.Trace()
 	var re cirrina.ReqBool
 	re.Success = false
 
@@ -229,7 +225,6 @@ func (s *server) RemoveSwitch(_ context.Context, si *cirrina.SwitchId) (*cirrina
 }
 
 func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq) (*cirrina.ReqBool, error) {
-	util.Trace()
 	var r cirrina.ReqBool
 	r.Success = false
 
@@ -294,7 +289,6 @@ func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq)
 }
 
 func (s *server) SetSwitchInfo(_ context.Context, siu *cirrina.SwitchInfoUpdate) (*cirrina.ReqBool, error) {
-	util.Trace()
 	var re cirrina.ReqBool
 	re.Success = false
 
