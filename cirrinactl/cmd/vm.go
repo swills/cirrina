@@ -8,6 +8,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 	"os"
@@ -257,8 +258,16 @@ var VmListCmd = &cobra.Command{
 		t.SetOutputMirror(os.Stdout)
 		if ShowUUID {
 			t.AppendHeader(table.Row{"NAME", "UUID", "CPUS", "MEMORY", "STATE", "DESCRIPTION"})
+			t.SetColumnConfigs([]table.ColumnConfig{
+				{Number: 3, Align: text.AlignRight, AlignHeader: text.AlignRight},
+				{Number: 4, Align: text.AlignRight, AlignHeader: text.AlignRight},
+			})
 		} else {
 			t.AppendHeader(table.Row{"NAME", "CPUS", "MEMORY", "STATE", "DESCRIPTION"})
+			t.SetColumnConfigs([]table.ColumnConfig{
+				{Number: 2, Align: text.AlignRight, AlignHeader: text.AlignRight},
+				{Number: 3, Align: text.AlignRight, AlignHeader: text.AlignRight},
+			})
 		}
 		t.SetStyle(myTableStyle)
 		for _, name := range names {

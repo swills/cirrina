@@ -93,20 +93,24 @@ var DiskListCmd = &cobra.Command{
 		sort.Strings(names)
 		t := table.NewWriter()
 		t.SetOutputMirror(os.Stdout)
+		t.SetStyle(myTableStyle)
 		if ShowUUID {
 			t.AppendHeader(
 				table.Row{"NAME", "UUID", "TYPE", "SIZE", "USAGE", "VM", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
 			)
+			t.SetColumnConfigs([]table.ColumnConfig{
+				{Number: 4, Align: text.AlignRight, AlignHeader: text.AlignRight},
+				{Number: 5, Align: text.AlignRight, AlignHeader: text.AlignRight},
+			})
 		} else {
 			t.AppendHeader(
 				table.Row{"NAME", "TYPE", "SIZE", "USAGE", "VM", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
 			)
+			t.SetColumnConfigs([]table.ColumnConfig{
+				{Number: 3, Align: text.AlignRight, AlignHeader: text.AlignRight},
+				{Number: 4, Align: text.AlignRight, AlignHeader: text.AlignRight},
+			})
 		}
-		t.SetStyle(myTableStyle)
-		t.SetColumnConfigs([]table.ColumnConfig{
-			{Number: 3, Align: text.AlignRight, AlignHeader: text.AlignRight},
-			{Number: 4, Align: text.AlignRight, AlignHeader: text.AlignRight},
-		})
 		for _, diskName := range names {
 			if ShowUUID {
 				t.AppendRow(table.Row{

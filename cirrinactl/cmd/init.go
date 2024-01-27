@@ -37,6 +37,10 @@ var Humanize = true
 var ShowUUID = false
 var CheckReqStat = true
 
+var defaultHost = "localhost"
+var defaultPort = 50051
+var defaultTimeout = 5
+
 const (
 	TXT = iota
 	JSON
@@ -80,19 +84,19 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(&cfgFile,
 		"config", "C", cfgFile, "config file (default $HOME/.cirrinactl.yaml)")
 
-	rootCmd.PersistentFlags().StringP("server", "S", "localhost", "server")
+	rootCmd.PersistentFlags().StringP("server", "S", defaultHost, "server")
 	err := viper.BindPFlag("server", rootCmd.PersistentFlags().Lookup("server"))
 	if err != nil {
 		panic(err)
 	}
 
-	rootCmd.PersistentFlags().Uint16P("port", "P", uint16(50051), "port")
+	rootCmd.PersistentFlags().Uint16P("port", "P", uint16(defaultPort), "port")
 	err = viper.BindPFlag("port", rootCmd.PersistentFlags().Lookup("port"))
 	if err != nil {
 		panic(err)
 	}
 
-	rootCmd.PersistentFlags().Uint64P("timeout", "T", uint64(2), "timeout in seconds")
+	rootCmd.PersistentFlags().Uint64P("timeout", "T", uint64(defaultTimeout), "timeout in seconds")
 	err = viper.BindPFlag("timeout", rootCmd.PersistentFlags().Lookup("timeout"))
 	if err != nil {
 		panic(err)
