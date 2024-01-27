@@ -27,8 +27,6 @@ import (
 )
 
 func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, err error) {
-	defer List.Mu.Unlock()
-	List.Mu.Lock()
 	var vmInst *VM
 	if !util.ValidVmName(name) {
 		return vmInst, errors.New("invalid name")
@@ -45,6 +43,8 @@ func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, er
 			Mem: mem,
 		},
 	}
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
 	db := getVmDb()
 	slog.Debug("Creating VM", "vm", name)
 	res := db.Create(&vmInst)
