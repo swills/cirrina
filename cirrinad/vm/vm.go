@@ -27,6 +27,8 @@ import (
 )
 
 func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, err error) {
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
 	var vmInst *VM
 	if !util.ValidVmName(name) {
 		return vmInst, errors.New("invalid name")
@@ -46,6 +48,7 @@ func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, er
 	db := getVmDb()
 	slog.Debug("Creating VM", "vm", name)
 	res := db.Create(&vmInst)
+	InitOneVm(vmInst)
 	return vmInst, res.Error
 }
 
@@ -627,8 +630,6 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 }
 
 func (vm *VM) GetISOs() ([]iso.ISO, error) {
-	defer vm.mu.RUnlock()
-	vm.mu.RLock()
 	var isos []iso.ISO
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	for _, cv := range strings.Split(vm.Config.ISOs, ",") {
@@ -646,8 +647,6 @@ func (vm *VM) GetISOs() ([]iso.ISO, error) {
 }
 
 func (vm *VM) GetNics() ([]vm_nics.VmNic, error) {
-	defer vm.mu.RUnlock()
-	vm.mu.RLock()
 	var nics []vm_nics.VmNic
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	for _, cv := range strings.Split(vm.Config.Nics, ",") {
@@ -665,8 +664,6 @@ func (vm *VM) GetNics() ([]vm_nics.VmNic, error) {
 }
 
 func (vm *VM) GetDisks() ([]*disk.Disk, error) {
-	defer vm.mu.RUnlock()
-	vm.mu.RLock()
 	var disks []*disk.Disk
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	for _, cv := range strings.Split(vm.Config.Disks, ",") {

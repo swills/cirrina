@@ -14,6 +14,7 @@ import (
 )
 
 func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmNicId, error) {
+	util.Trace()
 	var vmNicInst vm_nics.VmNic
 	var vmNicId *cirrina.VmNicId
 
@@ -124,6 +125,7 @@ func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 }
 
 func (s *server) GetVmNicsAll(_ *cirrina.VmNicsQuery, stream cirrina.VMInfo_GetVmNicsAllServer) error {
+	util.Trace()
 	var nics []*vm_nics.VmNic
 	var pvmnicId cirrina.VmNicId
 
@@ -140,6 +142,7 @@ func (s *server) GetVmNicsAll(_ *cirrina.VmNicsQuery, stream cirrina.VMInfo_GetV
 }
 
 func (s *server) GetVmNicInfo(_ context.Context, v *cirrina.VmNicId) (*cirrina.VmNicInfo, error) {
+	util.Trace()
 	var pvmnicinfo cirrina.VmNicInfo
 
 	nicUuid, err := uuid.Parse(v.Value)
@@ -193,6 +196,7 @@ func (s *server) GetVmNicInfo(_ context.Context, v *cirrina.VmNicId) (*cirrina.V
 }
 
 func (s *server) SetVmNicSwitch(_ context.Context, v *cirrina.SetVmNicSwitchReq) (*cirrina.ReqBool, error) {
+	util.Trace()
 	var r cirrina.ReqBool
 	r.Success = false
 
@@ -244,6 +248,7 @@ func (s *server) SetVmNicSwitch(_ context.Context, v *cirrina.SetVmNicSwitchReq)
 }
 
 func (s *server) RemoveVmNic(_ context.Context, vn *cirrina.VmNicId) (*cirrina.ReqBool, error) {
+	util.Trace()
 	var re cirrina.ReqBool
 	re.Success = false
 	slog.Debug("RemoveVmNic", "vmnic", vn.Value)
@@ -283,6 +288,7 @@ func (s *server) RemoveVmNic(_ context.Context, vn *cirrina.VmNicId) (*cirrina.R
 }
 
 func (s *server) GetVmNicVm(_ context.Context, i *cirrina.VmNicId) (v *cirrina.VMID, err error) {
+	util.Trace()
 	slog.Debug("GetVmNicVm finding VM for nic", "nicid", i.Value)
 	var pvmId cirrina.VMID
 
@@ -325,6 +331,7 @@ func (s *server) GetVmNicVm(_ context.Context, i *cirrina.VmNicId) (v *cirrina.V
 }
 
 func (s *server) UpdateVmNic(_ context.Context, _ *cirrina.VmNicInfoUpdate) (_ *cirrina.ReqBool, _ error) {
+	util.Trace()
 	var re cirrina.ReqBool
 	re.Success = false
 	return &re, errors.New("not implemented yet")

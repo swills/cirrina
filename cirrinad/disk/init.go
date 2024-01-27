@@ -48,7 +48,7 @@ func init() {
 	if err != nil {
 		slog.Error("DiskDb init failed to drop path column, continuing anyway")
 	}
-	for _, diskInst := range GetAll() {
+	for _, diskInst := range GetAllDb() {
 		InitOneDisk(diskInst)
 	}
 }

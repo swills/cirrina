@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"cirrina/cirrinad/util"
 	"context"
 	"crypto/sha512"
 	"database/sql"
@@ -24,6 +25,7 @@ import (
 )
 
 func (s *server) GetDisks(_ *cirrina.DisksQuery, stream cirrina.VMInfo_GetDisksServer) error {
+	util.Trace()
 	var DiskId cirrina.DiskId
 	for _, diskInst := range disk.List.DiskList {
 		DiskId.Value = diskInst.ID
@@ -36,6 +38,7 @@ func (s *server) GetDisks(_ *cirrina.DisksQuery, stream cirrina.VMInfo_GetDisksS
 }
 
 func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskId, error) {
+	util.Trace()
 	var diskType string
 	var diskDevType string
 
@@ -104,6 +107,7 @@ func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskI
 }
 
 func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.DiskInfo, error) {
+	util.Trace()
 	var ic cirrina.DiskInfo
 	var stat syscall.Stat_t
 	var blockSize int64 = 512
@@ -215,6 +219,7 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 }
 
 func (s *server) RemoveDisk(_ context.Context, i *cirrina.DiskId) (*cirrina.ReqBool, error) {
+	util.Trace()
 	slog.Debug("deleting disk", "diskid", i.Value)
 	re := cirrina.ReqBool{}
 	re.Success = false
@@ -261,6 +266,7 @@ func (s *server) RemoveDisk(_ context.Context, i *cirrina.DiskId) (*cirrina.ReqB
 }
 
 func (s *server) GetDiskVm(_ context.Context, i *cirrina.DiskId) (v *cirrina.VMID, err error) {
+	util.Trace()
 	var pvmId cirrina.VMID
 
 	diskUuid, err := uuid.Parse(i.Value)
@@ -281,6 +287,7 @@ func (s *server) GetDiskVm(_ context.Context, i *cirrina.DiskId) (v *cirrina.VMI
 }
 
 func getDiskVm(diskUuid uuid.UUID) (*vm.VM, error) {
+	util.Trace()
 	allVMs := vm.GetAll()
 	found := false
 	var rv *vm.VM
@@ -308,6 +315,7 @@ func getDiskVm(diskUuid uuid.UUID) (*vm.VM, error) {
 }
 
 func (s *server) SetDiskInfo(_ context.Context, diu *cirrina.DiskInfoUpdate) (*cirrina.ReqBool, error) {
+	util.Trace()
 	var re cirrina.ReqBool
 	re.Success = false
 
@@ -362,6 +370,7 @@ func (s *server) SetDiskInfo(_ context.Context, diu *cirrina.DiskInfoUpdate) (*c
 }
 
 func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
+	util.Trace()
 	var re cirrina.ReqBool
 	re.Success = false
 	var imageSize uint64
