@@ -744,7 +744,7 @@ func (vm *VM) AttachNics(nicIds []string) error {
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	if vm.Status != STOPPED {
-		return errors.New("VM must be stopped before adding disk(s)")
+		return errors.New("VM must be stopped before adding NIC(s)")
 	}
 	occurred := map[string]bool{}
 	var result []string
