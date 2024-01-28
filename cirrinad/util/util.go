@@ -11,6 +11,7 @@ import (
 	"golang.org/x/sys/unix"
 	"io/fs"
 	"log/slog"
+	"math"
 	"net"
 	"os"
 	"os/user"
@@ -506,4 +507,32 @@ func ParseDiskSize(size string) (sizeBytes uint64, err error) {
 	n = uint(nu)
 	r := uint64(n) * m
 	return r, nil
+}
+
+func GetHostMaxVmCpus() (uint16, error) {
+	// /sbin/sysctl -n hw.vmm.maxcpu
+	var emptyBytes []byte
+	var outBytes bytes.Buffer
+	var errBytes bytes.Buffer
+
+	checkCmd := exec.Command("/sbin/sysctl", "-n", "hw.vmm.maxcpu")
+	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
+	checkCmd.Stdout = &outBytes
+	checkCmd.Stderr = &errBytes
+	err := checkCmd.Run()
+	if err != nil {
+		slog.Error("Failed getting max vm cpus", "command", checkCmd.String(), "err", err.Error())
+		return 0, err
+	}
+	maxCpuStr := strings.TrimSpace(outBytes.String())
+	maxCpu, err := strconv.Atoi(maxCpuStr)
+	if err != nil {
+		slog.Error("Failed converting max cpus to int", "err", err.Error())
+		return 0, err
+	}
+	if maxCpu <= 0 || maxCpu >= math.MaxUint16 {
+		slog.Error("Failed invalid max cpus", "maxCpu", maxCpu)
+		return 0, err
+	}
+	return uint16(maxCpu), nil
 }

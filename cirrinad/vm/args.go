@@ -2,6 +2,7 @@ package vm
 
 import (
 	"errors"
+	"math"
 	"net"
 	"os"
 	"strconv"
@@ -70,7 +71,17 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 }
 
 func (vm *VM) getCpuArg() []string {
-	return []string{"-c", strconv.Itoa(int(vm.Config.Cpu))}
+	var vmCpus uint16
+	hostCpus, err := util.GetHostMaxVmCpus()
+	if err != nil {
+		return []string{}
+	}
+	if vm.Config.Cpu > uint32(hostCpus) || vm.Config.Cpu > math.MaxUint16 {
+		vmCpus = hostCpus
+	} else {
+		vmCpus = uint16(vm.Config.Cpu)
+	}
+	return []string{"-c", strconv.Itoa(int(vmCpus))}
 }
 
 func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (hdArg string, err error) {

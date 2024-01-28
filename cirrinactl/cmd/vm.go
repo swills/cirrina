@@ -546,13 +546,6 @@ var VmConfigCmd = &cobra.Command{
 
 		if CpusChanged {
 			newCpu := uint32(Cpus)
-
-			if newCpu < 1 {
-				newCpu = 1
-			}
-			if newCpu > 16 {
-				newCpu = 16
-			}
 			newConfig.Cpu = &newCpu
 		}
 

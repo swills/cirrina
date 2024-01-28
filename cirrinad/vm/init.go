@@ -32,7 +32,7 @@ var uefiVarFileTemplate = config.Config.Rom.Vars.Template
 type Config struct {
 	gorm.Model
 	VmId             string
-	Cpu              uint32 `gorm:"default:1;check:cpu BETWEEN 1 and 16"`
+	Cpu              uint32 `gorm:"default:1;check:cpu>=1"`
 	Mem              uint32 `gorm:"default:128;check:mem>=128"`
 	MaxWait          uint32 `gorm:"default:120;check:max_wait>=0"`
 	Restart          bool   `gorm:"default:True;check:restart IN (0,1)"`
@@ -161,6 +161,7 @@ func init() {
 	}
 	err = db.AutoMigrate(&Config{})
 	if err != nil {
+		slog.Error("failed db migration", "err", err)
 		panic("failed to auto-migrate Configs")
 	}
 
