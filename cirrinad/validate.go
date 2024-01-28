@@ -552,6 +552,24 @@ func validateLogConfig() {
 	}
 }
 
+func validatePidFilePathConfig() {
+	pidFilePath, err := filepath.Abs(config.Config.Sys.PidFilePath)
+	if err != nil {
+		slog.Error("failed to get absolute path to pid file")
+		os.Exit(1)
+	}
+	pidDir := filepath.Dir(config.Config.Sys.PidFilePath)
+	if pidFilePath == pidDir {
+		slog.Error("pid file path is a directory, please reconfigure to point to a file", "pidFilePath", pidFilePath)
+		os.Exit(1)
+	}
+	if unix.Access(pidDir, unix.W_OK) != nil {
+		errM := fmt.Sprintf("pid dir %s not writable", pidDir)
+		slog.Error(errM)
+		os.Exit(1)
+	}
+}
+
 func validateDiskConfig() {
 	_, err := util.ParseDiskSize(config.Config.Disk.Default.Size)
 	if err != nil {

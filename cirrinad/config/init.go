@@ -10,7 +10,8 @@ var configFile = flag.String("config", "config.yml", "Config File")
 
 var Config = struct {
 	Sys struct {
-		Sudo string
+		Sudo        string
+		PidFilePath string `default:"/var/run/cirrinad/cirrinad.pid"`
 	}
 	DB struct {
 		Path string

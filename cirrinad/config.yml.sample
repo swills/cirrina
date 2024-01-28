@@ -1,5 +1,6 @@
 sys:
   sudo: /usr/local/bin/sudo
+  pidfilepath: "/var/run/cirrinad/cirrinad.pid"
 
 log:
   path: /var/log/cirrinad/cirrinad.log

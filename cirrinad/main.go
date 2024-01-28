@@ -1,9 +1,12 @@
 package main
 
 import (
+	"cirrina/cirrinad/util"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -43,6 +46,59 @@ func handleSigInfo() {
 	)
 }
 
+func destroyPidFile() {
+
+}
+
+// write pid file, make sure it doesn't exist already, exit if it does
+func writePidFile() {
+	pidFilePath, err := filepath.Abs(config.Config.Sys.PidFilePath)
+	if err != nil {
+		slog.Error("failed to get absolute path to log")
+		os.Exit(1)
+	}
+	_, err = os.Stat(pidFilePath)
+	if err == nil {
+		slog.Warn("pid file exists, checking pid")
+		existingPidFileContent, err := os.ReadFile(pidFilePath)
+		if err != nil {
+			slog.Error("pid file exists and unable to read it, please fix")
+			os.Exit(1)
+		}
+		existingPid, err := strconv.Atoi(string(existingPidFileContent))
+		if err != nil {
+			slog.Error("failed getting existing pid")
+			os.Exit(1)
+		}
+		procExists, err := util.PidExists(existingPid)
+		if err != nil {
+			slog.Error("failed checking existing pid")
+			os.Exit(1)
+		}
+		if procExists {
+			slog.Error("duplicate processes not allowed, please kill existing pid", "existingPid", existingPid)
+			os.Exit(1)
+		} else {
+			slog.Warn("left over pid file detected, but process seems not to exist, deleting pid file")
+			err := os.Remove(pidFilePath)
+			if err != nil {
+				slog.Error("failed removing leftover pid file, please fix")
+				os.Exit(1)
+			}
+		}
+	}
+	myPid := os.Getpid()
+
+	var pidMode os.FileMode
+	pidMode = 0x755
+	err = os.WriteFile(pidFilePath, []byte(strconv.Itoa(myPid)), pidMode)
+	if err != nil {
+		slog.Error("failed writing pid file", "err", err)
+		os.Exit(1)
+		return
+	}
+}
+
 func shutdownHandler() {
 	if shutdownHandlerRunning {
 		return
@@ -58,6 +114,7 @@ func shutdownHandler() {
 		time.Sleep(time.Second)
 	}
 	_switch.DestroyBridges()
+	destroyPidFile()
 	slog.Info("Exiting normally")
 	shutdownWaitGroup.Done()
 }
@@ -111,6 +168,11 @@ func main() {
 	default:
 		programLevel.Set(slog.LevelInfo)
 	}
+
+	slog.Debug("Checking for existing proc")
+	validatePidFilePathConfig()
+	slog.Debug("Writing pid file")
+	writePidFile()
 
 	slog.Debug("Starting host validation")
 	validateSystem()

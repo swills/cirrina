@@ -36,6 +36,6 @@ pidfile=/var/run/cirrinad/cirrinad.pid
 required_files="${cirrinad_config}"
 procname="${cirrinad_command}"
 command="/usr/sbin/daemon"
-command_args="-S -T cirrinad -s info -m 3 -f -p ${pidfile} /usr/bin/env ${cirrinad_env} ${procname} ${cirrinad_args}"
+command_args="-S -T cirrinad -s info -m 3 -f /usr/bin/env ${cirrinad_env} ${procname} ${cirrinad_args}"
 
 run_rc_command "$1"
