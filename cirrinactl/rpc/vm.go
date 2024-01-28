@@ -130,7 +130,7 @@ func GetVmName(id string) (string, error) {
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
-	return res.String(), nil
+	return res.GetValue(), nil
 }
 
 func GetVmId(name string) (string, error) {
