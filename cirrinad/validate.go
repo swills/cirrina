@@ -296,7 +296,7 @@ func validateOSVersion() {
 		slog.Error("failed to get OS version", "release", string(utsname.Release[:]))
 		os.Exit(1)
 	}
-	ver132, err := version.NewVersion("13.2")
+	ver132, err := version.NewVersion("13.2.0")
 	if err != nil {
 		slog.Error("failed to create a version for 13.2")
 		os.Exit(1)
