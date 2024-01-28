@@ -296,21 +296,21 @@ func validateOSVersion() {
 		slog.Error("failed to get OS version", "release", string(utsname.Release[:]))
 		os.Exit(1)
 	}
-	ver124, err := version.NewVersion("12.4")
-	if err != nil {
-		slog.Error("failed to create a version for 12.4")
-		os.Exit(1)
-	}
 	ver132, err := version.NewVersion("13.2")
 	if err != nil {
 		slog.Error("failed to create a version for 13.2")
 		os.Exit(1)
 	}
+	ver140, err := version.NewVersion("14.0")
+	if err != nil {
+		slog.Error("failed to create a version for 14.0")
+		os.Exit(1)
+	}
 
 	slog.Debug("validate OS", "ovi", ovi)
 	// Check for valid OS version, see https://www.freebsd.org/security/
-	// as of commit, 12.4 and 13.2 are oldest supported versions
-	if ovi.LessThan(ver124) || ovi.LessThan(ver132) {
+	// as of commit, 13.2 and 14.0 are oldest supported versions
+	if ovi.LessThan(ver132) || ovi.LessThan(ver140) {
 		slog.Error("Unsupported OS version", "version", ovi)
 		os.Exit(1)
 	}
