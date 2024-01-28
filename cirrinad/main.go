@@ -47,6 +47,16 @@ func handleSigInfo() {
 }
 
 func destroyPidFile() {
+	pidFilePath, err := filepath.Abs(config.Config.Sys.PidFilePath)
+	if err != nil {
+		slog.Error("failed to get absolute path to pid file")
+		os.Exit(1)
+	}
+	err = os.Remove(pidFilePath)
+	if err != nil {
+		slog.Error("failed removing leftover pid file")
+		os.Exit(1)
+	}
 
 }
 
@@ -54,7 +64,7 @@ func destroyPidFile() {
 func writePidFile() {
 	pidFilePath, err := filepath.Abs(config.Config.Sys.PidFilePath)
 	if err != nil {
-		slog.Error("failed to get absolute path to log")
+		slog.Error("failed to get absolute path to pid file")
 		os.Exit(1)
 	}
 	_, err = os.Stat(pidFilePath)

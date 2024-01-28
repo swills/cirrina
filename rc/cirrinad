@@ -29,13 +29,33 @@ load_rc_config $name
 : ${cirrinad_args:="-config ${cirrinad_config}"}
 : ${cirrinad_user:="cirrinad"}
 : ${cirrinad_group:="cirrinad"}
-: ${cirrinad_oomprotect:="YES"}
+: ${cirrinad_protect:="YES"}
 : ${cirrinad_command:="/usr/local/bin/cirrinad"}
 
 pidfile=/var/run/cirrinad/cirrinad.pid
 required_files="${cirrinad_config}"
 procname="${cirrinad_command}"
+start_postcmd="${name}_poststart"
 command="/usr/sbin/daemon"
 command_args="-S -T cirrinad -s info -m 3 -f /usr/bin/env ${cirrinad_env} ${procname} ${cirrinad_args}"
+
+cirrinad_poststart()
+{
+    local timeout=15
+    while [ ! -f "${pidfile}" -a ${timeout} -gt 0 ]; do
+        timeout=$(( timeout - 1 ))
+        sleep 1
+    done
+    if [ -f "${pidfile}" ]; then
+        [ -z "${rc_pid}" ] && eval $_pidcmd
+        [ -z "${rc_pid}" ] && return 0
+        case ${cirrinad_protect} in
+        [Yy][Ee][Ss])
+            ${PROTECT} -p ${rc_pid}
+            ;;
+        esac
+    fi
+    return 0
+}
 
 run_rc_command "$1"
