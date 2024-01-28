@@ -27,7 +27,7 @@ var RestartDelay uint32
 var RestartDelayChanged bool
 var MaxWait uint32
 var MaxWaitChanged bool
-var Cpus uint8
+var Cpus uint16
 var CpusChanged bool
 var VmDescription string
 var VmDescriptionChanged bool
@@ -1103,7 +1103,7 @@ func init() {
 	VmCreateCmd.Flags().StringVarP(&VmDescription,
 		"description", "d", SwitchDescription, "SwitchDescription of VM",
 	)
-	VmCreateCmd.Flags().Uint8VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
+	VmCreateCmd.Flags().Uint16VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
 	VmCreateCmd.Flags().Uint32VarP(&Mem,
 		"mem", "m", Mem, "Amount of virtual memory in megabytes",
 	)
@@ -1124,7 +1124,7 @@ func init() {
 	VmConfigCmd.Flags().StringVarP(&VmDescription,
 		"description", "d", VmDescription, "SwitchDescription of VM",
 	)
-	VmConfigCmd.Flags().Uint8VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
+	VmConfigCmd.Flags().Uint16VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
 	VmConfigCmd.Flags().Uint32VarP(&Mem,
 		"mem", "m", Mem, "Amount of virtual memory in megabytes",
 	)

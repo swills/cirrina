@@ -2,7 +2,6 @@
 # TODO
 
 * Convert all bool in database to `sql.NullBool`
-* Ensure all listing in client default to human-readable, add option for exact number (-p)
 * Add disk update to server/client
 * Add zvol support to GUI - including listing dev type in disk list
 * Add vm priority (nice) stuff to GUI
@@ -12,7 +11,6 @@
 * NIC cloning
 * VM cloning
 * Auto decompress isos/disk images
-* Add progress bar for vm stop/start
 
 * Basics
     * Ensuring no crashes

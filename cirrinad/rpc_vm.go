@@ -374,7 +374,7 @@ func (s *server) GetVmId(_ context.Context, v *wrapperspb.StringValue) (*cirrina
 		return &cirrina.VMID{}, errors.New("name not specified or invalid")
 	}
 
-	vmName = v.String()
+	vmName = v.GetValue()
 	vmInst, err := vm.GetByName(vmName)
 	if err != nil {
 		return &cirrina.VMID{}, errors.New("VM not found")
