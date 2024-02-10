@@ -23,7 +23,6 @@
       * Ensure switch uplinks exist
       * Ensure config paths exist
       * Ensure disk paths/pool/volumes exist
-
 * Booting
     * Add feature to manage UEFI settings such as boot order to GUI
 * Devices
@@ -63,7 +62,6 @@
     * RDP
     * Implement 9p sharing
 * Other/Ideas
-    * Use viper in cirrinad
     * Use [deque](https://pkg.go.dev/github.com/gammazero/deque) to replace the requests table
     * Use real uuid type instead of string everywhere
     * Clients

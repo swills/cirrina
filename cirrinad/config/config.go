@@ -1,8 +1,6 @@
 package config
 
-var File = "config.yml"
-
-var Config = struct {
+type ConfigType struct {
 	Sys struct {
 		Sudo        string
 		PidFilePath string `default:"/var/run/cirrinad/cirrinad.pid"`
@@ -61,4 +59,6 @@ var Config = struct {
 		Ip   string `default:"0.0.0.0"`
 		Port uint   `default:"2828"`
 	}
-}{}
+}
+
+var Config ConfigType

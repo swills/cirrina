@@ -7,8 +7,9 @@ import (
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm_nics"
 	"errors"
-	"github.com/jinzhu/configor"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -27,6 +28,8 @@ import (
 )
 
 var mainVersion = "unknown"
+
+var cfgFile = "config.yml"
 
 var shutdownHandlerRunning = false
 var shutdownWaitGroup = sync.WaitGroup{}
@@ -195,7 +198,7 @@ var rootCmd = &cobra.Command{
 		}()
 
 		var configAbsPath string
-		configAbsPath, err = filepath.Abs(config.File)
+		configAbsPath, err = filepath.Abs(cfgFile)
 		if err != nil {
 			slog.Error("failed getting config file absolute path", "err", err)
 			return err
@@ -207,7 +210,16 @@ var rootCmd = &cobra.Command{
 			return errors.New("config file not found")
 		}
 
-		err = configor.Load(&config.Config, configAbsPath)
+		err = viper.ReadInConfig()
+		if err != nil {
+			slog.Error("config reading failed", "err", err)
+			return err
+		}
+
+		err = viper.UnmarshalExact(&config.Config, func(config *mapstructure.DecoderConfig) {
+			config.TagName = "yaml"
+			config.WeaklyTypedInput = true
+		})
 		if err != nil {
 			slog.Error("config loading failed", "err", err)
 			return err
@@ -267,10 +279,18 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
+	cobra.OnInitialize(initConfig)
 	cobra.EnableCommandSorting = false
 	disableFlagSorting(rootCmd)
 
-	rootCmd.PersistentFlags().StringVarP(&config.File,
-		"config", "C", config.File, "config file (default config.yml)",
+	rootCmd.PersistentFlags().StringVarP(&cfgFile,
+		"config", "C", cfgFile, "config file (default config.yml)",
 	)
+}
+
+func initConfig() {
+	if cfgFile != "" {
+		viper.SetConfigFile(cfgFile)
+	}
+	viper.SetConfigType("yaml")
 }
