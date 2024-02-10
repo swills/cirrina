@@ -5,6 +5,7 @@ import (
 	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"log/slog"
 )
 
@@ -102,4 +103,14 @@ func Delete(id string) (err error) {
 		return errors.New(errText)
 	}
 	return nil
+}
+
+type ISO struct {
+	gorm.Model
+	ID          string `gorm:"uniqueIndex;not null;default:null"`
+	Name        string `gorm:"uniqueIndex;not null;default:null"`
+	Description string
+	Path        string `gorm:"not null;default:null"`
+	Size        uint64
+	Checksum    string
 }

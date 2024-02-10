@@ -23,6 +23,7 @@
       * Ensure switch uplinks exist
       * Ensure config paths exist
       * Ensure disk paths/pool/volumes exist
+
 * Booting
     * Add feature to manage UEFI settings such as boot order to GUI
 * Devices
@@ -35,7 +36,6 @@
         * Implement support for separate controllers and types and specifying which HD/CD are on which controller
         * Implement enlarging disks
         * Implement iSCSI disk support
-        * Create disk from existing image (clone) or other disk image.
     * Networking
         * Support [Open vSwitch](https://www.openvswitch.org/) ([port](https://www.freshports.org/net/openvswitch/))
         * Switch from `sudo ifconfig ...` to using [netlink](https://man.freebsd.org/cgi/man.cgi?netlink) via [go lib](https://pkg.go.dev/github.com/vishvananda/netlink) once netlink is in all supported FreeBSD versions
@@ -63,7 +63,7 @@
     * RDP
     * Implement 9p sharing
 * Other/Ideas
-    * Use cobra/viper in cirrinad
+    * Use viper in cirrinad
     * Use [deque](https://pkg.go.dev/github.com/gammazero/deque) to replace the requests table
     * Use real uuid type instead of string everywhere
     * Clients

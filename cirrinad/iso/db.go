@@ -2,6 +2,7 @@ package iso
 
 import (
 	"cirrina/cirrinad/config"
+	"github.com/google/uuid"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -52,4 +53,17 @@ func getIsoDb() *gorm.DB {
 		instance.isoDb = isoDb
 	})
 	return instance.isoDb
+}
+
+func (iso *ISO) BeforeCreate(_ *gorm.DB) (err error) {
+	iso.ID = uuid.NewString()
+	return nil
+}
+
+func DbAutoMigrate() {
+	db := getIsoDb()
+	err := db.AutoMigrate(&ISO{})
+	if err != nil {
+		panic("failed to auto-migrate ISO")
+	}
 }

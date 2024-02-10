@@ -26,7 +26,7 @@ load_rc_config $name
 
 : ${cirrinad_enable:="NO"}
 : ${cirrinad_config:="/usr/local/etc/cirrinad/config.yml"}
-: ${cirrinad_args:="-config ${cirrinad_config}"}
+: ${cirrinad_args:="--config ${cirrinad_config}"}
 : ${cirrinad_user:="cirrinad"}
 : ${cirrinad_group:="cirrinad"}
 : ${cirrinad_protect:="YES"}

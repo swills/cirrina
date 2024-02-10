@@ -209,15 +209,15 @@ func (vm *VM) getROMArg() []string {
 	var romArg []string
 
 	if vm.Config.StoreUEFIVars {
-		uefiVarsPath := baseVMStatePath + "/" + vm.Name + "/BHYVE_UEFI_VARS.fd"
+		uefiVarsPath := config.Config.Disk.VM.Path.State + "/" + vm.Name + "/BHYVE_UEFI_VARS.fd"
 		romArg = []string{
 			"-l",
-			"bootrom," + bootRomPath + "," + uefiVarsPath,
+			"bootrom," + config.Config.Rom.Path + "," + uefiVarsPath,
 		}
 	} else {
 		romArg = []string{
 			"-l",
-			"bootrom," + bootRomPath,
+			"bootrom," + config.Config.Rom.Path,
 		}
 	}
 

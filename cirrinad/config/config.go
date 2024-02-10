@@ -1,12 +1,6 @@
 package config
 
-import (
-	"flag"
-	"github.com/jinzhu/configor"
-	"log/slog"
-)
-
-var configFile = flag.String("config", "config.yml", "Config File")
+var File = "config.yml"
 
 var Config = struct {
 	Sys struct {
@@ -68,12 +62,3 @@ var Config = struct {
 		Port uint   `default:"2828"`
 	}
 }{}
-
-func init() {
-	flag.Parse()
-	err := configor.Load(&Config, *configFile)
-	if err != nil {
-		slog.Error("config loading failed", "err", err)
-		return
-	}
-}

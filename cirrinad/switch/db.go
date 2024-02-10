@@ -2,6 +2,7 @@ package _switch
 
 import (
 	"cirrina/cirrinad/config"
+	"github.com/google/uuid"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -52,4 +53,17 @@ func getSwitchDb() *gorm.DB {
 		instance.switchDb = switchDb
 	})
 	return instance.switchDb
+}
+
+func (d *Switch) BeforeCreate(_ *gorm.DB) (err error) {
+	d.ID = uuid.NewString()
+	return nil
+}
+
+func DbAutoMigrate() {
+	db := getSwitchDb()
+	err := db.AutoMigrate(&Switch{})
+	if err != nil {
+		panic("failed to auto-migrate switches")
+	}
 }

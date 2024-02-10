@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	exec "golang.org/x/sys/execabs"
+	"gorm.io/gorm"
 	"strings"
 
 	"cirrina/cirrinad/config"
@@ -577,4 +578,13 @@ func DestroyNgBridge(netDev string) (err error) {
 		return err
 	}
 	return nil
+}
+
+type Switch struct {
+	gorm.Model
+	ID          string `gorm:"uniqueIndex;not null;default:null"`
+	Name        string `gorm:"uniqueIndex;not null;default:null"`
+	Description string
+	Type        string `gorm:"default:IF;check:type IN (\"IF\",\"NG\")"`
+	Uplink      string
 }

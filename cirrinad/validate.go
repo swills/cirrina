@@ -621,7 +621,7 @@ func validateConfig() {
 	validateDebugConfig()
 	validateRomConfig()
 	validateDiskConfig()
-	// validateLogConfig called early in main
+	// validateLogConfig called early in Execute
 	validateNetworkConf()
 }
 

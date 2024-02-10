@@ -2,6 +2,7 @@ package vm
 
 import (
 	"cirrina/cirrinad/config"
+	"github.com/google/uuid"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -165,4 +166,37 @@ func (vm *VM) SetDebugPort(port int) {
 	vm.mu.Lock()
 	vm.DebugPort = int32(port)
 	_ = vm.Save()
+}
+
+func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
+	vm.ID = uuid.NewString()
+	return nil
+}
+
+func DbAutoMigrate() {
+	db := getVmDb()
+	err := db.AutoMigrate(&VM{})
+	if err != nil {
+		panic("failed to auto-migrate VMs")
+	}
+	err = db.AutoMigrate(&Config{})
+	if err != nil {
+		slog.Error("failed db migration", "err", err)
+		panic("failed to auto-migrate Configs")
+	}
+
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
+	for _, vmInst := range GetAllDb() {
+		InitOneVm(vmInst)
+	}
+}
+
+func GetAllDb() []*VM {
+	var result []*VM
+
+	db := getVmDb()
+	db.Preload("Config").Find(&result)
+
+	return result
 }

@@ -1,7 +1,14 @@
 package main
 
 import (
+	"cirrina/cirrinad/disk"
+	"cirrina/cirrinad/iso"
+	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vm_nics"
+	"errors"
+	"github.com/jinzhu/configor"
+	"github.com/spf13/cobra"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -23,6 +30,12 @@ var mainVersion = "unknown"
 
 var shutdownHandlerRunning = false
 var shutdownWaitGroup = sync.WaitGroup{}
+
+func disableFlagSorting(cmd *cobra.Command) {
+	cmd.Flags().SortFlags = false
+	cmd.PersistentFlags().SortFlags = false
+	cmd.InheritedFlags().SortFlags = false
+}
 
 func handleSigInfo() {
 	var mem runtime.MemStats
@@ -109,6 +122,19 @@ func writePidFile() {
 	}
 }
 
+func doDbMigrations() {
+	util.ValidateDbConfig()
+
+	disk.DbAutoMigrate()
+	iso.DbAutoMigrate()
+	vm_nics.DbAutoMigrate()
+	_switch.DbAutoMigrate()
+
+	vm.DbAutoMigrate()
+
+	requests.DbAutoMigrate()
+}
+
 func shutdownHandler() {
 	if shutdownHandlerRunning {
 		return
@@ -144,61 +170,107 @@ func sigHandler(signal os.Signal) {
 }
 
 func main() {
-	signals := make(chan os.Signal)
-	signal.Notify(signals, os.Interrupt, syscall.SIGINFO)
-	signal.Notify(signals, os.Interrupt, syscall.SIGINT)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-
-	go func() {
-		for {
-			s := <-signals
-			sigHandler(s)
-		}
-	}()
-
-	validateLogConfig()
-
-	logFile, err := os.OpenFile(config.Config.Log.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	err := rootCmd.Execute()
 	if err != nil {
-		slog.Error("failed to open log file", err)
-		return
+		os.Exit(1)
 	}
-	programLevel := new(slog.LevelVar) // Info by default
-	logger := slog.New(slog.NewTextHandler(logFile, &slog.HandlerOptions{Level: programLevel}))
-	slog.SetDefault(logger)
-	switch strings.ToLower(config.Config.Log.Level) {
-	case "debug":
-		programLevel.Set(slog.LevelDebug)
-	case "info":
-		programLevel.Set(slog.LevelInfo)
-	case "warn":
-		programLevel.Set(slog.LevelWarn)
-	case "error":
-		programLevel.Set(slog.LevelError)
-	default:
-		programLevel.Set(slog.LevelInfo)
-	}
+}
 
-	slog.Debug("Checking for existing proc")
-	validatePidFilePathConfig()
-	slog.Debug("Writing pid file")
-	writePidFile()
+var rootCmd = &cobra.Command{
+	Use:     "cirrinad",
+	Version: mainVersion,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
 
-	slog.Debug("Starting host validation")
-	validateSystem()
-	slog.Debug("Finished host validation")
-	slog.Debug("Clean up starting")
-	cleanupSystem()
-	slog.Debug("Clean up complete")
+		signals := make(chan os.Signal)
+		signal.Notify(signals, os.Interrupt, syscall.SIGINFO)
+		signal.Notify(signals, os.Interrupt, syscall.SIGINT)
+		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
-	slog.Debug("Creating bridges")
-	_switch.CreateBridges()
-	slog.Info("Starting Daemon")
+		go func() {
+			for {
+				s := <-signals
+				sigHandler(s)
+			}
+		}()
 
-	go vm.AutoStartVMs()
-	go rpcServer()
-	go processRequests()
+		var configAbsPath string
+		configAbsPath, err = filepath.Abs(config.File)
+		if err != nil {
+			slog.Error("failed getting config file absolute path", "err", err)
+			return err
+		}
 
-	shutdownWaitGroup.Add(1)
-	shutdownWaitGroup.Wait()
+		var configPathExists bool
+		configPathExists, err = util.PathExists(configAbsPath)
+		if !configPathExists {
+			return errors.New("config file not found")
+		}
+
+		err = configor.Load(&config.Config, configAbsPath)
+		if err != nil {
+			slog.Error("config loading failed", "err", err)
+			return err
+		}
+
+		validateLogConfig()
+
+		logFile, err := os.OpenFile(config.Config.Log.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+		if err != nil {
+			slog.Error("failed to open log file", err)
+			return err
+		}
+		programLevel := new(slog.LevelVar) // Info by default
+		logger := slog.New(slog.NewTextHandler(logFile, &slog.HandlerOptions{Level: programLevel}))
+		slog.SetDefault(logger)
+		switch strings.ToLower(config.Config.Log.Level) {
+		case "debug":
+			programLevel.Set(slog.LevelDebug)
+		case "info":
+			programLevel.Set(slog.LevelInfo)
+		case "warn":
+			programLevel.Set(slog.LevelWarn)
+		case "error":
+			programLevel.Set(slog.LevelError)
+		default:
+			programLevel.Set(slog.LevelInfo)
+		}
+
+		slog.Debug("Checking for existing proc")
+		validatePidFilePathConfig()
+		slog.Debug("Writing pid file")
+		writePidFile()
+
+		slog.Debug("Starting host validation")
+		validateSystem()
+		slog.Debug("Finished host validation")
+
+		doDbMigrations()
+
+		// code after this uses the database
+		slog.Debug("Clean up starting")
+		cleanupSystem()
+		slog.Debug("Clean up complete")
+
+		slog.Debug("Creating bridges")
+		_switch.CreateBridges()
+		slog.Info("Starting Daemon")
+
+		go vm.AutoStartVMs()
+		go rpcServer()
+		go processRequests()
+
+		shutdownWaitGroup.Add(1)
+		shutdownWaitGroup.Wait()
+		return nil
+	},
+}
+
+func init() {
+	cobra.EnableCommandSorting = false
+	disableFlagSorting(rootCmd)
+
+	rootCmd.PersistentFlags().StringVarP(&config.File,
+		"config", "C", config.File, "config file (default config.yml)",
+	)
 }

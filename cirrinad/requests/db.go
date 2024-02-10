@@ -53,3 +53,11 @@ func getReqDb() *gorm.DB {
 	})
 	return instance.reqDb
 }
+
+func DbAutoMigrate() {
+	db := getReqDb()
+	err := db.AutoMigrate(&Request{})
+	if err != nil {
+		panic("failed to auto-migrate Requests")
+	}
+}

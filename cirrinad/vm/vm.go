@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"bufio"
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/epair"
@@ -9,22 +8,137 @@ import (
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm_nics"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/kontera-technologies/go-supervisor/v2"
 	"github.com/tarm/serial"
 	exec "golang.org/x/sys/execabs"
+	"gorm.io/gorm"
 	"io"
 	"log/slog"
 	"os"
-	"os/user"
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 )
+
+type StatusType string
+
+const (
+	STOPPED  StatusType = "STOPPED"
+	STARTING StatusType = "STARTING"
+	RUNNING  StatusType = "RUNNING"
+	STOPPING StatusType = "STOPPING"
+)
+
+type Config struct {
+	gorm.Model
+	VmId             string
+	Cpu              uint32 `gorm:"default:1;check:cpu>=1"`
+	Mem              uint32 `gorm:"default:128;check:mem>=128"`
+	MaxWait          uint32 `gorm:"default:120;check:max_wait>=0"`
+	Restart          bool   `gorm:"default:True;check:restart IN (0,1)"`
+	RestartDelay     uint32 `gorm:"default:1;check:restart_delay>=0"`
+	Screen           bool   `gorm:"default:True;check:screen IN (0,1)"`
+	ScreenWidth      uint32 `gorm:"default:1920;check:screen_width BETWEEN 640 and 1920"`
+	ScreenHeight     uint32 `gorm:"default:1080;check:screen_height BETWEEN 480 and 1200"`
+	VNCWait          bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
+	VNCPort          string `gorm:"default:AUTO"`
+	Tablet           bool   `gorm:"default:True;check:tablet IN(0,1)"`
+	StoreUEFIVars    bool   `gorm:"default:True;check:store_uefi_vars IN(0,1)"`
+	UTCTime          bool   `gorm:"default:True;check:utc_time IN(0,1)"`
+	HostBridge       bool   `gorm:"default:True;check:host_bridge IN(0,1)"`
+	ACPI             bool   `gorm:"default:True;check:acpi IN(0,1)"`
+	UseHLT           bool   `gorm:"default:True;check:use_hlt IN(0,1)"`
+	ExitOnPause      bool   `gorm:"default:True;check:exit_on_pause IN (0,1)"`
+	WireGuestMem     bool   `gorm:"default:False;check:wire_guest_mem IN (0,1)"`
+	DestroyPowerOff  bool   `gorm:"default:True;check:destroy_power_off IN (0,1)"`
+	IgnoreUnknownMSR bool   `gorm:"default:True;check:ignore_unknown_msr IN (0,1)"`
+	KbdLayout        string `gorm:"default:default"`
+	AutoStart        bool   `gorm:"default:False;check:auto_start IN (0,1)"`
+	Sound            bool   `gorm:"default:False;check:sound IN(0,1)"`
+	SoundIn          string `gorm:"default:/dev/dsp0"`
+	SoundOut         string `gorm:"default:/dev/dsp0"`
+	Com1             bool   `gorm:"default:True;check:com1 IN(0,1)"`
+	Com1Dev          string `gorm:"default:AUTO"`
+	Com1Log          bool   `gorm:"default:False;check:com1_log IN(0,1)"`
+	Com2             bool   `gorm:"default:False;check:com2 IN(0,1)"`
+	Com2Dev          string `gorm:"default:AUTO"`
+	Com2Log          bool   `gorm:"default:False;check:com2_log IN(0,1)"`
+	Com3             bool   `gorm:"default:False;check:com3 IN(0,1)"`
+	Com3Dev          string `gorm:"default:AUTO"`
+	Com3Log          bool   `gorm:"default:False;check:com3_log IN(0,1)"`
+	Com4             bool   `gorm:"default:False;check:com4 IN(0,1)"`
+	Com4Dev          string `gorm:"default:AUTO"`
+	Com4Log          bool   `gorm:"default:False;check:com4_log IN(0,1)"`
+	ExtraArgs        string
+	ISOs             string
+	Disks            string
+	Nics             string
+	Com1Speed        uint32       `gorm:"default:115200;check:com1_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
+	Com2Speed        uint32       `gorm:"default:115200;check:com2_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
+	Com3Speed        uint32       `gorm:"default:115200;check:com3_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
+	Com4Speed        uint32       `gorm:"default:115200;check:com4_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
+	AutoStartDelay   uint32       `gorm:"default:0;check:auto_start_delay>=0"`
+	Debug            bool         `gorm:"default:False;check:debug IN(0,1)"`
+	DebugWait        bool         `gorm:"default:False;check:debug_wait IN(0,1)"`
+	DebugPort        string       `gorm:"default:AUTO"`
+	Priority         int32        `gorm:"default:0;check:priority BETWEEN -20 and 20"`
+	Protect          sql.NullBool `gorm:"default:True;check:protect IN(0,1)"`
+	Pcpu             uint32
+	Rbps             uint32
+	Wbps             uint32
+	Riops            uint32
+	Wiops            uint32
+}
+
+type VM struct {
+	gorm.Model
+	ID          string `gorm:"uniqueIndex;not null"`
+	Name        string `gorm:"not null"`
+	Description string
+	Status      StatusType `gorm:"type:status_type"`
+	BhyvePid    uint32     `gorm:"check:bhyve_pid>=0"`
+	VNCPort     int32
+	DebugPort   int32
+	proc        *supervisor.Process
+	mu          sync.RWMutex
+	log         slog.Logger
+	Config      Config
+	Com1Dev     string // TODO make a com struct and put these in it?
+	Com2Dev     string
+	Com3Dev     string
+	Com4Dev     string
+	Com1        *serial.Port `gorm:"-:all"`
+	Com2        *serial.Port `gorm:"-:all"`
+	Com3        *serial.Port `gorm:"-:all"`
+	Com4        *serial.Port `gorm:"-:all"`
+	Com1lock    sync.Mutex   `gorm:"-:all"`
+	Com2lock    sync.Mutex   `gorm:"-:all"`
+	Com3lock    sync.Mutex   `gorm:"-:all"`
+	Com4lock    sync.Mutex   `gorm:"-:all"`
+	Com1rchan   chan byte    `gorm:"-:all"`
+	Com1write   bool         `gorm:"-:all"`
+	Com2rchan   chan byte    `gorm:"-:all"`
+	Com2write   bool         `gorm:"-:all"`
+	Com3rchan   chan byte    `gorm:"-:all"`
+	Com3write   bool         `gorm:"-:all"`
+	Com4rchan   chan byte    `gorm:"-:all"`
+	Com4write   bool         `gorm:"-:all"`
+}
+
+type ListType struct {
+	Mu     sync.RWMutex
+	VmList map[string]*VM
+}
+
+var vmStartLock sync.Mutex
+var List = &ListType{
+	VmList: make(map[string]*VM),
+}
 
 func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, err error) {
 	var vmInst *VM
@@ -69,8 +183,6 @@ func (vm *VM) Delete() (err error) {
 	}
 	return nil
 }
-
-var vmStartLock sync.Mutex
 
 func (vm *VM) Start() (err error) {
 	defer vmStartLock.Unlock()
@@ -269,7 +381,7 @@ func (vm *VM) MaybeForceKillVM() {
 }
 
 func (vm *VM) createUefiVarsFile() {
-	uefiVarsFilePath := baseVMStatePath + "/" + vm.Name
+	uefiVarsFilePath := config.Config.Disk.VM.Path.State + "/" + vm.Name
 	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
 	uvPathExists, err := util.PathExists(uefiVarsFilePath)
 	if err != nil {
@@ -287,7 +399,7 @@ func (vm *VM) createUefiVarsFile() {
 		return
 	}
 	if !uvFileExists {
-		_, err = util.CopyFile(uefiVarFileTemplate, uefiVarsFile)
+		_, err = util.CopyFile(config.Config.Rom.Vars.Template, uefiVarsFile)
 		if err != nil {
 			slog.Error("failed to copy uefiVars template", "err", err)
 		}
@@ -540,56 +652,6 @@ func (vm *VM) NetCleanup() {
 	}
 }
 
-func findChildPid(findPid uint32) (childPid uint32) {
-	slog.Debug("FindChildPid finding child proc")
-	pidString := strconv.FormatUint(uint64(findPid), 10)
-	args := []string{"/bin/pgrep", "-P", pidString}
-	cmd := exec.Command(config.Config.Sys.Sudo, args...)
-	defer func(cmd *exec.Cmd) {
-		err := cmd.Wait()
-		if err != nil {
-			slog.Error("FindChildPid error", "err", err)
-		}
-	}(cmd)
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		slog.Error("FindChildPid error", "err", err)
-		return 0
-	}
-	if err := cmd.Start(); err != nil {
-		slog.Error("FindChildPid error", "err", err)
-		return 0
-	}
-	found := false
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		text := scanner.Text()
-		textFields := strings.Fields(text)
-		fl := len(textFields)
-		if fl != 1 {
-			slog.Debug("FindChildPid pgrep extra fields", "text", text)
-		}
-		tempPid1 := uint64(0)
-		if !found {
-			found = true
-			tempPid1, err = strconv.ParseUint(textFields[0], 10, 32)
-			if err != nil {
-				slog.Error("FindChildPid error", "err", err)
-				return 0
-			}
-			tempPid2 := uint32(tempPid1)
-			childPid = tempPid2
-		} else {
-			slog.Debug("FindChildPid found too many child procs")
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		slog.Error("FindChildPid error", "err", err)
-	}
-	slog.Debug("FindChildPid returning childPid", "childPid", childPid)
-	return childPid
-}
-
 func vmDaemon(events chan supervisor.Event, vm *VM) {
 	for {
 		select {
@@ -681,7 +743,7 @@ func (vm *VM) GetDisks() ([]*disk.Disk, error) {
 }
 
 func (vm *VM) DeleteUEFIState() error {
-	uefiVarsFilePath := baseVMStatePath + "/" + vm.Name
+	uefiVarsFilePath := config.Config.Disk.VM.Path.State + "/" + vm.Name
 	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
 	uvFileExists, err := util.PathExists(uefiVarsFile)
 	if err != nil {
@@ -911,55 +973,6 @@ func (vm *VM) killComLoggers() {
 	}
 }
 
-func ensureComDevReadable(comDev string) error {
-	if !strings.HasSuffix(comDev, "A") {
-		slog.Error("error checking com dev readable: invalid com dev", "comDev", comDev)
-		return errors.New("invalid com dev")
-	}
-	comBaseDev := comDev[:len(comDev)-1]
-	comReadDev := comBaseDev + "B"
-	slog.Debug("Checking com dev readable", "comDev", comDev, "comReadDev", comReadDev)
-	exists, err := util.PathExists(comReadDev)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return errors.New("comDev does not exists)")
-	}
-	comReadFileInfo, err := os.Stat(comReadDev)
-	if err != nil {
-		return err
-	}
-	if comReadFileInfo.IsDir() {
-		return errors.New("error checking com dev readable: comReadDev is directory")
-	}
-	comReadStat := comReadFileInfo.Sys().(*syscall.Stat_t)
-	if comReadStat == nil {
-		return errors.New("failed converting comReadFileInfo to Stat_t")
-	}
-	myUid, _, err := util.GetMyUidGid()
-	if err != nil {
-		return errors.New("failed getting my uid")
-	}
-	if comReadStat.Uid == myUid {
-		// everything is good, nothing to do
-		return nil
-	}
-	slog.Debug("ensureComDevReadable uid mismatch, fixing", "uid", comReadStat.Uid, "myUid", myUid)
-	myUser, err := user.Current()
-	if err != nil {
-		return err
-	}
-	args := []string{"/usr/sbin/chown", myUser.Username, comReadDev}
-	cmd := exec.Command(config.Config.Sys.Sudo, args...)
-	err = cmd.Run()
-	if err != nil {
-		return fmt.Errorf("failed to fix ownership of comReadDev %s: %w", comReadDev, err)
-	}
-	slog.Debug("ensureComDevReadable user mismatch fixed")
-	return nil
-}
-
 func (vm *VM) setupComLoggers() {
 	if vm.Com1Dev != "" && vm.Com1 == nil {
 		err := ensureComDevReadable(vm.Com1Dev)
@@ -1146,28 +1159,4 @@ func comLogger(vm *VM, comNum int) {
 			}
 		}
 	}
-}
-
-func startSerialPort(comDev string, comSpeed uint) (*serial.Port, error) {
-	if strings.HasSuffix(comDev, "A") {
-		comBaseDev := comDev[:len(comDev)-1]
-		comReadDev := comBaseDev + "B"
-		slog.Debug("startSerialPort starting serial port on com",
-			"comReadDev", comReadDev,
-			"comSpeed", comSpeed,
-		)
-		c := &serial.Config{
-			Name:        comReadDev,
-			Baud:        int(comSpeed),
-			ReadTimeout: 500 * time.Millisecond,
-		}
-		comReader, err := serial.OpenPort(c)
-		if err != nil {
-			slog.Error("startSerialPort error opening comReadDev", "error", err)
-			return nil, err
-		}
-		slog.Debug("startSerialLogger", "opened", comReadDev)
-		return comReader, nil
-	}
-	return nil, errors.New("invalid com dev")
 }

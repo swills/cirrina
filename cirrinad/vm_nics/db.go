@@ -2,6 +2,7 @@ package vm_nics
 
 import (
 	"cirrina/cirrinad/config"
+	"github.com/google/uuid"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -52,4 +53,17 @@ func getVmNicDb() *gorm.DB {
 		instance.vmNicDb = vmNicDb
 	})
 	return instance.vmNicDb
+}
+
+func (d *VmNic) BeforeCreate(_ *gorm.DB) (err error) {
+	d.ID = uuid.NewString()
+	return nil
+}
+
+func DbAutoMigrate() {
+	db := getVmNicDb()
+	err := db.AutoMigrate(&VmNic{})
+	if err != nil {
+		panic("failed to auto-migrate VmNics")
+	}
 }
