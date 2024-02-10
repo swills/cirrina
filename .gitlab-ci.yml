@@ -8,28 +8,6 @@ variables:
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${CI_PROJECT_NAME}"
   VER: ${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHORT_SHA}
 
-qodana:
-  when: manual
-  tags:
-    - k8s
-  only:
-    - main
-    - merge_requests
-  image:
-    name: jetbrains/qodana-go:2023.3-eap
-    entrypoint: [""]
-  variables:
-    QODANA_TOKEN: $qodana_token
-  script:
-    - export GOPROXY=http://10.0.1.152:3000
-    - git clone -b swillsv2 https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/swills/go-supervisor.git go-supervisor
-    - qodana --save-report --results-dir=$CI_PROJECT_DIR/.qodana
-  artifacts:
-    name: qodana-scan-results-"$CI_COMMIT_REF_NAME"
-    paths:
-      - $CI_PROJECT_DIR/.qodana
-    expire_in: 1 week
-
 cirrinad:
   stage: build
   tags:
