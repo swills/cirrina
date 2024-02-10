@@ -9,8 +9,8 @@ require (
 	github.com/google/uuid v1.5.0
 	github.com/hashicorp/go-version v1.6.0
 	github.com/jedib0t/go-pretty/v6 v6.4.9
-	github.com/jinzhu/configor v1.2.2
 	github.com/kontera-technologies/go-supervisor/v2 v2.1.0
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/rivo/tview v0.0.0-20231206124440-5f078138442e
 	github.com/rxwycdh/rxhash v0.0.0-20230131062142-10b7a38b400d
 	github.com/spf13/cobra v1.8.0
@@ -28,7 +28,6 @@ require (
 replace github.com/kontera-technologies/go-supervisor/v2 => ./go-supervisor
 
 require (
-	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gdamore/encoding v1.0.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
@@ -42,7 +41,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/mattn/go-sqlite3 v1.14.19 // indirect
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/pelletier/go-toml/v2 v2.1.1 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
