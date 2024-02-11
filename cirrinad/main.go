@@ -6,7 +6,7 @@ import (
 	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm_nics"
-	"errors"
+	"fmt"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -180,8 +180,9 @@ func main() {
 }
 
 var rootCmd = &cobra.Command{
-	Use:     "cirrinad",
-	Version: mainVersion,
+	Use:          "cirrinad",
+	Version:      mainVersion,
+	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
@@ -207,7 +208,7 @@ var rootCmd = &cobra.Command{
 		var configPathExists bool
 		configPathExists, err = util.PathExists(configAbsPath)
 		if !configPathExists {
-			return errors.New("config file not found")
+			return fmt.Errorf("config file %s not found", cfgFile)
 		}
 
 		err = viper.ReadInConfig()
@@ -234,7 +235,7 @@ var rootCmd = &cobra.Command{
 		}
 		programLevel := new(slog.LevelVar) // Info by default
 		logger := slog.New(slog.NewTextHandler(logFile, &slog.HandlerOptions{Level: programLevel}))
-		slog.SetDefault(logger)
+		slog.SetDefault(logger) // any logging before this point is going to have to be at default level or higher
 		switch strings.ToLower(config.Config.Log.Level) {
 		case "debug":
 			programLevel.Set(slog.LevelDebug)
@@ -292,5 +293,39 @@ func initConfig() {
 	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
 	}
+
+	viper.SetDefault("sys.sudo", "/usr/local/bin/sudo")
+	viper.SetDefault("sys.pidfilepath", "/var/run/cirrinad/cirrinad.pid")
+
+	viper.SetDefault("db.path", "/var/db/cirrinad/cirrina.sqlite")
+
+	// Maybe there could be default paths for disk paths?
+	viper.SetDefault("disk.default.size", "1G")
+
+	viper.SetDefault("log.path", "/var/log/cirrinad/cirrinad.log")
+	viper.SetDefault("log.level", "info")
+
+	viper.SetDefault("network.grpc.ip", "0.0.0.0")
+	viper.SetDefault("network.grpc.port", 50051)
+	// We use the "00:18:25" private OUI from
+	// https://standards-oui.ieee.org/oui/oui.txt
+	// as default, because why not? -- but you can customize it
+	// you probably want to stick to the uni-cast (non-multicast) ones from that file
+	// grep -i private oui.txt | grep -Ei base | grep -v '^.[13579BDF]' | grep -vi limited | grep -vi ltd
+	// for more info, see:
+	// https://en.wikipedia.org/wiki/MAC_address#Universal_vs._local_(U/L_bit)
+	viper.SetDefault("network.mac.oui", "00:18:25")
+
+	viper.SetDefault("rom.path", "/usr/local/share/uefi-firmware/BHYVE_UEFI.fd")
+	viper.SetDefault("rom.vars.template", "/usr/local/share/uefi-firmware/BHYVE_UEFI_VARS.fd")
+
+	viper.SetDefault("vnc.ip", "0.0.0.0")
+	viper.SetDefault("vnc.port", 6900)
+
+	viper.SetDefault("debug.ip", "0.0.0.0")
+	viper.SetDefault("debug.port", 2828)
+
+	viper.SetEnvPrefix("CIRRINAD")
+	viper.AutomaticEnv()
 	viper.SetConfigType("yaml")
 }

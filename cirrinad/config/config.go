@@ -3,7 +3,7 @@ package config
 type ConfigType struct {
 	Sys struct {
 		Sudo        string
-		PidFilePath string `default:"/var/run/cirrinad/cirrinad.pid"`
+		PidFilePath string
 	}
 	DB struct {
 		Path string
@@ -28,19 +28,11 @@ type ConfigType struct {
 	Network struct {
 		Grpc struct {
 			// TODO separate settings for IPv4 and IPv6 IP
-			Ip   string `default:"0.0.0.0"`
-			Port uint   `default:"50051"`
+			Ip   string
+			Port uint
 		}
-		// We use the "00:18:25" private OUI from
-		// https://standards-oui.ieee.org/oui/oui.txt
-		// as default, because why not?
-		// but you can customize it
-		// you probably want to stick to the uni-cast (non-multicast) ones from that file
-		// grep -i private oui.txt | grep -Ei base | grep -v '^.[13579BDF]' | grep -vi limited | grep -vi ltd
-		// for more info, see:
-		// https://en.wikipedia.org/wiki/MAC_address#Universal_vs._local_(U/L_bit)
 		Mac struct {
-			Oui string `default:"00:18:25"`
+			Oui string
 		}
 	}
 	Rom struct {
