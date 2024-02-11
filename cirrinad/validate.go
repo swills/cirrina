@@ -577,6 +577,27 @@ func validateDiskConfig() {
 		os.Exit(1)
 	}
 
+	if config.Config.Disk.VM.Path.Image == "" {
+		if err != nil {
+			slog.Error("disk.vm.path.image not set, please reconfigure")
+			os.Exit(1)
+		}
+	}
+
+	if config.Config.Disk.VM.Path.Iso == "" {
+		if err != nil {
+			slog.Error("disk.vm.path.iso not set, please reconfigure")
+			os.Exit(1)
+		}
+	}
+
+	if config.Config.Disk.VM.Path.State == "" {
+		if err != nil {
+			slog.Error("disk.vm.path.state not set, please reconfigure")
+			os.Exit(1)
+		}
+	}
+
 	diskImagePath, err := filepath.Abs(config.Config.Disk.VM.Path.Image)
 	if err != nil {
 		slog.Error("failed parsing disk vm path image, please reconfigure")
