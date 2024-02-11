@@ -2,7 +2,7 @@
 
 export GOROOT=/usr/local/go121
 export GOPATH=/tmp/cirrinagopath
-export PATH=${PATH}:${GOPATH}/bin
+export PATH=${GOROOT}/bin:${PATH}:${GOPATH}/bin
 
 go mod download -x
 
