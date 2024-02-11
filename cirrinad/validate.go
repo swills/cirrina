@@ -636,13 +636,13 @@ func validateDiskConfig() {
 }
 
 func validateConfig() {
-	// requests init func validates db config via util.ValidateDbConfig()
+	// main.doDbMigrations func validates db config via util.ValidateDbConfig()
 	validateSudoConfig()
 	validateVncConfig()
 	validateDebugConfig()
 	validateRomConfig()
 	validateDiskConfig()
-	// validateLogConfig called early in Execute
+	// validateLogConfig called early in main.rootCmd.RunE
 	validateNetworkConf()
 }
 
