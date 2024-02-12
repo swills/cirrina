@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var NicName string
@@ -23,6 +24,8 @@ var NicId string
 var NicRateLimited bool
 var NicRateIn uint64
 var NicRateOut uint64
+var NicCloneName string
+var NicCloneMac string
 
 var NicListCmd = &cobra.Command{
 	Use:          "list",
@@ -217,6 +220,65 @@ var NicSetSwitchCmd = &cobra.Command{
 	},
 }
 
+var NicCloneCmd = &cobra.Command{
+	Use:          "clone",
+	Short:        "Clone a NIC",
+	SilenceUsage: true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
+		if NicId == "" {
+			NicId, err = rpc.NicNameToId(NicName)
+			if err != nil {
+				return err
+			}
+			if NicId == "" {
+				return errors.New("NIC not found")
+			}
+		}
+
+		if NicCloneName == "" {
+			return errors.New("empty NIC name")
+		}
+
+		if CheckReqStat {
+			fmt.Print("Cloning NIC (timeout: 10s): ")
+		}
+		reqId, err := rpc.CloneNic(
+			NicId, NicCloneName, NicCloneMac,
+		)
+		if err != nil {
+			return err
+		}
+
+		if !CheckReqStat {
+			fmt.Printf("Request submitted\n")
+			return nil
+		}
+
+		timeout := time.Now().Add(time.Second * 10)
+
+		var reqStat rpc.ReqStatus
+		for time.Now().Before(timeout) {
+			reqStat, err = rpc.ReqStat(reqId)
+			if err != nil {
+				return err
+			}
+			if reqStat.Complete {
+				break
+			}
+			fmt.Printf(".")
+			time.Sleep(time.Second)
+		}
+		if reqStat.Success {
+			fmt.Printf(" done")
+		} else {
+			fmt.Printf(" failed")
+		}
+		fmt.Printf("\n")
+		return nil
+	},
+}
+
 var NicCmd = &cobra.Command{
 	Use:   "nic",
 	Short: "Create, list, modify, destroy virtual NICs",
@@ -264,8 +326,18 @@ func init() {
 	NicSetSwitchCmd.MarkFlagsOneRequired("switch-name", "switch-id")
 	NicSetSwitchCmd.MarkFlagsMutuallyExclusive("switch-name", "switch-id")
 
+	disableFlagSorting(NicCloneCmd)
+	addNameOrIdArgs(NicCloneCmd, &NicName, &NicId, "NIC")
+
+	NicCloneCmd.Flags().StringVarP(&NicCloneName,
+		"new-name", "N", NicCloneName, "Name of Cloned NIC",
+	)
+	NicCloneCmd.Flags().StringVarP(&NicCloneMac, "mac", "m", NicCloneMac, "New MAC address of cloned NIC")
+	NicCloneCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
+
 	NicCmd.AddCommand(NicListCmd)
 	NicCmd.AddCommand(NicCreateCmd)
 	NicCmd.AddCommand(NicRemoveCmd)
 	NicCmd.AddCommand(NicSetSwitchCmd)
+	NicCmd.AddCommand(NicCloneCmd)
 }

@@ -11,12 +11,14 @@ func processRequests() {
 		if rs.ID != "" {
 			rs.Start()
 			switch rs.Type {
-			case requests.START:
+			case requests.VMSTART:
 				go startVM(&rs)
-			case requests.STOP:
+			case requests.VMSTOP:
 				go stopVM(&rs)
-			case requests.DELETE:
+			case requests.VMDELETE:
 				go deleteVM(&rs)
+			case requests.NICCLONE:
+				go nicClone(&rs)
 			}
 		}
 		time.Sleep(50 * time.Millisecond)

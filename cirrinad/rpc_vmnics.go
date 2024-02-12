@@ -2,12 +2,14 @@ package main
 
 import (
 	"cirrina/cirrina"
+	"cirrina/cirrinad/requests"
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm"
 	"cirrina/cirrinad/vm_nics"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"log/slog"
 	"net"
@@ -45,6 +47,9 @@ func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 				return vmNicId, errors.New("may not use multicast MAC address")
 			}
 			newMac, err := net.ParseMAC(*v.Mac)
+			if err != nil {
+				return vmNicId, err
+			}
 			vmNicInst.Mac = newMac.String()
 		}
 	}
@@ -328,4 +333,38 @@ func (s *server) UpdateVmNic(_ context.Context, _ *cirrina.VmNicInfoUpdate) (_ *
 	var re cirrina.ReqBool
 	re.Success = false
 	return &re, errors.New("not implemented yet")
+}
+
+func (s *server) CloneVmNic(_ context.Context, cloneReq *cirrina.VmNicCloneReq) (*cirrina.RequestID, error) {
+	if cloneReq == nil || cloneReq.Vmnicid == nil || cloneReq.Vmnicid.Value == "" ||
+		cloneReq.NewVmNicName == nil || cloneReq.NewVmNicName.String() == "" {
+		return &cirrina.RequestID{}, errors.New("request error")
+	}
+
+	nicUuid, err := uuid.Parse(cloneReq.Vmnicid.Value)
+	if err != nil {
+		return &cirrina.RequestID{}, errors.New("request error")
+	}
+
+	vmNicInst, err := vm_nics.GetById(nicUuid.String())
+	if err != nil {
+		slog.Error("error finding clone nic", "vm", cloneReq.Vmnicid.Value, "err", err)
+		return &cirrina.RequestID{}, errors.New("not found")
+	}
+	if vmNicInst.Name == "" {
+		return &cirrina.RequestID{}, errors.New("not found")
+	}
+	pendingReqIds := requests.PendingReqExists(nicUuid.String())
+	if len(pendingReqIds) > 0 {
+		return &cirrina.RequestID{}, errors.New(
+			fmt.Sprintf("pending request for %v already exists", cloneReq.Vmnicid.Value),
+		)
+	}
+	newReq, err := requests.CreateNicCloneReq(
+		nicUuid.String(), cloneReq.NewVmNicName.Value, cloneReq.NewVmNicMac.Value,
+	)
+	if err != nil {
+		return &cirrina.RequestID{}, err
+	}
+	return &cirrina.RequestID{Value: newReq.ID}, nil
 }

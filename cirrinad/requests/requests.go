@@ -2,19 +2,20 @@ package requests
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-	"log/slog"
 	"time"
 )
 
 type reqType string
 
 const (
-	START  reqType = "START"
-	STOP   reqType = "STOP"
-	DELETE reqType = "DELETE"
+	VMSTART  reqType = "VMSTART"
+	VMSTOP   reqType = "VMSTOP"
+	VMDELETE reqType = "VMDELETE"
+	NICCLONE reqType = "NICCLONE"
 )
 
 type Request struct {
@@ -24,24 +25,64 @@ type Request struct {
 	Successful bool         `gorm:"default:False;check:successful IN (0,1)"`
 	Complete   bool         `gorm:"default:False;check:complete IN (0,1)"`
 	Type       reqType      `gorm:"type:req_type"`
-	VmId       string       `gorm:"not null;default:null"`
+	Data       string
+}
+
+type VmReqData struct {
+	VmId string `json:"vm_id"`
+}
+
+type NicCloneReqData struct {
+	NicId      string `json:"nic_id"`
+	NewNicName string `json:"new_nic_name"`
+	NewNicMac  string `json:"new_nic_mac,omitempty"`
+	NewNicDesc string `json:"new_nic_desc,omitempty"`
+}
+
+type DiskCloneReqData struct {
+	DiskId      string `json:"disk_id"`
+	NewDiskName string `json:"new_disk_name"`
+}
+
+type VmCloneReqData struct {
+	VmId      string `json:"vm_id"`
+	NewVmName string `json:"new_vm_name"`
 }
 
 func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {
 	req.ID = uuid.NewString()
-	_, err = uuid.Parse(req.VmId)
-	if err != nil {
-		slog.Debug("request.BeforeCreate failed parsing VmId", "VmId", req.VmId)
-		return err
-	}
 	return nil
 }
 
-func Create(r reqType, vmId string) (req Request, err error) {
+func CreateNicCloneReq(nicId string, newName string, newNicMac string) (req Request, err error) {
+	reqType := NICCLONE
+	var reqData []byte
+	reqData, err = json.Marshal(NicCloneReqData{NicId: nicId, NewNicName: newName, NewNicMac: newNicMac})
+	if err != nil {
+		return Request{}, err
+	}
 	db := getReqDb()
 	newReq := Request{
+		Data: string(reqData),
+		Type: reqType,
+	}
+	res := db.Create(&newReq)
+	if res.RowsAffected != 1 {
+		return Request{}, errors.New("failed to create request")
+	}
+	return newReq, nil
+}
+
+func CreateVmReq(r reqType, vmId string) (req Request, err error) {
+	var reqData []byte
+	reqData, err = json.Marshal(VmReqData{VmId: vmId})
+	if err != nil {
+		return Request{}, err
+	}
+	db := getReqDb()
+	newReq := Request{
+		Data: string(reqData),
 		Type: r,
-		VmId: vmId,
 	}
 	res := db.Create(&newReq)
 	if res.RowsAffected != 1 {
@@ -90,14 +131,39 @@ func (req *Request) Failed() {
 	)
 }
 
-func PendingReqExists(vmId string) bool {
+func PendingReqExists(objId string) (reqIds []string) {
 	db := getReqDb()
-	eReq := Request{}
-	db.Where(map[string]interface{}{"vm_id": vmId, "complete": false}).Find(&eReq)
-	if eReq.ID != "" {
-		return true
+	var err error
+	var incompleteRequests []Request
+	db.Where(map[string]interface{}{"complete": false}).Find(&incompleteRequests)
+
+	for _, incompleteRequest := range incompleteRequests {
+		switch incompleteRequest.Type {
+		case VMSTOP:
+			fallthrough
+		case VMSTART:
+			fallthrough
+		case VMDELETE:
+			var reqData VmReqData
+			err = json.Unmarshal([]byte(incompleteRequest.Data), &reqData)
+			if err != nil {
+				continue
+			}
+			if reqData.VmId == objId {
+				reqIds = append(reqIds, incompleteRequest.ID)
+			}
+		case NICCLONE:
+			var reqData VmCloneReqData
+			err = json.Unmarshal([]byte(incompleteRequest.Data), &reqData)
+			if err != nil {
+				continue
+			}
+			if reqData.VmId == objId {
+				reqIds = append(reqIds, incompleteRequest.ID)
+			}
+		}
 	}
-	return false
+	return reqIds
 }
 
 func FailAllPending() (cleared int64) {

@@ -200,12 +200,12 @@ var VmListCmd = &cobra.Command{
 
 		vmInfos := make(map[string]vmListInfo)
 		for _, id := range ids {
-			res, err := rpc.GetVMConfig(id)
+			vmConfig, err := rpc.GetVMConfig(id)
 			if err != nil {
 				return err
 			}
 
-			if res.Name == nil {
+			if vmConfig.Name == nil {
 				return errors.New("vm without name")
 			}
 			var status string
@@ -217,15 +217,15 @@ var VmListCmd = &cobra.Command{
 
 			var cpus string
 			var mems string
-			if res.Mem != nil {
+			if vmConfig.Mem != nil {
 				if Humanize {
-					mems = humanize.IBytes(uint64(*res.Mem) * 1024 * 1024)
+					mems = humanize.IBytes(uint64(*vmConfig.Mem) * 1024 * 1024)
 				} else {
-					mems = strconv.FormatUint(uint64(*res.Mem)*1024*1024, 10)
+					mems = strconv.FormatUint(uint64(*vmConfig.Mem)*1024*1024, 10)
 				}
 			}
-			if res.Cpu != nil {
-				cpus = strconv.FormatUint(uint64(*res.Cpu), 10)
+			if vmConfig.Cpu != nil {
+				cpus = strconv.FormatUint(uint64(*vmConfig.Cpu), 10)
 			}
 
 			if status == "stopped" {
@@ -239,18 +239,18 @@ var VmListCmd = &cobra.Command{
 			}
 
 			var desc string
-			if res.Description != nil {
-				desc = *res.Description
+			if vmConfig.Description != nil {
+				desc = *vmConfig.Description
 			}
 
-			vmInfos[*res.Name] = vmListInfo{
+			vmInfos[*vmConfig.Name] = vmListInfo{
 				id:     id,
 				mem:    mems,
 				cpu:    cpus,
 				status: sstatus,
 				descr:  desc,
 			}
-			names = append(names, *res.Name)
+			names = append(names, *vmConfig.Name)
 		}
 
 		sort.Strings(names)

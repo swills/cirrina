@@ -232,6 +232,12 @@ message SwitchesQuery {
 message VmNicsQuery {
 }
 
+message VmNicCloneReq {
+  VmNicId vmnicid = 1;
+  google.protobuf.StringValue NewVmNicName = 2;
+  optional google.protobuf.StringValue NewVmNicMac = 3;
+}
+
 message RequestID {
   string value = 1;
 }
@@ -348,6 +354,7 @@ service VMInfo {
   rpc RemoveVmNic(VmNicId) returns (ReqBool);
   rpc SetVmNicSwitch(SetVmNicSwitchReq) returns (ReqBool);
   rpc GetVmNicVm(VmNicId) returns (VMID);
+  rpc CloneVmNic(VmNicCloneReq) returns (RequestID);
 
   rpc SetVmNics(SetNicReq) returns (ReqBool);
   rpc GetVmNics(VMID) returns (stream VmNicId);

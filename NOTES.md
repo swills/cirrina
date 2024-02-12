@@ -8,7 +8,6 @@
 * Add check for disk size reduction in file based image uploads
 * Disk resize -- include force flag to allow reducing disk size which includes data loss
 * Disk cloning
-* NIC cloning
 * VM cloning
 * Auto decompress isos/disk images
 
@@ -43,7 +42,7 @@
         * Maybe run a DHCP server on switches of the proper "type"
         * Support [NATing](https://github.com/zed-0xff/ng_sbinat) VMs [via](https://github.com/MonkWho/pfatt/blob/master/bin/pfatt.sh) [netgraph](https://reviews.freebsd.org/D23461)
         * Tunnel/VPN support
-        * Make switches not send traffic not destined for the particular VM by default, like VMware blocking "promiscuous" mode.
+        * Make switches not send traffic not destined for the particular VM by default, like VMWare blocking "promiscuous" mode.
     * Sound
         * Add sound device list
 * Access/Sharing
@@ -62,7 +61,6 @@
     * RDP
     * Implement 9p sharing
 * Other/Ideas
-    * Use [deque](https://pkg.go.dev/github.com/gammazero/deque) to replace the requests table
     * Use real uuid type instead of string everywhere
     * Clients
         * Build TUI with [tview](https://github.com/rivo/tview)

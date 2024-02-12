@@ -566,13 +566,14 @@ func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestI
 	if vmInst.Name == "" {
 		return &cirrina.RequestID{}, errors.New("not found")
 	}
-	if requests.PendingReqExists(v.Value) {
+	pendingReqIds := requests.PendingReqExists(v.Value)
+	if len(pendingReqIds) > 0 {
 		return &cirrina.RequestID{}, errors.New(fmt.Sprintf("pending request for %v already exists", v.Value))
 	}
 	if vmInst.Status != vm.STOPPED {
 		return &cirrina.RequestID{}, errors.New("vm must be stopped before deleting")
 	}
-	newReq, err := requests.Create(requests.DELETE, v.Value)
+	newReq, err := requests.CreateVmReq(requests.VMDELETE, v.Value)
 	if err != nil {
 		return &cirrina.RequestID{}, err
 	}
@@ -729,13 +730,14 @@ func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID
 	if vmInst.Name == "" {
 		return &cirrina.RequestID{}, errors.New("not found")
 	}
-	if requests.PendingReqExists(vmUuid.String()) {
+	pendingReqIds := requests.PendingReqExists(v.Value)
+	if len(pendingReqIds) > 0 {
 		return &cirrina.RequestID{}, errors.New(fmt.Sprintf("pending request for %v already exists", v.Value))
 	}
 	if vmInst.Status != vm.STOPPED {
 		return &cirrina.RequestID{}, errors.New("vm must be stopped before starting")
 	}
-	newReq, err := requests.Create(requests.START, vmUuid.String())
+	newReq, err := requests.CreateVmReq(requests.VMSTART, vmUuid.String())
 	if err != nil {
 		return &cirrina.RequestID{}, err
 	}
@@ -755,13 +757,14 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 	if vmInst.Name == "" {
 		return &cirrina.RequestID{}, errors.New("not found")
 	}
-	if requests.PendingReqExists(vmUuid.String()) {
+	pendingReqIds := requests.PendingReqExists(v.Value)
+	if len(pendingReqIds) > 0 {
 		return &cirrina.RequestID{}, errors.New(fmt.Sprintf("pending request for %v already exists", v.Value))
 	}
 	if vmInst.Status != vm.RUNNING {
 		return &cirrina.RequestID{}, errors.New("vm must be running before stopping")
 	}
-	newReq, err := requests.Create(requests.STOP, v.Value)
+	newReq, err := requests.CreateVmReq(requests.VMSTOP, v.Value)
 	if err != nil {
 		return &cirrina.RequestID{}, err
 	}

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"io"
 )
 
@@ -268,4 +269,32 @@ func NicGetVm(id string) (string, error) {
 		return "", err
 	}
 	return res2, nil
+}
+
+func CloneNic(id string, newName string, newMac string) (string, error) {
+	if id == "" || newName == "" {
+		return "", errors.New("id name not specified")
+	}
+
+	conn, c, ctx, cancel, err := SetupConn()
+	if err != nil {
+		return "", err
+	}
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
+	defer cancel()
+
+	var cloneReq cirrina.VmNicCloneReq
+	var existingNicId cirrina.VmNicId
+	existingNicId.Value = id
+	cloneReq.Vmnicid = &existingNicId
+	cloneReq.NewVmNicName = wrapperspb.String(newName)
+	cloneReq.NewVmNicMac = wrapperspb.String(newMac)
+	var reqId *cirrina.RequestID
+	reqId, err = c.CloneVmNic(ctx, &cloneReq)
+	if err != nil {
+		return "", errors.New(status.Convert(err).Message())
+	}
+	return reqId.Value, nil
 }

@@ -65,6 +65,7 @@ const (
 	VMInfo_RemoveVmNic_FullMethodName        = "/cirrina.VMInfo/RemoveVmNic"
 	VMInfo_SetVmNicSwitch_FullMethodName     = "/cirrina.VMInfo/SetVmNicSwitch"
 	VMInfo_GetVmNicVm_FullMethodName         = "/cirrina.VMInfo/GetVmNicVm"
+	VMInfo_CloneVmNic_FullMethodName         = "/cirrina.VMInfo/CloneVmNic"
 	VMInfo_SetVmNics_FullMethodName          = "/cirrina.VMInfo/SetVmNics"
 	VMInfo_GetVmNics_FullMethodName          = "/cirrina.VMInfo/GetVmNics"
 	VMInfo_Com1Interactive_FullMethodName    = "/cirrina.VMInfo/Com1Interactive"
@@ -121,6 +122,7 @@ type VMInfoClient interface {
 	RemoveVmNic(ctx context.Context, in *VmNicId, opts ...grpc.CallOption) (*ReqBool, error)
 	SetVmNicSwitch(ctx context.Context, in *SetVmNicSwitchReq, opts ...grpc.CallOption) (*ReqBool, error)
 	GetVmNicVm(ctx context.Context, in *VmNicId, opts ...grpc.CallOption) (*VMID, error)
+	CloneVmNic(ctx context.Context, in *VmNicCloneReq, opts ...grpc.CallOption) (*RequestID, error)
 	SetVmNics(ctx context.Context, in *SetNicReq, opts ...grpc.CallOption) (*ReqBool, error)
 	GetVmNics(ctx context.Context, in *VMID, opts ...grpc.CallOption) (VMInfo_GetVmNicsClient, error)
 	Com1Interactive(ctx context.Context, opts ...grpc.CallOption) (VMInfo_Com1InteractiveClient, error)
@@ -790,6 +792,15 @@ func (c *vMInfoClient) GetVmNicVm(ctx context.Context, in *VmNicId, opts ...grpc
 	return out, nil
 }
 
+func (c *vMInfoClient) CloneVmNic(ctx context.Context, in *VmNicCloneReq, opts ...grpc.CallOption) (*RequestID, error) {
+	out := new(RequestID)
+	err := c.cc.Invoke(ctx, VMInfo_CloneVmNic_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *vMInfoClient) SetVmNics(ctx context.Context, in *SetNicReq, opts ...grpc.CallOption) (*ReqBool, error) {
 	out := new(ReqBool)
 	err := c.cc.Invoke(ctx, VMInfo_SetVmNics_FullMethodName, in, out, opts...)
@@ -1003,6 +1014,7 @@ type VMInfoServer interface {
 	RemoveVmNic(context.Context, *VmNicId) (*ReqBool, error)
 	SetVmNicSwitch(context.Context, *SetVmNicSwitchReq) (*ReqBool, error)
 	GetVmNicVm(context.Context, *VmNicId) (*VMID, error)
+	CloneVmNic(context.Context, *VmNicCloneReq) (*RequestID, error)
 	SetVmNics(context.Context, *SetNicReq) (*ReqBool, error)
 	GetVmNics(*VMID, VMInfo_GetVmNicsServer) error
 	Com1Interactive(VMInfo_Com1InteractiveServer) error
@@ -1147,6 +1159,9 @@ func (UnimplementedVMInfoServer) SetVmNicSwitch(context.Context, *SetVmNicSwitch
 }
 func (UnimplementedVMInfoServer) GetVmNicVm(context.Context, *VmNicId) (*VMID, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVmNicVm not implemented")
+}
+func (UnimplementedVMInfoServer) CloneVmNic(context.Context, *VmNicCloneReq) (*RequestID, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CloneVmNic not implemented")
 }
 func (UnimplementedVMInfoServer) SetVmNics(context.Context, *SetNicReq) (*ReqBool, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetVmNics not implemented")
@@ -2014,6 +2029,24 @@ func _VMInfo_GetVmNicVm_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _VMInfo_CloneVmNic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VmNicCloneReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).CloneVmNic(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_CloneVmNic_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).CloneVmNic(ctx, req.(*VmNicCloneReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _VMInfo_SetVmNics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetNicReq)
 	if err := dec(in); err != nil {
@@ -2295,6 +2328,10 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetVmNicVm",
 			Handler:    _VMInfo_GetVmNicVm_Handler,
+		},
+		{
+			MethodName: "CloneVmNic",
+			Handler:    _VMInfo_CloneVmNic_Handler,
 		},
 		{
 			MethodName: "SetVmNics",
