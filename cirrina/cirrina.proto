@@ -151,8 +151,7 @@ message VmNicInfoUpdate {
   optional string mac = 4;
   optional NetDevType netdevtype = 5;
   optional NetType nettype = 6;
-  optional string vmid = 7;
-  optional string switchid = 8;
+  optional string switchid = 7;
 }
 
 message VMConfig {

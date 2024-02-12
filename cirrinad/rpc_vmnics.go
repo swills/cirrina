@@ -329,10 +329,45 @@ func (s *server) GetVmNicVm(_ context.Context, i *cirrina.VmNicId) (v *cirrina.V
 	return &pvmId, nil
 }
 
-func (s *server) UpdateVmNic(_ context.Context, _ *cirrina.VmNicInfoUpdate) (_ *cirrina.ReqBool, _ error) {
+func (s *server) UpdateVmNic(_ context.Context, v *cirrina.VmNicInfoUpdate) (*cirrina.ReqBool, error) {
 	var re cirrina.ReqBool
-	re.Success = false
-	return &re, errors.New("not implemented yet")
+	var err error
+
+	if v == nil || v.Vmnicid == nil || v.Vmnicid.Value == "" {
+		return &re, errors.New("request error")
+	}
+	nicUuid, err := uuid.Parse(v.Vmnicid.Value)
+	if err != nil {
+		return &re, errors.New("request error")
+	}
+
+	vmNicInst, err := vm_nics.GetById(nicUuid.String())
+	if err != nil {
+		slog.Error("error finding nic", "vm", v.Vmnicid.Value, "err", err)
+		return &re, errors.New("not found")
+	}
+
+	if v.Name != nil {
+		if !util.ValidNicName(*v.Name) {
+			return &re, errors.New("invalid name")
+		} else {
+			vmNicInst.Name = *v.Name
+		}
+	}
+
+	if v.Description != nil {
+		vmNicInst.Description = *v.Description
+	}
+
+	// TODO -- other fields from VmNicInfoUpdate
+
+	err = vmNicInst.Save()
+	if err != nil {
+		return &re, err
+	}
+
+	re.Success = true
+	return &re, nil
 }
 
 func (s *server) CloneVmNic(_ context.Context, cloneReq *cirrina.VmNicCloneReq) (*cirrina.RequestID, error) {

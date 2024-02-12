@@ -298,3 +298,34 @@ func CloneNic(id string, newName string, newMac string) (string, error) {
 	}
 	return reqId.Value, nil
 }
+
+func UpdateNic(id string, description *string) error {
+	conn, c, ctx, cancel, err := SetupConn()
+	if err != nil {
+		return err
+	}
+	defer func(conn *grpc.ClientConn) {
+		_ = conn.Close()
+	}(conn)
+	defer cancel()
+
+	j := cirrina.VmNicInfoUpdate{
+		Vmnicid: &cirrina.VmNicId{Value: id},
+	}
+
+	if description != nil {
+		j.Description = description
+	}
+
+	// TODO -- rest of fields in VmNicInfoUpdate
+
+	var reqStat *cirrina.ReqBool
+	reqStat, err = c.UpdateVmNic(ctx, &j)
+	if err != nil {
+		return errors.New(status.Convert(err).Message())
+	}
+	if !reqStat.Success {
+		return errors.New("failed to update switch")
+	}
+	return nil
+}

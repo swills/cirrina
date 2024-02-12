@@ -26,6 +26,7 @@ var NicRateIn uint64
 var NicRateOut uint64
 var NicCloneName string
 var NicCloneMac string
+var NicDescriptionChanged bool
 
 var NicListCmd = &cobra.Command{
 	Use:          "list",
@@ -279,6 +280,40 @@ var NicCloneCmd = &cobra.Command{
 	},
 }
 
+var NicUpdateCmd = &cobra.Command{
+	Use:          "update",
+	Short:        "update NIC",
+	SilenceUsage: true,
+	Args: func(cmd *cobra.Command, args []string) error {
+		NicDescriptionChanged = cmd.Flags().Changed("description")
+		return nil
+	},
+	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
+		if NicId == "" {
+			NicId, err = rpc.NicNameToId(NicName)
+			if err != nil {
+				return err
+			}
+			if NicId == "" {
+				return errors.New("nic not found")
+			}
+		}
+
+		// currently only support changing nic description
+		var newDesc *string
+		if NicDescriptionChanged {
+			newDesc = &NicDescription
+		}
+		err = rpc.UpdateNic(NicId, newDesc)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Nic updated\n")
+		return nil
+	},
+}
+
 var NicCmd = &cobra.Command{
 	Use:   "nic",
 	Short: "Create, list, modify, destroy virtual NICs",
@@ -335,9 +370,16 @@ func init() {
 	NicCloneCmd.Flags().StringVarP(&NicCloneMac, "mac", "m", NicCloneMac, "New MAC address of cloned NIC")
 	NicCloneCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
 
+	disableFlagSorting(NicUpdateCmd)
+	addNameOrIdArgs(NicUpdateCmd, &NicName, &NicId, "NIC")
+	NicUpdateCmd.Flags().StringVarP(&NicDescription,
+		"description", "d", NicDescription, "description of NIC",
+	)
+
 	NicCmd.AddCommand(NicListCmd)
 	NicCmd.AddCommand(NicCreateCmd)
 	NicCmd.AddCommand(NicRemoveCmd)
 	NicCmd.AddCommand(NicSetSwitchCmd)
 	NicCmd.AddCommand(NicCloneCmd)
+	NicCmd.AddCommand(NicUpdateCmd)
 }

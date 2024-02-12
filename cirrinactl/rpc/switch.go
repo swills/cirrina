@@ -229,12 +229,12 @@ func UpdateSwitch(id string, description *string) error {
 	if description != nil {
 		siu.Description = description
 	}
-	var reqId *cirrina.ReqBool
-	reqId, err = c.SetSwitchInfo(ctx, &siu)
+	var reqStat *cirrina.ReqBool
+	reqStat, err = c.SetSwitchInfo(ctx, &siu)
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
 	}
-	if !reqId.Success {
+	if !reqStat.Success {
 		return errors.New("failed to update switch")
 	}
 	return nil
