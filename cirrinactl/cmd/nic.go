@@ -54,11 +54,6 @@ var NicListCmd = &cobra.Command{
 				return err
 			}
 
-			var vmName string
-			vmName, err = rpc.NicGetVm(id)
-			if err != nil {
-				return err
-			}
 			rateLimited := "unknown"
 			var rateIn string
 			var rateOut string
@@ -80,7 +75,6 @@ var NicListCmd = &cobra.Command{
 			nicInfos[nicInfo.Name] = nicListInfo{
 				nicId:       id,
 				info:        nicInfo,
-				vmName:      vmName,
 				rateLimited: rateLimited,
 				rateIn:      rateIn,
 				rateOut:     rateOut,
