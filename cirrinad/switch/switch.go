@@ -585,6 +585,6 @@ type Switch struct {
 	ID          string `gorm:"uniqueIndex;not null;default:null"`
 	Name        string `gorm:"uniqueIndex;not null;default:null"`
 	Description string
-	Type        string `gorm:"default:IF;check:type IN (\"IF\",\"NG\")"`
+	Type        string `gorm:"default:IF;check:type IN ('IF','NG')"`
 	Uplink      string
 }

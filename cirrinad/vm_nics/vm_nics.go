@@ -139,8 +139,8 @@ type VmNic struct {
 	Description string
 	Mac         string `gorm:"default:AUTO"`
 	NetDev      string
-	NetType     string `gorm:"default:VIRTIONET;check:net_type IN (\"VIRTIONET\",\"E1000\")"`
-	NetDevType  string `gorm:"default:TAP;check:net_dev_type IN (\"TAP\",\"VMNET\",\"NETGRAPH\")"`
+	NetType     string `gorm:"default:VIRTIONET;check:net_type IN ('VIRTIONET','E1000')"`
+	NetDevType  string `gorm:"default:TAP;check:net_dev_type IN ('TAP','VMNET','NETGRAPH')"`
 	SwitchId    string
 	RateLimit   bool `gorm:"default:False;check:rate_limit IN(0,1)"`
 	RateIn      uint64
