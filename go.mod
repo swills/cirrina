@@ -25,7 +25,7 @@ require (
 	gorm.io/gorm v1.25.7
 )
 
-replace github.com/kontera-technologies/go-supervisor/v2 => ./go-supervisor
+replace github.com/kontera-technologies/go-supervisor/v2 => gitlab.com/swills/go-supervisor/v2 v2.1.1-0.20230409155131-5a8ec9493b2d
 
 require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
