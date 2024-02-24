@@ -76,6 +76,7 @@ var NicListCmd = &cobra.Command{
 				nicId:       id,
 				info:        nicInfo,
 				rateLimited: rateLimited,
+				vmName:      nicInfo.VmName,
 				rateIn:      rateIn,
 				rateOut:     rateOut,
 			}
