@@ -6,11 +6,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 	"io"
 	"os"
-	"time"
 )
 
 func AddDisk(diskName string, diskDescription string, diskSize string,
@@ -48,16 +46,9 @@ func AddDisk(diskName string, diskDescription string, diskSize string,
 		Direct:      &diskDirect,
 	}
 
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
 	var diskId *cirrina.DiskId
-	diskId, err = c.AddDisk(ctx, newDiskInfo)
+	var err error
+	diskId, err = serverClient.AddDisk(defaultServerContext, newDiskInfo)
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
@@ -65,17 +56,10 @@ func AddDisk(diskName string, diskDescription string, diskSize string,
 }
 
 func GetDiskInfo(diskId string) (DiskInfo, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return DiskInfo{}, err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	var k *cirrina.DiskInfo
-	k, err = c.GetDiskInfo(ctx, &cirrina.DiskId{Value: diskId})
+	k, err = serverClient.GetDiskInfo(defaultServerContext, &cirrina.DiskId{Value: diskId})
 	if err != nil {
 		return DiskInfo{}, errors.New(status.Convert(err).Message())
 	}
@@ -109,19 +93,12 @@ func GetDiskInfo(diskId string) (DiskInfo, error) {
 }
 
 func GetDisks() ([]string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return []string{}, err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	var rv []string
 
 	var res cirrina.VMInfo_GetDisksClient
-	res, err = c.GetDisks(ctx, &cirrina.DisksQuery{})
+	res, err = serverClient.GetDisks(defaultServerContext, &cirrina.DisksQuery{})
 	if err != nil {
 		return []string{}, errors.New(status.Convert(err).Message())
 	}
@@ -138,17 +115,10 @@ func GetDisks() ([]string, error) {
 }
 
 func RmDisk(idPtr string) error {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	var res *cirrina.ReqBool
-	res, err = c.RemoveDisk(ctx, &cirrina.DiskId{Value: idPtr})
+	res, err = serverClient.RemoveDisk(defaultServerContext, &cirrina.DiskId{Value: idPtr})
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
 	}
@@ -193,17 +163,10 @@ func DiskNameToId(name string) (string, error) {
 }
 
 func DiskIdToName(id string) (string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	var res *cirrina.DiskInfo
-	res, err = c.GetDiskInfo(ctx, &cirrina.DiskId{Value: id})
+	res, err = serverClient.GetDiskInfo(defaultServerContext, &cirrina.DiskId{Value: id})
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
@@ -211,21 +174,13 @@ func DiskIdToName(id string) (string, error) {
 }
 
 func DiskGetVmId(id string) (string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
-
+	var err error
 	if id == "" {
 		return "", errors.New("disk id not specified")
 	}
 
 	var vmId *cirrina.VMID
-	vmId, err = c.GetDiskVm(ctx, &cirrina.DiskId{Value: id})
+	vmId, err = serverClient.GetDiskVm(defaultServerContext, &cirrina.DiskId{Value: id})
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
@@ -233,14 +188,7 @@ func DiskGetVmId(id string) (string, error) {
 }
 
 func UpdateDisk(id string, newDesc *string, newType *string, direct *bool, cache *bool) error {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	if id == "" {
 		return errors.New("id not specified")
@@ -279,7 +227,7 @@ func UpdateDisk(id string, newDesc *string, newType *string, direct *bool, cache
 	}
 
 	var res *cirrina.ReqBool
-	res, err = c.SetDiskInfo(ctx, &diu)
+	res, err = serverClient.SetDiskInfo(defaultServerContext, &diu)
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
 	}
@@ -302,28 +250,10 @@ func DiskUpload(diskId string, diskChecksum string,
 		defer func(diskFile *os.File) {
 			_ = diskFile.Close()
 		}(diskFile)
-		var conn *grpc.ClientConn
-		var c cirrina.VMInfoClient
 		var err error
 
-		conn, c, err = SetupConnNoTimeoutNoContext()
-		if err != nil {
-			uploadStatChan <- UploadStat{
-				UploadedChunk: false,
-				Complete:      false,
-				Err:           err,
-			}
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-
-		timeout := 1 * time.Hour
-		var longCtx context.Context
-		var longCancel context.CancelFunc
-
-		longCtx, longCancel = context.WithTimeout(context.Background(), timeout)
-		defer longCancel()
+		// prevent timeouts
+		defaultServerContext = context.Background()
 
 		thisDiskId := cirrina.DiskId{Value: diskId}
 
@@ -338,7 +268,7 @@ func DiskUpload(diskId string, diskChecksum string,
 		}
 
 		var stream cirrina.VMInfo_UploadDiskClient
-		stream, err = c.UploadDisk(longCtx)
+		stream, err = serverClient.UploadDisk(defaultServerContext)
 		if err != nil {
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,

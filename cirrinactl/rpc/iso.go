@@ -5,29 +5,20 @@ import (
 	"cirrina/cirrina"
 	"context"
 	"errors"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 	"io"
 	"os"
-	"time"
 )
 
 func AddIso(name string, descr string) (string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	j := &cirrina.ISOInfo{
 		Name:        &name,
 		Description: &descr,
 	}
 	var res *cirrina.ISOID
-	res, err = c.AddISO(ctx, j)
+	res, err = serverClient.AddISO(defaultServerContext, j)
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
@@ -36,17 +27,10 @@ func AddIso(name string, descr string) (string, error) {
 }
 
 func GetIsoIds() ([]string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return []string{}, err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 	var ids []string
 	var res cirrina.VMInfo_GetISOsClient
-	res, err = c.GetISOs(ctx, &cirrina.ISOsQuery{})
+	res, err = serverClient.GetISOs(defaultServerContext, &cirrina.ISOsQuery{})
 	if err != nil {
 		return []string{}, errors.New(status.Convert(err).Message())
 	}
@@ -64,17 +48,9 @@ func GetIsoIds() ([]string, error) {
 }
 
 func RmIso(id string) error {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
-
+	var err error
 	var res *cirrina.ReqBool
-	res, err = c.RemoveISO(ctx, &cirrina.ISOID{Value: id})
+	res, err = serverClient.RemoveISO(defaultServerContext, &cirrina.ISOID{Value: id})
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
 	}
@@ -89,17 +65,10 @@ func GetIsoInfo(id string) (IsoInfo, error) {
 		return IsoInfo{}, errors.New("id not specified")
 	}
 
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return IsoInfo{}, err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	var isoInfo *cirrina.ISOInfo
-	isoInfo, err = c.GetISOInfo(ctx, &cirrina.ISOID{Value: id})
+	isoInfo, err = serverClient.GetISOInfo(defaultServerContext, &cirrina.ISOID{Value: id})
 	if err != nil {
 		return IsoInfo{}, errors.New(status.Convert(err).Message())
 	}
@@ -145,16 +114,9 @@ func IsoNameToId(name string) (string, error) {
 }
 
 func IsoIdToName(s string) (string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 	var res *cirrina.ISOInfo
-	res, err = c.GetISOInfo(ctx, &cirrina.ISOID{Value: s})
+	res, err = serverClient.GetISOInfo(defaultServerContext, &cirrina.ISOID{Value: s})
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
@@ -174,28 +136,10 @@ func IsoUpload(isoId string, isoChecksum string,
 		defer func(isoFile *os.File) {
 			_ = isoFile.Close()
 		}(isoFile)
-		var conn *grpc.ClientConn
-		var c cirrina.VMInfoClient
 		var err error
 
-		conn, c, err = SetupConnNoTimeoutNoContext()
-		if err != nil {
-			uploadStatChan <- UploadStat{
-				UploadedChunk: false,
-				Complete:      false,
-				Err:           err,
-			}
-		}
-		defer func(conn *grpc.ClientConn) {
-			_ = conn.Close()
-		}(conn)
-
-		timeout := 1 * time.Hour
-		var longCtx context.Context
-		var longCancel context.CancelFunc
-
-		longCtx, longCancel = context.WithTimeout(context.Background(), timeout)
-		defer longCancel()
+		// prevent timeouts
+		defaultServerContext = context.Background()
 
 		thisIsoId := cirrina.ISOID{Value: isoId}
 
@@ -210,7 +154,7 @@ func IsoUpload(isoId string, isoChecksum string,
 		}
 
 		var stream cirrina.VMInfo_UploadIsoClient
-		stream, err = c.UploadIso(longCtx)
+		stream, err = serverClient.UploadIso(defaultServerContext)
 		if err != nil {
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,

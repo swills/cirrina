@@ -3,7 +3,6 @@ package rpc
 import (
 	"cirrina/cirrina"
 	"errors"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"io"
@@ -11,14 +10,7 @@ import (
 )
 
 func AddVM(name string, descrPtr *string, cpuPtr *uint32, memPtr *uint32) (string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	if name == "" {
 		return "", errors.New("name not specified")
@@ -41,7 +33,7 @@ func AddVM(name string, descrPtr *string, cpuPtr *uint32, memPtr *uint32) (strin
 	}
 
 	var res *cirrina.VMID
-	res, err = c.AddVM(ctx, VmConfig)
+	res, err = serverClient.AddVM(defaultServerContext, VmConfig)
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
@@ -49,20 +41,13 @@ func AddVM(name string, descrPtr *string, cpuPtr *uint32, memPtr *uint32) (strin
 }
 
 func DeleteVM(id string) (string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	if id == "" {
 		return "", errors.New("id not specified")
 	}
 	var reqId *cirrina.RequestID
-	reqId, err = c.DeleteVM(ctx, &cirrina.VMID{Value: id})
+	reqId, err = serverClient.DeleteVM(defaultServerContext, &cirrina.VMID{Value: id})
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
@@ -70,21 +55,13 @@ func DeleteVM(id string) (string, error) {
 }
 
 func StopVM(id string) (string, error) {
-
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	if id == "" {
 		return "", errors.New("id not specified")
 	}
 	var reqId *cirrina.RequestID
-	reqId, err = c.StopVM(ctx, &cirrina.VMID{Value: id})
+	reqId, err = serverClient.StopVM(defaultServerContext, &cirrina.VMID{Value: id})
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
@@ -92,20 +69,13 @@ func StopVM(id string) (string, error) {
 }
 
 func StartVM(id string) (string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	if id == "" {
 		return "", errors.New("id not specified")
 	}
 	var reqId *cirrina.RequestID
-	reqId, err = c.StartVM(ctx, &cirrina.VMID{Value: id})
+	reqId, err = serverClient.StartVM(defaultServerContext, &cirrina.VMID{Value: id})
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
@@ -113,20 +83,13 @@ func StartVM(id string) (string, error) {
 }
 
 func GetVmName(id string) (string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	if id == "" {
 		return "", errors.New("id not specified")
 	}
 	var res *wrapperspb.StringValue
-	res, err = c.GetVmName(ctx, &cirrina.VMID{Value: id})
+	res, err = serverClient.GetVmName(defaultServerContext, &cirrina.VMID{Value: id})
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
@@ -134,20 +97,13 @@ func GetVmName(id string) (string, error) {
 }
 
 func GetVmId(name string) (string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	if name == "" {
 		return "", errors.New("name not specified")
 	}
 	var res *cirrina.VMID
-	res, err = c.GetVmId(ctx, wrapperspb.String(name))
+	res, err = serverClient.GetVmId(defaultServerContext, wrapperspb.String(name))
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
@@ -155,20 +111,13 @@ func GetVmId(name string) (string, error) {
 }
 
 func GetVMConfig(id string) (VmConfig, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return VmConfig{}, err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	if id == "" {
 		return VmConfig{}, errors.New("id not specified")
 	}
 	var res *cirrina.VMConfig
-	res, err = c.GetVMConfig(ctx, &cirrina.VMID{Value: id})
+	res, err = serverClient.GetVMConfig(defaultServerContext, &cirrina.VMID{Value: id})
 	if err != nil {
 		return VmConfig{}, errors.New(status.Convert(err).Message())
 	}
@@ -353,17 +302,10 @@ func GetVMConfig(id string) (VmConfig, error) {
 }
 
 func GetVmIds() ([]string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return []string{}, err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	var res cirrina.VMInfo_GetVMsClient
-	res, err = c.GetVMs(ctx, &cirrina.VMsQuery{})
+	res, err = serverClient.GetVMs(defaultServerContext, &cirrina.VMsQuery{})
 	var ids []string
 	if err != nil {
 		return []string{}, errors.New(status.Convert(err).Message())
@@ -383,21 +325,13 @@ func GetVmIds() ([]string, error) {
 }
 
 func GetVMState(id string) (string, string, string, error) {
-
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", "", "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	if id == "" {
 		return "", "", "", errors.New("id not specified")
 	}
 	var res *cirrina.VMState
-	res, err = c.GetVMState(ctx, &cirrina.VMID{Value: id})
+	res, err = serverClient.GetVMState(defaultServerContext, &cirrina.VMID{Value: id})
 	if err != nil {
 		return "", "", "", errors.New(status.Convert(err).Message())
 	}
@@ -461,14 +395,7 @@ func VmIdToName(id string) (string, error) {
 }
 
 func UpdateVMConfig(id string, newConfig VmConfig) error {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	var myNewConfig cirrina.VMConfig
 	myNewConfig.Id = id
@@ -689,7 +616,7 @@ func UpdateVMConfig(id string, newConfig VmConfig) error {
 		myNewConfig.ExtraArgs = newConfig.ExtraArgs
 	}
 
-	_, err = c.UpdateVM(ctx, &myNewConfig)
+	_, err = serverClient.UpdateVM(defaultServerContext, &myNewConfig)
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
 	}
@@ -697,17 +624,9 @@ func UpdateVMConfig(id string, newConfig VmConfig) error {
 }
 
 func VmClearUefiVars(id string) (bool, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return false, err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
-
+	var err error
 	var res *cirrina.ReqBool
-	res, err = c.ClearUEFIState(ctx, &cirrina.VMID{Value: id})
+	res, err = serverClient.ClearUEFIState(defaultServerContext, &cirrina.VMID{Value: id})
 	if err != nil {
 		return false, errors.New(status.Convert(err).Message())
 	}

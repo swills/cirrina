@@ -2,9 +2,7 @@ package rpc
 
 import (
 	"cirrina/cirrina"
-	"context"
 	"errors"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -12,21 +10,8 @@ import (
 )
 
 func GetHostNics() (rv []*cirrina.NetIf, err error) {
-	var conn *grpc.ClientConn
-	var c cirrina.VMInfoClient
-	var ctx context.Context
-	var cancel context.CancelFunc
-	conn, c, ctx, cancel, err = SetupConn()
-	if err != nil {
-		return []*cirrina.NetIf{}, err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
-
 	var res cirrina.VMInfo_GetNetInterfacesClient
-	res, err = c.GetNetInterfaces(ctx, &cirrina.NetInterfacesReq{})
+	res, err = serverClient.GetNetInterfaces(defaultServerContext, &cirrina.NetInterfacesReq{})
 	if err != nil {
 		return []*cirrina.NetIf{}, errors.New(status.Convert(err).Message())
 	}
@@ -44,21 +29,8 @@ func GetHostNics() (rv []*cirrina.NetIf, err error) {
 }
 
 func GetHostVersion() (version string, err error) {
-	var conn *grpc.ClientConn
-	var c cirrina.VMInfoClient
-	var ctx context.Context
-	var cancel context.CancelFunc
-	conn, c, ctx, cancel, err = SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
-
 	var res *wrapperspb.StringValue
-	res, err = c.GetVersion(ctx, &emptypb.Empty{})
+	res, err = serverClient.GetVersion(defaultServerContext, &emptypb.Empty{})
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}

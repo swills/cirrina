@@ -54,6 +54,12 @@ var outputFormatString = "txt"
 var rootCmd = &cobra.Command{
 	Use:     "cirrinactl",
 	Version: mainVersion,
+	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		return rpc.GetConn()
+	},
+	PersistentPostRun: func(cmd *cobra.Command, args []string) {
+		rpc.Finish()
+	},
 }
 
 func Execute() {

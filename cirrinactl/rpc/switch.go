@@ -4,7 +4,6 @@ import (
 	"cirrina/cirrina"
 	"context"
 	"errors"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 	"io"
 )
@@ -13,7 +12,7 @@ func getSwitchIds(c cirrina.VMInfoClient, ctx context.Context) ([]string, error)
 	var err error
 	var rv []string
 	var res cirrina.VMInfo_GetSwitchesClient
-	res, err = c.GetSwitches(ctx, &cirrina.SwitchesQuery{})
+	res, err = serverClient.GetSwitches(defaultServerContext, &cirrina.SwitchesQuery{})
 	if err != nil {
 		return []string{}, errors.New(status.Convert(err).Message())
 	}
@@ -34,19 +33,12 @@ func getSwitchIds(c cirrina.VMInfoClient, ctx context.Context) ([]string, error)
 }
 
 func SwitchNameToId(s string) (string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	rv := ""
 
 	var switchIds []string
-	switchIds, err = getSwitchIds(c, ctx)
+	switchIds, err = getSwitchIds(serverClient, defaultServerContext)
 	if err != nil {
 		return "", err
 	}
@@ -54,7 +46,7 @@ func SwitchNameToId(s string) (string, error) {
 
 	for _, switchId := range switchIds {
 		var switchInfo *cirrina.SwitchInfo
-		switchInfo, err = c.GetSwitchInfo(ctx, &cirrina.SwitchId{Value: switchId})
+		switchInfo, err = serverClient.GetSwitchInfo(defaultServerContext, &cirrina.SwitchId{Value: switchId})
 		if err != nil {
 			return "", errors.New(status.Convert(err).Message())
 		}
@@ -71,17 +63,10 @@ func SwitchNameToId(s string) (string, error) {
 }
 
 func SwitchIdToName(s string) (string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	var res *cirrina.SwitchInfo
-	res, err = c.GetSwitchInfo(ctx, &cirrina.SwitchId{Value: s})
+	res, err = serverClient.GetSwitchInfo(defaultServerContext, &cirrina.SwitchId{Value: s})
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
@@ -89,17 +74,9 @@ func SwitchIdToName(s string) (string, error) {
 }
 
 func GetSwitches() ([]string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return []string{}, err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
-
+	var err error
 	var res cirrina.VMInfo_GetSwitchesClient
-	res, err = c.GetSwitches(ctx, &cirrina.SwitchesQuery{})
+	res, err = serverClient.GetSwitches(defaultServerContext, &cirrina.SwitchesQuery{})
 
 	if err != nil {
 		return []string{}, errors.New(status.Convert(err).Message())
@@ -121,15 +98,7 @@ func GetSwitches() ([]string, error) {
 }
 
 func AddSwitch(name string, descrPtr *string, switchTypePtr *string, switchUplinkName *string) (string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
-
+	var err error
 	var thisSwitchType cirrina.SwitchType
 	if name == "" {
 		return "", errors.New("switch name not specified")
@@ -151,7 +120,7 @@ func AddSwitch(name string, descrPtr *string, switchTypePtr *string, switchUplin
 	thisSwitchInfo.SwitchType = &thisSwitchType
 	thisSwitchInfo.Uplink = switchUplinkName
 	var res *cirrina.SwitchId
-	res, err = c.AddSwitch(ctx, &thisSwitchInfo)
+	res, err = serverClient.AddSwitch(defaultServerContext, &thisSwitchInfo)
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
@@ -159,14 +128,7 @@ func AddSwitch(name string, descrPtr *string, switchTypePtr *string, switchUplin
 }
 
 func SetSwitchUplink(switchId string, uplinkNamePtr *string) error {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	if switchId == "" {
 		return errors.New("switch id not specified")
@@ -178,7 +140,7 @@ func SetSwitchUplink(switchId string, uplinkNamePtr *string) error {
 	req.Switchid = si
 	req.Uplink = uplinkNamePtr
 
-	_, err = c.SetSwitchUplink(ctx, req)
+	_, err = serverClient.SetSwitchUplink(defaultServerContext, req)
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
 	}
@@ -186,20 +148,13 @@ func SetSwitchUplink(switchId string, uplinkNamePtr *string) error {
 }
 
 func RemoveSwitch(id string) error {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	if id == "" {
 		return errors.New("id not specified")
 	}
 	var reqId *cirrina.ReqBool
-	reqId, err = c.RemoveSwitch(ctx, &cirrina.SwitchId{Value: id})
+	reqId, err = serverClient.RemoveSwitch(defaultServerContext, &cirrina.SwitchId{Value: id})
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
 	}
@@ -213,14 +168,7 @@ func UpdateSwitch(id string, description *string) error {
 	if id == "" {
 		return errors.New("id not specified")
 	}
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	siu := cirrina.SwitchInfoUpdate{
 		Id: id,
@@ -230,7 +178,7 @@ func UpdateSwitch(id string, description *string) error {
 		siu.Description = description
 	}
 	var reqStat *cirrina.ReqBool
-	reqStat, err = c.SetSwitchInfo(ctx, &siu)
+	reqStat, err = serverClient.SetSwitchInfo(defaultServerContext, &siu)
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
 	}
@@ -241,21 +189,14 @@ func UpdateSwitch(id string, description *string) error {
 }
 
 func GetSwitch(id string) (SwitchInfo, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return SwitchInfo{}, err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	if id == "" {
 		return SwitchInfo{}, errors.New("id not specified")
 	}
 
 	var res *cirrina.SwitchInfo
-	res, err = c.GetSwitchInfo(ctx, &cirrina.SwitchId{Value: id})
+	res, err = serverClient.GetSwitchInfo(defaultServerContext, &cirrina.SwitchId{Value: id})
 	if err != nil {
 		return SwitchInfo{}, errors.New(status.Convert(err).Message())
 	}
@@ -279,14 +220,7 @@ func SetVmNicSwitch(vmNicIdStr string, switchId string) error {
 	if vmNicIdStr == "" {
 		return errors.New("nic id not specified")
 	}
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	var vmNicId cirrina.VmNicId
 	vmNicId.Value = vmNicIdStr
@@ -298,7 +232,7 @@ func SetVmNicSwitch(vmNicIdStr string, switchId string) error {
 		Switchid: &vmSwitchId,
 	}
 	var r *cirrina.ReqBool
-	r, err = c.SetVmNicSwitch(ctx, &nicSwitchSettings)
+	r, err = serverClient.SetVmNicSwitch(defaultServerContext, &nicSwitchSettings)
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
 	}

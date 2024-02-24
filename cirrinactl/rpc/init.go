@@ -129,31 +129,35 @@ var ServerName string
 var ServerPort uint16
 var ServerTimeout uint64
 
-func SetupConn() (*grpc.ClientConn, cirrina.VMInfoClient,
-	context.Context, context.CancelFunc, error,
-) {
+var serverConn *grpc.ClientConn
+var serverClient cirrina.VMInfoClient
+var defaultServerContext context.Context
+var defaultCancelFunc context.CancelFunc
+
+func GetConn() error {
+	var err error
 	serverAddr := ServerName + ":" + strconv.FormatInt(int64(ServerPort), 10)
 	serverTimeoutDur := time.Second * time.Duration(ServerTimeout)
 
-	conn, err := grpc.Dial(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, nil, nil, nil, errors.New(status.Convert(err).Message())
+	if serverConn != nil {
+		// already set, assume it's set to the right thing!
+		return nil
 	}
 
-	c := cirrina.NewVMInfoClient(conn)
-	ctx, cancel := context.WithTimeout(context.Background(), serverTimeoutDur)
-	return conn, c, ctx, cancel, nil
+	// build server connection and client
+	serverConn, err = grpc.Dial(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return errors.New(status.Convert(err).Message())
+	}
+
+	serverClient = cirrina.NewVMInfoClient(serverConn)
+	defaultServerContext, defaultCancelFunc = context.WithTimeout(context.Background(), serverTimeoutDur)
+	return nil
 }
 
-func SetupConnNoTimeoutNoContext() (*grpc.ClientConn, cirrina.VMInfoClient, error) {
-	serverAddr := ServerName + ":" + strconv.FormatInt(int64(ServerPort), 10)
-
-	conn, err := grpc.Dial(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return nil, nil, errors.New(status.Convert(err).Message())
+func Finish() {
+	if serverConn != nil {
+		_ = serverConn.Close()
 	}
-
-	c := cirrina.NewVMInfoClient(conn)
-
-	return conn, c, nil
+	defaultCancelFunc()
 }

@@ -3,7 +3,6 @@ package rpc
 import (
 	"cirrina/cirrina"
 	"errors"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	"io"
@@ -49,17 +48,9 @@ func AddNic(name string, description string, mac string, nicType string, nicDevT
 	newVmNic.Nettype = &thisNetType
 	newVmNic.Netdevtype = &thisNetDevType
 
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
-
+	var err error
 	var nicId *cirrina.VmNicId
-	nicId, err = c.AddVmNic(ctx, &newVmNic)
+	nicId, err = serverClient.AddVmNic(defaultServerContext, &newVmNic)
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
@@ -67,21 +58,12 @@ func AddNic(name string, description string, mac string, nicType string, nicDevT
 }
 
 func RmNic(idPtr string) error {
-
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
-
+	var err error
 	if idPtr == "" {
 		return errors.New("id not specified")
 	}
 	var reqId *cirrina.ReqBool
-	reqId, err = c.RemoveVmNic(ctx, &cirrina.VmNicId{Value: idPtr})
+	reqId, err = serverClient.RemoveVmNic(defaultServerContext, &cirrina.VmNicId{Value: idPtr})
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
 	}
@@ -92,17 +74,9 @@ func RmNic(idPtr string) error {
 }
 
 func GetVmNicInfo(id string) (NicInfo, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return NicInfo{}, err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
-
+	var err error
 	var res *cirrina.VmNicInfo
-	res, err = c.GetVmNicInfo(ctx, &cirrina.VmNicId{Value: id})
+	res, err = serverClient.GetVmNicInfo(defaultServerContext, &cirrina.VmNicId{Value: id})
 	if err != nil {
 		return NicInfo{}, errors.New(status.Convert(err).Message())
 	}
@@ -177,7 +151,7 @@ func NicNameToId(name string) (nicId string, err error) {
 }
 
 //func NicIdToName(s string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
-//	res, err := c.GetVmNicInfo(ctx, &cirrina.VmNicId{Value: s})
+//	res, err := c.GetVmNicInfo(defaultServerContext, &cirrina.VmNicId{Value: s})
 //	print("")
 //	if err != nil {
 //		return "", err
@@ -187,7 +161,7 @@ func NicNameToId(name string) (nicId string, err error) {
 
 //func GetVmNicOne(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
 //	var rv string
-//	res, err := c.GetVmNics(ctx, &cirrina.VMID{Value: *idPtr})
+//	res, err := c.GetVmNics(defaultServerContext, &cirrina.VMID{Value: *idPtr})
 //	if err != nil {
 //		return "", err
 //	}
@@ -211,19 +185,10 @@ func NicNameToId(name string) (nicId string, err error) {
 //}
 
 func GetVmNicsAll() ([]string, error) {
-
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return []string{}, err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
-
+	var err error
 	var rv []string
 	var res cirrina.VMInfo_GetVmNicsAllClient
-	res, err = c.GetVmNicsAll(ctx, &cirrina.VmNicsQuery{})
+	res, err = serverClient.GetVmNicsAll(defaultServerContext, &cirrina.VmNicsQuery{})
 	if err != nil {
 		return []string{}, errors.New(status.Convert(err).Message())
 	}
@@ -243,20 +208,12 @@ func GetVmNicsAll() ([]string, error) {
 }
 
 func NicGetVm(id string) (string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
-
+	var err error
 	if id == "" {
 		return "", errors.New("nic id not specified")
 	}
 	var res *cirrina.VMID
-	res, err = c.GetVmNicVm(ctx, &cirrina.VmNicId{Value: id})
+	res, err = serverClient.GetVmNicVm(defaultServerContext, &cirrina.VmNicId{Value: id})
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
@@ -276,15 +233,7 @@ func CloneNic(id string, newName string, newMac string) (string, error) {
 		return "", errors.New("id name not specified")
 	}
 
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return "", err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
-
+	var err error
 	var cloneReq cirrina.VmNicCloneReq
 	var existingNicId cirrina.VmNicId
 	existingNicId.Value = id
@@ -292,7 +241,7 @@ func CloneNic(id string, newName string, newMac string) (string, error) {
 	cloneReq.NewVmNicName = wrapperspb.String(newName)
 	cloneReq.NewVmNicMac = wrapperspb.String(newMac)
 	var reqId *cirrina.RequestID
-	reqId, err = c.CloneVmNic(ctx, &cloneReq)
+	reqId, err = serverClient.CloneVmNic(defaultServerContext, &cloneReq)
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
@@ -300,14 +249,7 @@ func CloneNic(id string, newName string, newMac string) (string, error) {
 }
 
 func UpdateNic(id string, description *string) error {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
+	var err error
 
 	j := cirrina.VmNicInfoUpdate{
 		Vmnicid: &cirrina.VmNicId{Value: id},
@@ -320,7 +262,7 @@ func UpdateNic(id string, description *string) error {
 	// TODO -- rest of fields in VmNicInfoUpdate
 
 	var reqStat *cirrina.ReqBool
-	reqStat, err = c.UpdateVmNic(ctx, &j)
+	reqStat, err = serverClient.UpdateVmNic(defaultServerContext, &j)
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
 	}

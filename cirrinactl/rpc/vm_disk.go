@@ -3,23 +3,14 @@ package rpc
 import (
 	"cirrina/cirrina"
 	"errors"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 	"io"
 )
 
 func GetVmDisks(id string) ([]string, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return []string{}, err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
-
+	var err error
 	var res cirrina.VMInfo_GetVmDisksClient
-	res, err = c.GetVmDisks(ctx, &cirrina.VMID{Value: id})
+	res, err = serverClient.GetVmDisks(defaultServerContext, &cirrina.VMID{Value: id})
 	if err != nil {
 		return []string{}, errors.New(status.Convert(err).Message())
 	}
@@ -40,22 +31,14 @@ func GetVmDisks(id string) ([]string, error) {
 }
 
 func VmSetDisks(id string, diskIds []string) (bool, error) {
-	conn, c, ctx, cancel, err := SetupConn()
-	if err != nil {
-		return false, err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
-	defer cancel()
-
+	var err error
 	j := cirrina.SetDiskReq{
 		Id:     id,
 		Diskid: diskIds,
 	}
 
 	var res *cirrina.ReqBool
-	res, err = c.SetVmDisks(ctx, &j)
+	res, err = serverClient.SetVmDisks(defaultServerContext, &j)
 	if err != nil {
 		return false, errors.New(status.Convert(err).Message())
 	}

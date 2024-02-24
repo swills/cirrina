@@ -6,23 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/term"
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 	"os"
 	"time"
 )
 
 func UseCom(id string, comNum int) error {
-	var conn *grpc.ClientConn
-	var c cirrina.VMInfoClient
 	var err error
-	conn, c, err = SetupConnNoTimeoutNoContext()
-	if err != nil {
-		return err
-	}
-	defer func(conn *grpc.ClientConn) {
-		_ = conn.Close()
-	}(conn)
 
 	if id == "" {
 		return errors.New("id not specified")
@@ -33,13 +23,13 @@ func UseCom(id string, comNum int) error {
 
 	switch comNum {
 	case 1:
-		stream, err = c.Com1Interactive(ctx)
+		stream, err = serverClient.Com1Interactive(ctx)
 	case 2:
-		stream, err = c.Com2Interactive(ctx)
+		stream, err = serverClient.Com2Interactive(ctx)
 	case 3:
-		stream, err = c.Com3Interactive(ctx)
+		stream, err = serverClient.Com3Interactive(ctx)
 	case 4:
-		stream, err = c.Com4Interactive(ctx)
+		stream, err = serverClient.Com4Interactive(ctx)
 	}
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
@@ -130,6 +120,8 @@ func UseCom(id string, comNum int) error {
 	}(stream, oldState, quitChan)
 
 	cleared := false
+	// prevent timeouts
+	defaultServerContext = context.Background()
 	// monitor
 	for {
 		select {
