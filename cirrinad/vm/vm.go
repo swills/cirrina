@@ -97,7 +97,7 @@ type Config struct {
 
 type VM struct {
 	gorm.Model
-	ID          string `gorm:"uniqueIndex;not null"`
+	ID          string `gorm:"uniqueIndex;not null;default:null"`
 	Name        string `gorm:"not null"`
 	Description string
 	Status      StatusType `gorm:"type:status_type"`
