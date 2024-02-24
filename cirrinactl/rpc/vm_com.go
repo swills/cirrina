@@ -77,7 +77,7 @@ func UseCom(id string, comNum int) error {
 					_ = term.Restore(int(os.Stdin.Fd()), oldState)
 					return
 				}
-				if b[0] == 0x1c {
+				if b[0] == 0x1c { // == FS ("File Separator") control character -- ctrl-\ -- see ascii.7
 					quitChan <- true
 					return
 				}
