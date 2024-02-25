@@ -228,7 +228,7 @@ func NicGetVm(id string) (string, error) {
 	return res2, nil
 }
 
-func CloneNic(id string, newName string, newMac string) (string, error) {
+func CloneNic(id string, newName string) (string, error) {
 	if id == "" || newName == "" {
 		return "", errors.New("id name not specified")
 	}
@@ -239,7 +239,6 @@ func CloneNic(id string, newName string, newMac string) (string, error) {
 	existingNicId.Value = id
 	cloneReq.Vmnicid = &existingNicId
 	cloneReq.NewVmNicName = wrapperspb.String(newName)
-	cloneReq.NewVmNicMac = wrapperspb.String(newMac)
 	var reqId *cirrina.RequestID
 	reqId, err = serverClient.CloneVmNic(defaultServerContext, &cloneReq)
 	if err != nil {
@@ -248,7 +247,8 @@ func CloneNic(id string, newName string, newMac string) (string, error) {
 	return reqId.Value, nil
 }
 
-func UpdateNic(id string, description *string) error {
+func UpdateNic(id string, description *string, mac *string, nicType *string, nicDevType *string,
+	rateLimit *bool, rateIn *uint64, rateOut *uint64, switchId *string) error {
 	var err error
 
 	j := cirrina.VmNicInfoUpdate{
@@ -259,7 +259,62 @@ func UpdateNic(id string, description *string) error {
 		j.Description = description
 	}
 
-	// TODO -- rest of fields in VmNicInfoUpdate
+	if mac != nil {
+		j.Mac = mac
+	}
+
+	if nicType != nil {
+		var useNetType cirrina.NetType
+		switch *nicType {
+		case "VIRTIONET":
+			fallthrough
+		case "virtio-net":
+			useNetType = cirrina.NetType_VIRTIONET
+		case "E1000":
+			fallthrough
+		case "e1000":
+			useNetType = cirrina.NetType_E1000
+		default:
+			useNetType = cirrina.NetType_VIRTIONET
+		}
+		j.Nettype = &useNetType
+	}
+
+	if nicDevType != nil {
+		var useNetDevType cirrina.NetDevType
+		switch *nicDevType {
+		case "TAP":
+			fallthrough
+		case "tap":
+			useNetDevType = cirrina.NetDevType_TAP
+		case "VMNET":
+			fallthrough
+		case "vmnet":
+			useNetDevType = cirrina.NetDevType_VMNET
+		case "NETGRAPH":
+			fallthrough
+		case "netgraph":
+			useNetDevType = cirrina.NetDevType_NETGRAPH
+		default:
+			useNetDevType = cirrina.NetDevType_TAP
+		}
+		j.Netdevtype = &useNetDevType
+	}
+
+	if rateLimit != nil {
+		j.Ratelimit = rateLimit
+	}
+
+	if rateIn != nil {
+		j.Ratein = rateIn
+	}
+
+	if rateOut != nil {
+		j.Rateout = rateOut
+	}
+	if switchId != nil {
+		j.Switchid = switchId
+	}
 
 	var reqStat *cirrina.ReqBool
 	reqStat, err = serverClient.UpdateVmNic(defaultServerContext, &j)

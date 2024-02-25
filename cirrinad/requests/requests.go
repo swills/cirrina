@@ -54,10 +54,10 @@ func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {
 	return nil
 }
 
-func CreateNicCloneReq(nicId string, newName string, newNicMac string) (req Request, err error) {
+func CreateNicCloneReq(nicId string, newName string) (req Request, err error) {
 	reqType := NICCLONE
 	var reqData []byte
-	reqData, err = json.Marshal(NicCloneReqData{NicId: nicId, NewNicName: newName, NewNicMac: newNicMac})
+	reqData, err = json.Marshal(NicCloneReqData{NicId: nicId, NewNicName: newName})
 	if err != nil {
 		return Request{}, err
 	}
@@ -174,4 +174,12 @@ func FailAllPending() (cleared int64) {
 		},
 	)
 	return res.RowsAffected
+}
+
+func DbInitialized() bool {
+	db := GetReqDb()
+	if db.Migrator().HasColumn(Request{}, "id") {
+		return true
+	}
+	return false
 }

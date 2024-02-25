@@ -1,6 +1,7 @@
 package vm_nics
 
 import (
+	"cirrina/cirrina"
 	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
@@ -155,4 +156,59 @@ type VmNic struct {
 	InstBridge  string
 	InstEpair   string
 	ConfigID    uint `gorm:"index;default:null"`
+}
+
+func ParseMac(macAddress string) (res string, err error) {
+	if macAddress == "AUTO" {
+		return macAddress, nil
+	}
+	if macAddress == "" {
+		return "", errors.New("invalid MAC address")
+	}
+	isBroadcast, err := util.MacIsBroadcast(macAddress)
+	if err != nil {
+		return "", errors.New("invalid MAC address")
+	}
+	if isBroadcast {
+		return "", errors.New("may not use broadcast MAC address")
+	}
+	isMulticast, err := util.MacIsMulticast(macAddress)
+	if err != nil {
+		return "", errors.New("invalid MAC address")
+	}
+	if isMulticast {
+		return "", errors.New("may not use multicast MAC address")
+	}
+	var newMac net.HardwareAddr
+	newMac, err = net.ParseMAC(macAddress)
+	if err != nil {
+		return "", err
+	}
+	return newMac.String(), nil
+}
+
+func ParseNetDevType(netDevType cirrina.NetDevType) (res string, err error) {
+	switch netDevType {
+	case cirrina.NetDevType_TAP:
+		res = "TAP"
+	case cirrina.NetDevType_VMNET:
+		res = "VMNET"
+	case cirrina.NetDevType_NETGRAPH:
+		res = "NETGRAPH"
+	default:
+		err = errors.New("invalid net dev type name")
+	}
+	return res, err
+}
+
+func ParseNetType(netType cirrina.NetType) (res string, err error) {
+	switch netType {
+	case cirrina.NetType_VIRTIONET:
+		res = "VIRTIONET"
+	case cirrina.NetType_E1000:
+		res = "E1000"
+	default:
+		err = errors.New("invalid net type name")
+	}
+	return res, err
 }

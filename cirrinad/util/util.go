@@ -510,7 +510,6 @@ func ParseDiskSize(size string) (sizeBytes uint64, err error) {
 }
 
 func GetHostMaxVmCpus() (uint16, error) {
-	// /sbin/sysctl -n hw.vmm.maxcpu
 	var emptyBytes []byte
 	var outBytes bytes.Buffer
 	var errBytes bytes.Buffer

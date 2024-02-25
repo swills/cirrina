@@ -12,12 +12,12 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"log/slog"
-	"net"
 )
 
 func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmNicId, error) {
 	var vmNicInst vm_nics.VmNic
 	var vmNicId *cirrina.VmNicId
+	var err error
 
 	reflect := v.ProtoReflect()
 
@@ -25,98 +25,61 @@ func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 		return vmNicId, errors.New("invalid name")
 	}
 	vmNicInst.Name = *v.Name
+
 	if isOptionPassed(reflect, "description") {
 		vmNicInst.Description = *v.Description
 	}
 	if isOptionPassed(reflect, "mac") {
-		if *v.Mac == "AUTO" {
-			vmNicInst.Mac = *v.Mac
-		} else {
-			isBroadcast, err := util.MacIsBroadcast(*v.Mac)
-			if err != nil {
-				return vmNicId, errors.New("invalid MAC address")
-			}
-			if isBroadcast {
-				return vmNicId, errors.New("may not use broadcast MAC address")
-			}
-			isMulticast, err := util.MacIsMulticast(*v.Mac)
-			if err != nil {
-				return vmNicId, errors.New("invalid MAC address")
-			}
-			if isMulticast {
-				return vmNicId, errors.New("may not use multicast MAC address")
-			}
-			newMac, err := net.ParseMAC(*v.Mac)
-			if err != nil {
-				return vmNicId, err
-			}
-			vmNicInst.Mac = newMac.String()
-		}
-	}
-	if isOptionPassed(reflect, "switchid") {
-		if *v.Switchid == "" {
-			vmNicInst.SwitchId = ""
-		} else {
-			switchUuid, err := uuid.Parse(*v.Switchid)
-			if err != nil {
-				return vmNicId, errors.New("switch id invalid")
-			}
-			switchInst, err := _switch.GetById(switchUuid.String())
-			if err != nil {
-				slog.Debug("error getting switch id",
-					"id", vmNicInst.SwitchId,
-					"err", err,
-				)
-				return vmNicId, errors.New("switch id invalid")
-			}
-			if switchInst.Name == "" {
-				return vmNicId, errors.New("switch id invalid")
-			}
-			if vmNicInst.NetDevType == "TAP" || vmNicInst.NetDevType == "VMNET" {
-				if switchInst.Type != "IF" {
-					return vmNicId, errors.New("uplink switch has wrong type")
-				}
-			} else if vmNicInst.NetDevType == "NETGRAPH" {
-				if switchInst.Type != "NG" {
-					return vmNicId, errors.New("uplink switch has wrong type")
-				}
-			}
-			vmNicInst.SwitchId = switchUuid.String()
-		}
-	}
-
-	if isOptionPassed(reflect, "nettype") {
-		if *v.Nettype == cirrina.NetType_VIRTIONET {
-			vmNicInst.NetType = "VIRTIONET"
-		} else if *v.Nettype == cirrina.NetType_E1000 {
-			vmNicInst.NetType = "E1000"
-		} else {
-			return vmNicId, errors.New("invalid net type name")
+		vmNicInst.Mac, err = vm_nics.ParseMac(*v.Mac)
+		if err != nil {
+			return vmNicId, err
 		}
 	}
 	if isOptionPassed(reflect, "netdevtype") {
-		if *v.Netdevtype == cirrina.NetDevType_TAP {
-			vmNicInst.NetDevType = "TAP"
-		} else if *v.Netdevtype == cirrina.NetDevType_VMNET {
-			vmNicInst.NetDevType = "VMNET"
-		} else if *v.Netdevtype == cirrina.NetDevType_NETGRAPH {
-			vmNicInst.NetDevType = "NETGRAPH"
-		} else {
-			return vmNicId, errors.New("invalid net dev type name")
+		var newNetDevType string
+		newNetDevType, err = vm_nics.ParseNetDevType(*v.Netdevtype)
+		if err != nil {
+			return vmNicId, err
 		}
-		if *v.Netdevtype == cirrina.NetDevType_TAP || *v.Netdevtype == cirrina.NetDevType_VMNET {
-			slog.Debug("AddVmNic", "msg", "checking rate limiting")
-			r := v.ProtoReflect()
-			if isOptionPassed(r, "ratelimit") &&
-				isOptionPassed(r, "ratein") &&
-				isOptionPassed(r, "rateout") {
-				vmNicInst.RateLimit = *v.Ratelimit
+		vmNicInst.NetDevType = newNetDevType
+	}
+	if isOptionPassed(reflect, "nettype") {
+		var newNetType string
+		newNetType, err = vm_nics.ParseNetType(*v.Nettype)
+		if err != nil {
+			return vmNicId, err
+		}
+		vmNicInst.NetType = newNetType
+	}
+	if isOptionPassed(reflect, "switchid") {
+		var newSwitchId string
+		newSwitchId, err = _switch.ParseSwitchId(*v.Switchid, vmNicInst.NetType)
+		if err != nil {
+			return vmNicId, err
+		}
+		vmNicInst.SwitchId = newSwitchId
+	}
+	// can only set rate limiting on IF type devs (TAP and VMNET), not netgraph devs
+	if vmNicInst.NetDevType == "TAP" || vmNicInst.NetDevType == "VMNET" {
+		if isOptionPassed(reflect, "ratelimit") {
+			vmNicInst.RateLimit = *v.Ratelimit
+		}
+		if vmNicInst.RateLimit {
+			if isOptionPassed(reflect, "ratein") {
 				vmNicInst.RateIn = *v.Ratein
+			}
+			if isOptionPassed(reflect, "rateout") {
 				vmNicInst.RateOut = *v.Rateout
 			}
+		} else { // rate limit disabled, force to zero
+			vmNicInst.RateIn = 0
+			vmNicInst.RateOut = 0
 		}
+	} else {
+		vmNicInst.RateLimit = false
+		vmNicInst.RateIn = 0
+		vmNicInst.RateOut = 0
 	}
-
 	newVmNicId, err := vm_nics.Create(&vmNicInst)
 	if err != nil {
 		return &cirrina.VmNicId{}, err
@@ -288,7 +251,6 @@ func (s *server) RemoveVmNic(_ context.Context, vn *cirrina.VmNicId) (*cirrina.R
 }
 
 func (s *server) GetVmNicVm(_ context.Context, i *cirrina.VmNicId) (v *cirrina.VMID, err error) {
-	slog.Debug("GetVmNicVm finding VM for nic", "nicid", i.Value)
 	var pvmId cirrina.VMID
 
 	nicUuid, err := uuid.Parse(i.Value)
@@ -353,8 +315,61 @@ func (s *server) UpdateVmNic(_ context.Context, v *cirrina.VmNicInfoUpdate) (*ci
 		vmNicInst.Description = *v.Description
 	}
 
-	// TODO -- other fields from VmNicInfoUpdate
+	if v.Mac != nil {
+		var newMac string
+		newMac, err = vm_nics.ParseMac(*v.Mac)
+		if err != nil {
+			return &re, err
+		}
+		vmNicInst.Mac = newMac
+	}
+	if v.Netdevtype != nil {
+		var newNetDevType string
+		newNetDevType, err = vm_nics.ParseNetDevType(*v.Netdevtype)
+		if err != nil {
+			return &re, err
+		}
+		vmNicInst.NetDevType = newNetDevType
+	}
+	if v.Nettype != nil {
+		var newNetType string
+		newNetType, err = vm_nics.ParseNetType(*v.Nettype)
+		if err != nil {
+			return &re, err
+		}
+		vmNicInst.NetType = newNetType
+	}
+	if v.Switchid != nil {
+		vmNicInst.SwitchId = *v.Switchid
+		var newSwitchId string
+		newSwitchId, err = _switch.ParseSwitchId(*v.Switchid, vmNicInst.NetType)
+		if err != nil {
+			return &re, err
+		}
+		vmNicInst.SwitchId = newSwitchId
+	}
 
+	// can only set rate limiting on "IF" type devs (TAP and VMNET), not netgraph devs
+	if vmNicInst.NetDevType == "TAP" || vmNicInst.NetDevType == "VMNET" {
+		if v.Ratelimit != nil {
+			vmNicInst.RateLimit = *v.Ratelimit
+		}
+		if vmNicInst.RateLimit {
+			if v.Ratein != nil {
+				vmNicInst.RateIn = *v.Ratein
+			}
+			if v.Rateout != nil {
+				vmNicInst.RateOut = *v.Rateout
+			}
+		} else { // rate limit disabled, force to zero
+			vmNicInst.RateIn = 0
+			vmNicInst.RateOut = 0
+		}
+	} else {
+		vmNicInst.RateLimit = false
+		vmNicInst.RateIn = 0
+		vmNicInst.RateOut = 0
+	}
 	err = vmNicInst.Save()
 	if err != nil {
 		return &re, err
@@ -390,7 +405,7 @@ func (s *server) CloneVmNic(_ context.Context, cloneReq *cirrina.VmNicCloneReq) 
 		)
 	}
 	newReq, err := requests.CreateNicCloneReq(
-		nicUuid.String(), cloneReq.NewVmNicName.Value, cloneReq.NewVmNicMac.Value,
+		nicUuid.String(), cloneReq.NewVmNicName.Value,
 	)
 	if err != nil {
 		return &cirrina.RequestID{}, err

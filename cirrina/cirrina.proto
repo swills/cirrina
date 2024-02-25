@@ -152,6 +152,9 @@ message VmNicInfoUpdate {
   optional NetDevType netdevtype = 5;
   optional NetType nettype = 6;
   optional string switchid = 7;
+  optional bool ratelimit = 8;
+  optional uint64 ratein = 9;
+  optional uint64 rateout = 10;
 }
 
 message VMConfig {
@@ -234,7 +237,6 @@ message VmNicsQuery {
 message VmNicCloneReq {
   VmNicId vmnicid = 1;
   google.protobuf.StringValue NewVmNicName = 2;
-  optional google.protobuf.StringValue NewVmNicMac = 3;
 }
 
 message RequestID {

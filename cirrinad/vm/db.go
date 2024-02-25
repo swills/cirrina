@@ -204,3 +204,11 @@ func GetAllDb() []*VM {
 
 	return result
 }
+
+func DbInitialized() bool {
+	db := GetVmDb()
+	if db.Migrator().HasColumn(VM{}, "id") {
+		return true
+	}
+	return false
+}

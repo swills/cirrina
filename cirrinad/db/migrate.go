@@ -107,85 +107,94 @@ func CustomMigrate() {
 	schemaVersion := getSchemaVersion()
 	// 2024022401 - copy nics from config.nics to vm_nics.config_id
 	if schemaVersion < 2024022401 {
-		slog.Debug("migrating config.nics to vm_nics.config_id")
-
-		err := vmNicDb.Migrator().AddColumn(vm_nics.VmNic{}, "config_id")
-		if err != nil {
-			slog.Debug("error adding config_id column", "err", err)
-			panic(err)
-		}
-		allVMs := vm.GetAllDb()
-		for _, vmInst := range allVMs {
-
-			type Result struct {
-				Nics string
-			}
-
-			var result Result
-
-			vmDb.Raw("SELECT nics FROM configs WHERE id = ?", vmInst.Config.ID).Scan(&result)
-
-			var thisVmsNics []vm_nics.VmNic
-			for _, cv := range strings.Split(result.Nics, ",") {
-				if cv == "" {
-					continue
-				}
-				aNic, err := vm_nics.GetById(cv)
-				if err == nil {
-					thisVmsNics = append(thisVmsNics, *aNic)
-				} else {
-					slog.Error("bad nic", "nic", cv, "vm", vmInst.ID)
-				}
-			}
-
-			if err != nil {
-				slog.Debug("error looking up VMs Nics", "err", err)
-				panic(err)
-			}
-
-			for _, vmNic := range thisVmsNics {
-				slog.Debug("migrating vm nic", "nicId", vmNic.ID)
-				vmNic.ConfigID = vmInst.Config.ID
-				err = vmNic.Save()
+		if vm_nics.DbInitialized() {
+			if !vmNicDb.Migrator().HasColumn(vm_nics.VmNic{}, "config_id") {
+				slog.Debug("migrating config.nics to vm_nics.config_id")
+				err := vmNicDb.Migrator().AddColumn(vm_nics.VmNic{}, "config_id")
 				if err != nil {
-					slog.Error("failure saving nic", "nicId", vmNic.ID, "err", err)
+					slog.Debug("error adding config_id column", "err", err)
 					panic(err)
 				}
+				allVMs := vm.GetAllDb()
+				for _, vmInst := range allVMs {
+
+					type Result struct {
+						Nics string
+					}
+
+					var result Result
+
+					vmDb.Raw("SELECT nics FROM configs WHERE id = ?", vmInst.Config.ID).Scan(&result)
+
+					var thisVmsNics []vm_nics.VmNic
+					for _, cv := range strings.Split(result.Nics, ",") {
+						if cv == "" {
+							continue
+						}
+						aNic, err := vm_nics.GetById(cv)
+						if err == nil {
+							thisVmsNics = append(thisVmsNics, *aNic)
+						} else {
+							slog.Error("bad nic", "nic", cv, "vm", vmInst.ID)
+						}
+					}
+
+					if err != nil {
+						slog.Debug("error looking up VMs Nics", "err", err)
+						panic(err)
+					}
+
+					for _, vmNic := range thisVmsNics {
+						slog.Debug("migrating vm nic", "nicId", vmNic.ID)
+						vmNic.ConfigID = vmInst.Config.ID
+						err = vmNic.Save()
+						if err != nil {
+							slog.Error("failure saving nic", "nicId", vmNic.ID, "err", err)
+							panic(err)
+						}
+					}
+				}
+
+				slog.Debug("migration complete", "id", "2024022401", "message", "vm_nics.config_id populated")
+				vm.DbReconfig()
 			}
 		}
-
-		slog.Debug("migration complete", "id", "2024022401", "message", "vm_nics.config_id populated")
-		setSchemaVersion(2024022402)
-		vm.DbReconfig()
+		setSchemaVersion(2024022401)
 	}
 
 	// 2024022402 - drop config.nics
 	if schemaVersion < 2024022402 {
-		slog.Debug("removing config.nics")
-		err := vmDb.Migrator().DropColumn(&vm.Config{}, "nics")
-		if err != nil {
-			slog.Error("failure removing nics column", "err", err)
-			panic(err)
-		}
+		if vm.DbInitialized() {
+			if vmDb.Migrator().HasColumn(&vm.Config{}, "nics") {
 
-		slog.Debug("migration complete", "id", "2024022402", "message", "config.nics dropped")
+				slog.Debug("removing config.nics")
+				err := vmDb.Migrator().DropColumn(&vm.Config{}, "nics")
+				if err != nil {
+					slog.Error("failure removing nics column", "err", err)
+					panic(err)
+				}
+				slog.Debug("migration complete", "id", "2024022402", "message", "config.nics dropped")
+				vm.DbReconfig()
+			}
+		}
 		setSchemaVersion(2024022402)
-		vm.DbReconfig()
 	}
 
 	// 2024022403 - remove vm_id from requests
 	if schemaVersion < 2024022403 {
-		// sqlite doesn't let you remove a column, so just nuke it, the requests table isn't critical
-		if reqDb.Migrator().HasColumn(&requests.Request{}, "vm_id") {
-			slog.Debug("dropping requests table")
-			err := reqDb.Migrator().DropTable("requests")
-			if err != nil {
-				slog.Error("failure dropping requests table", "err", err)
-				panic(err)
+		if requests.DbInitialized() {
+			// sqlite doesn't let you remove a column, so just nuke it, the requests table isn't critical
+			if reqDb.Migrator().HasColumn(&requests.Request{}, "vm_id") {
+				slog.Debug("dropping requests table")
+				err := reqDb.Migrator().DropTable("requests")
+				if err != nil {
+					slog.Error("failure dropping requests table", "err", err)
+					panic(err)
+				}
 			}
+			requests.DbReconfig()
 		}
 		setSchemaVersion(2024022403)
-		requests.DbReconfig()
 	}
 
 	slog.Debug("finished custom migration")

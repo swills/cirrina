@@ -6,6 +6,7 @@ import (
 	"cirrina/cirrinad/config"
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vm_nics"
 	"errors"
 	"fmt"
 	"github.com/hashicorp/go-version"
@@ -14,7 +15,6 @@ import (
 	"io/fs"
 	"log/slog"
 	"math/rand"
-	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -433,31 +433,9 @@ func validateNetworkConf() {
 
 	// is MAC parseable?
 	macTest := config.Config.Network.Mac.Oui + ":ff:ff:ff"
-	_, err := net.ParseMAC(macTest)
+	_, err := vm_nics.ParseMac(macTest)
 	if err != nil {
 		slog.Error("Invalid NIC MAC OUI in config, please reconfigure")
-		os.Exit(1)
-	}
-
-	// is MAC broadcast?
-	isBroadcast, err := util.MacIsBroadcast(macTest)
-	if err != nil {
-		slog.Error("invalid MAC OUI", "OUI", config.Config.Network.Mac.Oui, "err", err)
-		os.Exit(1)
-	}
-	if isBroadcast {
-		slog.Error("invalid MAC OUI, may not use potentially broadcast OUI", "oui", config.Config.Network.Mac.Oui)
-		os.Exit(1)
-	}
-
-	// is MAC multicast?
-	isMulticast, err := util.MacIsMulticast(macTest)
-	if err != nil {
-		slog.Error("invalid MAC OUI ", "OUI", macTest, "err", err)
-		os.Exit(1)
-	}
-	if isMulticast {
-		slog.Error("invalid MAC OUI, may not use multicast OUI", "oui", config.Config.Network.Mac.Oui)
 		os.Exit(1)
 	}
 }
@@ -718,8 +696,9 @@ func validateMyId() {
 	}
 }
 
+// validateDb validate db contents are sane: assume DB is correct, but maybe system state has changed
+// called after migrations
 func validateDb() {
-	// validate db contents are sane: assume DB is correct, but maybe system state has changed
 	// TODO -- validate the backing (file, zvol, volpath) of every disk/iso exists
 
 	var ifUplinks []string
@@ -767,5 +746,4 @@ func validateSystem() {
 	validateSudoCommands()
 	validateSysctls()
 	validateConfig()
-	validateDb()
 }

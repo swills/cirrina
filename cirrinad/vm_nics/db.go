@@ -67,3 +67,11 @@ func DbAutoMigrate() {
 		panic("failed to auto-migrate VmNics")
 	}
 }
+
+func DbInitialized() bool {
+	db := GetVmNicDb()
+	if db.Migrator().HasColumn(VmNic{}, "id") {
+		return true
+	}
+	return false
+}

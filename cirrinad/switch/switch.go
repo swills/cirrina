@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	exec "golang.org/x/sys/execabs"
 	"gorm.io/gorm"
 	"strings"
@@ -587,4 +588,37 @@ type Switch struct {
 	Description string
 	Type        string `gorm:"default:IF;check:type IN ('IF','NG')"`
 	Uplink      string
+}
+
+func ParseSwitchId(switchId string, netDevType string) (res string, err error) {
+	if switchId == "" {
+		return switchId, err
+	}
+
+	switchUuid, err := uuid.Parse(switchId)
+	if err != nil {
+		return res, errors.New("switch id invalid")
+	}
+	switchInst, err := GetById(switchUuid.String())
+	if err != nil {
+		slog.Debug("error getting switch id",
+			"id", switchId,
+			"err", err,
+		)
+		return res, errors.New("switch id invalid")
+	}
+	if switchInst.Name == "" {
+		return res, errors.New("switch id invalid")
+	}
+	if netDevType == "TAP" || netDevType == "VMNET" {
+		if switchInst.Type != "IF" {
+			return res, errors.New("uplink switch has wrong type")
+		}
+	} else if netDevType == "NETGRAPH" {
+		if switchInst.Type != "NG" {
+			return res, errors.New("uplink switch has wrong type")
+		}
+	}
+	res = switchUuid.String()
+	return res, nil
 }

@@ -270,6 +270,9 @@ var rootCmd = &cobra.Command{
 
 		doDbMigrations()
 
+		// check db contents
+		validateDb()
+
 		// code after this uses the database
 		slog.Debug("Clean up starting")
 		cleanupSystem()

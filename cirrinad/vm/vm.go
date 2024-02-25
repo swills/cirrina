@@ -420,6 +420,7 @@ func (vm *VM) netStartup() {
 			err := cmd.Run()
 			if err != nil {
 				slog.Error("failed to create tap", "err", err)
+				continue
 			}
 			// Add interface to bridge
 			if vmNic.SwitchId != "" {
@@ -427,6 +428,7 @@ func (vm *VM) netStartup() {
 				if err != nil {
 					slog.Error("bad switch id",
 						"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchId)
+					continue
 				}
 				if thisSwitch.Type == "IF" {
 					if vmNic.RateLimit {
@@ -435,15 +437,18 @@ func (vm *VM) netStartup() {
 						err = epair.CreateEpair(thisEpair)
 						if err != nil {
 							slog.Error("error creating epair", err)
+							continue
 						}
 						vmNic.InstEpair = thisEpair
 						err = vmNic.Save()
 						if err != nil {
 							slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+							continue
 						}
 						err = epair.SetRateLimit(thisEpair, vmNic.RateIn, vmNic.RateOut)
 						if err != nil {
 							slog.Error("failed to set epair rate limit", "epair", thisEpair)
+							continue
 						}
 						thisInstSwitch := _switch.GetDummyBridgeName()
 						var bridgeMembers []string
@@ -456,11 +461,13 @@ func (vm *VM) netStartup() {
 								"thisInstSwitch", thisInstSwitch,
 								"err", err,
 							)
+							continue
 						}
 						vmNic.InstBridge = thisInstSwitch
 						err = vmNic.Save()
 						if err != nil {
 							slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+							continue
 						}
 						err := _switch.BridgeIfAddMember(thisSwitch.Name, thisEpair+"b", true, "")
 						if err != nil {
@@ -471,6 +478,7 @@ func (vm *VM) netStartup() {
 								"netdev", vmNic.NetDev,
 								"err", err,
 							)
+							continue
 						}
 
 					} else {
@@ -484,6 +492,7 @@ func (vm *VM) netStartup() {
 								"netdev", vmNic.NetDev,
 								"err", err,
 							)
+							continue
 						}
 					}
 				} else {
@@ -492,6 +501,7 @@ func (vm *VM) netStartup() {
 						"nicid", vmNic.ID,
 						"switchid", vmNic.SwitchId,
 					)
+					continue
 				}
 			}
 		} else if vmNic.NetDevType == "NETGRAPH" {
@@ -499,6 +509,7 @@ func (vm *VM) netStartup() {
 			if err != nil {
 				slog.Error("bad switch id",
 					"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchId)
+				continue
 			}
 			if thisSwitch.Type != "NG" {
 				slog.Error("bridge/interface type mismatch",
@@ -509,7 +520,7 @@ func (vm *VM) netStartup() {
 			}
 		} else {
 			slog.Debug("unknown net type, can't set up")
-			return
+			continue
 		}
 	}
 }
