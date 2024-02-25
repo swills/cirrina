@@ -83,7 +83,7 @@ func writePidFile() {
 		slog.Error("failed to get absolute path to pid file")
 		os.Exit(1)
 	}
-	slog.Debug("Checking pid file %s", pidFilePath)
+	slog.Debug("Checking pid file", "path", pidFilePath)
 	_, err = os.Stat(pidFilePath)
 	if err == nil {
 		slog.Warn("pid file exists, checking pid")
@@ -97,7 +97,7 @@ func writePidFile() {
 			slog.Error("failed getting existing pid")
 			os.Exit(1)
 		}
-		slog.Debug("Checking pid %d", existingPid)
+		slog.Debug("Checking pid", "pid", existingPid)
 		procExists, err := util.PidExists(existingPid)
 		if err != nil {
 			slog.Error("failed checking existing pid")
