@@ -9,7 +9,6 @@ import (
 	"log"
 	"log/slog"
 	"os"
-	"sync"
 	"time"
 )
 
@@ -19,9 +18,13 @@ type singleton struct {
 
 var instance *singleton
 
-var once sync.Once
+var dbInitialized bool
 
-func getVmDb() *gorm.DB {
+func DbReconfig() {
+	dbInitialized = false
+}
+
+func GetVmDb() *gorm.DB {
 
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "VmDb: ", log.LstdFlags),
@@ -33,7 +36,7 @@ func getVmDb() *gorm.DB {
 		},
 	)
 
-	once.Do(func() {
+	if !dbInitialized {
 		instance = &singleton{}
 		vmDb, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
@@ -53,12 +56,13 @@ func getVmDb() *gorm.DB {
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
 		instance.vmDb = vmDb
-	})
+		dbInitialized = true
+	}
 	return instance.vmDb
 }
 
 func (vm *VM) SetRunning(pid int) {
-	db := getVmDb()
+	db := GetVmDb()
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = RUNNING
@@ -82,7 +86,7 @@ func (vm *VM) SetRunning(pid int) {
 }
 
 func (vm *VM) SetStarting() {
-	db := getVmDb()
+	db := GetVmDb()
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = STARTING
@@ -99,7 +103,7 @@ func (vm *VM) SetStarting() {
 
 // SetStopped this can in some cases get called on already stopped/deleted VMs and that's OK
 func (vm *VM) SetStopped() {
-	db := getVmDb()
+	db := GetVmDb()
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = STOPPED
@@ -137,7 +141,7 @@ func (vm *VM) SetStopped() {
 }
 
 func (vm *VM) SetStopping() {
-	db := getVmDb()
+	db := GetVmDb()
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = STOPPING
@@ -174,7 +178,7 @@ func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
 }
 
 func DbAutoMigrate() {
-	db := getVmDb()
+	db := GetVmDb()
 	err := db.AutoMigrate(&VM{})
 	if err != nil {
 		panic("failed to auto-migrate VMs")
@@ -195,7 +199,7 @@ func DbAutoMigrate() {
 func GetAllDb() []*VM {
 	var result []*VM
 
-	db := getVmDb()
+	db := GetVmDb()
 	db.Preload("Config").Find(&result)
 
 	return result

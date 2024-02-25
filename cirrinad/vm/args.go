@@ -370,68 +370,60 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	var netArgs []string
 
 	originalSlot := slot
+	var nicList []vm_nics.VmNic
+	nicList = vm_nics.GetNics(vm.Config.ID)
 
-	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
-	nicList := strings.Split(vm.Config.Nics, ",")
 	for _, nicItem := range nicList {
-		if nicItem == "" {
-			continue
-		}
 		slog.Debug("adding nic", "nic", nicItem)
-		thisNic, err := vm_nics.GetById(nicItem)
-		if err != nil {
-			slog.Error("error getting Disk", "nicItem", nicItem, "err", err)
-			return []string{}, originalSlot
-		}
 		var netType string
 		var netDevArg string
 
-		if thisNic.NetType == "VIRTIONET" {
+		if nicItem.NetType == "VIRTIONET" {
 			netType = "virtio-net"
-		} else if thisNic.NetType == "E1000" {
+		} else if nicItem.NetType == "E1000" {
 			netType = "e1000"
 		} else {
-			slog.Debug("unknown net type, cannot configure", "netType", thisNic.NetType)
+			slog.Debug("unknown net type, cannot configure", "netType", nicItem.NetType)
 			return []string{}, originalSlot
 		}
 
-		if thisNic.NetDevType == "TAP" {
-			thisNic.NetDev = GetTapDev()
-			netDevArg = thisNic.NetDev
-			err := thisNic.Save()
+		if nicItem.NetDevType == "TAP" {
+			nicItem.NetDev = GetTapDev()
+			netDevArg = nicItem.NetDev
+			err := nicItem.Save()
 			if err != nil {
-				slog.Error("failed to save net dev", "nic", thisNic.ID, "netdev", thisNic.NetDev)
+				slog.Error("failed to save net dev", "nic", nicItem.ID, "netdev", nicItem.NetDev)
 				return []string{}, slot
 			}
-			netDevArg = thisNic.NetDev
-		} else if thisNic.NetDevType == "VMNET" {
-			thisNic.NetDev = GetVmnetDev()
-			netDevArg = thisNic.NetDev
-			err := thisNic.Save()
+			netDevArg = nicItem.NetDev
+		} else if nicItem.NetDevType == "VMNET" {
+			nicItem.NetDev = GetVmnetDev()
+			netDevArg = nicItem.NetDev
+			err := nicItem.Save()
 			if err != nil {
-				slog.Error("failed to save net dev", "nic", thisNic.ID, "netdev", thisNic.NetDev)
+				slog.Error("failed to save net dev", "nic", nicItem.ID, "netdev", nicItem.NetDev)
 				return []string{}, slot
 			}
-			netDevArg = thisNic.NetDev
-		} else if thisNic.NetDevType == "NETGRAPH" {
-			ngNetDev, ngPeerHook, err := _switch.GetNgDev(thisNic.SwitchId)
+			netDevArg = nicItem.NetDev
+		} else if nicItem.NetDevType == "NETGRAPH" {
+			ngNetDev, ngPeerHook, err := _switch.GetNgDev(nicItem.SwitchId)
 			if err != nil {
 				slog.Error("GetNgDev error", "err", err)
 				return []string{}, slot
 			}
-			thisNic.NetDev = ngNetDev + "," + ngPeerHook
-			err = thisNic.Save()
+			nicItem.NetDev = ngNetDev + "," + ngPeerHook
+			err = nicItem.Save()
 			if err != nil {
-				slog.Error("failed to save net dev", "nic", thisNic.ID, "netdev", thisNic.NetDev)
+				slog.Error("failed to save net dev", "nic", nicItem.ID, "netdev", nicItem.NetDev)
 				return []string{}, slot
 			}
 			netDevArg = "netgraph,path=" + ngNetDev + ":,peerhook=" + ngPeerHook + ",socket=" + vm.Name
 		} else {
-			slog.Debug("unknown net dev type", "netDevType", thisNic.NetDevType)
+			slog.Debug("unknown net dev type", "netDevType", nicItem.NetDevType)
 			return []string{}, slot
 		}
 		slog.Debug("getNetArg", "netdevarg", netDevArg)
-		macAddress := GetMac(thisNic, vm)
+		macAddress := GetMac(nicItem, vm)
 		var macString string
 		if macAddress != "" {
 			macString = ",mac=" + macAddress
@@ -444,7 +436,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	return netArgs, slot
 }
 
-func GetMac(thisNic *vm_nics.VmNic, vm *VM) string {
+func GetMac(thisNic vm_nics.VmNic, vm *VM) string {
 	var macAddress string
 	if thisNic.Mac == "AUTO" {
 		// if MAC is AUTO, we still generate our own here rather than letting bhyve generate it, because:

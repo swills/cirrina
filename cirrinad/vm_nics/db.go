@@ -20,7 +20,7 @@ var instance *singleton
 
 var once sync.Once
 
-func getVmNicDb() *gorm.DB {
+func GetVmNicDb() *gorm.DB {
 
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "VmNicDb: ", log.LstdFlags),
@@ -61,8 +61,8 @@ func (d *VmNic) BeforeCreate(_ *gorm.DB) (err error) {
 }
 
 func DbAutoMigrate() {
-	db := getVmNicDb()
-	err := db.AutoMigrate(&VmNic{})
+	vmNicDb := GetVmNicDb()
+	err := vmNicDb.AutoMigrate(&VmNic{})
 	if err != nil {
 		panic("failed to auto-migrate VmNics")
 	}

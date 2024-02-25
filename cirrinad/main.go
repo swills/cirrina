@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cirrina/cirrinad/db"
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
 	"cirrina/cirrinad/requests"
@@ -130,6 +131,13 @@ func writePidFile() {
 func doDbMigrations() {
 	util.ValidateDbConfig()
 
+	// auto migration for meta (schema_version)
+	db.AutoMigrate()
+
+	// my custom migrations
+	db.CustomMigrate()
+
+	// gorm auto migrations
 	disk.DbAutoMigrate()
 	iso.DbAutoMigrate()
 	vm_nics.DbAutoMigrate()

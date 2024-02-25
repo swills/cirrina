@@ -307,22 +307,16 @@ func (s *server) GetVmNicVm(_ context.Context, i *cirrina.VmNicId) (v *cirrina.V
 	allVMs := vm.GetAll()
 	found := false
 	for _, thisVm := range allVMs {
-		thisVmNics, err := thisVm.GetNics()
-		if err != nil {
-			return nil, err
-		}
-		for _, vmNic := range thisVmNics {
-			if vmNic.ID == nicUuid.String() {
-				if found == true {
-					slog.Error("GetVmNicVm nic in use by more than one VM",
-						"nicid", nicUuid.String(),
-						"vmid", thisVm.ID,
-					)
-					return nil, errors.New("nic in use by more than one VM")
-				}
-				found = true
-				pvmId.Value = thisVm.ID
+		if thisVm.Config.ID == vmNic.ConfigID {
+			if found == true {
+				slog.Error("GetVmNicVm nic in use by more than one VM",
+					"nicid", nicUuid.String(),
+					"vmid", thisVm.ID,
+				)
+				return nil, errors.New("nic in use by more than one VM")
 			}
+			found = true
+			pvmId.Value = thisVm.ID
 		}
 	}
 

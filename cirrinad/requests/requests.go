@@ -61,7 +61,7 @@ func CreateNicCloneReq(nicId string, newName string, newNicMac string) (req Requ
 	if err != nil {
 		return Request{}, err
 	}
-	db := getReqDb()
+	db := GetReqDb()
 	newReq := Request{
 		Data: string(reqData),
 		Type: reqType,
@@ -79,7 +79,7 @@ func CreateVmReq(r reqType, vmId string) (req Request, err error) {
 	if err != nil {
 		return Request{}, err
 	}
-	db := getReqDb()
+	db := GetReqDb()
 	newReq := Request{
 		Data: string(reqData),
 		Type: r,
@@ -92,27 +92,27 @@ func CreateVmReq(r reqType, vmId string) (req Request, err error) {
 }
 
 func GetByID(id string) (rs Request, err error) {
-	db := getReqDb()
+	db := GetReqDb()
 	db.Model(&Request{}).Limit(1).Find(&rs, &Request{ID: id})
 	return rs, nil
 }
 
 func GetUnStarted() Request {
-	db := getReqDb()
+	db := GetReqDb()
 	rs := Request{}
 	db.Limit(1).Where("started_at IS NULL").Find(&rs)
 	return rs
 }
 
 func (req *Request) Start() {
-	db := getReqDb()
+	db := GetReqDb()
 	req.StartedAt.Time = time.Now()
 	req.StartedAt.Valid = true
 	db.Model(&req).Limit(1).Updates(req)
 }
 
 func (req *Request) Succeeded() {
-	db := getReqDb()
+	db := GetReqDb()
 	db.Model(&req).Limit(1).Updates(
 		Request{
 			Successful: true,
@@ -122,7 +122,7 @@ func (req *Request) Succeeded() {
 }
 
 func (req *Request) Failed() {
-	db := getReqDb()
+	db := GetReqDb()
 	db.Model(&req).Limit(1).Updates(
 		Request{
 			Successful: false,
@@ -132,7 +132,7 @@ func (req *Request) Failed() {
 }
 
 func PendingReqExists(objId string) (reqIds []string) {
-	db := getReqDb()
+	db := GetReqDb()
 	var err error
 	var incompleteRequests []Request
 	db.Where(map[string]interface{}{"complete": false}).Find(&incompleteRequests)
@@ -167,7 +167,7 @@ func PendingReqExists(objId string) (reqIds []string) {
 }
 
 func FailAllPending() (cleared int64) {
-	db := getReqDb()
+	db := GetReqDb()
 	res := db.Where(map[string]interface{}{"complete": false}).Updates(
 		Request{
 			Complete: true,

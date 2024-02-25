@@ -10,20 +10,26 @@ import (
 )
 
 func GetByName(name string) (s *VmNic, err error) {
-	db := getVmNicDb()
+	db := GetVmNicDb()
 	db.Limit(1).Find(&s, "name = ?", name)
 	return s, nil
 }
 
 func GetById(id string) (v *VmNic, err error) {
-	db := getVmNicDb()
+	db := GetVmNicDb()
 	db.Limit(1).Find(&v, "id = ?", id)
 	return v, nil
 }
 
+func GetNics(vmConfigId uint) (vms []VmNic) {
+	db := GetVmNicDb()
+	db.Where("config_id = ?", vmConfigId).Find(&vms)
+	return vms
+}
+
 func GetAll() []*VmNic {
 	var result []*VmNic
-	db := getVmNicDb()
+	db := GetVmNicDb()
 	db.Find(&result)
 	return result
 }
@@ -76,7 +82,7 @@ func Create(VmNicInst *VmNic) (newNicId string, err error) {
 		}
 	}
 
-	db := getVmNicDb()
+	db := GetVmNicDb()
 	res := db.Create(&VmNicInst)
 	if res.RowsAffected != 1 {
 		return newNicId, res.Error
@@ -85,7 +91,7 @@ func Create(VmNicInst *VmNic) (newNicId string, err error) {
 }
 
 func (d *VmNic) Delete() (err error) {
-	db := getVmNicDb()
+	db := GetVmNicDb()
 	res := db.Limit(1).Unscoped().Delete(&d)
 	if res.RowsAffected != 1 {
 		errText := fmt.Sprintf("vmnic delete error, rows affected %v", res.RowsAffected)
@@ -106,7 +112,7 @@ func (d *VmNic) SetSwitch(switchid string) error {
 }
 
 func (d *VmNic) Save() error {
-	db := getVmNicDb()
+	db := GetVmNicDb()
 
 	res := db.Model(&d).
 		Updates(map[string]interface{}{
@@ -122,6 +128,7 @@ func (d *VmNic) Save() error {
 			"rate_out":     &d.RateOut,
 			"inst_bridge":  &d.InstBridge,
 			"inst_epair":   &d.InstEpair,
+			"config_id":    &d.ConfigID,
 		},
 		)
 
@@ -147,4 +154,5 @@ type VmNic struct {
 	RateOut     uint64
 	InstBridge  string
 	InstEpair   string
+	ConfigID    uint `gorm:"index;default:null"`
 }

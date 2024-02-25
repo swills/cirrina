@@ -623,7 +623,7 @@ func (s *server) SetVmNics(_ context.Context, sn *cirrina.SetNicReq) (*cirrina.R
 		return &re, errors.New("not found")
 	}
 
-	err = vmInst.AttachNics(sn.Vmnicid)
+	err = vmInst.SetNics(sn.Vmnicid)
 	if err != nil {
 		return &re, err
 	}

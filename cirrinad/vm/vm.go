@@ -77,7 +77,6 @@ type Config struct {
 	ExtraArgs        string
 	ISOs             string
 	Disks            string
-	Nics             string
 	Com1Speed        uint32       `gorm:"default:115200;check:com1_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
 	Com2Speed        uint32       `gorm:"default:115200;check:com2_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
 	Com3Speed        uint32       `gorm:"default:115200;check:com3_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"`
@@ -159,7 +158,7 @@ func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, er
 	}
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
-	db := getVmDb()
+	db := GetVmDb()
 	slog.Debug("Creating VM", "vm", name)
 	res := db.Create(&vmInst)
 	InitOneVm(vmInst)
@@ -167,7 +166,7 @@ func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, er
 }
 
 func (vm *VM) Delete() (err error) {
-	db := getVmDb()
+	db := GetVmDb()
 	db.Model(&VM{}).Preload("Config").Limit(1).Find(&vm, &VM{ID: vm.ID})
 	if vm.ID == "" {
 		return errors.New("not found")
@@ -270,7 +269,7 @@ func (vm *VM) Stop() (err error) {
 }
 
 func (vm *VM) Save() error {
-	db := getVmDb()
+	db := GetVmDb()
 
 	res := db.Model(&vm.Config).
 		Updates(map[string]interface{}{
@@ -310,7 +309,6 @@ func (vm *VM) Save() error {
 			"extra_args":         &vm.Config.ExtraArgs,
 			"is_os":              &vm.Config.ISOs,
 			"disks":              &vm.Config.Disks,
-			"nics":               &vm.Config.Nics,
 			"com1_log":           &vm.Config.Com1Log,
 			"com2_log":           &vm.Config.Com2Log,
 			"com3_log":           &vm.Config.Com3Log,
@@ -476,7 +474,7 @@ func (vm *VM) netStartup() {
 						}
 
 					} else {
-						mac := GetMac(&vmNic, vm)
+						mac := GetMac(vmNic, vm)
 						err := _switch.BridgeIfAddMember(thisSwitch.Name, vmNic.NetDev, false, mac)
 						if err != nil {
 							slog.Error("failed to add nic to switch",
@@ -710,18 +708,7 @@ func (vm *VM) GetISOs() ([]iso.ISO, error) {
 
 func (vm *VM) GetNics() ([]vm_nics.VmNic, error) {
 	var nics []vm_nics.VmNic
-	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
-	for _, cv := range strings.Split(vm.Config.Nics, ",") {
-		if cv == "" {
-			continue
-		}
-		aNic, err := vm_nics.GetById(cv)
-		if err == nil {
-			nics = append(nics, *aNic)
-		} else {
-			slog.Error("bad nic", "nic", cv, "vm", vm.ID)
-		}
-	}
+	nics = vm_nics.GetNics(vm.Config.ID)
 	return nics, nil
 }
 
@@ -802,7 +789,8 @@ func (vm *VM) AttachIsos(isoIds []string) error {
 	return nil
 }
 
-func (vm *VM) AttachNics(nicIds []string) error {
+// SetNics sets the list of nics attached to a VM to the list passed in
+func (vm *VM) SetNics(nicIds []string) error {
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	if vm.Status != STOPPED {
@@ -811,6 +799,23 @@ func (vm *VM) AttachNics(nicIds []string) error {
 	occurred := map[string]bool{}
 	var result []string
 
+	// remove all nics from VM
+	thisVmNics, err := vm.GetNics()
+	if err != nil {
+		slog.Error("error looking up vm nics", "err", err)
+		return err
+	}
+
+	for _, aNic := range thisVmNics {
+		aNic.ConfigID = 0
+		err := aNic.Save()
+		if err != nil {
+			slog.Error("error saving NIC", "err", err)
+			return err
+		}
+	}
+
+	// add the nics
 	for _, aNic := range nicIds {
 		slog.Debug("checking vm nic exists", "vmnic", aNic)
 
@@ -852,20 +857,19 @@ func (vm *VM) AttachNics(nicIds []string) error {
 		}
 	}
 
-	var nicsConfigVal string
-	count := 0
 	for _, nicId := range nicIds {
-		if count > 0 {
-			nicsConfigVal += ","
+		vmNic, err := vm_nics.GetById(nicId)
+		if err != nil {
+			slog.Error("error looking up nic", "err", err)
+			return err
 		}
-		nicsConfigVal += nicId
-		count += 1
-	}
-	vm.Config.Nics = nicsConfigVal
-	err := vm.Save()
-	if err != nil {
-		slog.Error("error saving VM", "err", err)
-		return err
+
+		vmNic.ConfigID = vm.Config.ID
+		err = vmNic.Save()
+		if err != nil {
+			slog.Error("error saving NIC", "err", err)
+			return err
+		}
 	}
 	return nil
 }

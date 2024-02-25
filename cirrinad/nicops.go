@@ -81,6 +81,8 @@ func nicClone(rs *requests.Request) {
 
 	newNic = *nicInst
 	newNic.Name = reqData.NewNicName
+	// ensure cloned nic is not attached to VM
+	newNic.ConfigID = 0
 	if reqData.NewNicMac != "" {
 		newNic.Mac = newMac.String()
 	}

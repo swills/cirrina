@@ -7,7 +7,6 @@ import (
 	"gorm.io/gorm/logger"
 	"log"
 	"os"
-	"sync"
 	"time"
 )
 
@@ -17,9 +16,13 @@ type singleton struct {
 
 var instance *singleton
 
-var once sync.Once
+var dbInitialized bool
 
-func getReqDb() *gorm.DB {
+func DbReconfig() {
+	dbInitialized = false
+}
+
+func GetReqDb() *gorm.DB {
 
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "ReqDb: ", log.LstdFlags),
@@ -31,7 +34,7 @@ func getReqDb() *gorm.DB {
 		},
 	)
 
-	once.Do(func() {
+	if !dbInitialized {
 		instance = &singleton{}
 		reqDb, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
@@ -50,12 +53,13 @@ func getReqDb() *gorm.DB {
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
 		instance.reqDb = reqDb
-	})
+		dbInitialized = true
+	}
 	return instance.reqDb
 }
 
 func DbAutoMigrate() {
-	db := getReqDb()
+	db := GetReqDb()
 	err := db.AutoMigrate(&Request{})
 	if err != nil {
 		panic("failed to auto-migrate Requests")
