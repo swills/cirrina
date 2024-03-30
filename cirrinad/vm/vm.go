@@ -193,6 +193,7 @@ func (vm *VM) Start() (err error) {
 	events := make(chan supervisor.Event)
 	err = vm.lockDisks()
 	if err != nil {
+		slog.Error("Failed locking disks", "err", err)
 		return err
 	}
 
@@ -202,6 +203,7 @@ func (vm *VM) Start() (err error) {
 	vm.netStartup()
 	err = vm.Save()
 	if err != nil {
+		slog.Error("Failed saving VM", "err", err)
 		return err
 	}
 
@@ -693,6 +695,11 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			vm.NetCleanup()
 			vm.killComLoggers()
 			vm.SetStopped()
+			err := vm.unlockDisks()
+			if err != nil {
+				slog.Debug("failed unlock disks", "err", err)
+				return
+			}
 			vm.MaybeForceKillVM()
 			vm.log.Info("closing loop we are done")
 			return

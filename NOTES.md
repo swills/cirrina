@@ -34,6 +34,8 @@
         * Implement support for separate controllers and types and specifying which HD/CD are on which controller
         * Implement enlarging disks
         * Implement iSCSI disk support
+          * [handbook docs](https://docs.freebsd.org/en/books/handbook/network-servers/#network-iscsi)
+          * [man page](https://man.freebsd.org/cgi/man.cgi?query=ctladm)
     * Networking
         * Support [Open vSwitch](https://www.openvswitch.org/) ([port](https://www.freshports.org/net/openvswitch/))
         * Switch from `sudo ifconfig ...` to using [netlink](https://man.freebsd.org/cgi/man.cgi?netlink) via [go lib](https://pkg.go.dev/github.com/vishvananda/netlink) once netlink is in all supported FreeBSD versions
@@ -59,7 +61,7 @@
     * SSH
         * Add SSH integration
     * RDP
-    * Implement 9p sharing
+    * Implement [9p](https://reviews.freebsd.org/D41844) sharing or [this](https://github.com/swills/virtfs-9p-kmod/pull/4)
 * Other/Ideas
     * Use real uuid type instead of string everywhere
     * Clients
@@ -109,17 +111,43 @@
     * More on [virtio-vsock](https://www.youtube.com/watch?v=LFqz-VZPhFE) [here](https://www.youtube.com/watch?v=_bYSQ68JPwE)
     * [Support](https://github.com/FreeBSD-UPB/freebsd-src/wiki/Virtual-Machine-Migration-using-bhyve) [live migration](https://lists.freebsd.org/archives/freebsd-virtualization/2023-June/001369.html)
     * [More](https://manpages.ubuntu.com/manpages/impish/man1/cloud-localds.1.html) [on](https://github.com/racingmars/vm-provision/blob/master/create.sh) [templates](https://www.youtube.com/watch?v=jxItb7iZyR0)
+      * [snapshot fetch](https://download.freebsd.org/snapshots/VM-IMAGES/15.0-CURRENT/)
     * Run bhyve in jail
     * Run bhyve in [IP-less jail](https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=273557)
     * Support [BIOS](https://www.gulbra.net/freebsd-bhyve/)
     * Support [more](https://github.com/freenas/libhyve-remote) [VNC encoding](https://reviews.freebsd.org/D11768)
     * Support [QCOW2](https://github.com/xcllnt/libvdsk)
     * Test grpc interface with [grpcurl](https://github.com/fullstorydev/grpcurl)
+    * 
     * Look into use QUIC via [quic-go](https://github.com/quic-go/quic-go), perhaps for host to host disk image transfer
     * [Convert](https://github.com/grpc/grpc-go/blob/master/examples/features/error_details/client/main.go) all grpc [errors](https://grpc.github.io/grpc/core/md_doc_statuscodes.html), especially invalid argument
     * More notes on gRPC error handling [here](https://cloud.google.com/apis/design/errors#error_model) and [here](https://grpc.io/docs/guides/error/)
     * Add more [detail](https://github.com/grpc/grpc-go/blob/master/Documentation/rpc-errors.md) to grpc errors
+    * Also [here](https://jbrandhorst.com/post/grpc-errors/)
     * [Improve](https://protobuf.dev/programming-guides/techniques/) [grpc](https://protobuf.dev/programming-guides/dos-donts/) [stuff](https://protobuf.dev/programming-guides/api/)
     * Use well known [types](https://protobuf.dev/reference/protobuf/google.protobuf/) in proto, especially Empty
+      * Plus some other things like:
+        * google/protobuf/duration.proto
+        * google/protobuf/timestamp.proto
+        * google/protobuf/wrappers.proto
+        * google/rpc/status.proto
+        * google/longrunning/operations.proto
+        * google/protobuf/any.proto
     * Improve python [protobuf](https://protobuf.dev/programming-guides/proto3/) [code](https://protobuf.dev/reference/python/python-generated/#fields)
     * [Rate limit grpc](https://stackoverflow.com/questions/62925871/grpc-rate-limiting-an-api-on-a-per-rpc-basis )
+    * [OpenConfig](https://openconfig.net/) support? YANG/Netconf? [Sysconf](https://github.com/sysrepo/sysrepo)
+    * http support [grpc-crud](https://github.com/Edmartt/grpc-crud) or [grpc-gateway](https://github.com/grpc-ecosystem/grpc-gateway)
+      * See also [grpc-transcoding](https://cloud.google.com/endpoints/docs/grpc/transcoding)
+    * [OpenTelemetry](https://opentelemetry.io/docs/languages/go/getting-started/) support
+    * [Prometheus](https://prometheus.io/docs/guides/go-application/) support
+    * Follow [Go Style](https://google.github.io/styleguide/go/) and [Best Practices](https://google.github.io/styleguide/go/best-practices)
+    * [arm64 support](https://cgit.freebsd.org/src/commit/?id=47e073941f4e7ca6e9bde3fa65abbfcfed6bfa2b)
+    * Clustering using [etcd](https://pkg.go.dev/github.com/coreos/etcd/embed#Etcd)
+    * Data sharing using [bbold](https://github.com/etcd-io/bbolt)
+    * Add [virtio_random](https://man.freebsd.org/cgi/man.cgi?query=virtio_random&apropos=0&sektion=0&manpath=FreeBSD+14.0-RELEASE+and+Ports&arch=default&format=html) device?
+    * Perhaps other [virtio](https://man.freebsd.org/cgi/man.cgi?query=virtio&sektion=4&apropos=0&manpath=FreeBSD+14.0-RELEASE+and+Ports) devices?
+    * Eventually use tcp for console, see [review](https://reviews.freebsd.org/D43514)
+    * TPM pass-through support
+    * PCIe device pass-through
+    * Support booting directly to [netboot.xyz](https://netboot.xyz/docs/booting/ipxe/) using [https boot](https://github.com/tianocore/tianocore.github.io/wiki/HTTP-Boot) in edk2
+      * requires a better/different dns entry than the current public one, perhaps run our own and host the netboot.xyz.efi file too

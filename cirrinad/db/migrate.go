@@ -197,5 +197,7 @@ func CustomMigrate() {
 		setSchemaVersion(2024022403)
 	}
 
+	// 2024022403
+
 	slog.Debug("finished custom migration")
 }
