@@ -263,10 +263,6 @@ func (vm *VM) Stop() (err error) {
 		slog.Error("Failed to stop VM", "vm", vm.Name, "pid", vm.proc.Pid())
 		return errors.New("stop failed")
 	}
-	err = vm.unlockDisks()
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
