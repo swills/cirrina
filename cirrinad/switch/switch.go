@@ -87,6 +87,7 @@ func Create(name string, description string, switchType string, uplink string) (
 		Name:        name,
 		Description: description,
 		Type:        switchType,
+		Uplink:      uplink,
 	}
 	db := getSwitchDb()
 	res := db.Create(&switchInst)
