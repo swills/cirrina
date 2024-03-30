@@ -199,11 +199,10 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 	}
 
 	slog.Debug("ComInteractive", "vm_id", vmInst.ID, "comNum", comNum)
-	// FIXME -- cheating a bit here
 	go func(vmInst *vm.VM, stream cirrina.VMInfo_Com1InteractiveServer) {
 		b := make([]byte, 1)
 		for {
-			if thisCom == nil || vmInst.Status != "RUNNING" {
+			if thisCom == nil || (vmInst.Status != "RUNNING" && vmInst.Status != "STOPPING") {
 				return
 			}
 
@@ -226,7 +225,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 				if nb > 1 {
 					slog.Error("ComInteractive read more than 1 byte", "nb", nb)
 				}
-				if err == io.EOF && vmInst.Status != vm.RUNNING {
+				if err == io.EOF && vmInst.Status != vm.RUNNING && vmInst.Status != vm.STOPPING {
 					slog.Debug("ComInteractive", "msg", "vm not running, exiting")
 					return
 				}
@@ -267,7 +266,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 	}
 
 	for {
-		if vmInst.Status != "RUNNING" {
+		if vmInst.Status != "RUNNING" && vmInst.Status != "STOPPING" {
 			return nil
 		}
 		in, err := stream.Recv()

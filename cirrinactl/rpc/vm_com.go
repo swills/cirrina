@@ -17,21 +17,21 @@ func UseCom(id string, comNum int) error {
 	if id == "" {
 		return errors.New("id not specified")
 	}
-	ctx, ctxCancel := context.WithCancel(context.Background())
-	defer ctxCancel()
+	bgCtx, cancel := context.WithCancel(context.Background())
 	var stream cirrina.VMInfo_Com1InteractiveClient
 
 	switch comNum {
 	case 1:
-		stream, err = serverClient.Com1Interactive(ctx)
+		stream, err = serverClient.Com1Interactive(bgCtx)
 	case 2:
-		stream, err = serverClient.Com2Interactive(ctx)
+		stream, err = serverClient.Com2Interactive(bgCtx)
 	case 3:
-		stream, err = serverClient.Com3Interactive(ctx)
+		stream, err = serverClient.Com3Interactive(bgCtx)
 	case 4:
-		stream, err = serverClient.Com4Interactive(ctx)
+		stream, err = serverClient.Com4Interactive(bgCtx)
 	}
 	if err != nil {
+		cancel()
 		return errors.New(status.Convert(err).Message())
 	}
 
@@ -41,44 +41,42 @@ func UseCom(id string, comNum int) error {
 			VmId: vmId,
 		},
 	}
-
 	err = stream.Send(req)
 	if err != nil {
+		cancel()
 		return err
 	}
+
+	// save term state and set up restore when done
 	var oldState *term.State
 	oldState, err = term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
+		cancel()
 		return err
 	}
 	defer func(fd int, oldState *term.State) {
+		_ = stream.CloseSend()
 		_ = term.Restore(fd, oldState)
 	}(int(os.Stdin.Fd()), oldState)
 
-	quitChan := make(chan bool)
+	// clear screen
+	fmt.Print("\033[H\033[2J")
 
 	// send
-	// FIXME -- cheating a bit here
-	go func(stream cirrina.VMInfo_Com1InteractiveClient, oldState *term.State, quitChan chan bool) {
+	go func(stream cirrina.VMInfo_Com1InteractiveClient) {
 		for {
 			select {
-			case <-quitChan:
-				_ = stream.CloseSend()
-				ctxCancel()
-				_ = term.Restore(int(os.Stdin.Fd()), oldState)
+			case <-bgCtx.Done():
 				return
 			default:
 				b := make([]byte, 1)
 				_, err = os.Stdin.Read(b)
 				if err != nil {
-					quitChan <- true
-					_ = stream.CloseSend()
-					ctxCancel()
-					_ = term.Restore(int(os.Stdin.Fd()), oldState)
+					cancel()
 					return
 				}
 				if b[0] == 0x1c { // == FS ("File Separator") control character -- ctrl-\ -- see ascii.7
-					quitChan <- true
+					cancel()
 					return
 				}
 				req := &cirrina.ComDataRequest{
@@ -88,69 +86,50 @@ func UseCom(id string, comNum int) error {
 				}
 				err = stream.Send(req)
 				if err != nil {
+					cancel()
 					return
 				}
 			}
 		}
-	}(stream, oldState, quitChan)
+	}(stream)
 
 	// receive
-	// FIXME -- cheating a bit here
-	go func(stream cirrina.VMInfo_Com1InteractiveClient, oldState *term.State, quitChan chan bool) {
-
+	go func(stream cirrina.VMInfo_Com1InteractiveClient) {
 		for {
 			select {
-			case <-quitChan:
-				_ = stream.CloseSend()
-				ctxCancel()
-				_ = term.Restore(int(os.Stdin.Fd()), oldState)
+			case <-bgCtx.Done():
 				return
 			default:
 				var out *cirrina.ComDataResponse
 				out, err = stream.Recv()
 				if err != nil {
-					_ = stream.CloseSend()
-					ctxCancel()
-					_ = term.Restore(int(os.Stdin.Fd()), oldState)
+					cancel()
 					return
 				}
 				fmt.Print(string(out.ComOutBytes))
 			}
 		}
-	}(stream, oldState, quitChan)
+	}(stream)
 
-	cleared := false
-	// prevent timeouts
-	defaultServerContext = context.Background()
 	// monitor
 	for {
 		select {
-		case <-quitChan:
-			_ = stream.CloseSend()
-			ctxCancel()
-			_ = term.Restore(int(os.Stdin.Fd()), oldState)
+		case <-bgCtx.Done():
 			return nil
 		default:
 			var res string
+			ResetConnTimeout()
 			res, _, _, err = GetVMState(id)
 			if err != nil {
-				_ = stream.CloseSend()
-				ctxCancel()
-				_ = term.Restore(int(os.Stdin.Fd()), oldState)
+				cancel()
 				return nil
 			}
 
-			if res != "running" {
-				_ = stream.CloseSend()
-				ctxCancel()
-				_ = term.Restore(int(os.Stdin.Fd()), oldState)
-			} else {
-				if !cleared {
-					fmt.Print("\033[H\033[2J")
-					cleared = true
-				}
-				time.Sleep(1 * time.Second)
+			if res != "running" && res != "stopping" {
+				cancel()
+				return nil
 			}
+			time.Sleep(1 * time.Second)
 		}
 	}
 }

@@ -961,6 +961,7 @@ func (vm *VM) AttachDisks(diskids []string) error {
 }
 
 func (vm *VM) killComLoggers() {
+	slog.Debug("killing com loggers")
 	if vm.Com1 != nil {
 		_ = vm.Com1.Close()
 		vm.Com1 = nil
@@ -1068,35 +1069,32 @@ func comLogger(vm *VM, comNum int) {
 	var thisCom *serial.Port
 	var thisRChan chan byte
 	var thisComChanWriteFlag bool
+	comChan := make(chan byte, 4096)
 	slog.Debug("comLogger starting", "comNum", comNum)
 
 	switch comNum {
 	case 1:
 		thisCom = vm.Com1
 		if vm.Config.Com1Log {
-			com1Chan := make(chan byte)
-			vm.Com1rchan = com1Chan
+			vm.Com1rchan = comChan
 			thisRChan = vm.Com1rchan
 		}
 	case 2:
 		thisCom = vm.Com2
 		if vm.Config.Com2Log {
-			com2Chan := make(chan byte)
-			vm.Com2rchan = com2Chan
+			vm.Com2rchan = comChan
 			thisRChan = vm.Com2rchan
 		}
 	case 3:
 		thisCom = vm.Com3
 		if vm.Config.Com3Log {
-			com3Chan := make(chan byte)
-			vm.Com3rchan = com3Chan
+			vm.Com3rchan = comChan
 			thisRChan = vm.Com3rchan
 		}
 	case 4:
 		thisCom = vm.Com4
 		if vm.Config.Com4Log {
-			com4Chan := make(chan byte)
-			vm.Com4rchan = com4Chan
+			vm.Com4rchan = comChan
 			thisRChan = vm.Com4rchan
 		}
 	default:
@@ -1120,10 +1118,17 @@ func comLogger(vm *VM, comNum int) {
 		_ = vl.Close()
 	}(vl)
 
+	b := make([]byte, 1)
+	b2 := make([]byte, 1)
 	n := 0
+
 	for {
-		if vm.Status != RUNNING {
-			slog.Debug("comLogger", "msg", "vm not running, exiting2")
+		if vm.Status != RUNNING && vm.Status != STOPPING {
+			slog.Debug("comLogger vm not running, exiting2",
+				"vm_id", vm.ID,
+				"comNum", comNum,
+				"vm.Status", vm.Status,
+			)
 			return
 		}
 		if thisCom == nil {
@@ -1142,31 +1147,33 @@ func comLogger(vm *VM, comNum int) {
 			thisComChanWriteFlag = vm.Com4write
 		}
 
-		b := make([]byte, 1)
-		b2 := make([]byte, 1)
 		nb, err := thisCom.Read(b)
 		if nb > 1 {
 			slog.Error("comLogger read more than 1 byte", "nb", nb)
 		}
-		if err == io.EOF && vm.Status != RUNNING {
-			slog.Debug("comLogger vm not running, exiting", "vm_id", vm.ID, "comNum", comNum)
+		if err == io.EOF && vm.Status != RUNNING && vm.Status != STOPPING {
+			slog.Debug("comLogger vm not running, exiting",
+				"vm_id", vm.ID,
+				"comNum", comNum,
+				"vm.Status", vm.Status,
+			)
 			return
 		}
 		if err != nil && err != io.EOF {
 			slog.Error("comLogger", "error reading", err)
 			return
 		}
-		if nb != 0 {
-			nb2 := copy(b2, b)
-			if nb != nb2 {
-				slog.Error("comLogger", "msg", "some bytes lost")
-			}
 
+		if nb != 0 {
 			// write to log file
 			_, err = vl.Write(b)
 
 			// write to channel used by remote users, if someone is reading from it
 			if thisRChan != nil && thisComChanWriteFlag {
+				nb2 := copy(b2, b)
+				if nb != nb2 {
+					slog.Error("comLogger", "msg", "some bytes lost")
+				}
 				thisRChan <- b2[0]
 			}
 

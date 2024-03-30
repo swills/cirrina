@@ -155,6 +155,12 @@ func GetConn() error {
 	return nil
 }
 
+func ResetConnTimeout() {
+	defaultServerContext, defaultCancelFunc = context.WithTimeout(
+		context.Background(), time.Second*time.Duration(ServerTimeout),
+	)
+}
+
 func Finish() {
 	if serverConn != nil {
 		_ = serverConn.Close()
