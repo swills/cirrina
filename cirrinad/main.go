@@ -196,7 +196,7 @@ var rootCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		signals := make(chan os.Signal)
+		signals := make(chan os.Signal, 1)
 		signal.Notify(signals, os.Interrupt, syscall.SIGINFO)
 		signal.Notify(signals, os.Interrupt, syscall.SIGINT)
 		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)

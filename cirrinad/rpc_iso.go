@@ -161,7 +161,7 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 
 	// verify size
 	if imageSize != isoUploadReq.Size {
-		slog.Error("UploadIso", "image upload size incorrect")
+		slog.Error("UploadIso image upload size incorrect")
 		err = stream.SendAndClose(&re)
 		if err != nil {
 			slog.Error("UploadIso cannot send response", "err", err)
@@ -169,13 +169,13 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 		return nil
 	} else {
 		isoInst.Size = imageSize
-		slog.Debug("UploadIso", "msg", "image size correct")
+		slog.Debug("UploadIso image size correct")
 	}
 
 	// verify checksum
 	isoInst.Checksum = hex.EncodeToString(hasher.Sum(nil))
 	if isoInst.Checksum != isoUploadReq.Sha512Sum {
-		slog.Debug("UploadIso", "image upload checksum incorrect")
+		slog.Debug("UploadIso image upload checksum incorrect")
 		err = stream.SendAndClose(&re)
 		if err != nil {
 			slog.Error("UploadIso cannot send response", "err", err)

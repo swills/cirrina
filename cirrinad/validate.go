@@ -360,7 +360,10 @@ func validateZpoolConf() {
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
 	if err != nil {
-		slog.Error("zfs dataset not available, please fix or reconfigure", checkCmd.String(), "err", err.Error())
+		slog.Error("zfs dataset not available, please fix or reconfigure",
+			"checkCmd.String", checkCmd.String(),
+			"err", err.Error(),
+		)
 		os.Exit(1)
 	}
 
@@ -635,7 +638,10 @@ func validateSysctls() {
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
 	if err != nil {
-		slog.Error("Failed checking sysctl security.bsd.see_other_gids", checkCmd.String(), "err", err.Error())
+		slog.Error("Failed checking sysctl security.bsd.see_other_gids",
+			"checkCmd.String", checkCmd.String(),
+			"err", err.Error(),
+		)
 		os.Exit(1)
 	}
 	seeOtherGids := strings.TrimSpace(outBytes.String())

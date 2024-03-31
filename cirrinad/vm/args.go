@@ -144,7 +144,7 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 			sataDevCount = sataDevCount + 1
 		}
 		if sataDevCount > maxSataDevs {
-			slog.Error("sata dev count exceeded, skipping disk", "diskId", diskId, "diskName")
+			slog.Error("sata dev count exceeded, skipping disk", "diskId", diskId)
 			continue
 		}
 

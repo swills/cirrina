@@ -491,7 +491,7 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 
 	// verify size
 	if imageSize != diskUploadReq.Size {
-		slog.Error("UploadDisk", "image upload size incorrect")
+		slog.Error("UploadDisk image upload size incorrect")
 		err = stream.SendAndClose(&re)
 		if err != nil {
 			slog.Error("UploadDisk cannot send response", "err", err)
@@ -502,7 +502,7 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 	// verify checksum
 	diskChecksum := hex.EncodeToString(hasher.Sum(nil))
 	if diskChecksum != diskUploadReq.Sha512Sum {
-		slog.Debug("UploadDisk", "image upload checksum incorrect")
+		slog.Debug("UploadDisk image upload checksum incorrect")
 		err = stream.SendAndClose(&re)
 		if err != nil {
 			slog.Error("UploadDisk cannot send response", "err", err)
