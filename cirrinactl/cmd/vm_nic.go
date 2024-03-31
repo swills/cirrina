@@ -33,7 +33,6 @@ var VmNicsListCmd = &cobra.Command{
 		type nicListInfo struct {
 			nicId       string
 			info        rpc.NicInfo
-			vmName      string
 			rateLimited string
 			rateIn      string
 			rateOut     string

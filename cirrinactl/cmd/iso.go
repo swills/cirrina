@@ -193,7 +193,6 @@ func trackIsoUpload(pw progress.Writer, isoSize int64, f2 *os.File) {
 			}
 		}
 	}
-	return
 }
 
 func uploadIsoWithStatus() error {

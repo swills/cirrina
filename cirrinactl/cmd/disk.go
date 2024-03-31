@@ -321,7 +321,6 @@ func trackDiskUpload(pw progress.Writer, diskSize int64, f2 *os.File) {
 			}
 		}
 	}
-	return
 }
 
 func uploadDiskWithStatus() error {

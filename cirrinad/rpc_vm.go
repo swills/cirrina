@@ -60,21 +60,21 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 		vmInst.Config.Protect = sql.NullBool{Bool: *rc.Protect, Valid: true}
 	}
 	if isOptionPassed(reflect, "vncwait") {
-		if *rc.Vncwait == true {
+		if *rc.Vncwait {
 			vmInst.Config.VNCWait = true
 		} else {
 			vmInst.Config.VNCWait = false
 		}
 	}
 	if isOptionPassed(reflect, "acpi") {
-		if *rc.Acpi == true {
+		if *rc.Acpi {
 			vmInst.Config.ACPI = true
 		} else {
 			vmInst.Config.ACPI = false
 		}
 	}
 	if isOptionPassed(reflect, "utc") {
-		if *rc.Utc == true {
+		if *rc.Utc {
 			vmInst.Config.UTCTime = true
 		} else {
 			vmInst.Config.UTCTime = false
@@ -84,28 +84,28 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 		vmInst.Config.MaxWait = *rc.MaxWait
 	}
 	if isOptionPassed(reflect, "tablet") {
-		if *rc.Tablet == true {
+		if *rc.Tablet {
 			vmInst.Config.Tablet = true
 		} else {
 			vmInst.Config.Tablet = false
 		}
 	}
 	if isOptionPassed(reflect, "storeuefi") {
-		if *rc.Storeuefi == true {
+		if *rc.Storeuefi {
 			vmInst.Config.StoreUEFIVars = true
 		} else {
 			vmInst.Config.StoreUEFIVars = false
 		}
 	}
 	if isOptionPassed(reflect, "wireguestmem") {
-		if *rc.Wireguestmem == true {
+		if *rc.Wireguestmem {
 			vmInst.Config.WireGuestMem = true
 		} else {
 			vmInst.Config.WireGuestMem = false
 		}
 	}
 	if isOptionPassed(reflect, "restart") {
-		if *rc.Restart == true {
+		if *rc.Restart {
 			vmInst.Config.Restart = true
 		} else {
 			vmInst.Config.Restart = false
