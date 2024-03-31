@@ -90,6 +90,19 @@ cirrinad-upload:
       curl -s --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file cirrinad/cirrinad-freebsd-amd64-${VER} "${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinad-freebsd-amd64"
     - echo
 
+lint:
+  stage: test
+  retry: 2
+  extends: .go-cache
+  image: golang:${GOVER}
+  script:
+    - go fmt $(go list ./...) | diff -u /dev/null -
+    - go vet $(go list ./...)
+    - export GOBIN=${HOME}/bin
+    - export PATH=${GOBIN}:${PATH}
+    - go install github.com/golangci/golangci-lint/cmd/golangci-lint@v${GOLANGCILINTVER}
+    - golangci-lint run --disable-all -E unused,ineffassign,govet,gofmt
+
 cirrinactl-upload:
   stage: upload
   rules:
