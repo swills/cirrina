@@ -92,7 +92,6 @@ cirrinad-upload:
 
 lint:
   stage: test
-  image: golang:1.21
   script:
     - go fmt $(go list ./...) | diff -u /dev/null -
     - go vet $(go list ./...)
