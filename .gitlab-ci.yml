@@ -104,6 +104,8 @@ lint:
     - golangci-lint run ./...
     - go install golang.org/x/tools/cmd/goimports@latest
     - output="$(git ls-files | grep '\.go$' | grep -E -v '^(cirrina/cirrina.pb.go|cirrina/cirrina_grpc.pb.go)$' | xargs goimports -e -l)" ; echo ${output} ; [ -z "${output}" ]
+    - go install -v github.com/go-critic/go-critic/cmd/gocritic@latest
+    - for file in $(git ls-files | grep '\.go$' | sort -h ) ; do  gocritic check ${file} ; done
 
 cirrinactl-upload:
   stage: upload
