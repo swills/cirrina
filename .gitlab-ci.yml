@@ -92,8 +92,6 @@ cirrinad-upload:
 
 lint:
   stage: test
-  retry: 2
-  extends: .go-cache
   image: golang:${GOVER}
   script:
     - go fmt $(go list ./...) | diff -u /dev/null -
