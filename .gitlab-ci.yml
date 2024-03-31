@@ -92,6 +92,8 @@ cirrinad-upload:
 
 lint:
   stage: test
+  tags:
+    - FreeBSD
   script:
     - go fmt $(go list ./...) | diff -u /dev/null -
     - go vet $(go list ./...)
