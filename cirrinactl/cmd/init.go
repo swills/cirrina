@@ -3,11 +3,12 @@ package cmd
 import (
 	"cirrina/cirrinactl/rpc"
 	"fmt"
+	"os"
+
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"os"
 )
 
 var myTableStyle = table.Style{

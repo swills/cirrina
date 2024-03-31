@@ -5,15 +5,16 @@ import (
 	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/vm"
 	"cirrina/cirrinad/vm_nics"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 	"log"
 	"log/slog"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type meta struct {

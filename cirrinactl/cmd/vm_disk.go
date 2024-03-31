@@ -4,11 +4,12 @@ import (
 	"cirrina/cirrinactl/rpc"
 	"errors"
 	"fmt"
+	"os"
+	"strconv"
+
 	"github.com/dustin/go-humanize"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
-	"os"
-	"strconv"
 )
 
 var VmDisksListCmd = &cobra.Command{

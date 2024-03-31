@@ -9,11 +9,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	"log/slog"
 	"strconv"
 	"strings"
+
+	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.ReqBool, error) {

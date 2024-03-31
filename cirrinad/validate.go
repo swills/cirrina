@@ -9,9 +9,6 @@ import (
 	"cirrina/cirrinad/vm_nics"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/go-version"
-	"golang.org/x/sys/execabs"
-	"golang.org/x/sys/unix"
 	"io/fs"
 	"log/slog"
 	"math/rand"
@@ -23,6 +20,10 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/hashicorp/go-version"
+	"golang.org/x/sys/execabs"
+	"golang.org/x/sys/unix"
 )
 
 func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string, cmdArgs ...string) (err error) {

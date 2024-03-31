@@ -3,11 +3,12 @@ package cmd
 import (
 	"cirrina/cirrinactl/rpc"
 	"fmt"
+	"sort"
+	"strconv"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 	"github.com/spf13/cobra"
-	"sort"
-	"strconv"
 )
 
 var TuiCmd = &cobra.Command{

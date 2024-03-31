@@ -3,9 +3,10 @@ package rpc
 import (
 	"cirrina/cirrina"
 	"errors"
+	"io"
+
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"io"
 )
 
 func AddNic(name string, description string, mac string, nicType string, nicDevType string,

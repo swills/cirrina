@@ -99,8 +99,11 @@ lint:
     - go vet $(go list ./...)
     - export GOBIN=${HOME}/bin
     - export PATH=${GOBIN}:${PATH}
+    - go mod tidy -v
     - go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.56.2
     - golangci-lint run ./...
+    - go install golang.org/x/tools/cmd/goimports@latest
+    - output="$(goimports -l -w .)" ; echo ${output} ; [ -z "${output}" ]
 
 cirrinactl-upload:
   stage: upload

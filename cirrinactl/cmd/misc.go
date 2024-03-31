@@ -3,6 +3,7 @@ package cmd
 import (
 	"cirrina/cirrinactl/rpc"
 	"fmt"
+
 	"github.com/spf13/cobra"
 )
 

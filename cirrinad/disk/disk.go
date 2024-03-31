@@ -6,11 +6,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	exec "golang.org/x/sys/execabs"
-	"gorm.io/gorm"
 	"os/user"
 	"strconv"
 	"sync"
+
+	exec "golang.org/x/sys/execabs"
+	"gorm.io/gorm"
 
 	"log/slog"
 )

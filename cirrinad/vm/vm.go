@@ -11,11 +11,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/kontera-technologies/go-supervisor/v2"
-	"github.com/tarm/serial"
-	exec "golang.org/x/sys/execabs"
-	"gorm.io/gorm"
 	"io"
 	"log/slog"
 	"os"
@@ -23,6 +18,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/kontera-technologies/go-supervisor/v2"
+	"github.com/tarm/serial"
+	exec "golang.org/x/sys/execabs"
+	"gorm.io/gorm"
 )
 
 type StatusType string

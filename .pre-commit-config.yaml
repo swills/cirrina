@@ -5,3 +5,14 @@ repos:
     hooks:
       - id: go-build
       - id: golangci-lint
+      - id: go-fmt
+      - id: go-mod-tidy
+      - id: go-imports
+        exclude: |
+            (?x)^(
+                cirrina/cirrina_grpc.pb.go|
+                cirrina/cirrina.pb.go
+            )$
+#      - id: go-cyclo
+#        args: [-over=15]
+#      - id: go-critic

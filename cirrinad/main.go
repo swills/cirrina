@@ -8,9 +8,6 @@ import (
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm_nics"
 	"fmt"
-	"github.com/mitchellh/mapstructure"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -20,6 +17,10 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/mitchellh/mapstructure"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"cirrina/cirrinad/config"
 	_switch "cirrina/cirrinad/switch"

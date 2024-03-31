@@ -11,11 +11,12 @@ import (
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
-	"cirrina/cirrinad/switch"
+	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm_nics"
-	"github.com/rxwycdh/rxhash"
 	"log/slog"
+
+	"github.com/rxwycdh/rxhash"
 )
 
 type MacHashData struct {

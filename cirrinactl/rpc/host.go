@@ -3,10 +3,11 @@ package rpc
 import (
 	"cirrina/cirrina"
 	"errors"
+	"io"
+
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"io"
 )
 
 func GetHostNics() (rv []*cirrina.NetIf, err error) {

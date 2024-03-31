@@ -4,14 +4,15 @@ import (
 	"cirrina/cirrinactl/rpc"
 	"errors"
 	"fmt"
-	"github.com/dustin/go-humanize"
-	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/spf13/cobra"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/dustin/go-humanize"
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/spf13/cobra"
 )
 
 var NicName string

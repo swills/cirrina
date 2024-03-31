@@ -6,9 +6,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"google.golang.org/grpc/status"
+
 	"io"
 	"os"
+
+	"google.golang.org/grpc/status"
 )
 
 func AddDisk(diskName string, diskDescription string, diskSize string,

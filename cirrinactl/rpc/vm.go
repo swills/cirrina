@@ -3,10 +3,11 @@ package rpc
 import (
 	"cirrina/cirrina"
 	"errors"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/wrapperspb"
 	"io"
 	"strconv"
+
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 func AddVM(name string, descrPtr *string, cpuPtr *uint32, memPtr *uint32) (string, error) {

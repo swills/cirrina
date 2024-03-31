@@ -4,8 +4,9 @@ import (
 	"cirrina/cirrinactl/rpc"
 	"errors"
 	"fmt"
-	"github.com/spf13/cobra"
 	"time"
+
+	"github.com/spf13/cobra"
 )
 
 var VmCom1Cmd = &cobra.Command{

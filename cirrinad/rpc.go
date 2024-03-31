@@ -3,12 +3,13 @@ package main
 import (
 	"cirrina/cirrina"
 	"cirrina/cirrinad/config"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
-	"google.golang.org/protobuf/reflect/protoreflect"
 	"log/slog"
 	"net"
 	"strconv"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
+	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 type server struct {

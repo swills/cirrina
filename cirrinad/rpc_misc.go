@@ -7,10 +7,11 @@ import (
 	"cirrina/cirrinad/vm"
 	"context"
 	"errors"
+	"log/slog"
+
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
-	"log/slog"
 )
 
 func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrina.ReqStatus, error) {

@@ -5,10 +5,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"golang.org/x/term"
-	"google.golang.org/grpc/status"
 	"os"
 	"time"
+
+	"golang.org/x/term"
+	"google.golang.org/grpc/status"
 )
 
 func UseCom(id string, comNum int) error {

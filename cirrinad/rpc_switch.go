@@ -4,14 +4,15 @@ import (
 	"cirrina/cirrina"
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
+	"context"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"log/slog"
 	"strconv"
 	"strings"
+
+	"github.com/google/uuid"
 )
-import "context"
 
 func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.SwitchId, error) {
 	var switchType string

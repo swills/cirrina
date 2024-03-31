@@ -4,10 +4,11 @@ import (
 	"cirrina/cirrinactl/rpc"
 	"errors"
 	"fmt"
-	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/spf13/cobra"
 	"os"
 	"sort"
+
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/spf13/cobra"
 )
 
 var SwitchName string

@@ -5,9 +5,10 @@ import (
 	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"log/slog"
 	"net"
+
+	"gorm.io/gorm"
 )
 
 func GetByName(name string) (s *VmNic, err error) {

@@ -6,8 +6,6 @@ import (
 	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
-	"github.com/tarm/serial"
-	"golang.org/x/sys/execabs"
 	"log/slog"
 	"os"
 	"os/user"
@@ -15,6 +13,9 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/tarm/serial"
+	"golang.org/x/sys/execabs"
 )
 
 func GetVmLogPath(logpath string) error {

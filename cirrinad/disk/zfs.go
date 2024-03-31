@@ -5,10 +5,11 @@ import (
 	"cirrina/cirrinad/config"
 	"errors"
 	"fmt"
-	exec "golang.org/x/sys/execabs"
 	"log/slog"
 	"strconv"
 	"strings"
+
+	exec "golang.org/x/sys/execabs"
 )
 
 func GetAllZfsVolumes() (allVolumes []string, err error) {

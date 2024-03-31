@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	exec "golang.org/x/sys/execabs"
-	"golang.org/x/sys/unix"
 	"io/fs"
 	"log/slog"
 	"math"
@@ -21,6 +19,9 @@ import (
 	"strings"
 	"syscall"
 	"unicode"
+
+	exec "golang.org/x/sys/execabs"
+	"golang.org/x/sys/unix"
 )
 
 func PathExists(path string) (bool, error) {

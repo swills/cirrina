@@ -5,8 +5,9 @@ import (
 	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"log/slog"
+
+	"gorm.io/gorm"
 )
 
 func Create(name string, description string) (iso *ISO, err error) {

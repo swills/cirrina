@@ -12,10 +12,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
 	"io"
 	"log/slog"
 	"os"
+
+	"github.com/google/uuid"
 )
 
 func (s *server) GetISOs(_ *cirrina.ISOsQuery, stream cirrina.VMInfo_GetISOsServer) error {

@@ -6,12 +6,13 @@ import (
 	"cirrina/cirrinad/vm"
 	"errors"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/tarm/serial"
 	"io"
 	"log/slog"
 	"os"
 	"strconv"
+
+	"github.com/google/uuid"
+	"github.com/tarm/serial"
 )
 
 func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) error {

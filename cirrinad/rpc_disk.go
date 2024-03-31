@@ -19,8 +19,9 @@ import (
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/vm"
 
-	"github.com/google/uuid"
 	"log/slog"
+
+	"github.com/google/uuid"
 )
 
 func (s *server) GetDisks(_ *cirrina.DisksQuery, stream cirrina.VMInfo_GetDisksServer) error {

@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/google/uuid"
 	exec "golang.org/x/sys/execabs"
 	"gorm.io/gorm"
-	"strings"
 
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
