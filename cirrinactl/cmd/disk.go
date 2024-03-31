@@ -265,7 +265,7 @@ func trackDiskUpload(pw progress.Writer, diskSize int64, f2 *os.File) {
 	var checksumTotal int64
 	for !complete {
 		n, err = io.CopyN(hasher, f, 1024*1024)
-		checksumTotal = checksumTotal + n
+		checksumTotal += n
 		checksumTracker.SetValue(checksumTotal)
 		if err != nil {
 			if err == io.EOF {
