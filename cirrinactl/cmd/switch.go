@@ -16,7 +16,6 @@ var SwitchDescriptionChanged bool
 var SwitchUplinkName string
 var SwitchType = "IF"
 var SwitchId string
-var SwitchIdChanged bool
 
 var SwitchCmd = &cobra.Command{
 	Use:   "switch",

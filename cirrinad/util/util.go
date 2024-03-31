@@ -407,9 +407,9 @@ func ModeIsSuid(mode fs.FileMode) bool {
 	return false
 }
 
-func ModeIsWriteOwner(mode os.FileMode) bool {
-	return mode&0200 != 0
-}
+//func ModeIsWriteOwner(mode os.FileMode) bool {
+//	return mode&0200 != 0
+//}
 
 func ModeIsExecOther(mode os.FileMode) bool {
 	if mode&0001 != 0 {

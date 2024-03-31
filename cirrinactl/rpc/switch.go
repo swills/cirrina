@@ -2,13 +2,12 @@ package rpc
 
 import (
 	"cirrina/cirrina"
-	"context"
 	"errors"
 	"google.golang.org/grpc/status"
 	"io"
 )
 
-func getSwitchIds(c cirrina.VMInfoClient, ctx context.Context) ([]string, error) {
+func getSwitchIds() ([]string, error) {
 	var err error
 	var rv []string
 	var res cirrina.VMInfo_GetSwitchesClient
@@ -38,7 +37,7 @@ func SwitchNameToId(s string) (string, error) {
 	rv := ""
 
 	var switchIds []string
-	switchIds, err = getSwitchIds(serverClient, defaultServerContext)
+	switchIds, err = getSwitchIds()
 	if err != nil {
 		return "", err
 	}

@@ -162,16 +162,16 @@ func DiskNameToId(name string) (string, error) {
 	return diskId, nil
 }
 
-func DiskIdToName(id string) (string, error) {
-	var err error
-
-	var res *cirrina.DiskInfo
-	res, err = serverClient.GetDiskInfo(defaultServerContext, &cirrina.DiskId{Value: id})
-	if err != nil {
-		return "", errors.New(status.Convert(err).Message())
-	}
-	return *res.Name, nil
-}
+//func DiskIdToName(id string) (string, error) {
+//	var err error
+//
+//	var res *cirrina.DiskInfo
+//	res, err = serverClient.GetDiskInfo(defaultServerContext, &cirrina.DiskId{Value: id})
+//	if err != nil {
+//		return "", errors.New(status.Convert(err).Message())
+//	}
+//	return *res.Name, nil
+//}
 
 func DiskGetVmId(id string) (string, error) {
 	var err error

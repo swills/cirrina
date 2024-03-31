@@ -222,7 +222,7 @@ func uploadIsoWithStatus() error {
 	pw.Style().Options.TimeDonePrecision = time.Second
 	pw.Style().Options.TimeOverallPrecision = time.Second
 	pw.SetAutoStop(false)
-	pw.SetMessageWidth(20)
+	pw.SetMessageLength(20)
 
 	go pw.Render()
 	go trackIsoUpload(pw, isoSize, f2)
