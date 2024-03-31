@@ -145,14 +145,15 @@ func CreateBridges() {
 
 	for num, bridge := range allBridges {
 		slog.Debug("creating bridge", "num", num, "bridge", bridge.Name)
-		if bridge.Type == "IF" {
+		switch bridge.Type {
+		case "IF":
 			slog.Debug("creating if bridge", "name", bridge.Name)
 			err := BuildIfBridge(bridge)
 			if err != nil {
 				slog.Error("error creating if bridge", "err", err)
 				return
 			}
-		} else if bridge.Type == "NG" {
+		case "NG":
 			slog.Debug("creating ng bridge", "name", bridge.Name)
 			err := BuildNgBridge(bridge)
 			if err != nil {
@@ -162,7 +163,7 @@ func CreateBridges() {
 				)
 				return
 			}
-		} else {
+		default:
 			slog.Debug("unknown bridge type", "name", bridge.Name, "type", bridge.Type)
 		}
 	}
@@ -181,7 +182,8 @@ func DestroyBridges() {
 	}
 
 	for _, bridge := range allBridges {
-		if bridge.Type == "IF" {
+		switch bridge.Type {
+		case "IF":
 			if util.ContainsStr(exitingIfBridges, bridge.Name) {
 				slog.Debug("destroying if bridge", "name", bridge.Name)
 				err := DestroyIfBridge(bridge.Name, true)
@@ -189,7 +191,7 @@ func DestroyBridges() {
 					slog.Error("error destroying if bridge", "err", err)
 				}
 			}
-		} else if bridge.Type == "NG" {
+		case "NG":
 			if util.ContainsStr(exitingNgBridges, bridge.Name) {
 				slog.Debug("destroying ng bridge", "name", bridge.Name)
 				err = DestroyNgBridge(bridge.Name)
@@ -197,7 +199,7 @@ func DestroyBridges() {
 					slog.Error("error destroying if bridge", "err", err)
 				}
 			}
-		} else {
+		default:
 			slog.Debug("unknown bridge type", "name", bridge.Name, "type", bridge.Type)
 		}
 	}
@@ -205,11 +207,11 @@ func DestroyBridges() {
 
 func BridgeIfAddMember(bridgeName string, memberName string, learn bool, mac string) error {
 	// TODO
-	//netDevs := util.GetHostInterfaces()
+	// netDevs := util.GetHostInterfaces()
 	//
-	//if !util.ContainsStr(netDevs, memberName) {
-	//	return errors.New("invalid switch member name")
-	//}
+	// if !util.ContainsStr(netDevs, memberName) {
+	// 	return errors.New("invalid switch member name")
+	// }
 
 	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "addm", memberName)
 	var out bytes.Buffer
@@ -225,41 +227,41 @@ func BridgeIfAddMember(bridgeName string, memberName string, learn bool, mac str
 
 	if !learn {
 		slog.Debug("BridgeIfAddMember", "learn", learn, "mac", mac)
-		//cmd = exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "-learn", memberName)
-		//cmd.Stdout = &out
-		//if err := cmd.Start(); err != nil {
-		//	return err
-		//}
-		//if err := cmd.Wait(); err != nil {
-		//	slog.Error("failed running ifconfig", "err", err, "out", out)
-		//	errtxt := fmt.Sprintf("ifconfig failed: err: %v, out: %v", err, out)
-		//	return errors.New(errtxt)
-		//}
+		// cmd = exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "-learn", memberName)
+		// cmd.Stdout = &out
+		// if err := cmd.Start(); err != nil {
+		// 	return err
+		// }
+		// if err := cmd.Wait(); err != nil {
+		// 	slog.Error("failed running ifconfig", "err", err, "out", out)
+		// 	errtxt := fmt.Sprintf("ifconfig failed: err: %v, out: %v", err, out)
+		// 	return errors.New(errtxt)
+		// }
 		//
-		//cmd = exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "-discover", memberName)
-		//cmd.Stdout = &out
-		//if err := cmd.Start(); err != nil {
-		//	return err
-		//}
-		//if err := cmd.Wait(); err != nil {
-		//	slog.Error("failed running ifconfig", "err", err, "out", out)
-		//	errtxt := fmt.Sprintf("ifconfig failed: err: %v, out: %v", err, out)
-		//	return errors.New(errtxt)
-		//}
-		//if mac != "" {
-		//	// https://cgit.freebsd.org/src/tree/sbin/ifconfig/ifbridge.c?id=eba230afba4932f02a1ca44efc797cf7499a5cb0#n405
-		//	// patched this to 0
-		//	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/obj/usr/src/amd64.amd64/sbin/ifconfig/ifconfig", bridgeName, "static", memberName, mac)
-		//	cmd.Stdout = &out
-		//	if err := cmd.Start(); err != nil {
-		//		return err
-		//	}
-		//	if err := cmd.Wait(); err != nil {
-		//		slog.Error("failed running ifconfig", "err", err, "out", out)
-		//		errtxt := fmt.Sprintf("ifconfig failed: err: %v, out: %v", err, out)
-		//		return errors.New(errtxt)
-		//	}
-		//}
+		// cmd = exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "-discover", memberName)
+		// cmd.Stdout = &out
+		// if err := cmd.Start(); err != nil {
+		// 	return err
+		// }
+		// if err := cmd.Wait(); err != nil {
+		// 	slog.Error("failed running ifconfig", "err", err, "out", out)
+		// 	errtxt := fmt.Sprintf("ifconfig failed: err: %v, out: %v", err, out)
+		// 	return errors.New(errtxt)
+		// }
+		// if mac != "" {
+		// 	// https://cgit.freebsd.org/src/tree/sbin/ifconfig/ifbridge.c?id=eba230afba4932f02a1ca44efc797cf7499a5cb0#n405
+		// 	// patched this to 0
+		// 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/obj/usr/src/amd64.amd64/sbin/ifconfig/ifconfig", bridgeName, "static", memberName, mac)
+		// 	cmd.Stdout = &out
+		// 	if err := cmd.Start(); err != nil {
+		// 		return err
+		// 	}
+		// 	if err := cmd.Wait(); err != nil {
+		// 		slog.Error("failed running ifconfig", "err", err, "out", out)
+		// 		errtxt := fmt.Sprintf("ifconfig failed: err: %v, out: %v", err, out)
+		// 		return errors.New(errtxt)
+		// 	}
+		// }
 	}
 
 	return nil

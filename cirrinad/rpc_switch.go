@@ -59,7 +59,8 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 		i.SwitchType = &defaultSwitchType
 	}
 
-	if *i.SwitchType == cirrina.SwitchType_IF {
+	switch *i.SwitchType {
+	case cirrina.SwitchType_IF:
 		switchType = "IF"
 		if !strings.HasPrefix(*i.Name, "bridge") {
 			slog.Error("invalid name", "name", *i.Name)
@@ -79,8 +80,7 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 			slog.Error("invalid name", "name", *i.Name)
 			return &cirrina.SwitchId{Value: ""}, errors.New("invalid name")
 		}
-
-	} else if *i.SwitchType == cirrina.SwitchType_NG {
+	case cirrina.SwitchType_NG:
 		switchType = "NG"
 		if !strings.HasPrefix(*i.Name, "bnet") {
 			slog.Error("invalid bridge name", "name", *i.Name)
@@ -100,7 +100,7 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 			slog.Error("invalid name", "name", *i.Name)
 			return &cirrina.SwitchId{Value: ""}, errors.New("invalid name")
 		}
-	} else {
+	default:
 		return &cirrina.SwitchId{}, errors.New("invalid type")
 	}
 
@@ -169,11 +169,12 @@ func (s *server) GetSwitchInfo(_ context.Context, v *cirrina.SwitchId) (*cirrina
 	SwitchTypeIf := cirrina.SwitchType_IF
 	SwitchTypeNg := cirrina.SwitchType_NG
 
-	if vmSwitch.Type == "IF" {
+	switch vmSwitch.Type {
+	case "IF":
 		pvmswitchinfo.SwitchType = &SwitchTypeIf
-	} else if vmSwitch.Type == "NG" {
+	case "NG":
 		pvmswitchinfo.SwitchType = &SwitchTypeNg
-	} else {
+	default:
 		slog.Error("GetSwitchInfo bad switch type", "switchid", vmSwitch.ID, "type", vmSwitch.Type)
 	}
 	return &pvmswitchinfo, nil
@@ -202,18 +203,19 @@ func (s *server) RemoveSwitch(_ context.Context, si *cirrina.SwitchId) (*cirrina
 		return &re, errors.New("switch in use")
 	}
 
-	if switchInst.Type == "IF" {
+	switch switchInst.Type {
+	case "IF":
 		err := _switch.DestroyIfBridge(switchInst.Name, true)
 		if err != nil {
 			return &re, err
 		}
-	} else if switchInst.Type == "NG" {
+	case "NG":
 		err := _switch.DestroyNgBridge(switchInst.Name)
 		if err != nil {
 			slog.Error("switch removal failure")
 			return &re, err
 		}
-	} else {
+	default:
 		return &re, errors.New("invalid switch type")
 	}
 	slog.Debug("RemoveSwitch", "switchid", si.Value)

@@ -64,8 +64,8 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 		if devCount <= maxSataDevs {
 			thisCd := []string{"-s", strconv.Itoa(slot) + ":0,ahci,cd:" + thisIso.Path}
 			cdString = append(cdString, thisCd...)
-			devCount = devCount + 1
-			slot = slot + 1
+			devCount++
+			slot++
 		}
 	}
 	return cdString, slot
@@ -104,13 +104,14 @@ func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (hdArg string, err error) {
 		slog.Error("disk path does not exist", "diskId", thisDisk.ID, "diskName", thisDisk.Name, "diskPath", diskPath)
 		return "", err
 	}
-	if thisDisk.Type == "NVME" {
+	switch thisDisk.Type {
+	case "NVME":
 		diskController = "nvme"
-	} else if thisDisk.Type == "AHCI-HD" {
+	case "AHCI-HD":
 		diskController = "ahci-hd"
-	} else if thisDisk.Type == "VIRTIO-BLK" {
+	case "VIRTIO-BLK":
 		diskController = "virtio-blk"
-	} else {
+	default:
 		slog.Error("unknown disk type", "type", thisDisk.Type)
 		return "", errors.New("unknown disk type")
 	}
@@ -142,7 +143,7 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 			continue
 		}
 		if thisDisk.Type == "AHCI-HD" {
-			sataDevCount = sataDevCount + 1
+			sataDevCount++
 		}
 		if sataDevCount > maxSataDevs {
 			slog.Error("sata dev count exceeded, skipping disk", "diskId", diskId)
@@ -156,7 +157,7 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 		}
 		thisHd := []string{"-s", strconv.Itoa(slot) + "," + oneHdString}
 		diskString = append(diskString, thisHd...)
-		slot = slot + 1
+		slot++
 	}
 	return diskString, slot
 }
@@ -191,7 +192,7 @@ func (vm *VM) getHostBridgeArg(slot int) ([]string, int) {
 		return []string{}, slot
 	}
 	hostBridgeArg := []string{"-s", strconv.Itoa(slot) + ",hostbridge"}
-	slot = slot + 1
+	slot++
 	return hostBridgeArg, slot
 }
 
@@ -294,7 +295,7 @@ func (vm *VM) getSoundArg(slot int) ([]string, int) {
 		}
 	}
 	soundArg = []string{"-s", strconv.Itoa(slot) + soundString}
-	slot = slot + 1
+	slot++
 	return soundArg, slot
 }
 
@@ -321,7 +322,7 @@ func (vm *VM) getTabletArg(slot int) ([]string, int) {
 		return []string{}, slot
 	}
 	tabletArg := []string{"-s", strconv.Itoa(slot) + ",xhci,tablet"}
-	slot = slot + 1
+	slot++
 	return tabletArg, slot
 }
 
@@ -361,9 +362,9 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 			",tcp=" + vncListenIP + ":" + vncListenPort,
 	}
 	if vm.Config.VNCWait {
-		fbufArg[1] = fbufArg[1] + ",wait"
+		fbufArg[1] += ",wait"
 	}
-	slot = slot + 1
+	slot++
 	return fbufArg, slot
 }
 
@@ -378,16 +379,18 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 		var netType string
 		var netDevArg string
 
-		if nicItem.NetType == "VIRTIONET" {
+		switch nicItem.NetType {
+		case "VIRTIONET":
 			netType = "virtio-net"
-		} else if nicItem.NetType == "E1000" {
+		case "E1000":
 			netType = "e1000"
-		} else {
+		default:
 			slog.Debug("unknown net type, cannot configure", "netType", nicItem.NetType)
 			return []string{}, originalSlot
 		}
 
-		if nicItem.NetDevType == "TAP" {
+		switch nicItem.NetDevType {
+		case "TAP":
 			nicItem.NetDev = GetTapDev()
 			err := nicItem.Save()
 			if err != nil {
@@ -395,7 +398,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 				return []string{}, slot
 			}
 			netDevArg = nicItem.NetDev
-		} else if nicItem.NetDevType == "VMNET" {
+		case "VMNET":
 			nicItem.NetDev = GetVmnetDev()
 			err := nicItem.Save()
 			if err != nil {
@@ -403,7 +406,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 				return []string{}, slot
 			}
 			netDevArg = nicItem.NetDev
-		} else if nicItem.NetDevType == "NETGRAPH" {
+		case "NETGRAPH":
 			ngNetDev, ngPeerHook, err := _switch.GetNgDev(nicItem.SwitchId)
 			if err != nil {
 				slog.Error("GetNgDev error", "err", err)
@@ -416,7 +419,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 				return []string{}, slot
 			}
 			netDevArg = "netgraph,path=" + ngNetDev + ":,peerhook=" + ngPeerHook + ",socket=" + vm.Name
-		} else {
+		default:
 			slog.Debug("unknown net dev type", "netDevType", nicItem.NetDevType)
 			return []string{}, slot
 		}
@@ -427,7 +430,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 			macString = ",mac=" + macAddress
 		}
 		netArg := []string{"-s", strconv.Itoa(slot) + "," + netType + "," + netDevArg + macString}
-		slot = slot + 1
+		slot++
 		netArgs = append(netArgs, netArg...)
 	}
 
@@ -481,7 +484,7 @@ func GetTapDev() string {
 		if !util.ContainsStr(netDevs, tapDev) && !IsNetPortUsed(tapDev) {
 			freeTapDevFound = true
 		} else {
-			tapNum = tapNum + 1
+			tapNum++
 		}
 	}
 	return tapDev
@@ -503,7 +506,7 @@ func GetVmnetDev() string {
 		if !util.ContainsStr(netDevs, vmnetDev) && !IsNetPortUsed(vmnetDev) {
 			freeVmnetDevFound = true
 		} else {
-			vmnetNum = vmnetNum + 1
+			vmnetNum++
 		}
 	}
 	return vmnetDev

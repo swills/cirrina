@@ -402,9 +402,9 @@ func ModeIsSuid(mode fs.FileMode) bool {
 	return mode&fs.ModeSetuid != 0
 }
 
-//func ModeIsWriteOwner(mode os.FileMode) bool {
-//	return mode&0200 != 0
-//}
+// func ModeIsWriteOwner(mode os.FileMode) bool {
+// 	return mode&0200 != 0
+// }
 
 func ModeIsExecOther(mode os.FileMode) bool {
 	return mode&0001 != 0
@@ -455,37 +455,35 @@ func ParseDiskSize(size string) (sizeBytes uint64, err error) {
 	var t string
 	var n uint
 	var m uint64
-	if strings.HasSuffix(size, "k") {
+	switch {
+	case strings.HasSuffix(size, "k"):
 		t = strings.TrimSuffix(size, "k")
 		m = 1024
-	} else if strings.HasSuffix(size, "K") {
+	case strings.HasSuffix(size, "K"):
 		t = strings.TrimSuffix(size, "K")
 		m = 1024
-	} else if strings.HasSuffix(size, "m") {
+	case strings.HasSuffix(size, "m"):
 		t = strings.TrimSuffix(size, "m")
 		m = 1024 * 1024
-	} else if strings.HasSuffix(size, "M") {
+	case strings.HasSuffix(size, "M"):
 		t = strings.TrimSuffix(size, "M")
 		m = 1024 * 1024
-	} else if strings.HasSuffix(size, "g") {
+	case strings.HasSuffix(size, "g"):
 		t = strings.TrimSuffix(size, "g")
 		m = 1024 * 1024 * 1024
-	} else if strings.HasSuffix(size, "G") {
+	case strings.HasSuffix(size, "G"):
 		t = strings.TrimSuffix(size, "G")
 		m = 1024 * 1024 * 1024
-	} else if strings.HasSuffix(size, "t") {
+	case strings.HasSuffix(size, "t"):
 		t = strings.TrimSuffix(size, "t")
 		m = 1024 * 1024 * 1024 * 1024
-	} else if strings.HasSuffix(size, "T") {
+	case strings.HasSuffix(size, "T"):
 		t = strings.TrimSuffix(size, "T")
 		m = 1024 * 1024 * 1024 * 1024
-	} else if strings.HasSuffix(size, "b") {
+	case strings.HasSuffix(size, "b"):
 		t = strings.TrimSuffix(size, "b")
 		m = 1024 * 1024 * 1024 * 1024
-	} else if strings.HasSuffix(size, "B") {
-		t = size
-		m = 1
-	} else {
+	default:
 		t = size
 		m = 1
 	}

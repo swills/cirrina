@@ -114,15 +114,15 @@ func IsoNameToId(name string) (string, error) {
 	return isoId, nil
 }
 
-//func IsoIdToName(s string) (string, error) {
-//	var err error
-//	var res *cirrina.ISOInfo
-//	res, err = serverClient.GetISOInfo(defaultServerContext, &cirrina.ISOID{Value: s})
-//	if err != nil {
-//		return "", errors.New(status.Convert(err).Message())
-//	}
-//	return *res.Name, nil
-//}
+// func IsoIdToName(s string) (string, error) {
+// 	var err error
+// 	var res *cirrina.ISOInfo
+// 	res, err = serverClient.GetISOInfo(defaultServerContext, &cirrina.ISOID{Value: s})
+// 	if err != nil {
+// 		return "", errors.New(status.Convert(err).Message())
+// 	}
+// 	return *res.Name, nil
+// }
 
 func IsoUpload(isoId string, isoChecksum string,
 	isoSize uint64, isoFile *os.File) (<-chan UploadStat, error) {

@@ -239,7 +239,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 					}
 					err = stream.Send(&req)
 					if err != nil {
-						//slog.Debug("ComInteractive un-logged failure sending to com channel", "err", err)
+						// slog.Debug("ComInteractive un-logged failure sending to com channel", "err", err)
 						return
 					}
 				}

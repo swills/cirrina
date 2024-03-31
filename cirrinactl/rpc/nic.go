@@ -28,21 +28,23 @@ func AddNic(name string, description string, mac string, nicType string, nicDevT
 	newVmNic.Ratein = &rateIn
 	newVmNic.Rateout = &rateOut
 
-	if nicType == "VIRTIONET" || nicType == "virtio-net" {
+	switch {
+	case nicType == "VIRTIONET" || nicType == "virtio-net":
 		thisNetType = cirrina.NetType_VIRTIONET
-	} else if nicType == "E1000" || nicType == "e1000" {
+	case nicType == "E1000" || nicType == "e1000":
 		thisNetType = cirrina.NetType_E1000
-	} else {
+	default:
 		return "", errors.New("net type must be either VIRTIONET or E1000")
 	}
 
-	if nicDevType == "TAP" || nicDevType == "tap" {
+	switch {
+	case nicDevType == "TAP" || nicDevType == "tap":
 		thisNetDevType = cirrina.NetDevType_TAP
-	} else if nicDevType == "VMNET" || nicDevType == "vmnet" {
+	case nicDevType == "VMNET" || nicDevType == "vmnet":
 		thisNetDevType = cirrina.NetDevType_VMNET
-	} else if nicDevType == "NETGRAPH" || nicDevType == "netgraph" {
+	case nicDevType == "NETGRAPH" || nicDevType == "netgraph":
 		thisNetDevType = cirrina.NetDevType_NETGRAPH
-	} else {
+	default:
 		return "", errors.New("net dev type must be one of TAP or VMNET or NETGRAPH")
 	}
 
@@ -82,11 +84,12 @@ func GetVmNicInfo(id string) (NicInfo, error) {
 		return NicInfo{}, errors.New(status.Convert(err).Message())
 	}
 	netDevType := "unknown"
-	if *res.Netdevtype == cirrina.NetDevType_TAP {
+	switch *res.Netdevtype {
+	case cirrina.NetDevType_TAP:
 		netDevType = "tap"
-	} else if *res.Netdevtype == cirrina.NetDevType_VMNET {
+	case cirrina.NetDevType_VMNET:
 		netDevType = "vmnet"
-	} else if *res.Netdevtype == cirrina.NetDevType_NETGRAPH {
+	case cirrina.NetDevType_NETGRAPH:
 		netDevType = "netgraph"
 	}
 	netType := "unknown"
@@ -151,39 +154,39 @@ func NicNameToId(name string) (nicId string, err error) {
 	return nicId, nil
 }
 
-//func NicIdToName(s string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
-//	res, err := c.GetVmNicInfo(defaultServerContext, &cirrina.VmNicId{Value: s})
-//	print("")
-//	if err != nil {
-//		return "", err
-//	}
-//	return *res.Name, nil
-//}
+// func NicIdToName(s string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
+// 	res, err := c.GetVmNicInfo(defaultServerContext, &cirrina.VmNicId{Value: s})
+// 	print("")
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	return *res.Name, nil
+// }
 
-//func GetVmNicOne(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
-//	var rv string
-//	res, err := c.GetVmNics(defaultServerContext, &cirrina.VMID{Value: *idPtr})
-//	if err != nil {
-//		return "", err
-//	}
-//	found := false
-//	for {
-//		VMNicId, err := res.Recv()
-//		if err == io.EOF {
-//			break
-//		}
-//		if err != nil {
-//			return "", err
-//		}
-//		if found {
-//			return "", errors.New("duplicate nic")
-//		} else {
-//			found = true
-//			rv = VMNicId.Value
-//		}
-//	}
-//	return rv, nil
-//}
+// func GetVmNicOne(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
+// 	var rv string
+// 	res, err := c.GetVmNics(defaultServerContext, &cirrina.VMID{Value: *idPtr})
+// 	if err != nil {
+// 		return "", err
+// 	}
+// 	found := false
+// 	for {
+// 		VMNicId, err := res.Recv()
+// 		if err == io.EOF {
+// 			break
+// 		}
+// 		if err != nil {
+// 			return "", err
+// 		}
+// 		if found {
+// 			return "", errors.New("duplicate nic")
+// 		} else {
+// 			found = true
+// 			rv = VMNicId.Value
+// 		}
+// 	}
+// 	return rv, nil
+// }
 
 func GetVmNicsAll() ([]string, error) {
 	var err error

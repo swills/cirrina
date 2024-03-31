@@ -74,52 +74,62 @@ func getVmItems() ([]vmItem, error) {
 }
 
 func startButtonExit(key tcell.Key) {
-	if key == tcell.KeyEscape {
+	switch key {
+	case tcell.KeyEscape:
 		app.SetFocus(vmList)
-	} else if key == tcell.KeyTab {
+	case tcell.KeyTab:
 		app.SetFocus(stopButton)
-	} else if key == tcell.KeyBacktab {
+	case tcell.KeyBacktab:
 		app.SetFocus(vncButton)
+	default:
 	}
 }
 
 func stopButtonExit(key tcell.Key) {
-	if key == tcell.KeyEscape {
+	switch key {
+	case tcell.KeyEscape:
 		app.SetFocus(vmList)
-	} else if key == tcell.KeyTab {
+	case tcell.KeyTab:
 		app.SetFocus(editButton)
-	} else if key == tcell.KeyBacktab {
+	case tcell.KeyBacktab:
 		app.SetFocus(startButton)
+	default:
 	}
 }
 
 func editButtonExit(key tcell.Key) {
-	if key == tcell.KeyEscape {
+	switch key {
+	case tcell.KeyEscape:
 		app.SetFocus(vmList)
-	} else if key == tcell.KeyTab {
+	case tcell.KeyTab:
 		app.SetFocus(comButton)
-	} else if key == tcell.KeyBacktab {
+	case tcell.KeyBacktab:
 		app.SetFocus(stopButton)
+	default:
 	}
 }
 
 func comButtonExit(key tcell.Key) {
-	if key == tcell.KeyEscape {
+	switch key {
+	case tcell.KeyEscape:
 		app.SetFocus(vmList)
-	} else if key == tcell.KeyTab {
+	case tcell.KeyTab:
 		app.SetFocus(vncButton)
-	} else if key == tcell.KeyBacktab {
+	case tcell.KeyBacktab:
 		app.SetFocus(editButton)
+	default:
 	}
 }
 
 func vncButtonExit(key tcell.Key) {
-	if key == tcell.KeyEscape {
+	switch key {
+	case tcell.KeyEscape:
 		app.SetFocus(vmList)
-	} else if key == tcell.KeyTab {
+	case tcell.KeyTab:
 		app.SetFocus(startButton)
-	} else if key == tcell.KeyBacktab {
+	case tcell.KeyBacktab:
 		app.SetFocus(comButton)
+	default:
 	}
 }
 

@@ -60,7 +60,7 @@ func GetDummyEpairName() string {
 	for epairNum > 0 {
 		epairName := "epair" + strconv.Itoa(epairNum)
 		if util.ContainsStr(ePairList, epairName) {
-			epairNum = epairNum - 1
+			epairNum--
 		} else {
 			return epairName
 		}

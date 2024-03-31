@@ -75,21 +75,23 @@ func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskI
 		i.Direct = &defaultDiskDirect
 	}
 
-	if *i.DiskType == cirrina.DiskType_NVME {
+	switch *i.DiskType {
+	case cirrina.DiskType_NVME:
 		diskType = "NVME"
-	} else if *i.DiskType == cirrina.DiskType_AHCIHD {
+	case cirrina.DiskType_AHCIHD:
 		diskType = "AHCI-HD"
-	} else if *i.DiskType == cirrina.DiskType_VIRTIOBLK {
+	case cirrina.DiskType_VIRTIOBLK:
 		diskType = "VIRTIO-BLK"
-	} else {
+	default:
 		return &cirrina.DiskId{}, errors.New("invalid disk type")
 	}
 
-	if *i.DiskDevType == cirrina.DiskDevType_FILE {
+	switch *i.DiskDevType {
+	case cirrina.DiskDevType_FILE:
 		diskDevType = "FILE"
-	} else if *i.DiskDevType == cirrina.DiskDevType_ZVOL {
+	case cirrina.DiskDevType_ZVOL:
 		diskDevType = "ZVOL"
-	} else {
+	default:
 		return &cirrina.DiskId{}, errors.New("invalid disk dev type")
 	}
 
@@ -142,13 +144,14 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 	DiskDevTypeFile := cirrina.DiskDevType_FILE
 	DiskDevTypeZvol := cirrina.DiskDevType_ZVOL
 
-	if diskInst.Type == "NVME" {
+	switch diskInst.Type {
+	case "NVME":
 		ic.DiskType = &DiskTypeNVME
-	} else if diskInst.Type == "AHCI-HD" {
+	case "AHCI-HD":
 		ic.DiskType = &DiskTypeAHCI
-	} else if diskInst.Type == "VIRTIO-BLK" {
+	case "VIRTIO-BLK":
 		ic.DiskType = &DiskTypeVIRT
-	} else {
+	default:
 		slog.Error("GetDiskInfo invalid disk type", "diskid", i.Value, "disktype", diskInst.Type)
 		return nil, errors.New("invalid disk type")
 	}
@@ -332,13 +335,14 @@ func (s *server) SetDiskInfo(_ context.Context, diu *cirrina.DiskInfoUpdate) (*c
 	}
 
 	if diu.DiskType != nil {
-		if *diu.DiskType == cirrina.DiskType_NVME {
+		switch *diu.DiskType {
+		case cirrina.DiskType_NVME:
 			diskInst.Type = "NVME"
-		} else if *diu.DiskType == cirrina.DiskType_AHCIHD {
+		case cirrina.DiskType_AHCIHD:
 			diskInst.Type = "AHCI-HD"
-		} else if *diu.DiskType == cirrina.DiskType_VIRTIOBLK {
+		case cirrina.DiskType_VIRTIOBLK:
 			diskInst.Type = "VIRTIO-BLK"
-		} else {
+		default:
 			return &re, errors.New("invalid disk type")
 		}
 		slog.Debug("SetDiskInfo", "type", diskInst.Type)

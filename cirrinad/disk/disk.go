@@ -233,11 +233,12 @@ func (d *Disk) Save() error {
 }
 
 func (d *Disk) GetPath() (diskPath string, err error) {
-	if d.DevType == "ZVOL" {
+	switch d.DevType {
+	case "ZVOL":
 		diskPath = "/dev/zvol/" + config.Config.Disk.VM.Path.Zpool + "/" + d.Name
-	} else if d.DevType == "FILE" {
+	case "FILE":
 		diskPath = config.Config.Disk.VM.Path.Image + "/" + d.Name + ".img"
-	} else {
+	default:
 		return "", errors.New("unknown disk dev type")
 	}
 	return diskPath, nil

@@ -183,7 +183,7 @@ func GetDummyBridgeName() string {
 	for bridgeNum > 0 {
 		bridgeName := "bridge" + strconv.Itoa(bridgeNum)
 		if util.ContainsStr(bridgeList, bridgeName) {
-			bridgeNum = bridgeNum - 1
+			bridgeNum--
 		} else {
 			return bridgeName
 		}

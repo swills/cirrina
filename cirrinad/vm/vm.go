@@ -412,7 +412,8 @@ func (vm *VM) netStartup() {
 	}
 
 	for _, vmNic := range vmNicsList {
-		if vmNic.NetDevType == "TAP" || vmNic.NetDevType == "VMNET" {
+		switch {
+		case vmNic.NetDevType == "TAP" || vmNic.NetDevType == "VMNET":
 			// Create interface
 			args := []string{"/sbin/ifconfig", vmNic.NetDev, "create", "group", "cirrinad"}
 			cmd := exec.Command(config.Config.Sys.Sudo, args...)
@@ -503,7 +504,7 @@ func (vm *VM) netStartup() {
 					continue
 				}
 			}
-		} else if vmNic.NetDevType == "NETGRAPH" {
+		case vmNic.NetDevType == "NETGRAPH":
 			thisSwitch, err := _switch.GetById(vmNic.SwitchId)
 			if err != nil {
 				slog.Error("bad switch id",
@@ -517,7 +518,7 @@ func (vm *VM) netStartup() {
 					"switchid", vmNic.SwitchId,
 				)
 			}
-		} else {
+		default:
 			slog.Debug("unknown net type, can't set up")
 			continue
 		}
@@ -614,7 +615,8 @@ func (vm *VM) NetCleanup() {
 		return
 	}
 	for _, vmNic := range vmNicsList {
-		if vmNic.NetDevType == "TAP" || vmNic.NetDevType == "VMNET" {
+		switch {
+		case vmNic.NetDevType == "TAP" || vmNic.NetDevType == "VMNET":
 			if vmNic.NetDev != "" {
 				args := []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"}
 				cmd := exec.Command(config.Config.Sys.Sudo, args...)
@@ -645,9 +647,9 @@ func (vm *VM) NetCleanup() {
 					slog.Error("failed to ng pipe", err)
 				}
 			}
-		} else if vmNic.NetDevType == "NETGRAPH" {
+		case vmNic.NetDevType == "NETGRAPH":
 			// nothing to do for netgraph
-		} else {
+		default:
 			slog.Error("unknown net type, can't clean up")
 		}
 		vmNic.NetDev = ""
@@ -1171,7 +1173,7 @@ func comLogger(vm *VM, comNum int) {
 				thisRChan <- b2[0]
 			}
 
-			n = n + nb
+			n += nb
 			if err != nil {
 				slog.Error("comLogger", "error writing", err)
 				return

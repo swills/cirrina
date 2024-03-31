@@ -106,11 +106,12 @@ func AddSwitch(name string, descrPtr *string, switchTypePtr *string, switchUplin
 	if *switchTypePtr == "" {
 		return "", errors.New("switch type not specified")
 	}
-	if *switchTypePtr == "IF" || *switchTypePtr == "bridge" {
+	switch {
+	case *switchTypePtr == "IF" || *switchTypePtr == "bridge":
 		thisSwitchType = cirrina.SwitchType_IF
-	} else if *switchTypePtr == "NG" || *switchTypePtr == "netgraph" {
+	case *switchTypePtr == "NG" || *switchTypePtr == "netgraph":
 		thisSwitchType = cirrina.SwitchType_NG
-	} else {
+	default:
 		return "", errors.New("switch type must be one of: IF, bridge, NG, netgraph")
 	}
 

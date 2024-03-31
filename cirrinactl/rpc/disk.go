@@ -20,21 +20,23 @@ func AddDisk(diskName string, diskDescription string, diskSize string,
 	var thisDiskType cirrina.DiskType
 	var thisDiskDevType cirrina.DiskDevType
 
-	if diskType == "NVME" || diskType == "nvme" {
+	switch {
+	case diskType == "NVME" || diskType == "nvme":
 		thisDiskType = cirrina.DiskType_NVME
-	} else if diskType == "AHCI" || diskType == "ahci" || diskType == "ahcihd" {
+	case diskType == "AHCI" || diskType == "ahci" || diskType == "ahcihd":
 		thisDiskType = cirrina.DiskType_AHCIHD
-	} else if diskType == "VIRTIOBLK" || diskType == "virtioblk" || diskType == "virtio-blk" {
+	case diskType == "VIRTIOBLK" || diskType == "virtioblk" || diskType == "virtio-blk":
 		thisDiskType = cirrina.DiskType_VIRTIOBLK
-	} else {
+	default:
 		return "", fmt.Errorf("invalid disk type %s", diskType)
 	}
 
-	if diskDevType == "FILE" || diskDevType == "file" {
+	switch {
+	case diskDevType == "FILE" || diskDevType == "file":
 		thisDiskDevType = cirrina.DiskDevType_FILE
-	} else if diskDevType == "ZVOL" || diskDevType == "zvol" {
+	case diskDevType == "ZVOL" || diskDevType == "zvol":
 		thisDiskDevType = cirrina.DiskDevType_ZVOL
-	} else {
+	default:
 		return "", fmt.Errorf("invalid disk dev type %s", diskDevType)
 	}
 
@@ -67,11 +69,12 @@ func GetDiskInfo(diskId string) (DiskInfo, error) {
 	}
 
 	aDiskType := "unknown"
-	if *k.DiskType == cirrina.DiskType_NVME {
+	switch *k.DiskType {
+	case cirrina.DiskType_NVME:
 		aDiskType = "nvme"
-	} else if *k.DiskType == cirrina.DiskType_AHCIHD {
+	case cirrina.DiskType_AHCIHD:
 		aDiskType = "ahcihd"
-	} else if *k.DiskType == cirrina.DiskType_VIRTIOBLK {
+	case cirrina.DiskType_VIRTIOBLK:
 		aDiskType = "virtio-blk"
 	}
 
@@ -164,16 +167,16 @@ func DiskNameToId(name string) (string, error) {
 	return diskId, nil
 }
 
-//func DiskIdToName(id string) (string, error) {
-//	var err error
+// func DiskIdToName(id string) (string, error) {
+// 	var err error
 //
-//	var res *cirrina.DiskInfo
-//	res, err = serverClient.GetDiskInfo(defaultServerContext, &cirrina.DiskId{Value: id})
-//	if err != nil {
-//		return "", errors.New(status.Convert(err).Message())
-//	}
-//	return *res.Name, nil
-//}
+// 	var res *cirrina.DiskInfo
+// 	res, err = serverClient.GetDiskInfo(defaultServerContext, &cirrina.DiskId{Value: id})
+// 	if err != nil {
+// 		return "", errors.New(status.Convert(err).Message())
+// 	}
+// 	return *res.Name, nil
+// }
 
 func DiskGetVmId(id string) (string, error) {
 	var err error
@@ -208,14 +211,14 @@ func UpdateDisk(id string, newDesc *string, newType *string, direct *bool, cache
 	DiskTypeAHCIHD := cirrina.DiskType_AHCIHD
 	DiskTypeVirtIoBlk := cirrina.DiskType_VIRTIOBLK
 	if newType != nil {
-		if *newType == "NVME" || *newType == "nvme" {
+		switch {
+		case *newType == "NVME" || *newType == "nvme":
 			diu.DiskType = &DiskTypeNvme
-		} else if *newType == "AHCIHD" || *newType == "ahcihd" || *newType == "AHCI" || *newType == "ahci" {
+		case *newType == "AHCIHD" || *newType == "ahcihd" || *newType == "AHCI" || *newType == "ahci":
 			diu.DiskType = &DiskTypeAHCIHD
-		} else if *newType == "VIRTIO-BLK" || *newType == "virtio-blk" ||
-			*newType == "VIRTIOBLK" || *newType == "virtioblk" {
+		case *newType == "VIRTIO-BLK" || *newType == "virtio-blk" || *newType == "VIRTIOBLK" || *newType == "virtioblk":
 			diu.DiskType = &DiskTypeVirtIoBlk
-		} else {
+		default:
 			return errors.New("invalid disk type specified " + *newType)
 		}
 	}

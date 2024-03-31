@@ -134,21 +134,23 @@ func (s *server) GetVmNicInfo(_ context.Context, v *cirrina.VmNicId) (*cirrina.V
 	pvmnicinfo.Name = &vmNic.Name
 	pvmnicinfo.Description = &vmNic.Description
 
-	if vmNic.NetType == "VIRTIONET" {
+	switch vmNic.NetType {
+	case "VIRTIONET":
 		pvmnicinfo.Nettype = &NetTypeVIRTIONET
-	} else if vmNic.NetType == "E1000" {
+	case "E1000":
 		pvmnicinfo.Nettype = &NetTypeE1000
-	} else {
+	default:
 		slog.Error("Invalid net type", "vmnicid", vmNic.ID, "nettype", vmNic.NetType)
 	}
 
-	if vmNic.NetDevType == "TAP" {
+	switch vmNic.NetDevType {
+	case "TAP":
 		pvmnicinfo.Netdevtype = &NetDevTypeTAP
-	} else if vmNic.NetDevType == "VMNET" {
+	case "VMNET":
 		pvmnicinfo.Netdevtype = &NetDevTypeVMNET
-	} else if vmNic.NetDevType == "NETGRAPH" {
+	case "NETGRAPH":
 		pvmnicinfo.Netdevtype = &NetDevTypeNETGRAPH
-	} else {
+	default:
 		slog.Error("Invalid net dev type", "vmnicid", vmNic.ID, "netdevtype", vmNic.NetDevType)
 	}
 

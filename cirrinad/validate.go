@@ -76,19 +76,21 @@ func getTmpFileName() (tmpFileName string, err error) {
 	r1 := rand.New(s1)
 
 	try := 0
+nameLoop:
 	for {
 		randomNum := r1.Intn(1000000000)
 		tmpFileName = tmpDir + string(os.PathSeparator) + "cirrinad" + strconv.Itoa(randomNum)
 		_, err = os.Stat(tmpFileName)
-		if err == nil {
+		switch {
+		case err == nil:
 			if try++; try < 10000 {
 				continue
 			}
 			// couldn't find a file name that doesn't exist?
 			return "", errors.New("couldn't find a tmp file")
-		} else if errors.Is(err, fs.ErrNotExist) {
-			break
-		} else {
+		case errors.Is(err, fs.ErrNotExist):
+			break nameLoop
+		default:
 			return "", err
 		}
 	}
@@ -372,13 +374,6 @@ func validateZpoolConf() {
 
 	var rawCapacity string
 	cmd := execabs.Command("/sbin/zpool", "list", "-H", poolName)
-	defer func(cmd *execabs.Cmd) {
-		err := cmd.Wait()
-		if err != nil {
-			slog.Error("error checking zpool", "err", err)
-			os.Exit(1)
-		}
-	}(cmd)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		slog.Error("error checking zpool", "err", err)
@@ -409,16 +404,17 @@ func validateZpoolConf() {
 		slog.Error("error checking zpool", "err", err)
 		os.Exit(1)
 	}
-	if capacity > 99 {
+	switch {
+	case capacity > 99:
 		slog.Error("zpool at critical usage, refusing to run", "capacity", capacity)
 		os.Exit(1)
-	} else if capacity > 95 {
+	case capacity > 95:
 		slog.Warn("zpool at very high usage, be careful", "capacity", capacity)
-	} else if capacity > 90 {
+	case capacity > 90:
 		slog.Warn("zpool at high usage, be careful", "capacity", capacity)
-	} else if capacity > 80 {
+	case capacity > 80:
 		slog.Warn("zpool nearing high usage, consider reducing usage", "capacity", capacity)
-	} else {
+	default:
 		slog.Debug("zpool usage OK", "capacity", capacity)
 	}
 }

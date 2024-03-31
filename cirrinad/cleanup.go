@@ -62,10 +62,8 @@ func cleanupVms() {
 			pidStillExists, err := util.PidExists(int(aVm.BhyvePid))
 			if err != nil {
 				slog.Error("error checking VM", "err", err)
-			} else {
-				if pidStillExists {
-					slog.Error("VM refused to die")
-				}
+			} else if pidStillExists {
+				slog.Error("VM refused to die")
 			}
 		}
 		slog.Debug("destroying VM", "name", aVm.Name)

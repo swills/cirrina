@@ -103,10 +103,10 @@ func GetByName(name string) (v *VM, err error) {
 	return &VM{}, errors.New("not found")
 }
 
-func GetById(Id string) (v *VM, err error) {
+func GetById(id string) (v *VM, err error) {
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
-	vmInst, valid := List.VmList[Id]
+	vmInst, valid := List.VmList[id]
 	if valid {
 		return vmInst, nil
 	}

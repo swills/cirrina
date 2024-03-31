@@ -36,60 +36,60 @@ func GetAll() []*VmNic {
 	return result
 }
 
-func Create(VmNicInst *VmNic) (newNicId string, err error) {
-	if !util.ValidNicName(VmNicInst.Name) {
+func Create(vmNicInst *VmNic) (newNicId string, err error) {
+	if !util.ValidNicName(vmNicInst.Name) {
 		return newNicId, errors.New("invalid name")
 	}
-	existingVmNic, err := GetByName(VmNicInst.Name)
+	existingVmNic, err := GetByName(vmNicInst.Name)
 	if err != nil {
-		slog.Error("error checking db for VmNic", "name", VmNicInst.Name, "err", err)
+		slog.Error("error checking db for VmNic", "name", vmNicInst.Name, "err", err)
 		return newNicId, err
 	}
 	if existingVmNic.Name != "" {
-		slog.Error("VmNic exists", "VmNic", VmNicInst.Name)
+		slog.Error("VmNic exists", "VmNic", vmNicInst.Name)
 		return newNicId, errors.New("VmNic exists")
 	}
 
-	if VmNicInst.Mac == "" {
-		VmNicInst.Mac = "AUTO"
+	if vmNicInst.Mac == "" {
+		vmNicInst.Mac = "AUTO"
 	}
 
-	if VmNicInst.Mac != "AUTO" {
-		newMac, err := net.ParseMAC(VmNicInst.Mac)
+	if vmNicInst.Mac != "AUTO" {
+		newMac, err := net.ParseMAC(vmNicInst.Mac)
 		if err != nil {
 			return newNicId, errors.New("bad MAC address")
 		}
-		VmNicInst.Mac = newMac.String()
+		vmNicInst.Mac = newMac.String()
 	}
 
-	if VmNicInst.NetType == "" {
-		VmNicInst.NetType = "VIRTIONET"
+	if vmNicInst.NetType == "" {
+		vmNicInst.NetType = "VIRTIONET"
 	}
 
-	if VmNicInst.NetType != "VIRTIONET" && VmNicInst.NetType != "E1000" {
+	if vmNicInst.NetType != "VIRTIONET" && vmNicInst.NetType != "E1000" {
 		return newNicId, errors.New("bad net type")
 	}
 
-	if VmNicInst.NetDevType == "" {
-		VmNicInst.NetDevType = "TAP"
+	if vmNicInst.NetDevType == "" {
+		vmNicInst.NetDevType = "TAP"
 	}
 
-	if VmNicInst.NetDevType != "TAP" && VmNicInst.NetDevType != "VMNET" && VmNicInst.NetDevType != "NETGRAPH" {
+	if vmNicInst.NetDevType != "TAP" && vmNicInst.NetDevType != "VMNET" && vmNicInst.NetDevType != "NETGRAPH" {
 		return newNicId, errors.New("bad net dev type")
 	}
 
-	if VmNicInst.RateLimit {
-		if VmNicInst.RateIn <= 0 || VmNicInst.RateOut <= 0 {
+	if vmNicInst.RateLimit {
+		if vmNicInst.RateIn <= 0 || vmNicInst.RateOut <= 0 {
 			return newNicId, errors.New("bad network rate limit")
 		}
 	}
 
 	db := GetVmNicDb()
-	res := db.Create(&VmNicInst)
+	res := db.Create(&vmNicInst)
 	if res.RowsAffected != 1 {
 		return newNicId, res.Error
 	}
-	return VmNicInst.ID, res.Error
+	return vmNicInst.ID, res.Error
 }
 
 func (d *VmNic) Delete() (err error) {
