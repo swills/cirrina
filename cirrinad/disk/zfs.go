@@ -143,6 +143,10 @@ func SetZfsVolumeSize(volumeName string, volSize uint64) error {
 	// volsize must be a multiple of volume block size
 	var vbs uint64
 	vbs, err = getZfsVolBlockSize(volumeName)
+	if err != nil {
+		slog.Error("error getting zfs vol block size", "err", err)
+		return err
+	}
 
 	// get modulus
 	mod := volSize % vbs

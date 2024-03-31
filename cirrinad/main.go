@@ -217,6 +217,10 @@ var rootCmd = &cobra.Command{
 
 		var configPathExists bool
 		configPathExists, err = util.PathExists(configAbsPath)
+		if err != nil {
+			slog.Error("error getting configAbsPath", "err", err)
+			return err
+		}
 		if !configPathExists {
 			return fmt.Errorf("config file %s not found", cfgFile)
 		}

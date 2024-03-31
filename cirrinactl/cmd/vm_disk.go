@@ -29,11 +29,10 @@ var VmDisksListCmd = &cobra.Command{
 
 		var names []string
 		type diskListInfo struct {
-			info   rpc.DiskInfo
-			id     string
-			vmName string
-			size   string
-			usage  string
+			info  rpc.DiskInfo
+			id    string
+			size  string
+			usage string
 		}
 
 		diskInfos := make(map[string]diskListInfo)

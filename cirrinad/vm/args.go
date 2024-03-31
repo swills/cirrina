@@ -389,7 +389,6 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 
 		if nicItem.NetDevType == "TAP" {
 			nicItem.NetDev = GetTapDev()
-			netDevArg = nicItem.NetDev
 			err := nicItem.Save()
 			if err != nil {
 				slog.Error("failed to save net dev", "nic", nicItem.ID, "netdev", nicItem.NetDev)
@@ -398,7 +397,6 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 			netDevArg = nicItem.NetDev
 		} else if nicItem.NetDevType == "VMNET" {
 			nicItem.NetDev = GetVmnetDev()
-			netDevArg = nicItem.NetDev
 			err := nicItem.Save()
 			if err != nil {
 				slog.Error("failed to save net dev", "nic", nicItem.ID, "netdev", nicItem.NetDev)
@@ -625,5 +623,6 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	args = append(args, extraArgs...)
 	args = append(args, "-U", vm.ID)
 	args = append(args, vm.Name)
+	slog.Debug("generateCommandLine last slot", "slot", slot)
 	return name, args, nil
 }

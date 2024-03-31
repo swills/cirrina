@@ -36,10 +36,9 @@ var IsoListCmd = &cobra.Command{
 
 		var names []string
 		type isoListInfo struct {
-			id     string
-			info   rpc.IsoInfo
-			size   string
-			vmName string
+			id   string
+			info rpc.IsoInfo
+			size string
 		}
 
 		isoInfos := make(map[string]isoListInfo)

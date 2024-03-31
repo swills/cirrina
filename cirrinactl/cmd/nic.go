@@ -62,7 +62,7 @@ var NicListCmd = &cobra.Command{
 				return err
 			}
 
-			rateLimited := "unknown"
+			var rateLimited string
 			var rateIn string
 			var rateOut string
 
