@@ -288,9 +288,8 @@ func validateOSVersion() {
 		r = append(r, b)
 	}
 
-	release := fmt.Sprintf("%s", r)
 	re := regexp.MustCompile("-.*")
-	ov := re.ReplaceAllString(release, "")
+	ov := re.ReplaceAllString(string(r), "")
 	ovi, err := version.NewVersion(ov)
 	if err != nil {
 		slog.Error("failed to get OS version", "release", string(utsname.Release[:]))
@@ -684,6 +683,9 @@ func validateSysctls() {
 		os.Exit(1)
 	}
 	secureLevel, err := strconv.ParseInt(secureLevelStr, 10, 8)
+	if err != nil {
+		slog.Error("failed parsing secure level", "secureLevelStr", secureLevelStr)
+	}
 	if secureLevel > 0 {
 		slog.Error("Unable to run with kern.securelevel > 0", "kern.securelevel", secureLevel)
 		os.Exit(1)

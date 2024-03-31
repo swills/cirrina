@@ -118,8 +118,7 @@ func writePidFile() {
 	}
 	myPid := os.Getpid()
 
-	var pidMode os.FileMode
-	pidMode = 0x755
+	var pidMode os.FileMode = 0x755
 	err = os.WriteFile(pidFilePath, []byte(strconv.Itoa(myPid)), pidMode)
 	if err != nil {
 		slog.Error("failed writing pid file", "err", err)

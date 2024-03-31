@@ -208,8 +208,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 
 			// get byte from channel if logging, else read port directly
 			if thisComLog {
-				var b2 byte
-				b2 = <-thisRChan
+				var b2 = <-thisRChan
 				b[0] = b2
 				req := cirrina.ComDataResponse{
 					ComOutBytes: b,

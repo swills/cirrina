@@ -145,7 +145,7 @@ func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, er
 		return vmInst, errors.New("invalid name")
 	}
 	if _, err := GetByName(name); err == nil {
-		return vmInst, errors.New(fmt.Sprintf("%v already exists", name))
+		return vmInst, fmt.Errorf("%v already exists", name)
 	}
 	vmInst = &VM{
 		Name:        name,
@@ -721,8 +721,7 @@ func (vm *VM) GetISOs() ([]iso.ISO, error) {
 }
 
 func (vm *VM) GetNics() ([]vm_nics.VmNic, error) {
-	var nics []vm_nics.VmNic
-	nics = vm_nics.GetNics(vm.Config.ID)
+	nics := vm_nics.GetNics(vm.Config.ID)
 	return nics, nil
 }
 
@@ -811,7 +810,6 @@ func (vm *VM) SetNics(nicIds []string) error {
 		return errors.New("VM must be stopped before adding NIC(s)")
 	}
 	occurred := map[string]bool{}
-	var result []string
 
 	// remove all nics from VM
 	thisVmNics, err := vm.GetNics()
@@ -847,9 +845,8 @@ func (vm *VM) SetNics(nicIds []string) error {
 			return errors.New("nic not found")
 		}
 
-		if occurred[aNic] != true {
+		if !occurred[aNic] {
 			occurred[aNic] = true
-			result = append(result, aNic)
 		} else {
 			slog.Error("duplicate nic id", "nic", aNic)
 			return errors.New("nic may only be added once")
@@ -896,7 +893,6 @@ func (vm *VM) AttachDisks(diskids []string) error {
 	}
 
 	occurred := map[string]bool{}
-	var result []string
 
 	for _, aDisk := range diskids {
 		slog.Debug("checking disk exists", "disk", aDisk)
@@ -918,9 +914,8 @@ func (vm *VM) AttachDisks(diskids []string) error {
 			return errors.New("disk not found")
 		}
 
-		if occurred[aDisk] != true {
+		if !occurred[aDisk] {
 			occurred[aDisk] = true
-			result = append(result, aDisk)
 		} else {
 			slog.Error("duplicate disk id", "disk", aDisk)
 			return errors.New("disk may only be added once")
@@ -1061,8 +1056,6 @@ func (vm *VM) setupComLoggers() {
 			go comLogger(vm, 4)
 		}
 	}
-
-	return
 }
 
 func comLogger(vm *VM, comNum int) {

@@ -17,10 +17,7 @@ type server struct {
 
 func isOptionPassed(reflect protoreflect.Message, name string) bool {
 	field := reflect.Descriptor().Fields().ByName(protoreflect.Name(name))
-	if reflect.Has(field) {
-		return true
-	}
-	return false
+	return reflect.Has(field)
 }
 
 func rpcServer() {

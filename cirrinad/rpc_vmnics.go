@@ -270,7 +270,7 @@ func (s *server) GetVmNicVm(_ context.Context, i *cirrina.VmNicId) (v *cirrina.V
 	found := false
 	for _, thisVm := range allVMs {
 		if thisVm.Config.ID == vmNic.ConfigID {
-			if found == true {
+			if found {
 				slog.Error("GetVmNicVm nic in use by more than one VM",
 					"nicid", nicUuid.String(),
 					"vmid", thisVm.ID,
@@ -400,9 +400,7 @@ func (s *server) CloneVmNic(_ context.Context, cloneReq *cirrina.VmNicCloneReq) 
 	}
 	pendingReqIds := requests.PendingReqExists(nicUuid.String())
 	if len(pendingReqIds) > 0 {
-		return &cirrina.RequestID{}, errors.New(
-			fmt.Sprintf("pending request for %v already exists", cloneReq.Vmnicid.Value),
-		)
+		return &cirrina.RequestID{}, fmt.Errorf("pending request for %v already exists", cloneReq.Vmnicid.Value)
 	}
 	newReq, err := requests.CreateNicCloneReq(
 		nicUuid.String(), cloneReq.NewVmNicName.Value,

@@ -178,8 +178,5 @@ func FailAllPending() (cleared int64) {
 
 func DbInitialized() bool {
 	db := GetReqDb()
-	if db.Migrator().HasColumn(Request{}, "id") {
-		return true
-	}
-	return false
+	return db.Migrator().HasColumn(Request{}, "id")
 }

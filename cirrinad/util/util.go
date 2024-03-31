@@ -142,7 +142,7 @@ func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (port int, err error) 
 				if !valid {
 					continue
 				}
-				port, valid := local["port"].(interface{})
+				port, valid := local["port"]
 				if !valid {
 					continue
 				}
@@ -387,10 +387,7 @@ func MacIsMulticast(macAddress string) (bool, error) {
 
 func IsValidIP(ipAddress string) bool {
 	parsedIp := net.ParseIP(ipAddress)
-	if parsedIp == nil {
-		return false
-	}
-	return true
+	return parsedIp != nil
 }
 
 func IsValidTcpPort(tcpPort uint) bool {
@@ -401,10 +398,7 @@ func IsValidTcpPort(tcpPort uint) bool {
 }
 
 func ModeIsSuid(mode fs.FileMode) bool {
-	if mode&fs.ModeSetuid != 0 {
-		return true
-	}
-	return false
+	return mode&fs.ModeSetuid != 0
 }
 
 //func ModeIsWriteOwner(mode os.FileMode) bool {
@@ -412,10 +406,7 @@ func ModeIsSuid(mode fs.FileMode) bool {
 //}
 
 func ModeIsExecOther(mode os.FileMode) bool {
-	if mode&0001 != 0 {
-		return true
-	}
-	return false
+	return mode&0001 != 0
 }
 
 func GetMyUidGid() (uid uint32, gid uint32, err error) {

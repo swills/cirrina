@@ -207,8 +207,5 @@ func GetAllDb() []*VM {
 
 func DbInitialized() bool {
 	db := GetVmDb()
-	if db.Migrator().HasColumn(VM{}, "id") {
-		return true
-	}
-	return false
+	return db.Migrator().HasColumn(VM{}, "id")
 }

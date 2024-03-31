@@ -172,25 +172,23 @@ func trackIsoUpload(pw progress.Writer, isoSize int64, f2 *os.File) {
 		return
 	}
 	for !uploadTracker.IsDone() {
-		select {
-		case uploadStatEvent := <-upload:
-			if uploadStatEvent.Err != nil {
-				uploadTracker.MarkAsErrored()
+		uploadStatEvent := <-upload
+		if uploadStatEvent.Err != nil {
+			uploadTracker.MarkAsErrored()
+		}
+		if uploadStatEvent.UploadedChunk {
+			newTotal := uploadTracker.Value() + int64(uploadStatEvent.UploadedBytes)
+			if newTotal > isoSize {
+				panic("uploaded more bytes than size of file")
 			}
-			if uploadStatEvent.UploadedChunk {
-				newTotal := uploadTracker.Value() + int64(uploadStatEvent.UploadedBytes)
-				if newTotal > isoSize {
-					panic("uploaded more bytes than size of file")
-				}
-				// prevent uploadTracker being done before the Complete message arrives
-				if newTotal == isoSize {
-					newTotal--
-				}
-				uploadTracker.SetValue(newTotal)
+			// prevent uploadTracker being done before the Complete message arrives
+			if newTotal == isoSize {
+				newTotal--
 			}
-			if uploadStatEvent.Complete {
-				uploadTracker.MarkAsDone()
-			}
+			uploadTracker.SetValue(newTotal)
+		}
+		if uploadStatEvent.Complete {
+			uploadTracker.MarkAsDone()
 		}
 	}
 }
@@ -282,17 +280,15 @@ func uploadIsoWithoutStatus() error {
 	}
 UploadLoop:
 	for {
-		select {
-		case uploadStatEvent := <-upload:
-			if uploadStatEvent.Err != nil {
-				return uploadStatEvent.Err
-			}
-			if uploadStatEvent.UploadedChunk {
-				fmt.Printf(".")
-			}
-			if uploadStatEvent.Complete {
-				break UploadLoop
-			}
+		uploadStatEvent := <-upload
+		if uploadStatEvent.Err != nil {
+			return uploadStatEvent.Err
+		}
+		if uploadStatEvent.UploadedChunk {
+			fmt.Printf(".")
+		}
+		if uploadStatEvent.Complete {
+			break UploadLoop
 		}
 	}
 

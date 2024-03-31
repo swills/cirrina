@@ -40,7 +40,7 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 			return &re, errors.New("invalid name")
 		}
 		if _, err := vm.GetByName(*rc.Name); err == nil {
-			return &re, errors.New(fmt.Sprintf("%v already exists", *rc.Name))
+			return &re, fmt.Errorf("%v already exists", *rc.Name)
 		}
 		vmInst.Name = *rc.Name
 	}
@@ -112,42 +112,42 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 		}
 	}
 	if isOptionPassed(reflect, "screen") {
-		if *rc.Screen == true {
+		if *rc.Screen {
 			vmInst.Config.Screen = true
 		} else {
 			vmInst.Config.Screen = false
 		}
 	}
 	if isOptionPassed(reflect, "hlt") {
-		if *rc.Hlt == true {
+		if *rc.Hlt {
 			vmInst.Config.UseHLT = true
 		} else {
 			vmInst.Config.UseHLT = false
 		}
 	}
 	if isOptionPassed(reflect, "eop") {
-		if *rc.Eop == true {
+		if *rc.Eop {
 			vmInst.Config.ExitOnPause = true
 		} else {
 			vmInst.Config.ExitOnPause = false
 		}
 	}
 	if isOptionPassed(reflect, "dpo") {
-		if *rc.Dpo == true {
+		if *rc.Dpo {
 			vmInst.Config.DestroyPowerOff = true
 		} else {
 			vmInst.Config.DestroyPowerOff = false
 		}
 	}
 	if isOptionPassed(reflect, "ium") {
-		if *rc.Ium == true {
+		if *rc.Ium {
 			vmInst.Config.IgnoreUnknownMSR = true
 		} else {
 			vmInst.Config.IgnoreUnknownMSR = false
 		}
 	}
 	if isOptionPassed(reflect, "hostbridge") {
-		if *rc.Hostbridge == true {
+		if *rc.Hostbridge {
 			vmInst.Config.HostBridge = true
 		} else {
 			vmInst.Config.HostBridge = false
@@ -182,7 +182,7 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 		vmInst.Config.KbdLayout = *rc.Keyboard
 	}
 	if isOptionPassed(reflect, "autostart") {
-		if *rc.Autostart == true {
+		if *rc.Autostart {
 			vmInst.Config.AutoStart = true
 		} else {
 			vmInst.Config.AutoStart = false
@@ -568,7 +568,7 @@ func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestI
 	}
 	pendingReqIds := requests.PendingReqExists(v.Value)
 	if len(pendingReqIds) > 0 {
-		return &cirrina.RequestID{}, errors.New(fmt.Sprintf("pending request for %v already exists", v.Value))
+		return &cirrina.RequestID{}, fmt.Errorf("pending request for %v already exists", v.Value)
 	}
 	if vmInst.Status != vm.STOPPED {
 		return &cirrina.RequestID{}, errors.New("vm must be stopped before deleting")
@@ -732,7 +732,7 @@ func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID
 	}
 	pendingReqIds := requests.PendingReqExists(v.Value)
 	if len(pendingReqIds) > 0 {
-		return &cirrina.RequestID{}, errors.New(fmt.Sprintf("pending request for %v already exists", v.Value))
+		return &cirrina.RequestID{}, fmt.Errorf("pending request for %v already exists", v.Value)
 	}
 	if vmInst.Status != vm.STOPPED {
 		return &cirrina.RequestID{}, errors.New("vm must be stopped before starting")
@@ -759,7 +759,7 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 	}
 	pendingReqIds := requests.PendingReqExists(v.Value)
 	if len(pendingReqIds) > 0 {
-		return &cirrina.RequestID{}, errors.New(fmt.Sprintf("pending request for %v already exists", v.Value))
+		return &cirrina.RequestID{}, fmt.Errorf("pending request for %v already exists", v.Value)
 	}
 	if vmInst.Status != vm.RUNNING {
 		return &cirrina.RequestID{}, errors.New("vm must be running before stopping")

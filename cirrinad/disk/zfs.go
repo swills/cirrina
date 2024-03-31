@@ -100,7 +100,7 @@ func getZfsVolBlockSize(volumeName string) (uint64, error) {
 	scanner := bufio.NewScanner(stdout)
 	var volSizeStr string
 	for scanner.Scan() {
-		if found != false {
+		if found {
 			return 0, errors.New("duplicate disk found")
 		}
 		text := scanner.Text()

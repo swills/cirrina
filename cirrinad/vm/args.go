@@ -370,8 +370,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	var netArgs []string
 
 	originalSlot := slot
-	var nicList []vm_nics.VmNic
-	nicList = vm_nics.GetNics(vm.Config.ID)
+	nicList := vm_nics.GetNics(vm.Config.ID)
 
 	for _, nicItem := range nicList {
 		slog.Debug("adding nic", "nic", nicItem)

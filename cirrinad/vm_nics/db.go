@@ -70,8 +70,5 @@ func DbAutoMigrate() {
 
 func DbInitialized() bool {
 	db := GetVmNicDb()
-	if db.Migrator().HasColumn(VmNic{}, "id") {
-		return true
-	}
-	return false
+	return db.Migrator().HasColumn(VmNic{}, "id")
 }
