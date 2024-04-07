@@ -1,14 +1,15 @@
 package vm_nics
 
 import (
-	"cirrina/cirrina"
-	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 
 	"gorm.io/gorm"
+
+	"cirrina/cirrina"
+	"cirrina/cirrinad/util"
 )
 
 func GetByName(name string) (s *VmNic, err error) {

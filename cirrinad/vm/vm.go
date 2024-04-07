@@ -1,13 +1,6 @@
 package vm
 
 import (
-	"cirrina/cirrinad/config"
-	"cirrina/cirrinad/disk"
-	"cirrina/cirrinad/epair"
-	"cirrina/cirrinad/iso"
-	_switch "cirrina/cirrinad/switch"
-	"cirrina/cirrinad/util"
-	"cirrina/cirrinad/vm_nics"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -24,6 +17,14 @@ import (
 	"github.com/tarm/serial"
 	exec "golang.org/x/sys/execabs"
 	"gorm.io/gorm"
+
+	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/disk"
+	"cirrina/cirrinad/epair"
+	"cirrina/cirrinad/iso"
+	_switch "cirrina/cirrinad/switch"
+	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vm_nics"
 )
 
 type StatusType string

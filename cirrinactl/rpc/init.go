@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"cirrina/cirrina"
 	"context"
 	"errors"
 	"strconv"
@@ -10,6 +9,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+
+	"cirrina/cirrina"
 )
 
 type NotFoundError struct{}

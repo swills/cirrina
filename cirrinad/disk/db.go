@@ -1,7 +1,6 @@
 package disk
 
 import (
-	"cirrina/cirrinad/config"
 	"errors"
 	"log"
 	"log/slog"
@@ -13,6 +12,8 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"cirrina/cirrinad/config"
 )
 
 type singleton struct {

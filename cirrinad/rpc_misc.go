@@ -1,10 +1,6 @@
 package main
 
 import (
-	"cirrina/cirrina"
-	"cirrina/cirrinad/requests"
-	"cirrina/cirrinad/util"
-	"cirrina/cirrinad/vm"
 	"context"
 	"errors"
 	"log/slog"
@@ -12,6 +8,11 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"cirrina/cirrina"
+	"cirrina/cirrinad/requests"
+	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vm"
 )
 
 func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrina.ReqStatus, error) {

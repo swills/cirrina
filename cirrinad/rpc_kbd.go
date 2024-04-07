@@ -2,11 +2,12 @@ package main
 
 import (
 	"bufio"
-	"cirrina/cirrina"
-	"cirrina/cirrinad/util"
 	"log/slog"
 	"os"
 	"strings"
+
+	"cirrina/cirrina"
+	"cirrina/cirrinad/util"
 )
 
 const kbdlayoutpath = "/usr/share/bhyve/kbdlayout"

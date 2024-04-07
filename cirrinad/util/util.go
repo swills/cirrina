@@ -3,7 +3,6 @@ package util
 import (
 	"bufio"
 	"bytes"
-	"cirrina/cirrinad/config"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,6 +23,8 @@ import (
 
 	exec "golang.org/x/sys/execabs"
 	"golang.org/x/sys/unix"
+
+	"cirrina/cirrinad/config"
 )
 
 func PathExists(path string) (bool, error) {

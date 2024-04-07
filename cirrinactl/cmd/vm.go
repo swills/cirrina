@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"cirrina/cirrina"
-	"cirrina/cirrinactl/rpc"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -17,6 +15,9 @@ import (
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
+
+	"cirrina/cirrina"
+	"cirrina/cirrinactl/rpc"
 )
 
 var AutoStart bool

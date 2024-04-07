@@ -1,11 +1,10 @@
 package disk
 
 import (
-	"cirrina/cirrinad/config"
-	"cirrina/cirrinad/util"
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os/user"
 	"strconv"
 	"sync"
@@ -13,7 +12,8 @@ import (
 	exec "golang.org/x/sys/execabs"
 	"gorm.io/gorm"
 
-	"log/slog"
+	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/util"
 )
 
 func Create(name string, description string, size string, diskType string, diskDevType string, diskCache bool, diskDirect bool) (disk *Disk, err error) {

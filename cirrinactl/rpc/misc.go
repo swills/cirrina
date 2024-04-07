@@ -1,10 +1,11 @@
 package rpc
 
 import (
-	"cirrina/cirrina"
 	"errors"
 
 	"google.golang.org/grpc/status"
+
+	"cirrina/cirrina"
 )
 
 func ReqStat(id string) (ReqStatus, error) {

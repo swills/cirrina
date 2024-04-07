@@ -1,9 +1,6 @@
 package main
 
 import (
-	"cirrina/cirrina"
-	"cirrina/cirrinad/config"
-	"cirrina/cirrinad/vm"
 	"errors"
 	"fmt"
 	"io"
@@ -13,6 +10,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/tarm/serial"
+
+	"cirrina/cirrina"
+	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/vm"
 )
 
 func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) error {

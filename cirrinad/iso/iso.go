@@ -1,13 +1,14 @@
 package iso
 
 import (
-	"cirrina/cirrinad/config"
-	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
 	"log/slog"
 
 	"gorm.io/gorm"
+
+	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/util"
 )
 
 func Create(name string, description string) (iso *ISO, err error) {

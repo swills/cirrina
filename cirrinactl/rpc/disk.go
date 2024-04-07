@@ -2,15 +2,15 @@ package rpc
 
 import (
 	"bufio"
-	"cirrina/cirrina"
 	"context"
 	"errors"
 	"fmt"
-
 	"io"
 	"os"
 
 	"google.golang.org/grpc/status"
+
+	"cirrina/cirrina"
 )
 
 func AddDisk(diskName string, diskDescription string, diskSize string,

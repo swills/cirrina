@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/google/uuid"
@@ -13,8 +14,6 @@ import (
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm_nics"
-
-	"log/slog"
 )
 
 func GetById(id string) (s *Switch, err error) {

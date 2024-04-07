@@ -9,19 +9,18 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"strconv"
 	"strings"
 	"syscall"
 
+	"github.com/google/uuid"
+
 	"cirrina/cirrina"
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/vm"
-
-	"log/slog"
-
-	"github.com/google/uuid"
 )
 
 func (s *server) GetDisks(_ *cirrina.DisksQuery, stream cirrina.VMInfo_GetDisksServer) error {

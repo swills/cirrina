@@ -1,10 +1,6 @@
 package db
 
 import (
-	"cirrina/cirrinad/config"
-	"cirrina/cirrinad/requests"
-	"cirrina/cirrinad/vm"
-	"cirrina/cirrinad/vm_nics"
 	"log"
 	"log/slog"
 	"os"
@@ -15,6 +11,11 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/requests"
+	"cirrina/cirrinad/vm"
+	"cirrina/cirrinad/vm_nics"
 )
 
 type meta struct {

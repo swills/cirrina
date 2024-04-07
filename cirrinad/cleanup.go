@@ -2,12 +2,6 @@ package main
 
 import (
 	"bytes"
-	"cirrina/cirrinad/config"
-	"cirrina/cirrinad/disk"
-	"cirrina/cirrinad/requests"
-	_switch "cirrina/cirrinad/switch"
-	"cirrina/cirrinad/util"
-	"cirrina/cirrinad/vm"
 	"log/slog"
 	"net"
 	"strings"
@@ -15,6 +9,13 @@ import (
 	"time"
 
 	"golang.org/x/sys/execabs"
+
+	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/disk"
+	"cirrina/cirrinad/requests"
+	_switch "cirrina/cirrinad/switch"
+	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vm"
 )
 
 func cleanupVms() {

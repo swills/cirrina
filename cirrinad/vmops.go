@@ -1,11 +1,12 @@
 package main
 
 import (
-	"cirrina/cirrinad/requests"
-	"cirrina/cirrinad/vm"
 	"encoding/json"
 	"log/slog"
 	"reflect"
+
+	"cirrina/cirrinad/requests"
+	"cirrina/cirrinad/vm"
 )
 
 func startVM(rs *requests.Request) {

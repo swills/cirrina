@@ -1,13 +1,8 @@
 package main
 
 import (
-	"cirrina/cirrinad/db"
-	"cirrina/cirrinad/disk"
-	"cirrina/cirrinad/iso"
-	"cirrina/cirrinad/requests"
-	"cirrina/cirrinad/util"
-	"cirrina/cirrinad/vm_nics"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -23,10 +18,14 @@ import (
 	"github.com/spf13/viper"
 
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/db"
+	"cirrina/cirrinad/disk"
+	"cirrina/cirrinad/iso"
+	"cirrina/cirrinad/requests"
 	_switch "cirrina/cirrinad/switch"
+	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm"
-
-	"log/slog"
+	"cirrina/cirrinad/vm_nics"
 )
 
 var mainVersion = "unknown"

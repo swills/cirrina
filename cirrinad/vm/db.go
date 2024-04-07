@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"cirrina/cirrinad/config"
 	"log"
 	"log/slog"
 	"os"
@@ -11,6 +10,8 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+
+	"cirrina/cirrinad/config"
 )
 
 type singleton struct {

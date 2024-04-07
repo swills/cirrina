@@ -1,9 +1,6 @@
 package main
 
 import (
-	"cirrina/cirrina"
-	_switch "cirrina/cirrinad/switch"
-	"cirrina/cirrinad/util"
 	"context"
 	"errors"
 	"fmt"
@@ -12,6 +9,10 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+
+	"cirrina/cirrina"
+	_switch "cirrina/cirrinad/switch"
+	"cirrina/cirrinad/util"
 )
 
 func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.SwitchId, error) {

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"cirrina/cirrinactl/rpc"
 	"errors"
 	"fmt"
 	"os"
@@ -9,6 +8,8 @@ import (
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
+
+	"cirrina/cirrinactl/rpc"
 )
 
 var SwitchName string

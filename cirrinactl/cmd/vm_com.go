@@ -1,12 +1,13 @@
 package cmd
 
 import (
-	"cirrina/cirrinactl/rpc"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/spf13/cobra"
+
+	"cirrina/cirrinactl/rpc"
 )
 
 var VmCom1Cmd = &cobra.Command{

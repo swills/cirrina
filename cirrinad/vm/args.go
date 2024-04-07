@@ -2,11 +2,14 @@ package vm
 
 import (
 	"errors"
+	"log/slog"
 	"math"
 	"net"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/rxwycdh/rxhash"
 
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
@@ -14,9 +17,6 @@ import (
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm_nics"
-	"log/slog"
-
-	"github.com/rxwycdh/rxhash"
 )
 
 type MacHashData struct {

@@ -1,11 +1,12 @@
 package rpc
 
 import (
-	"cirrina/cirrina"
 	"errors"
 	"io"
 
 	"google.golang.org/grpc/status"
+
+	"cirrina/cirrina"
 )
 
 func GetVmDisks(id string) ([]string, error) {

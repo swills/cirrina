@@ -2,8 +2,6 @@ package vm
 
 import (
 	"bufio"
-	"cirrina/cirrinad/config"
-	"cirrina/cirrinad/util"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -16,6 +14,9 @@ import (
 
 	"github.com/tarm/serial"
 	"golang.org/x/sys/execabs"
+
+	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/util"
 )
 
 func GetVmLogPath(logpath string) error {

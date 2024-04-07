@@ -2,14 +2,15 @@ package epair
 
 import (
 	"bufio"
-	"cirrina/cirrinad/config"
-	"cirrina/cirrinad/util"
 	"errors"
 	"log/slog"
 	"strconv"
 	"strings"
 
 	exec "golang.org/x/sys/execabs"
+
+	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/util"
 )
 
 func getAllEpair() (epairs []string, err error) {

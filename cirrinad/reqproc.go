@@ -1,8 +1,9 @@
 package main
 
 import (
-	"cirrina/cirrinad/requests"
 	"time"
+
+	"cirrina/cirrinad/requests"
 )
 
 func processRequests() {

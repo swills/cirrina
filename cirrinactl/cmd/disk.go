@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"cirrina/cirrinactl/rpc"
 	"crypto/sha512"
 	"encoding/hex"
 	"errors"
@@ -17,6 +16,8 @@ import (
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
 	"github.com/spf13/cobra"
+
+	"cirrina/cirrinactl/rpc"
 )
 
 var DiskName string

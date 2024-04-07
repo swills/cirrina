@@ -2,7 +2,6 @@ package disk
 
 import (
 	"bufio"
-	"cirrina/cirrinad/config"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -10,6 +9,8 @@ import (
 	"strings"
 
 	exec "golang.org/x/sys/execabs"
+
+	"cirrina/cirrinad/config"
 )
 
 func GetAllZfsVolumes() (allVolumes []string, err error) {

@@ -1,18 +1,19 @@
 package main
 
 import (
-	"cirrina/cirrina"
-	"cirrina/cirrinad/requests"
-	_switch "cirrina/cirrinad/switch"
-	"cirrina/cirrinad/util"
-	"cirrina/cirrinad/vm"
-	"cirrina/cirrinad/vm_nics"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
+
+	"cirrina/cirrina"
+	"cirrina/cirrinad/requests"
+	_switch "cirrina/cirrinad/switch"
+	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vm"
+	"cirrina/cirrinad/vm_nics"
 )
 
 func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmNicId, error) {

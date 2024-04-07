@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"cirrina/cirrina"
 	"context"
 	"errors"
 	"fmt"
@@ -10,6 +9,8 @@ import (
 
 	"golang.org/x/term"
 	"google.golang.org/grpc/status"
+
+	"cirrina/cirrina"
 )
 
 func UseCom(id string, comNum int) error {

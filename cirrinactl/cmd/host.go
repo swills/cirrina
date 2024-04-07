@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"cirrina/cirrinactl/rpc"
 	"fmt"
 
 	"github.com/spf13/cobra"
+
+	"cirrina/cirrinactl/rpc"
 )
 
 var HostNicsCmd = &cobra.Command{

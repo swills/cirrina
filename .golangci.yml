@@ -7,7 +7,6 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-    - goimports
     - gocritic
     - gocyclo
     - asciicheck
@@ -16,6 +15,10 @@ linters:
     - errname
     - forbidigo
     - unparam
+    - sloglint
+    - tagalign
+    - gofmt
+    - gci
 
 issues:
   exclude-rules:
@@ -25,3 +28,11 @@ issues:
     - path: 'cirrinactl/cmd/.*.go'
       linters:
         - forbidigo
+
+linters-settings:
+  gci:
+    sections:
+      - standard
+      - default
+      - prefix(cirrina)
+    custom-order: true

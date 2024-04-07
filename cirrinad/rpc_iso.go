@@ -2,11 +2,6 @@ package main
 
 import (
 	"bufio"
-	"cirrina/cirrina"
-	"cirrina/cirrinad/config"
-	"cirrina/cirrinad/iso"
-	"cirrina/cirrinad/util"
-	"cirrina/cirrinad/vm"
 	"context"
 	"crypto/sha512"
 	"encoding/hex"
@@ -17,6 +12,12 @@ import (
 	"os"
 
 	"github.com/google/uuid"
+
+	"cirrina/cirrina"
+	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/iso"
+	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vm"
 )
 
 func (s *server) GetISOs(_ *cirrina.ISOsQuery, stream cirrina.VMInfo_GetISOsServer) error {

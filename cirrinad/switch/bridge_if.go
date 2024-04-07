@@ -3,14 +3,15 @@ package _switch
 import (
 	"bufio"
 	"bytes"
-	"cirrina/cirrinad/config"
-	"cirrina/cirrinad/util"
 	"errors"
 	"log/slog"
 	"strconv"
 	"strings"
 
 	exec "golang.org/x/sys/execabs"
+
+	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/util"
 )
 
 func GetAllIfBridges() (bridges []string, err error) {

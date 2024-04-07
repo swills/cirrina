@@ -3,10 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"cirrina/cirrinad/config"
-	_switch "cirrina/cirrinad/switch"
-	"cirrina/cirrinad/util"
-	"cirrina/cirrinad/vm_nics"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -24,6 +20,11 @@ import (
 	"github.com/hashicorp/go-version"
 	"golang.org/x/sys/execabs"
 	"golang.org/x/sys/unix"
+
+	"cirrina/cirrinad/config"
+	_switch "cirrina/cirrinad/switch"
+	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vm_nics"
 )
 
 func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string, cmdArgs ...string) (err error) {

@@ -1,10 +1,6 @@
 package main
 
 import (
-	"cirrina/cirrina"
-	"cirrina/cirrinad/requests"
-	"cirrina/cirrinad/util"
-	"cirrina/cirrinad/vm"
 	"context"
 	"database/sql"
 	"errors"
@@ -15,6 +11,11 @@ import (
 
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/wrapperspb"
+
+	"cirrina/cirrina"
+	"cirrina/cirrinad/requests"
+	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vm"
 )
 
 func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.ReqBool, error) {

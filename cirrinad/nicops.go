@@ -1,13 +1,14 @@
 package main
 
 import (
-	"cirrina/cirrinad/requests"
-	"cirrina/cirrinad/util"
-	"cirrina/cirrinad/vm_nics"
 	"encoding/json"
 	"log/slog"
 	"net"
 	"reflect"
+
+	"cirrina/cirrinad/requests"
+	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vm_nics"
 )
 
 func nicClone(rs *requests.Request) {

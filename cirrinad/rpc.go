@@ -1,14 +1,15 @@
 package main
 
 import (
-	"cirrina/cirrina"
-	"cirrina/cirrinad/config"
 	"log/slog"
 	"net"
 	"strconv"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+
+	"cirrina/cirrina"
+	"cirrina/cirrinad/config"
 )
 
 type server struct {
