@@ -1045,36 +1045,40 @@ func comLoggerRead(vm *VM, comNum int, thisCom *serial.Port, vl *os.File, thisRC
 }
 
 func (vm *VM) killCom(comNum int) error {
-
-	var com *serial.Port
-	var comRChan chan byte
-
 	switch comNum {
 	case 1:
-		com = vm.Com1
-		comRChan = vm.Com1rchan
-		if comRChan != nil {
+		if vm.Com1 != nil {
+			_ = vm.Com1.Close()
+			vm.Com1 = nil
+		}
+		if vm.Com1rchan != nil {
 			close(vm.Com1rchan)
 			vm.Com1rchan = nil
 		}
 	case 2:
-		com = vm.Com2
-		comRChan = vm.Com2rchan
-		if comRChan != nil {
+		if vm.Com2 != nil {
+			_ = vm.Com2.Close()
+			vm.Com2 = nil
+		}
+		if vm.Com2rchan != nil {
 			close(vm.Com2rchan)
 			vm.Com2rchan = nil
 		}
 	case 3:
-		com = vm.Com3
-		comRChan = vm.Com3rchan
-		if comRChan != nil {
+		if vm.Com3 != nil {
+			_ = vm.Com3.Close()
+			vm.Com3 = nil
+		}
+		if vm.Com3rchan != nil {
 			close(vm.Com3rchan)
 			vm.Com3rchan = nil
 		}
 	case 4:
-		com = vm.Com4
-		comRChan = vm.Com4rchan
-		if comRChan != nil {
+		if vm.Com4 != nil {
+			_ = vm.Com4.Close()
+			vm.Com4 = nil
+		}
+		if vm.Com4rchan != nil {
 			close(vm.Com4rchan)
 			vm.Com4rchan = nil
 		}
@@ -1083,10 +1087,6 @@ func (vm *VM) killCom(comNum int) error {
 		return errors.New("invalid com port number")
 	}
 
-	if com != nil {
-		_ = com.Close()
-		com = nil
-	}
 	return nil
 }
 

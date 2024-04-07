@@ -54,6 +54,27 @@ linters:
     - reassign
     - spancheck
     - forcetypeassert
+    - goheader
+    - goprintffuncname
+    - grouper
+    - importas
+    - inamedparam
+    - interfacebloat
+    - ireturn
+    - mirror
+    - nakedret
+    - nilnil
+    - nolintlint
+    - nosprintfhostport
+    - paralleltest
+    - predeclared
+    - promlinter
+    - testpackage
+    - thelper
+    - tparallel
+    - unconvert
+    - usestdlibvars
+    - wastedassign
 
 issues:
   exclude-rules:

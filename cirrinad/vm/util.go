@@ -316,7 +316,7 @@ func findChildPid(findPid uint32) (childPid uint32) {
 		if fl != 1 {
 			slog.Debug("FindChildPid pgrep extra fields", "text", text)
 		}
-		tempPid1 := uint64(0)
+		var tempPid1 uint64
 		if !found {
 			found = true
 			tempPid1, err = strconv.ParseUint(textFields[0], 10, 32)

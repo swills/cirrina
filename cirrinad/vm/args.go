@@ -86,7 +86,7 @@ func (vm *VM) getCpuArg() []string {
 }
 
 func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (hdArg string, err error) {
-	diskController := ""
+	var diskController string
 	nocache := ""
 	direct := ""
 
@@ -513,7 +513,7 @@ func GetVmnetDev() string {
 }
 
 func getCom(comDev string, vmName string, num int) ([]string, string) {
-	nmdm := ""
+	var nmdm string
 	var comArg []string
 	if comDev == "AUTO" {
 		nmdm = "/dev/nmdm-" + vmName + "-com" + strconv.Itoa(num) + "-A"
