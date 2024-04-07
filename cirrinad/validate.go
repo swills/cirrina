@@ -515,7 +515,11 @@ func validateLogConfig() {
 			slog.Error("log path is a directory, please reconfigure to point to a file", "logFilePath", logFilePath)
 			os.Exit(1)
 		}
-		logFileStat := logFilePathInfo.Sys().(*syscall.Stat_t)
+		logFileStat, ok := logFilePathInfo.Sys().(*syscall.Stat_t)
+		if !ok {
+			slog.Error("type failure", "logFilePathInfo", logFilePathInfo, "logFileStat", logFileStat)
+			os.Exit(1)
+		}
 		if logFileStat == nil {
 			slog.Error("failed getting log file sys info")
 			os.Exit(1)

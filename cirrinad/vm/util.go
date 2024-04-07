@@ -256,7 +256,11 @@ func ensureComDevReadable(comDev string) error {
 	if comReadFileInfo.IsDir() {
 		return errors.New("error checking com dev readable: comReadDev is directory")
 	}
-	comReadStat := comReadFileInfo.Sys().(*syscall.Stat_t)
+	comReadStat, ok := comReadFileInfo.Sys().(*syscall.Stat_t)
+	if !ok {
+		slog.Error("type failure", "comReadFileInfo", comReadFileInfo, "comReadDev", comReadDev)
+		return errors.New("type failure")
+	}
 	if comReadStat == nil {
 		return errors.New("failed converting comReadFileInfo to Stat_t")
 	}
