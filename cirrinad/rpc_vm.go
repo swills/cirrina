@@ -56,10 +56,7 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 		return &re, err
 	}
 
-	err = updateVmScreen(rc, vmInst)
-	if err != nil {
-		return &re, err
-	}
+	updateVmScreen(rc, vmInst)
 	err = updateVmScreenOptions(rc, vmInst)
 	if err != nil {
 		return &re, err
@@ -269,7 +266,7 @@ func updateVmSound(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	return nil
 }
 
-func updateVmScreen(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+func updateVmScreen(rc *cirrina.VMConfig, vmInst *vm.VM) {
 
 	if rc.Screen != nil {
 		if *rc.Screen {
@@ -284,8 +281,6 @@ func updateVmScreen(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	if rc.ScreenHeight != nil {
 		vmInst.Config.ScreenHeight = *rc.ScreenHeight
 	}
-
-	return nil
 }
 
 func updateVmScreenOptions(rc *cirrina.VMConfig, vmInst *vm.VM) error {

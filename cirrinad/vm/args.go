@@ -525,7 +525,7 @@ func getCom(comDev string, vmName string, num int) ([]string, string) {
 	return comArg, nmdm
 }
 
-func (vm *VM) generateCommandLine() (name string, args []string, err error) {
+func (vm *VM) generateCommandLine() (name string, args []string) {
 	name = config.Config.Sys.Sudo
 	slot := 0
 	var com1Arg []string
@@ -627,5 +627,5 @@ func (vm *VM) generateCommandLine() (name string, args []string, err error) {
 	args = append(args, "-U", vm.ID)
 	args = append(args, vm.Name)
 	slog.Debug("generateCommandLine last slot", "slot", slot)
-	return name, args, nil
+	return name, args
 }

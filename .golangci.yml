@@ -14,3 +14,14 @@ linters:
     - decorder
     - dogsled
     - errname
+    - forbidigo
+    - unparam
+
+issues:
+  exclude-rules:
+    - path: 'cirrinactl/rpc/vm_com.go'
+      linters:
+        - forbidigo
+    - path: 'cirrinactl/cmd/.*.go'
+      linters:
+        - forbidigo

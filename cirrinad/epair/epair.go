@@ -5,7 +5,6 @@ import (
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
 	"errors"
-	"fmt"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -43,7 +42,8 @@ func getAllEpair() (epairs []string, err error) {
 		r = append(r, aPairName)
 	}
 	if err := scanner.Err(); err != nil {
-		fmt.Println(err)
+		slog.Error("error scanning ifconfig output", "err", err)
+		return []string{}, err
 	}
 	return r, nil
 }

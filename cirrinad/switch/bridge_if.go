@@ -6,7 +6,6 @@ import (
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
 	"errors"
-	"fmt"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -41,7 +40,8 @@ func GetAllIfBridges() (bridges []string, err error) {
 		r = append(r, aBridgeName)
 	}
 	if err := scanner.Err(); err != nil {
-		fmt.Println(err)
+		slog.Error("error scanning ifconfig output", "err", err)
+		return []string{}, err
 	}
 	return r, nil
 }
@@ -76,7 +76,8 @@ func GetIfBridgeMembers(name string) (members []string, err error) {
 		members = append(members, aBridgeMember)
 	}
 	if err := scanner.Err(); err != nil {
-		fmt.Println(err)
+		slog.Error("error scanning ifconfig output", "err", err)
+		return []string{}, err
 	}
 	return members, nil
 }

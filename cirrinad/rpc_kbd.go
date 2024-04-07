@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"cirrina/cirrina"
 	"cirrina/cirrinad/util"
-	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 )
@@ -43,7 +43,8 @@ func GetKbdLayoutNames() (kbdlayouts []string) {
 func GetKbdDescription(path string) (description string, err error) {
 	file, err := os.Open(path)
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("error opening keyboard description dir", "err", err)
+		return "", err
 	}
 	defer func(file *os.File) {
 		_ = file.Close()
@@ -68,7 +69,8 @@ func GetKbdDescription(path string) (description string, err error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		fmt.Println(err)
+		slog.Error("error scanning keyboard description dir", "err", err)
+		return "", err
 	}
 
 	return description, nil

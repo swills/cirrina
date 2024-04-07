@@ -6,7 +6,6 @@ import (
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
 	"errors"
-	"fmt"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -76,7 +75,8 @@ func ngGetNodes() (ngNodes []NgNode, err error) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		fmt.Println(err)
+		slog.Error("error scanning ngctl output", "err", err)
+		return []NgNode{}, err
 	}
 
 	return ngNodes, nil

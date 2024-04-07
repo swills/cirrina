@@ -198,7 +198,7 @@ func (vm *VM) Start() (err error) {
 		return err
 	}
 
-	cmdName, cmdArgs, err := vm.generateCommandLine()
+	cmdName, cmdArgs := vm.generateCommandLine()
 	vm.log.Info("start", "cmd", cmdName, "args", cmdArgs)
 	vm.createUefiVarsFile()
 	vm.netStartup()
