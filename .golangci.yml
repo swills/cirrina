@@ -47,6 +47,9 @@ linters:
     - gochecksumtype
     - ginkgolinter
     - gosmopolitan
+    - loggercheck
+    - makezero
+    - musttag
 
 issues:
   exclude-rules:

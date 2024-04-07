@@ -822,13 +822,13 @@ var VmGetCmd = &cobra.Command{
 		}
 
 		type vmOutStat struct {
-			Status    string
-			Vncport   string
-			Debugport string
+			Status    string `json:"Status"    yaml:"Status"`
+			Vncport   string `json:"Vncport"   yaml:"Vncport"`
+			Debugport string `json:"Debugport" yaml:"Debugport"`
 		}
 		type vmOutThing struct {
-			Config rpc.VmConfig
-			State  vmOutStat
+			Config rpc.VmConfig `json:"Config" yaml:"Config"`
+			State  vmOutStat    `json:"State"  yaml:"State"`
 		}
 		vmOutSt := vmOutStat{
 			Status:    vmState,
