@@ -200,7 +200,7 @@ func (s *server) RemoveDisk(_ context.Context, i *cirrina.DiskId) (*cirrina.ReqB
 	}
 
 	if diskVm != nil {
-		errorMessage := fmt.Sprintf("disk in use by VM %s", diskVm.ID)
+		errorMessage := "disk in use by VM " + diskVm.ID
 		return &re, errors.New(errorMessage)
 	}
 

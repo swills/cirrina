@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -78,8 +77,8 @@ func disableFlagSorting(cmd *cobra.Command) {
 }
 
 func addNameOrIdArgs(cmd *cobra.Command, nameArg *string, idArg *string, objTypeName string) {
-	cmd.Flags().StringVarP(nameArg, "name", "n", *nameArg, fmt.Sprintf("Name of %s", objTypeName))
-	cmd.Flags().StringVarP(idArg, "id", "i", *idArg, fmt.Sprintf("Id of %s", objTypeName))
+	cmd.Flags().StringVarP(nameArg, "name", "n", *nameArg, "Name of "+objTypeName)
+	cmd.Flags().StringVarP(idArg, "id", "i", *idArg, "Id of "+objTypeName)
 	cmd.MarkFlagsOneRequired("name", "id")
 	cmd.MarkFlagsMutuallyExclusive("name", "id")
 }
