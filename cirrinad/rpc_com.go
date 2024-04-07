@@ -225,8 +225,12 @@ func comInteractiveSetup(thisCom *serial.Port) error {
 	for {
 		b := make([]byte, 1)
 		nb, err := thisCom.Read(b)
-		if nb == 0 || err != nil {
+		if nb == 0 {
 			break
+		}
+		if err != nil {
+			slog.Error("error setting up com interactive", "err", err)
+			return err
 		}
 	}
 	return nil

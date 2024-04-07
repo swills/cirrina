@@ -212,7 +212,7 @@ func (s *server) RemoveVmNic(_ context.Context, vn *cirrina.VmNicId) (*cirrina.R
 	for _, aVm := range allVms {
 		nics, err := aVm.GetNics()
 		if err != nil {
-			return &re, nil
+			return &re, err
 		}
 		for _, aNic := range nics {
 			if aNic.ID == nicUuid.String() {

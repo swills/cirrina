@@ -50,6 +50,7 @@ linters:
     - loggercheck
     - makezero
     - musttag
+    - nilerr
 
 issues:
   exclude-rules:

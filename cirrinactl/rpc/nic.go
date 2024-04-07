@@ -56,7 +56,7 @@ func RmNic(idPtr string) error {
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
 	}
-	if reqId.Success {
+	if !reqId.Success {
 		return errors.New("nic delete failure")
 	}
 	return nil

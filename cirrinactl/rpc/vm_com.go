@@ -81,7 +81,7 @@ func UseCom(id string, comNum int) error {
 			res, _, _, err = GetVMState(id)
 			if err != nil {
 				cancel()
-				return nil
+				return err
 			}
 
 			if res != "running" && res != "stopping" {

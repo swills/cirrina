@@ -181,8 +181,9 @@ var NicRemoveCmd = &cobra.Command{
 	Short:        "remove virtual nic",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		var err error
 		if NicId == "" {
-			NicId, err := rpc.NicNameToId(NicName)
+			NicId, err = rpc.NicNameToId(NicName)
 			if err != nil {
 				return err
 			}
@@ -190,7 +191,7 @@ var NicRemoveCmd = &cobra.Command{
 				return errors.New("NIC not found")
 			}
 		}
-		err := rpc.RmNic(NicId)
+		err = rpc.RmNic(NicId)
 		if err != nil {
 			return err
 		}

@@ -755,7 +755,7 @@ func (vm *VM) DeleteUEFIState() error {
 	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
 	uvFileExists, err := util.PathExists(uefiVarsFile)
 	if err != nil {
-		return nil
+		return err
 	}
 	if uvFileExists {
 		if err := os.Remove(uefiVarsFile); err != nil {
