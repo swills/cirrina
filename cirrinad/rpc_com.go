@@ -18,7 +18,7 @@ import (
 
 func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) error {
 	in, err := stream.Recv()
-	if err == io.EOF {
+	if errors.Is(err, io.EOF) {
 		return nil
 	}
 	if err != nil {
@@ -44,7 +44,7 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 
 func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) error {
 	in, err := stream.Recv()
-	if err == io.EOF {
+	if errors.Is(err, io.EOF) {
 		return nil
 	}
 	if err != nil {
@@ -70,7 +70,7 @@ func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) er
 
 func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) error {
 	in, err := stream.Recv()
-	if err == io.EOF {
+	if errors.Is(err, io.EOF) {
 		return nil
 	}
 	if err != nil {
@@ -96,7 +96,7 @@ func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) er
 
 func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) error {
 	in, err := stream.Recv()
-	if err == io.EOF {
+	if errors.Is(err, io.EOF) {
 		return nil
 	}
 	if err != nil {
@@ -238,7 +238,7 @@ func comInteractiveStreamReceive(stream cirrina.VMInfo_Com1InteractiveServer, vm
 		return nil, true
 	}
 	in, err := stream.Recv()
-	if err == io.EOF {
+	if errors.Is(err, io.EOF) {
 		return nil, true
 	}
 	if err != nil {
@@ -284,11 +284,11 @@ func comIntStreamSendFromDev(stream cirrina.VMInfo_Com1InteractiveServer, vmInst
 	if nb > 1 {
 		slog.Error("ComInteractive read more than 1 byte", "nb", nb)
 	}
-	if err == io.EOF && !vmInst.Running() {
+	if errors.Is(err, io.EOF) && !vmInst.Running() {
 		slog.Debug("ComInteractive", "msg", "vm not running, exiting")
 		return true
 	}
-	if err != nil && err != io.EOF {
+	if err != nil && !errors.Is(err, io.EOF) {
 		slog.Error("ComInteractive error reading com port", "err", err)
 		return true
 	}

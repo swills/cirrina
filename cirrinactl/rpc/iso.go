@@ -38,7 +38,7 @@ func GetIsoIds() ([]string, error) {
 	}
 	for {
 		VM, err := res.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -181,10 +181,10 @@ func IsoUpload(isoId string, isoChecksum string,
 		var n int
 		for !complete {
 			n, err = reader.Read(buffer)
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				complete = true
 			}
-			if err != nil && err != io.EOF {
+			if err != nil && !errors.Is(err, io.EOF) {
 				uploadStatChan <- UploadStat{
 					UploadedChunk: false,
 					Complete:      false,

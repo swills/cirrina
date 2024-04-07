@@ -19,7 +19,7 @@ func GetHostNics() (rv []*cirrina.NetIf, err error) {
 	}
 	for {
 		hostNic, err := res.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {

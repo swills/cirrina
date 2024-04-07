@@ -21,7 +21,7 @@ func getSwitchIds() ([]string, error) {
 	for {
 		var VmSwitch *cirrina.SwitchId
 		VmSwitch, err = res.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -91,7 +91,7 @@ func GetSwitches() ([]string, error) {
 	for {
 		var SwitchId *cirrina.SwitchId
 		SwitchId, err = res.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {

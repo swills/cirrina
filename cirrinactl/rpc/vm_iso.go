@@ -20,7 +20,7 @@ func GetVmIsos(id string) ([]string, error) {
 	for {
 		var r2 *cirrina.ISOID
 		r2, err = res.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {

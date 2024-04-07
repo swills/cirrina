@@ -198,7 +198,7 @@ func GetVmNicsAll() ([]string, error) {
 	for {
 		var VMNicId *cirrina.VmNicId
 		VMNicId, err = res.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {

@@ -144,7 +144,7 @@ func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina
 
 	for {
 		req, err := stream.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			slog.Debug("UploadIso", "msg", "no more data")
 			break
 		}

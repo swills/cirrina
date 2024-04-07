@@ -152,7 +152,7 @@ func GetVmIds() ([]string, error) {
 	for {
 		var VM *cirrina.VMID
 		VM, err = res.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {

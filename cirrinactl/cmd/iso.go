@@ -141,7 +141,7 @@ func trackIsoUpload(pw progress.Writer, isoSize int64, f2 *os.File) {
 		checksumTotal += n
 		checksumTracker.SetValue(checksumTotal)
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				complete = true
 			} else {
 				checksumTracker.MarkAsErrored()

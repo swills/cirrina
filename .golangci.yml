@@ -26,6 +26,10 @@ linters:
     - rowserrcheck
     - sqlclosecheck
     - nestif
+    - maintidx
+    - gocognit
+    - cyclop
+    - errorlint
 
 issues:
   exclude-rules:
@@ -38,8 +42,11 @@ issues:
     - path: 'cirrinad/db/migrate.go'
       linters:
         - nestif
+        - gocognit
 
 linters-settings:
+  cyclop:
+    max-complexity: 16
   gci:
     sections:
       - standard
