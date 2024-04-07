@@ -56,6 +56,7 @@ func GetReqDb() *gorm.DB {
 		instance.reqDb = reqDb
 		dbInitialized = true
 	}
+
 	return instance.reqDb
 }
 

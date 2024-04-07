@@ -34,6 +34,7 @@ func UseCom(id string, comNum int) error {
 	}
 	if err != nil {
 		cancel()
+
 		return errors.New(status.Convert(err).Message())
 	}
 
@@ -46,6 +47,7 @@ func UseCom(id string, comNum int) error {
 	err = stream.Send(req)
 	if err != nil {
 		cancel()
+
 		return err
 	}
 
@@ -54,6 +56,7 @@ func UseCom(id string, comNum int) error {
 	oldState, err = term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		cancel()
+
 		return err
 	}
 	defer func(fd int, oldState *term.State) {
@@ -81,11 +84,13 @@ func UseCom(id string, comNum int) error {
 			res, _, _, err = GetVMState(id)
 			if err != nil {
 				cancel()
+
 				return err
 			}
 
 			if res != "running" && res != "stopping" {
 				cancel()
+
 				return nil
 			}
 			time.Sleep(1 * time.Second)
@@ -106,10 +111,12 @@ func comSend(bgCtx context.Context, cancel context.CancelFunc, stream cirrina.VM
 			_, err = os.Stdin.Read(b)
 			if err != nil {
 				cancel()
+
 				return
 			}
 			if b[0] == 0x1c { // == FS ("File Separator") control character -- ctrl-\ -- see ascii.7
 				cancel()
+
 				return
 			}
 			req = &cirrina.ComDataRequest{
@@ -120,6 +127,7 @@ func comSend(bgCtx context.Context, cancel context.CancelFunc, stream cirrina.VM
 			err = stream.Send(req)
 			if err != nil {
 				cancel()
+
 				return
 			}
 		}
@@ -138,6 +146,7 @@ func comReceive(bgCtx context.Context, cancel context.CancelFunc, stream cirrina
 			out, err = stream.Recv()
 			if err != nil {
 				cancel()
+
 				return
 			}
 			fmt.Print(string(out.ComOutBytes))

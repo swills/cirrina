@@ -39,6 +39,7 @@ func AddVM(name string, descrPtr *string, cpuPtr *uint32, memPtr *uint32) (strin
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
+
 	return res.Value, nil
 }
 
@@ -53,6 +54,7 @@ func DeleteVM(id string) (string, error) {
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
+
 	return reqId.Value, nil
 }
 
@@ -67,6 +69,7 @@ func StopVM(id string) (string, error) {
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
+
 	return reqId.Value, nil
 }
 
@@ -81,6 +84,7 @@ func StartVM(id string) (string, error) {
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
+
 	return reqId.Value, nil
 }
 
@@ -95,6 +99,7 @@ func GetVmName(id string) (string, error) {
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
+
 	return res.GetValue(), nil
 }
 
@@ -109,6 +114,7 @@ func GetVmId(name string) (string, error) {
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
+
 	return res.Value, nil
 }
 
@@ -160,6 +166,7 @@ func GetVmIds() ([]string, error) {
 		}
 		ids = append(ids, VM.Value)
 	}
+
 	return ids, nil
 }
 
@@ -185,6 +192,7 @@ func GetVMState(id string) (string, string, string, error) {
 	case cirrina.VmStatus_STATUS_STOPPING:
 		vmstate = "stopping"
 	}
+
 	return vmstate, strconv.FormatInt(int64(res.VncPort), 10), strconv.FormatInt(int64(res.DebugPort), 10), nil
 }
 
@@ -196,6 +204,7 @@ func VmRunning(id string) (bool, error) {
 	if r == "running" {
 		return true, nil
 	}
+
 	return false, nil
 }
 
@@ -207,6 +216,7 @@ func VmStopped(id string) (bool, error) {
 	if r == "stopped" {
 		return true, nil
 	}
+
 	return false, nil
 }
 
@@ -218,6 +228,7 @@ func VmNameToId(name string) (string, error) {
 	if res == "" {
 		return "", errors.New("VM not found")
 	}
+
 	return res, nil
 }
 
@@ -229,6 +240,7 @@ func VmIdToName(id string) (string, error) {
 	if res == "" {
 		return "", errors.New("VM not found")
 	}
+
 	return res, nil
 }
 
@@ -239,6 +251,7 @@ func UpdateVMConfig(myNewConfig *cirrina.VMConfig) error {
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
 	}
+
 	return nil
 }
 
@@ -249,6 +262,7 @@ func VmClearUefiVars(id string) (bool, error) {
 	if err != nil {
 		return false, errors.New(status.Convert(err).Message())
 	}
+
 	return res.Success, nil
 }
 
@@ -265,6 +279,7 @@ func parseOptionalVmConfigBasic(res *cirrina.VMConfig, rv VmConfig) VmConfig {
 	if res.Mem != nil {
 		rv.Mem = *res.Mem
 	}
+
 	return rv
 }
 
@@ -290,6 +305,7 @@ func parseOptionalVmConfigPriority(res *cirrina.VMConfig, rv VmConfig) VmConfig 
 	if res.Wiops != nil {
 		rv.Wiops = *res.Wiops
 	}
+
 	return rv
 }
 
@@ -306,6 +322,7 @@ func parseOptionalVmConfigSerialCom1(res *cirrina.VMConfig, rv VmConfig) VmConfi
 	if res.Com1Speed != nil {
 		rv.Com1Speed = *res.Com1Speed
 	}
+
 	return rv
 }
 
@@ -322,6 +339,7 @@ func parseOptionalVmConfigSerialCom2(res *cirrina.VMConfig, rv VmConfig) VmConfi
 	if res.Com2Speed != nil {
 		rv.Com2Speed = *res.Com2Speed
 	}
+
 	return rv
 }
 
@@ -338,6 +356,7 @@ func parseOptionalVmConfigSerialCom3(res *cirrina.VMConfig, rv VmConfig) VmConfi
 	if res.Com3Speed != nil {
 		rv.Com3Speed = *res.Com3Speed
 	}
+
 	return rv
 }
 
@@ -354,6 +373,7 @@ func parseOptionalVmConfigSerialCom4(res *cirrina.VMConfig, rv VmConfig) VmConfi
 	if res.Com4Speed != nil {
 		rv.Com4Speed = *res.Com4Speed
 	}
+
 	return rv
 }
 
@@ -379,6 +399,7 @@ func parseOptionalVmConfigScreen(res *cirrina.VMConfig, rv VmConfig) VmConfig {
 	if res.Keyboard != nil {
 		rv.Keyboard = *res.Keyboard
 	}
+
 	return rv
 }
 
@@ -392,6 +413,7 @@ func parseOptionalVmConfigSound(res *cirrina.VMConfig, rv VmConfig) VmConfig {
 	if res.SoundOut != nil {
 		rv.SoundOut = *res.SoundOut
 	}
+
 	return rv
 }
 
@@ -408,6 +430,7 @@ func parseOptionalVmConfigStart(res *cirrina.VMConfig, rv VmConfig) VmConfig {
 	if res.RestartDelay != nil {
 		rv.RestartDelay = *res.RestartDelay
 	}
+
 	return rv
 }
 
@@ -454,5 +477,6 @@ func parseOptionalVmConfigAdvanced(res *cirrina.VMConfig, rv VmConfig) VmConfig 
 	if res.ExtraArgs != nil {
 		rv.ExtraArgs = *res.ExtraArgs
 	}
+
 	return rv
 }

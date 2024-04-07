@@ -23,6 +23,7 @@ func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrin
 	rs, err := requests.GetByID(reqUuid.String())
 	if err != nil {
 		slog.Error("ReqStatus error getting req", "vm", r.Value, "err", err)
+
 		return &cirrina.ReqStatus{}, errors.New("not found")
 	}
 	if rs.ID == "" {
@@ -32,6 +33,7 @@ func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrin
 		Complete: rs.Complete,
 		Success:  rs.Successful,
 	}
+
 	return res, nil
 }
 
@@ -46,10 +48,12 @@ func (s *server) ClearUEFIState(_ context.Context, v *cirrina.VMID) (*cirrina.Re
 	vmInst, err := vm.GetById(vmUuid.String())
 	if err != nil {
 		slog.Error("ClearUEFIState error getting vm", "vm", v.Value, "err", err)
+
 		return &re, errors.New("not found")
 	}
 	if vmInst.Name == "" {
 		slog.Debug("vm not found")
+
 		return &re, errors.New("not found")
 	}
 	err = vmInst.DeleteUEFIState()
@@ -57,6 +61,7 @@ func (s *server) ClearUEFIState(_ context.Context, v *cirrina.VMID) (*cirrina.Re
 		return &re, err
 	}
 	re.Success = true
+
 	return &re, nil
 }
 

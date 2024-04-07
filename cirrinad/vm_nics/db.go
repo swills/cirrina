@@ -53,11 +53,13 @@ func GetVmNicDb() *gorm.DB {
 		sqlDB.SetMaxOpenConns(1)
 		instance.vmNicDb = vmNicDb
 	})
+
 	return instance.vmNicDb
 }
 
 func (d *VmNic) BeforeCreate(_ *gorm.DB) (err error) {
 	d.ID = uuid.NewString()
+
 	return nil
 }
 
@@ -71,5 +73,6 @@ func DbAutoMigrate() {
 
 func DbInitialized() bool {
 	db := GetVmNicDb()
+
 	return db.Migrator().HasColumn(VmNic{}, "id")
 }

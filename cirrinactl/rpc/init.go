@@ -154,6 +154,7 @@ func GetConn() error {
 
 	serverClient = cirrina.NewVMInfoClient(serverConn)
 	defaultServerContext, defaultCancelFunc = context.WithTimeout(context.Background(), serverTimeoutDur)
+
 	return nil
 }
 

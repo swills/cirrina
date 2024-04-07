@@ -15,18 +15,21 @@ import (
 func GetByName(name string) (s *VmNic, err error) {
 	db := GetVmNicDb()
 	db.Limit(1).Find(&s, "name = ?", name)
+
 	return s, nil
 }
 
 func GetById(id string) (v *VmNic, err error) {
 	db := GetVmNicDb()
 	db.Limit(1).Find(&v, "id = ?", id)
+
 	return v, nil
 }
 
 func GetNics(vmConfigId uint) (vms []VmNic) {
 	db := GetVmNicDb()
 	db.Where("config_id = ?", vmConfigId).Find(&vms)
+
 	return vms
 }
 
@@ -34,6 +37,7 @@ func GetAll() []*VmNic {
 	var result []*VmNic
 	db := GetVmNicDb()
 	db.Find(&result)
+
 	return result
 }
 
@@ -51,10 +55,12 @@ func Create(vmNicInst *VmNic) (newNicId string, err error) {
 	valid, err := validateNewNic(vmNicInst)
 	if err != nil {
 		slog.Error("error validating nic", "VmNic", vmNicInst, "err", err)
+
 		return newNicId, err
 	}
 	if !valid {
 		slog.Error("VmNic exists or not valid", "VmNic", vmNicInst.Name)
+
 		return newNicId, errors.New("VmNic exists or not valid")
 	}
 
@@ -63,6 +69,7 @@ func Create(vmNicInst *VmNic) (newNicId string, err error) {
 	if res.RowsAffected != 1 {
 		return newNicId, res.Error
 	}
+
 	return vmNicInst.ID, res.Error
 }
 
@@ -71,8 +78,10 @@ func (d *VmNic) Delete() (err error) {
 	res := db.Limit(1).Unscoped().Delete(&d)
 	if res.RowsAffected != 1 {
 		errText := fmt.Sprintf("vmnic delete error, rows affected %v", res.RowsAffected)
+
 		return errors.New(errText)
 	}
+
 	return nil
 }
 
@@ -81,6 +90,7 @@ func (d *VmNic) SetSwitch(switchid string) error {
 	err := d.Save()
 	if err != nil {
 		slog.Error("error saving VM nic", "err", err)
+
 		return err
 	}
 
@@ -159,6 +169,7 @@ func ParseMac(macAddress string) (res string, err error) {
 	if err != nil {
 		return "", err
 	}
+
 	return newMac.String(), nil
 }
 
@@ -173,6 +184,7 @@ func ParseNetDevType(netDevType cirrina.NetDevType) (res string, err error) {
 	default:
 		err = errors.New("invalid net dev type name")
 	}
+
 	return res, err
 }
 
@@ -185,6 +197,7 @@ func ParseNetType(netType cirrina.NetType) (res string, err error) {
 	default:
 		err = errors.New("invalid net type name")
 	}
+
 	return res, err
 }
 

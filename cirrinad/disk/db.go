@@ -55,6 +55,7 @@ func getDiskDb() *gorm.DB {
 		sqlDB.SetMaxOpenConns(1)
 		instance.diskDb = diskDb
 	})
+
 	return instance.diskDb
 }
 
@@ -63,6 +64,7 @@ func (d *Disk) BeforeCreate(_ *gorm.DB) (err error) {
 	if d.Name == "" {
 		return errors.New("invalid disk name")
 	}
+
 	return nil
 }
 

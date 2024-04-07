@@ -53,11 +53,13 @@ func getSwitchDb() *gorm.DB {
 		sqlDB.SetMaxOpenConns(1)
 		instance.switchDb = switchDb
 	})
+
 	return instance.switchDb
 }
 
 func (d *Switch) BeforeCreate(_ *gorm.DB) (err error) {
 	d.ID = uuid.NewString()
+
 	return nil
 }
 

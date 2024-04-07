@@ -76,6 +76,8 @@ linters:
     - usestdlibvars
     - wastedassign
     - whitespace
+    - testableexamples
+    - nlreturn
 
 issues:
   exclude-rules:

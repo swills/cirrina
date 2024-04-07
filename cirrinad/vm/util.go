@@ -30,6 +30,7 @@ func GetVmLogPath(logpath string) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -90,6 +91,7 @@ func GetAll() (allVMs []*VM) {
 	for _, value := range List.VmList {
 		allVMs = append(allVMs, value)
 	}
+
 	return allVMs
 }
 
@@ -101,6 +103,7 @@ func GetByName(name string) (v *VM, err error) {
 			return t, nil
 		}
 	}
+
 	return &VM{}, errors.New("not found")
 }
 
@@ -111,6 +114,7 @@ func GetById(id string) (v *VM, err error) {
 	if valid {
 		return vmInst, nil
 	}
+
 	return nil, errors.New("not found")
 }
 
@@ -159,6 +163,7 @@ func GetRunningVMs() int {
 			count += 1
 		}
 	}
+
 	return count
 }
 
@@ -193,6 +198,7 @@ func GetUsedVncPorts() []int {
 			ret = append(ret, int(vmInst.VNCPort))
 		}
 	}
+
 	return ret
 }
 
@@ -205,6 +211,7 @@ func GetUsedDebugPorts() []int {
 			ret = append(ret, int(vmInst.DebugPort))
 		}
 	}
+
 	return ret
 }
 
@@ -221,6 +228,7 @@ func GetUsedNetPorts() []string {
 			ret = append(ret, vmNic.NetDev)
 		}
 	}
+
 	return ret
 }
 
@@ -231,12 +239,14 @@ func IsNetPortUsed(netPort string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
 func ensureComDevReadable(comDev string) error {
 	if !strings.HasSuffix(comDev, "A") {
 		slog.Error("error checking com dev readable: invalid com dev", "comDev", comDev)
+
 		return errors.New("invalid com dev")
 	}
 	comBaseDev := comDev[:len(comDev)-1]
@@ -259,6 +269,7 @@ func ensureComDevReadable(comDev string) error {
 	comReadStat, ok := comReadFileInfo.Sys().(*syscall.Stat_t)
 	if !ok {
 		slog.Error("type failure", "comReadFileInfo", comReadFileInfo, "comReadDev", comReadDev)
+
 		return errors.New("type failure")
 	}
 	if comReadStat == nil {
@@ -284,6 +295,7 @@ func ensureComDevReadable(comDev string) error {
 		return fmt.Errorf("failed to fix ownership of comReadDev %s: %w", comReadDev, err)
 	}
 	slog.Debug("ensureComDevReadable user mismatch fixed")
+
 	return nil
 }
 
@@ -301,10 +313,12 @@ func findChildPid(findPid uint32) (childPid uint32) {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		slog.Error("FindChildPid error", "err", err)
+
 		return 0
 	}
 	if err := cmd.Start(); err != nil {
 		slog.Error("FindChildPid error", "err", err)
+
 		return 0
 	}
 	found := false
@@ -322,6 +336,7 @@ func findChildPid(findPid uint32) (childPid uint32) {
 			tempPid1, err = strconv.ParseUint(textFields[0], 10, 32)
 			if err != nil {
 				slog.Error("FindChildPid error", "err", err)
+
 				return 0
 			}
 			tempPid2 := uint32(tempPid1)
@@ -334,6 +349,7 @@ func findChildPid(findPid uint32) (childPid uint32) {
 		slog.Error("FindChildPid error", "err", err)
 	}
 	slog.Debug("FindChildPid returning childPid", "childPid", childPid)
+
 	return childPid
 }
 
@@ -353,10 +369,13 @@ func startSerialPort(comDev string, comSpeed uint) (*serial.Port, error) {
 		comReader, err := serial.OpenPort(c)
 		if err != nil {
 			slog.Error("startSerialPort error opening comReadDev", "error", err)
+
 			return nil, err
 		}
 		slog.Debug("startSerialLogger", "opened", comReadDev)
+
 		return comReader, nil
 	}
+
 	return nil, errors.New("invalid com dev")
 }

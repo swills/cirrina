@@ -21,6 +21,7 @@ var ReqStatCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("req status: complete=%v, success=%v\n", res.Complete, res.Success)
+
 		return nil
 	},
 }

@@ -77,6 +77,7 @@ func ngGetNodes() (ngNodes []NgNode, err error) {
 
 	if err := scanner.Err(); err != nil {
 		slog.Error("error scanning ngctl output", "err", err)
+
 		return []NgNode{}, err
 	}
 
@@ -94,6 +95,7 @@ func GetAllNgBridges() (bridges []string, err error) {
 			bridges = append(bridges, node.NodeName)
 		}
 	}
+
 	return bridges, nil
 }
 
@@ -156,6 +158,7 @@ func ngBridgeNextLink(peers []ngPeer) (link string) {
 			found = true
 		}
 	}
+
 	return linkName
 }
 
@@ -166,16 +169,19 @@ func createNgBridge(name string) (err error) {
 
 	if !strings.HasPrefix(name, "bnet") {
 		slog.Error("invalid bridge name", "name", name)
+
 		return errors.New("invalid bridge name, bridge name must start with \"bnet\"")
 	}
 
 	allIfBridges, err := GetAllNgBridges()
 	if err != nil {
 		slog.Debug("failed to get all if bridges", "err", err)
+
 		return err
 	}
 	if util.ContainsStr(allIfBridges, name) {
 		slog.Debug("bridge already exists", "bridge", name)
+
 		return errors.New("duplicate bridge")
 	}
 
@@ -197,6 +203,7 @@ func actualNgBridgeCreate(netDev string) error {
 	err := createIfBridge(dummyIfBridgeName)
 	if err != nil {
 		slog.Error("dummy if_bridge creation error", "err", err)
+
 		return err
 	}
 
@@ -205,6 +212,7 @@ func actualNgBridgeCreate(netDev string) error {
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("ngctl mkpeer error", "err", err)
+
 		return err
 	}
 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "name",
@@ -212,6 +220,7 @@ func actualNgBridgeCreate(netDev string) error {
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("ngctl name err", "err", err)
+
 		return err
 	}
 	// useUplink := true
@@ -227,6 +236,7 @@ func actualNgBridgeCreate(netDev string) error {
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("ngctl connect error", "err", err)
+
 		return err
 	}
 	// cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
@@ -248,6 +258,7 @@ func actualNgBridgeCreate(netDev string) error {
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("ngctl msg setpersistent error", "err", err)
+
 		return err
 	}
 
@@ -255,6 +266,7 @@ func actualNgBridgeCreate(netDev string) error {
 	err = DestroyIfBridge(dummyIfBridgeName, false)
 	if err != nil {
 		slog.Error("dummy if_bridge deletion error", "err", err)
+
 		return err
 	}
 
@@ -268,6 +280,7 @@ func createNgBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 			"name", bridgeName,
 			"err", err,
 		)
+
 		return err
 	}
 	err = bridgeNgDeleteAllPeers(bridgeName)
@@ -276,6 +289,7 @@ func createNgBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 			"name", bridgeName,
 			"err", err,
 		)
+
 		return err
 	}
 	for _, member := range bridgeMembers {
@@ -284,6 +298,7 @@ func createNgBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 			slog.Error("attempt to add non-existent member to bridge, ignoring",
 				"bridge", bridgeName, "uplink", member,
 			)
+
 			continue
 		}
 		err = BridgeNgAddMember(bridgeName, member)
@@ -293,9 +308,11 @@ func createNgBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 				"member", member,
 				"err", err,
 			)
+
 			continue
 		}
 	}
+
 	return nil
 }
 
@@ -311,6 +328,7 @@ func bridgeNgDeleteAllPeers(name string) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -323,8 +341,10 @@ func bridgeNgDeletePeer(bridgeName string, hook string) error {
 	}
 	if err := cmd.Wait(); err != nil {
 		slog.Error("failed running ngctl", "err", err, "out", out)
+
 		return err
 	}
+
 	return nil
 }
 

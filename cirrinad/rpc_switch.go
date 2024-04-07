@@ -44,6 +44,7 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 	if err != nil {
 		return &cirrina.SwitchId{}, err
 	}
+
 	return bringUpNewSwitch(switchInst)
 }
 
@@ -74,6 +75,7 @@ func (s *server) GetSwitchInfo(_ context.Context, v *cirrina.SwitchId) (*cirrina
 	vmSwitch, err := _switch.GetById(switchUuid.String())
 	if err != nil {
 		slog.Error("error getting switch info", "switch", v.Value, "err", err)
+
 		return &cirrina.SwitchInfo{}, err
 	}
 
@@ -84,6 +86,7 @@ func (s *server) GetSwitchInfo(_ context.Context, v *cirrina.SwitchId) (*cirrina
 	if err != nil {
 		return &cirrina.SwitchInfo{}, err
 	}
+
 	return &switchInfo, nil
 }
 
@@ -107,6 +110,7 @@ func (s *server) RemoveSwitch(_ context.Context, si *cirrina.SwitchId) (*cirrina
 			"switch", si.Value,
 			"switch_name", switchInst.Name,
 		)
+
 		return &re, errors.New("switch in use")
 	}
 
@@ -120,6 +124,7 @@ func (s *server) RemoveSwitch(_ context.Context, si *cirrina.SwitchId) (*cirrina
 		err := _switch.DestroyNgBridge(switchInst.Name)
 		if err != nil {
 			slog.Error("switch removal failure")
+
 			return &re, err
 		}
 	default:
@@ -131,6 +136,7 @@ func (s *server) RemoveSwitch(_ context.Context, si *cirrina.SwitchId) (*cirrina
 		return &re, err
 	}
 	re.Success = true
+
 	return &re, nil
 }
 
@@ -166,6 +172,7 @@ func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq)
 			}
 		}
 		r.Success = true
+
 		return &r, nil
 	}
 
@@ -175,6 +182,7 @@ func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq)
 			"name", switchInst.Name,
 		)
 		errorString := fmt.Sprintf("uplink already in use by %v", switchInst.Name)
+
 		return &r, errors.New(errorString)
 	}
 	if switchInst.Uplink != uplink {
@@ -195,6 +203,7 @@ func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq)
 		}
 	}
 	r.Success = true
+
 	return &r, nil
 }
 
@@ -237,6 +246,7 @@ func uplinkInUse(id string, uplink string, t string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -260,6 +270,7 @@ func validateNgSwitch(i *cirrina.SwitchInfo) error {
 		alreadyUsed, err := _switch.MemberUsedByNgBridge(*i.Uplink)
 		if err != nil {
 			slog.Error("error checking if member already used", "err", err)
+
 			return errors.New("error checking if switch uplink in use by another bridge")
 		}
 		if alreadyUsed {
@@ -268,6 +279,7 @@ func validateNgSwitch(i *cirrina.SwitchInfo) error {
 	}
 	if !strings.HasPrefix(*i.Name, "bnet") {
 		slog.Error("invalid bridge name", "name", *i.Name)
+
 		return errors.New("invalid name")
 	}
 
@@ -275,14 +287,17 @@ func validateNgSwitch(i *cirrina.SwitchInfo) error {
 	bridgeNum, err := strconv.Atoi(bridgeNumStr)
 	if err != nil {
 		slog.Error("invalid bridge name", "name", *i.Name)
+
 		return errors.New("invalid bridge name")
 	}
 	bridgeNumFormattedString := strconv.FormatInt(int64(bridgeNum), 10)
 	// Check for silly things like "0123"
 	if bridgeNumStr != bridgeNumFormattedString {
 		slog.Error("invalid name", "name", *i.Name)
+
 		return errors.New("invalid name")
 	}
+
 	return nil
 }
 
@@ -292,6 +307,7 @@ func validateIfSwitch(i *cirrina.SwitchInfo) error {
 		alreadyUsed, err := _switch.MemberUsedByIfBridge(*i.Uplink)
 		if err != nil {
 			slog.Error("error checking if member already used", "err", err)
+
 			return errors.New("error checking if switch uplink in use by another bridge")
 		}
 		if alreadyUsed {
@@ -300,6 +316,7 @@ func validateIfSwitch(i *cirrina.SwitchInfo) error {
 	}
 	if !strings.HasPrefix(*i.Name, "bridge") {
 		slog.Error("invalid name", "name", *i.Name)
+
 		return errors.New("invalid name")
 	}
 
@@ -307,14 +324,17 @@ func validateIfSwitch(i *cirrina.SwitchInfo) error {
 	bridgeNum, err := strconv.Atoi(bridgeNumStr)
 	if err != nil {
 		slog.Error("invalid bridge name", "name", *i.Name)
+
 		return errors.New("invalid bridge name")
 	}
 	bridgeNumFormattedString := strconv.FormatInt(int64(bridgeNum), 10)
 	// Check for silly things like "0123"
 	if bridgeNumStr != bridgeNumFormattedString {
 		slog.Error("invalid name", "name", *i.Name)
+
 		return errors.New("invalid name")
 	}
+
 	return nil
 }
 
@@ -341,8 +361,10 @@ func bringUpNewSwitch(switchInst *_switch.Switch) (*cirrina.SwitchId, error) {
 		}
 	default:
 		slog.Error("unknown switch type bringing up new switch")
+
 		return &cirrina.SwitchId{}, errors.New("unknown switch type creating switch")
 	}
+
 	return &cirrina.SwitchId{Value: switchInst.ID}, nil
 }
 

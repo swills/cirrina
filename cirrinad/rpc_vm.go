@@ -29,6 +29,7 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	vmInst, err := vm.GetById(vmUuid.String())
 	if err != nil {
 		slog.Error("UpdateVM error getting vm", "vm", rc.Id, "err", err)
+
 		return &re, errors.New("not found")
 	}
 	if vmInst.Name == "" {
@@ -84,6 +85,7 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 		return &re, err
 	}
 	re.Success = true
+
 	return &re, nil
 }
 
@@ -135,6 +137,7 @@ func updateVmDebug(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 		}
 		vmInst.Config.DebugPort = *rc.DebugPort
 	}
+
 	return nil
 }
 
@@ -261,6 +264,7 @@ func updateVmSound(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 		}
 		vmInst.Config.SoundOut = *rc.SoundOut
 	}
+
 	return nil
 }
 
@@ -311,6 +315,7 @@ func updateVmScreenOptions(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 			vmInst.Config.VNCWait = false
 		}
 	}
+
 	return nil
 }
 
@@ -340,6 +345,7 @@ func updateVmCom1(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	if rc.Com1Speed != nil {
 		vmInst.Config.Com1Speed = *rc.Com1Speed
 	}
+
 	return nil
 }
 
@@ -369,6 +375,7 @@ func updateVmCom2(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	if rc.Com2Speed != nil {
 		vmInst.Config.Com2Speed = *rc.Com2Speed
 	}
+
 	return nil
 }
 
@@ -398,6 +405,7 @@ func updateVmCom3(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	if rc.Com3Speed != nil {
 		vmInst.Config.Com3Speed = *rc.Com3Speed
 	}
+
 	return nil
 }
 
@@ -427,6 +435,7 @@ func updateVmCom4(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	if rc.Com4Speed != nil {
 		vmInst.Config.Com4Speed = *rc.Com4Speed
 	}
+
 	return nil
 }
 
@@ -449,6 +458,7 @@ func updateVmBasics(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	if rc.Mem != nil {
 		vmInst.Config.Mem = *rc.Mem
 	}
+
 	return nil
 }
 
@@ -476,8 +486,10 @@ func (s *server) GetVmName(_ context.Context, v *cirrina.VMID) (*wrapperspb.Stri
 	vmInst, err := vm.GetById(vmUuid.String())
 	if err != nil {
 		slog.Error("GetVMConfig error getting vm", "vm", v.Value, "err", err)
+
 		return wrapperspb.String(""), errors.New("VM not found")
 	}
+
 	return wrapperspb.String(vmInst.Name), nil
 }
 
@@ -491,6 +503,7 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	vmInst, err := vm.GetById(vmUuid.String())
 	if err != nil {
 		slog.Error("GetVMConfig error getting vm", "vm", v.Value, "err", err)
+
 		return &pvm, errors.New("not found")
 	}
 	if vmInst.Name == "" {
@@ -552,6 +565,7 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Wbps = &vmInst.Config.Wbps
 	pvm.Riops = &vmInst.Config.Riops
 	pvm.Wiops = &vmInst.Config.Wiops
+
 	return &pvm, nil
 }
 
@@ -567,6 +581,7 @@ func (s *server) GetVMs(_ *cirrina.VMsQuery, stream cirrina.VMInfo_GetVMsServer)
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -579,6 +594,7 @@ func (s *server) GetVMState(_ context.Context, p *cirrina.VMID) (*cirrina.VMStat
 	vmInst, err := vm.GetById(vmUuid.String())
 	if err != nil {
 		slog.Error("GetVMState error getting vm", "vm", p.Value, "err", err)
+
 		return &pvm, errors.New("not found")
 	}
 	if vmInst.Name == "" {
@@ -603,6 +619,7 @@ func (s *server) GetVMState(_ context.Context, p *cirrina.VMID) (*cirrina.VMStat
 	default:
 		return &pvm, errors.New("unknown VM state")
 	}
+
 	return &pvm, nil
 }
 
@@ -635,6 +652,7 @@ func (s *server) AddVM(_ context.Context, v *cirrina.VMConfig) (*cirrina.VMID, e
 	if err != nil {
 		return &cirrina.VMID{}, err
 	}
+
 	return &cirrina.VMID{Value: vmInst.ID}, nil
 }
 
@@ -646,6 +664,7 @@ func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestI
 	vmInst, err := vm.GetById(vmUuid.String())
 	if err != nil {
 		slog.Error("DeleteVM error getting vm", "vm", v.Value, "err", err)
+
 		return &cirrina.RequestID{}, errors.New("not found")
 	}
 	if vmInst.Name == "" {
@@ -662,6 +681,7 @@ func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestI
 	if err != nil {
 		return &cirrina.RequestID{}, err
 	}
+
 	return &cirrina.RequestID{Value: newReq.ID}, nil
 }
 
@@ -676,6 +696,7 @@ func (s *server) SetVmISOs(_ context.Context, sr *cirrina.SetISOReq) (*cirrina.R
 	vmInst, err := vm.GetById(vmUuid.String())
 	if err != nil {
 		slog.Error("SetVmISOs error getting vm", "vm", sr.Id, "err", err)
+
 		return &re, errors.New("not found")
 	}
 	if vmInst.Name == "" {
@@ -687,6 +708,7 @@ func (s *server) SetVmISOs(_ context.Context, sr *cirrina.SetISOReq) (*cirrina.R
 		return &re, err
 	}
 	re.Success = true
+
 	return &re, nil
 }
 
@@ -702,6 +724,7 @@ func (s *server) SetVmNics(_ context.Context, sn *cirrina.SetNicReq) (*cirrina.R
 	vmInst, err := vm.GetById(vmUuid.String())
 	if err != nil {
 		slog.Error("SetVmNics error getting vm", "vm", sn.Vmid, "err", err)
+
 		return &re, errors.New("not found")
 	}
 	if vmInst.Name == "" {
@@ -713,6 +736,7 @@ func (s *server) SetVmNics(_ context.Context, sn *cirrina.SetNicReq) (*cirrina.R
 		return &re, err
 	}
 	re.Success = true
+
 	return &re, nil
 }
 
@@ -728,6 +752,7 @@ func (s *server) SetVmDisks(_ context.Context, sr *cirrina.SetDiskReq) (*cirrina
 	vmInst, err := vm.GetById(vmUuid.String())
 	if err != nil {
 		slog.Error("SetVmDisks error getting vm", "vm", sr.Id, "err", err)
+
 		return &re, errors.New("not found")
 	}
 	if vmInst.Name == "" {
@@ -738,6 +763,7 @@ func (s *server) SetVmDisks(_ context.Context, sr *cirrina.SetDiskReq) (*cirrina
 		return &re, err
 	}
 	re.Success = true
+
 	return &re, nil
 }
 
@@ -750,6 +776,7 @@ func (s *server) GetVmISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVmISOsServe
 	vmInst, err := vm.GetById(vmUuid.String())
 	if err != nil {
 		slog.Error("GetVmISOs error getting vm", "vm", v.Value, "err", err)
+
 		return errors.New("not found")
 	}
 	if vmInst.Name == "" {
@@ -769,6 +796,7 @@ func (s *server) GetVmISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVmISOsServe
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -780,6 +808,7 @@ func (s *server) GetVmDisks(v *cirrina.VMID, stream cirrina.VMInfo_GetVmDisksSer
 	vmInst, err := vm.GetById(vmUuid.String())
 	if err != nil {
 		slog.Error("GetVmDisks error getting vm", "vm", v.Value, "err", err)
+
 		return errors.New("not found")
 	}
 	if vmInst.Name == "" {
@@ -799,6 +828,7 @@ func (s *server) GetVmDisks(v *cirrina.VMID, stream cirrina.VMInfo_GetVmDisksSer
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -810,6 +840,7 @@ func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID
 	vmInst, err := vm.GetById(vmUuid.String())
 	if err != nil {
 		slog.Error("StartVM error getting vm", "vm", v.Value, "err", err)
+
 		return &cirrina.RequestID{}, errors.New("not found")
 	}
 	if vmInst.Name == "" {
@@ -826,6 +857,7 @@ func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID
 	if err != nil {
 		return &cirrina.RequestID{}, err
 	}
+
 	return &cirrina.RequestID{Value: newReq.ID}, nil
 }
 
@@ -837,6 +869,7 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 	vmInst, err := vm.GetById(vmUuid.String())
 	if err != nil {
 		slog.Error("StopVM error getting vm", "vm", v.Value, "err", err)
+
 		return &cirrina.RequestID{}, errors.New("not found")
 	}
 	if vmInst.Name == "" {
@@ -853,6 +886,7 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 	if err != nil {
 		return &cirrina.RequestID{}, err
 	}
+
 	return &cirrina.RequestID{Value: newReq.ID}, nil
 }
 
@@ -865,6 +899,7 @@ func (s *server) GetVmNics(v *cirrina.VMID, stream cirrina.VMInfo_GetVmNicsServe
 	vmInst, err := vm.GetById(vmUuid.String())
 	if err != nil {
 		slog.Error("GetVmNics error getting vm", "vm", v.Value, "err", err)
+
 		return errors.New("not found")
 	}
 	if vmInst.Name == "" {

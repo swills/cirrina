@@ -28,6 +28,7 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 	vmuuid, err := uuid.Parse(vmid.Value)
 	if err != nil {
 		errorMessage := fmt.Sprintf("invalid vm id %s", vmid)
+
 		return errors.New(errorMessage)
 	}
 	vmInst, err := vm.GetById(vmuuid.String())
@@ -54,6 +55,7 @@ func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) er
 	vmuuid, err := uuid.Parse(vmid.Value)
 	if err != nil {
 		errorMessage := fmt.Sprintf("invalid vm id %s", vmid)
+
 		return errors.New(errorMessage)
 	}
 	vmInst, err := vm.GetById(vmuuid.String())
@@ -80,6 +82,7 @@ func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) er
 	vmuuid, err := uuid.Parse(vmid.Value)
 	if err != nil {
 		errorMessage := fmt.Sprintf("invalid vm id %s", vmid)
+
 		return errors.New(errorMessage)
 	}
 	vmInst, err := vm.GetById(vmuuid.String())
@@ -106,6 +109,7 @@ func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) er
 	vmuuid, err := uuid.Parse(vmid.Value)
 	if err != nil {
 		errorMessage := fmt.Sprintf("invalid vm id %s", vmid)
+
 		return errors.New(errorMessage)
 	}
 	vmInst, err := vm.GetById(vmuuid.String())
@@ -179,6 +183,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 		}()
 	default:
 		slog.Error("comLogger invalid com", "comNum", comNum)
+
 		return errors.New("invalid comNum")
 	}
 	err := comInteractiveSetup(thisCom)
@@ -195,6 +200,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 		err := vm.GetVmLogPath(comLogPath)
 		if err != nil {
 			slog.Error("ComInteractive", "err", err)
+
 			return err
 		}
 		vl, err = os.OpenFile(comLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -218,6 +224,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 func comInteractiveSetup(thisCom *serial.Port) error {
 	if thisCom == nil {
 		slog.Error("tried to start com but serial port is nil")
+
 		return errors.New("com is not set")
 	}
 	// discard any existing input/output
@@ -230,9 +237,11 @@ func comInteractiveSetup(thisCom *serial.Port) error {
 		}
 		if err != nil {
 			slog.Error("error setting up com interactive", "err", err)
+
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -259,6 +268,7 @@ func comInteractiveStreamReceive(stream cirrina.VMInfo_Com1InteractiveServer, vm
 			return err, true
 		}
 	}
+
 	return nil, false
 }
 
@@ -290,10 +300,12 @@ func comIntStreamSendFromDev(stream cirrina.VMInfo_Com1InteractiveServer, vmInst
 	}
 	if errors.Is(err, io.EOF) && !vmInst.Running() {
 		slog.Debug("ComInteractive", "msg", "vm not running, exiting")
+
 		return true
 	}
 	if err != nil && !errors.Is(err, io.EOF) {
 		slog.Error("ComInteractive error reading com port", "err", err)
+
 		return true
 	}
 	if nb != 0 {
@@ -306,6 +318,7 @@ func comIntStreamSendFromDev(stream cirrina.VMInfo_Com1InteractiveServer, vmInst
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -319,7 +332,9 @@ func comIntStreamSendFromLog(stream cirrina.VMInfo_Com1InteractiveServer, thisRC
 	if err != nil {
 		// unreachable
 		slog.Debug("ComInteractive logged failure sending to com channel", "err", err)
+
 		return true
 	}
+
 	return false
 }

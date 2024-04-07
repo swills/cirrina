@@ -60,6 +60,7 @@ func SwitchNameToId(s string) (string, error) {
 			}
 		}
 	}
+
 	return rv, nil
 }
 
@@ -99,6 +100,7 @@ func GetSwitches() ([]string, error) {
 		}
 		rv = append(rv, SwitchId.Value)
 	}
+
 	return rv, nil
 }
 
@@ -130,6 +132,7 @@ func AddSwitch(name string, descrPtr *string, switchTypePtr *string, switchUplin
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
+
 	return res.Value, nil
 }
 
@@ -150,6 +153,7 @@ func SetSwitchUplink(switchId string, uplinkNamePtr *string) error {
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
 	}
+
 	return nil
 }
 
@@ -167,6 +171,7 @@ func RemoveSwitch(id string) error {
 	if !reqId.Success {
 		return errors.New("failed to delete switch")
 	}
+
 	return nil
 }
 
@@ -191,6 +196,7 @@ func UpdateSwitch(id string, description *string) error {
 	if !reqStat.Success {
 		return errors.New("failed to update switch")
 	}
+
 	return nil
 }
 
@@ -245,5 +251,6 @@ func SetVmNicSwitch(vmNicIdStr string, switchId string) error {
 	if !r.Success {
 		return errors.New("failed to add nic to switch")
 	}
+
 	return nil
 }

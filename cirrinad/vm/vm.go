@@ -164,6 +164,7 @@ func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, er
 	slog.Debug("Creating VM", "vm", name)
 	res := db.Create(&vmInst)
 	InitOneVm(vmInst)
+
 	return vmInst, res.Error
 }
 
@@ -182,6 +183,7 @@ func (vm *VM) Delete() (err error) {
 	if res.RowsAffected != 1 {
 		return errors.New("failed to delete VM")
 	}
+
 	return nil
 }
 
@@ -196,6 +198,7 @@ func (vm *VM) Start() (err error) {
 	err = vm.lockDisks()
 	if err != nil {
 		slog.Error("Failed locking disks", "err", err)
+
 		return err
 	}
 
@@ -206,6 +209,7 @@ func (vm *VM) Start() (err error) {
 	err = vm.Save()
 	if err != nil {
 		slog.Error("Failed saving VM", "err", err)
+
 		return err
 	}
 
@@ -247,24 +251,29 @@ func (vm *VM) Start() (err error) {
 	if err := p.Start(); err != nil {
 		panic(fmt.Sprintf("failed to start process: %s", err))
 	}
+
 	return nil
 }
 
 func (vm *VM) Stop() (err error) {
 	if vm.Status == STOPPED {
 		slog.Error("tried to stop VM already stopped", "vm", vm.Name)
+
 		return errors.New("VM already stopped")
 	}
 	vm.SetStopping()
 	if vm.proc == nil {
 		vm.SetStopped()
+
 		return nil
 	}
 	err = vm.proc.Stop()
 	if err != nil {
 		slog.Error("Failed to stop VM", "vm", vm.Name, "pid", vm.proc.Pid())
+
 		return errors.New("stop failed")
 	}
+
 	return nil
 }
 
@@ -359,8 +368,10 @@ func (vm *VM) Save() error {
 
 	if res.Error != nil {
 		slog.Error("db update error", "err", res.Error)
+
 		return errors.New("error updating VM")
 	}
+
 	return nil
 }
 
@@ -389,6 +400,7 @@ func (vm *VM) createUefiVarsFile() {
 		err = os.Mkdir(uefiVarsFilePath, 0755)
 		if err != nil {
 			slog.Error("failed to create uefi vars path", "err", err)
+
 			return
 		}
 	}
@@ -411,6 +423,7 @@ func netStartupIf(vmNic vm_nics.VmNic) error {
 	err := cmd.Run()
 	if err != nil {
 		slog.Error("failed to create tap", "err", err)
+
 		return err
 	}
 
@@ -422,6 +435,7 @@ func netStartupIf(vmNic vm_nics.VmNic) error {
 	if err != nil {
 		slog.Error("bad switch id",
 			"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchId)
+
 		return err
 	}
 	if thisSwitch.Type != "IF" {
@@ -430,6 +444,7 @@ func netStartupIf(vmNic vm_nics.VmNic) error {
 			"nicid", vmNic.ID,
 			"switchid", vmNic.SwitchId,
 		)
+
 		return errors.New("bridge/interface type mismatch")
 	}
 	if vmNic.RateLimit {
@@ -446,6 +461,7 @@ func netStartupIf(vmNic vm_nics.VmNic) error {
 				"netdev", vmNic.NetDev,
 				"err", err,
 			)
+
 			return err
 		}
 	} else {
@@ -459,9 +475,11 @@ func netStartupIf(vmNic vm_nics.VmNic) error {
 				"netdev", vmNic.NetDev,
 				"err", err,
 			)
+
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -472,17 +490,20 @@ func setupVmNicRateLimit(vmNic vm_nics.VmNic) (string, error) {
 	err = epair.CreateEpair(thisEpair)
 	if err != nil {
 		slog.Error("error creating epair", err)
+
 		return "", err
 	}
 	vmNic.InstEpair = thisEpair
 	err = vmNic.Save()
 	if err != nil {
 		slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+
 		return "", err
 	}
 	err = epair.SetRateLimit(thisEpair, vmNic.RateIn, vmNic.RateOut)
 	if err != nil {
 		slog.Error("failed to set epair rate limit", "epair", thisEpair)
+
 		return "", err
 	}
 	thisInstSwitch := _switch.GetDummyBridgeName()
@@ -496,14 +517,17 @@ func setupVmNicRateLimit(vmNic vm_nics.VmNic) (string, error) {
 			"thisInstSwitch", thisInstSwitch,
 			"err", err,
 		)
+
 		return "", err
 	}
 	vmNic.InstBridge = thisInstSwitch
 	err = vmNic.Save()
 	if err != nil {
 		slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+
 		return "", err
 	}
+
 	return thisEpair, nil
 }
 
@@ -512,6 +536,7 @@ func netStartupNg(vmNic vm_nics.VmNic) error {
 	if err != nil {
 		slog.Error("bad switch id",
 			"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchId)
+
 		return err
 	}
 	if thisSwitch.Type != "NG" {
@@ -520,8 +545,10 @@ func netStartupNg(vmNic vm_nics.VmNic) error {
 			"nicid", vmNic.ID,
 			"switchid", vmNic.SwitchId,
 		)
+
 		return errors.New("bridge/interface type mismatch")
 	}
+
 	return nil
 }
 
@@ -530,6 +557,7 @@ func (vm *VM) netStartup() {
 
 	if err != nil {
 		slog.Error("netStartup failed to get nics", "err", err)
+
 		return
 	}
 
@@ -539,16 +567,19 @@ func (vm *VM) netStartup() {
 			err := netStartupIf(vmNic)
 			if err != nil {
 				slog.Error("error bringing up nic", "err", err)
+
 				continue
 			}
 		case vmNic.NetDevType == "NETGRAPH":
 			err := netStartupNg(vmNic)
 			if err != nil {
 				slog.Error("error bringing up nic", "err", err)
+
 				continue
 			}
 		default:
 			slog.Debug("unknown net type, can't set up")
+
 			continue
 		}
 	}
@@ -562,6 +593,7 @@ func (vm *VM) lockDisks() error {
 	for _, vmDisk := range vmDisks {
 		vmDisk.Lock()
 	}
+
 	return nil
 }
 
@@ -573,12 +605,14 @@ func (vm *VM) unlockDisks() error {
 	for _, vmDisk := range vmDisks {
 		vmDisk.Unlock()
 	}
+
 	return nil
 }
 
 func (vm *VM) applyResourceLimits(vmPid string) {
 	if vm.proc == nil || vm.proc.Pid() == 0 || vm.BhyvePid == 0 {
 		slog.Error("attempted to apply resource limits to vm that may not be running")
+
 		return
 	}
 	vm.log.Debug("checking resource limits")
@@ -642,6 +676,7 @@ func (vm *VM) NetCleanup() {
 	vmNicsList, err := vm.GetNics()
 	if err != nil {
 		slog.Error("failed to get nics", "err", err)
+
 		return
 	}
 	for _, vmNic := range vmNicsList {
@@ -701,10 +736,12 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 			err := vm.unlockDisks()
 			if err != nil {
 				slog.Debug("failed unlock disks", "err", err)
+
 				return
 			}
 			vm.MaybeForceKillVM()
 			vm.log.Info("closing loop we are done")
+
 			return
 		}
 	}
@@ -724,11 +761,13 @@ func (vm *VM) GetISOs() ([]iso.ISO, error) {
 			slog.Error("bad iso", "iso", cv, "vm", vm.ID)
 		}
 	}
+
 	return isos, nil
 }
 
 func (vm *VM) GetNics() ([]vm_nics.VmNic, error) {
 	nics := vm_nics.GetNics(vm.Config.ID)
+
 	return nics, nil
 }
 
@@ -746,6 +785,7 @@ func (vm *VM) GetDisks() ([]*disk.Disk, error) {
 			slog.Error("bad disk", "disk", cv, "vm", vm.ID)
 		}
 	}
+
 	return disks, nil
 }
 
@@ -761,6 +801,7 @@ func (vm *VM) DeleteUEFIState() error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -783,6 +824,7 @@ func (vm *VM) AttachIsos(isoIds []string) error {
 		thisIso, err := iso.GetById(isoUuid.String())
 		if err != nil {
 			slog.Error("error getting disk", "disk", aIso, "err", err)
+
 			return errors.New("iso not found")
 		}
 		if thisIso.Name == "" {
@@ -804,8 +846,10 @@ func (vm *VM) AttachIsos(isoIds []string) error {
 	err := vm.Save()
 	if err != nil {
 		slog.Error("error saving VM", "err", err)
+
 		return err
 	}
+
 	return nil
 }
 
@@ -834,6 +878,7 @@ func (vm *VM) SetNics(nicIds []string) error {
 		vmNic, err := vm_nics.GetById(nicId)
 		if err != nil {
 			slog.Error("error looking up nic", "err", err)
+
 			return err
 		}
 
@@ -841,6 +886,7 @@ func (vm *VM) SetNics(nicIds []string) error {
 		err = vmNic.Save()
 		if err != nil {
 			slog.Error("error saving NIC", "err", err)
+
 			return err
 		}
 	}
@@ -874,8 +920,10 @@ func (vm *VM) AttachDisks(diskids []string) error {
 	err = vm.Save()
 	if err != nil {
 		slog.Error("error saving VM", "err", err)
+
 		return err
 	}
+
 	return nil
 }
 
@@ -938,6 +986,7 @@ func comLogger(vm *VM, comNum int) {
 		}
 	default:
 		slog.Error("comLogger invalid com", "comNum", comNum)
+
 		return
 	}
 
@@ -946,6 +995,7 @@ func comLogger(vm *VM, comNum int) {
 	err := GetVmLogPath(comLogPath)
 	if err != nil {
 		slog.Error("setupComLoggers", "err", err)
+
 		return
 	}
 
@@ -968,6 +1018,7 @@ func (vm *VM) Running() bool {
 	if vm.Status == RUNNING || vm.Status == STOPPING {
 		return true
 	}
+
 	return false
 }
 
@@ -983,6 +1034,7 @@ func (vm *VM) GetComWrite(comNum int) bool {
 	case 4:
 		thisComChanWriteFlag = vm.Com4write
 	}
+
 	return thisComChanWriteFlag
 }
 
@@ -997,10 +1049,12 @@ func comLoggerRead(vm *VM, comNum int, thisCom *serial.Port, vl *os.File, thisRC
 			"comNum", comNum,
 			"vm.Status", vm.Status,
 		)
+
 		return true
 	}
 	if thisCom == nil {
 		slog.Error("comLogger", "msg", "unable to read nil port")
+
 		return true
 	}
 
@@ -1016,10 +1070,12 @@ func comLoggerRead(vm *VM, comNum int, thisCom *serial.Port, vl *os.File, thisRC
 			"comNum", comNum,
 			"vm.Status", vm.Status,
 		)
+
 		return true
 	}
 	if err != nil && !errors.Is(err, io.EOF) {
 		slog.Error("comLogger", "error reading", err)
+
 		return true
 	}
 	if nb != 0 {
@@ -1037,9 +1093,11 @@ func comLoggerRead(vm *VM, comNum int, thisCom *serial.Port, vl *os.File, thisRC
 
 		if err != nil {
 			slog.Error("comLogger", "error writing", err)
+
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -1083,6 +1141,7 @@ func (vm *VM) killCom(comNum int) error {
 		}
 	default:
 		slog.Error("invalid com port number", "comNum", comNum)
+
 		return errors.New("invalid com port number")
 	}
 
@@ -1118,14 +1177,17 @@ func (vm *VM) setupCom(comNum int) error {
 		comSpeed = vm.Config.Com4Speed
 	default:
 		slog.Error("invalid com port number", "comNum", comNum)
+
 		return errors.New("invalid com port number")
 	}
 	if !comConfig {
 		slog.Debug("vm com not enabled, skipping setup", "comNum", comNum, "comConfig", comConfig)
+
 		return nil
 	}
 	if comDev == "" {
 		slog.Error("com port enabled but com dev not set", "comNum", comNum, "comConfig", comConfig)
+
 		return errors.New("com port enabled but comDev not set")
 	}
 	// if com != nil {
@@ -1138,11 +1200,13 @@ func (vm *VM) setupCom(comNum int) error {
 	err := ensureComDevReadable(comDev)
 	if err != nil {
 		slog.Error("error checking com readable", "comNum", comNum, "err", err)
+
 		return err
 	}
 	cr, err := startSerialPort(comDev, uint(comSpeed))
 	if err != nil {
 		slog.Error("error starting com", "comNum", comNum, "err", err)
+
 		return err
 	}
 	// com = cr
@@ -1163,8 +1227,10 @@ func (vm *VM) setupCom(comNum int) error {
 		vm.Com4 = cr
 	default:
 		slog.Error("invalid com port number", "comNum", comNum)
+
 		return errors.New("invalid com port number")
 	}
+
 	return nil
 }
 
@@ -1186,6 +1252,7 @@ func validateDisks(diskids []string, vm *VM) error {
 		}
 		if err != nil {
 			slog.Error("error getting disk", "disk", aDisk, "err", err)
+
 			return errors.New("disk not found")
 		}
 		if thisDisk.Name == "" {
@@ -1196,6 +1263,7 @@ func validateDisks(diskids []string, vm *VM) error {
 			occurred[aDisk] = true
 		} else {
 			slog.Error("duplicate disk id", "disk", aDisk)
+
 			return errors.New("disk may only be added once")
 		}
 
@@ -1208,6 +1276,7 @@ func validateDisks(diskids []string, vm *VM) error {
 			return errors.New("disk already attached")
 		}
 	}
+
 	return nil
 }
 
@@ -1225,6 +1294,7 @@ func diskAttached(aDisk string, vm *VM) (bool, error) {
 			}
 		}
 	}
+
 	return false, nil
 }
 
@@ -1242,6 +1312,7 @@ func validateNics(nicIds []string, vm *VM) error {
 		thisNic, err := vm_nics.GetById(nicUuid.String())
 		if err != nil {
 			slog.Error("error getting nic", "nic", aNic, "err", err)
+
 			return errors.New("nic not found")
 		}
 		if thisNic.Name == "" {
@@ -1252,6 +1323,7 @@ func validateNics(nicIds []string, vm *VM) error {
 			occurred[aNic] = true
 		} else {
 			slog.Error("duplicate nic id", "nic", aNic)
+
 			return errors.New("nic may only be added once")
 		}
 
@@ -1261,6 +1333,7 @@ func validateNics(nicIds []string, vm *VM) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -1275,10 +1348,12 @@ func nicAttached(aNic string, vm *VM) error {
 		for _, aVmNic := range vmNics {
 			if aNic == aVmNic.ID && aVm.ID != vm.ID {
 				slog.Error("nic is already attached to VM", "disk", aNic, "vm", aVm.ID)
+
 				return errors.New("nic already attached")
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -1287,6 +1362,7 @@ func removeAllNicsFromVm(vm *VM) error {
 	thisVmNics, err := vm.GetNics()
 	if err != nil {
 		slog.Error("error looking up vm nics", "err", err)
+
 		return err
 	}
 	for _, aNic := range thisVmNics {
@@ -1294,9 +1370,11 @@ func removeAllNicsFromVm(vm *VM) error {
 		err := aNic.Save()
 		if err != nil {
 			slog.Error("error saving NIC", "err", err)
+
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -1335,5 +1413,6 @@ func cleanupIfNic(vmNic vm_nics.VmNic) error {
 			slog.Error("failed to ng pipe", err)
 		}
 	}
+
 	return err
 }

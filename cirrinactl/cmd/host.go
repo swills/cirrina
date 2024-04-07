@@ -20,6 +20,7 @@ var HostNicsCmd = &cobra.Command{
 		for _, nic := range res {
 			fmt.Printf("nic: %s\n", nic.InterfaceName)
 		}
+
 		return nil
 	},
 }
@@ -34,6 +35,7 @@ var HostVersionCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("version: %s\n", res)
+
 		return nil
 	},
 }
@@ -45,6 +47,7 @@ var HostCmd = &cobra.Command{
 
 func hostPing() error {
 	_, err := rpc.GetHostVersion()
+
 	return err
 }
 

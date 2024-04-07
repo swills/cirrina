@@ -29,6 +29,7 @@ func GetVmDisks(id string) ([]string, error) {
 		}
 		rv = append(rv, r2.Value)
 	}
+
 	return rv, nil
 }
 
@@ -44,5 +45,6 @@ func VmSetDisks(id string, diskIds []string) (bool, error) {
 	if err != nil {
 		return false, errors.New(status.Convert(err).Message())
 	}
+
 	return res.Success, nil
 }

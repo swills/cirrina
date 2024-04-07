@@ -32,12 +32,14 @@ func (s *server) GetKeyboardLayouts(_ *cirrina.KbdQuery, stream cirrina.VMInfo_G
 			return err
 		}
 	}
+
 	return nil
 }
 
 func GetKbdLayoutNames() (kbdlayouts []string) {
 	// ignore errors and just return empty list if err
 	kbdlayouts, _ = util.OSReadDir(kbdlayoutpath)
+
 	return kbdlayouts
 }
 
@@ -45,6 +47,7 @@ func GetKbdDescription(path string) (description string, err error) {
 	file, err := os.Open(path)
 	if err != nil {
 		slog.Error("error opening keyboard description dir", "err", err)
+
 		return "", err
 	}
 	defer func(file *os.File) {
@@ -70,6 +73,7 @@ func GetKbdDescription(path string) (description string, err error) {
 
 	if err := scanner.Err(); err != nil {
 		slog.Error("error scanning keyboard description dir", "err", err)
+
 		return "", err
 	}
 

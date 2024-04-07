@@ -124,6 +124,7 @@ var VmNicsListCmd = &cobra.Command{
 			}
 		}
 		t.Render()
+
 		return nil
 	},
 }
@@ -169,6 +170,7 @@ var VmNicsAddCmd = &cobra.Command{
 			return errors.New("failed")
 		}
 		fmt.Printf("Added\n")
+
 		return nil
 	},
 }
@@ -221,6 +223,7 @@ var VmNicsRmCmd = &cobra.Command{
 			return errors.New("failed")
 		}
 		fmt.Printf("Removed\n")
+
 		return nil
 	},
 }

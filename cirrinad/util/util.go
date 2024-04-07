@@ -33,9 +33,12 @@ func PathExists(path string) (bool, error) {
 		if errors.Is(err, fs.ErrNotExist) || statInfo == nil {
 			return false, nil
 		}
+
 		return false, err
 	}
+
 	slog.Debug("PathExists", "path", path, "statInfo", statInfo)
+
 	return true, nil
 }
 
@@ -65,6 +68,7 @@ func PidExists(pid int) (bool, error) {
 	if errors.Is(errno, syscall.EPERM) {
 		return true, nil
 	}
+
 	return false, err
 }
 
@@ -83,6 +87,7 @@ func OSReadDir(root string) ([]string, error) {
 	for _, file := range fileInfo {
 		files = append(files, file.Name())
 	}
+
 	return files, nil
 }
 
@@ -92,6 +97,7 @@ func ContainsStr(elems []string, v string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -101,6 +107,7 @@ func ContainsInt(elems []int, v int) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -118,6 +125,7 @@ func captureReader(r io.Reader) ([]byte, error) {
 			if err == io.EOF {
 				err = nil
 			}
+
 			return out, err
 		}
 	}
@@ -205,6 +213,7 @@ func parseNetstatSocket(socket map[string]interface{}) (int, error) {
 	if err != nil {
 		return 0, errors.New("tcp port failed to convert to int")
 	}
+
 	return portInt, nil
 }
 
@@ -263,6 +272,7 @@ func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (port int, err error) 
 			break
 		}
 	}
+
 	return vncPort, nil
 }
 
@@ -277,6 +287,7 @@ func GetHostInterfaces() []string {
 		intGroups, err := GetIntGroups(inter.Name)
 		if err != nil {
 			slog.Error("failed to get interface groups", "err", err)
+
 			return []string{}
 		}
 		if ContainsStr(intGroups, "cirrinad") {
@@ -287,6 +298,7 @@ func GetHostInterfaces() []string {
 		}
 		netDevs = append(netDevs, inter.Name)
 	}
+
 	return netDevs
 }
 
@@ -305,6 +317,7 @@ func CopyFile(in, out string) (int64, error) {
 	defer func(o *os.File) {
 		_ = o.Close()
 	}(o)
+
 	return o.ReadFrom(i)
 }
 
@@ -338,6 +351,7 @@ func GetIntGroups(interfaceName string) (intGroups []string, err error) {
 	if err := scanner.Err(); err != nil {
 		return []string{}, err
 	}
+
 	return intGroups, nil
 }
 
@@ -447,6 +461,7 @@ func checkInRange(name string, myRT *unicode.RangeTable) bool {
 			return false
 		}
 	}
+
 	return true
 }
 
@@ -458,6 +473,7 @@ func MacIsBroadcast(macAddress string) (bool, error) {
 	if bytes.Equal(newMac, []byte{255, 255, 255, 255, 255, 255}) {
 		return true, nil
 	}
+
 	return false, nil
 }
 
@@ -471,11 +487,13 @@ func MacIsMulticast(macAddress string) (bool, error) {
 	if newMac[0]&0x01 == 1 {
 		return true, nil
 	}
+
 	return false, nil
 }
 
 func IsValidIP(ipAddress string) bool {
 	parsedIp := net.ParseIP(ipAddress)
+
 	return parsedIp != nil
 }
 
@@ -483,6 +501,7 @@ func IsValidTcpPort(tcpPort uint) bool {
 	if tcpPort < 1 || tcpPort > 65535 {
 		return false
 	}
+
 	return true
 }
 
@@ -513,6 +532,7 @@ func GetMyUidGid() (uid uint32, gid uint32, err error) {
 	}
 	u := uint32(myUid)
 	g := uint32(myGid)
+
 	return u, g, nil
 }
 
@@ -584,6 +604,7 @@ func ParseDiskSize(size string) (sizeBytes uint64, err error) {
 	}
 	n = uint(nu)
 	r := uint64(n) * m
+
 	return r, nil
 }
 
@@ -599,17 +620,21 @@ func GetHostMaxVmCpus() (uint16, error) {
 	err := checkCmd.Run()
 	if err != nil {
 		slog.Error("Failed getting max vm cpus", "command", checkCmd.String(), "err", err.Error())
+
 		return 0, err
 	}
 	maxCpuStr := strings.TrimSpace(outBytes.String())
 	maxCpu, err := strconv.Atoi(maxCpuStr)
 	if err != nil {
 		slog.Error("Failed converting max cpus to int", "err", err.Error())
+
 		return 0, err
 	}
 	if maxCpu <= 0 || maxCpu >= math.MaxUint16 {
 		slog.Error("Failed invalid max cpus", "maxCpu", maxCpu)
+
 		return 0, err
 	}
+
 	return uint16(maxCpu), nil
 }

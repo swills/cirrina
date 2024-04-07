@@ -142,6 +142,7 @@ var DiskListCmd = &cobra.Command{
 			}
 		}
 		t.Render()
+
 		return nil
 	},
 }
@@ -159,6 +160,7 @@ var DiskCreateCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("Disk created. id: %s\n", res)
+
 		return nil
 	},
 }
@@ -183,6 +185,7 @@ var DiskRemoveCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("Disk deleted\n")
+
 		return nil
 	},
 }
@@ -196,6 +199,7 @@ var DiskUpdateCmd = &cobra.Command{
 		DiskTypeChanged = cmd.Flags().Changed("type")
 		DiskDirectChanged = cmd.Flags().Changed("direct")
 		DiskCacheChanged = cmd.Flags().Changed("cache")
+
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -238,6 +242,7 @@ var DiskUpdateCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("Updated disk\n")
+
 		return nil
 	},
 }
@@ -299,6 +304,7 @@ func trackDiskUpload(pw progress.Writer, diskSize int64, f2 *os.File) {
 	upload, err = rpc.DiskUpload(DiskId, diskChecksum, uint64(diskSize), f2)
 	if err != nil {
 		uploadTracker.MarkAsErrored()
+
 		return
 	}
 	for !uploadTracker.IsDone() {
@@ -365,6 +371,7 @@ func uploadDiskWithStatus() error {
 		}
 		time.Sleep(time.Millisecond * 100)
 	}
+
 	return nil
 }
 
@@ -430,6 +437,7 @@ UploadLoop:
 	}
 	fmt.Printf("\n")
 	fmt.Printf("Disk Upload complete\n")
+
 	return nil
 }
 

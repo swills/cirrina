@@ -96,6 +96,7 @@ func writePidFile() {
 	if err != nil {
 		slog.Error("failed writing pid file", "err", err)
 		os.Exit(1)
+
 		return
 	}
 }
@@ -214,6 +215,7 @@ var rootCmd = &cobra.Command{
 		configAbsPath, err = filepath.Abs(cfgFile)
 		if err != nil {
 			slog.Error("failed getting config file absolute path", "err", err)
+
 			return err
 		}
 
@@ -221,6 +223,7 @@ var rootCmd = &cobra.Command{
 		configPathExists, err = util.PathExists(configAbsPath)
 		if err != nil {
 			slog.Error("error getting configAbsPath", "err", err)
+
 			return err
 		}
 		if !configPathExists {
@@ -230,6 +233,7 @@ var rootCmd = &cobra.Command{
 		err = viper.ReadInConfig()
 		if err != nil {
 			slog.Error("config reading failed", "err", err)
+
 			return err
 		}
 
@@ -239,6 +243,7 @@ var rootCmd = &cobra.Command{
 		})
 		if err != nil {
 			slog.Error("config loading failed", "err", err)
+
 			return err
 		}
 
@@ -247,6 +252,7 @@ var rootCmd = &cobra.Command{
 		logFile, err := os.OpenFile(config.Config.Log.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		if err != nil {
 			slog.Error("failed to open log file", err)
+
 			return err
 		}
 		programLevel := new(slog.LevelVar) // Info by default
@@ -294,6 +300,7 @@ var rootCmd = &cobra.Command{
 
 		shutdownWaitGroup.Add(1)
 		shutdownWaitGroup.Wait()
+
 		return nil
 	},
 }

@@ -27,6 +27,7 @@ func GetHostNics() (rv []*cirrina.NetIf, err error) {
 		}
 		rv = append(rv, hostNic)
 	}
+
 	return rv, nil
 }
 
@@ -37,5 +38,6 @@ func GetHostVersion() (version string, err error) {
 		return "", errors.New(status.Convert(err).Message())
 	}
 	version = res.Value
+
 	return version, nil
 }

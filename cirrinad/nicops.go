@@ -18,6 +18,7 @@ func nicClone(rs *requests.Request) {
 	if err != nil {
 		slog.Error("failed unmarshalling request data", "rsData", rs.Data, "reqType", reflect.TypeOf(reqData), "err", err)
 		rs.Failed()
+
 		return
 	}
 	var nicInst *vm_nics.VmNic
@@ -25,28 +26,33 @@ func nicClone(rs *requests.Request) {
 	if err != nil {
 		slog.Error("nicClone error getting nic", "nic", reqData.NicId, "err", err)
 		rs.Failed()
+
 		return
 	}
 	if nicHasPendingReq(rs.ID, nicInst.ID) {
 		slog.Error("failing request to clone NIC which has pending request", "nic", nicInst.ID)
 		rs.Failed()
+
 		return
 	}
 	existingVmNic, err := vm_nics.GetByName(reqData.NewNicName)
 	if err != nil {
 		slog.Error("error getting name of new NIC", "nic", reqData.NicId, "err", err)
 		rs.Failed()
+
 		return
 	}
 	if existingVmNic.Name != "" {
 		slog.Error("cloned nic already exists", "nic", reqData.NicId, "err", err, "newName", reqData.NewNicName)
 		rs.Failed()
+
 		return
 	}
 	var newMac net.HardwareAddr
 	if reqData.NewNicMac == "" {
 		slog.Error("error cloning nic, blank mac")
 		rs.Failed()
+
 		return
 	}
 	// check that mac is not broadcast and is not multicast. do not need to check if it's parseable here
@@ -56,22 +62,26 @@ func nicClone(rs *requests.Request) {
 		if err != nil {
 			slog.Error("error checking new nic mac", "err", err)
 			rs.Failed()
+
 			return
 		}
 		if isBroadcast {
 			slog.Error("new nic mac is broadcast", "newNicMac", reqData.NewNicMac)
 			rs.Failed()
+
 			return
 		}
 		isMulticast, err := util.MacIsMulticast(reqData.NewNicMac)
 		if err != nil {
 			slog.Error("error checking new nic mac", "err", err)
 			rs.Failed()
+
 			return
 		}
 		if isMulticast {
 			slog.Error("new nic mac is multicast", "newNicMac", reqData.NewNicMac)
 			rs.Failed()
+
 			return
 		}
 	}
@@ -88,6 +98,7 @@ func nicClone(rs *requests.Request) {
 	if err != nil {
 		slog.Error("error saving cloned nic", "err", err)
 		rs.Failed()
+
 		return
 	}
 	slog.Debug("cloned nic", "newVmNicId", newVmNicId)
@@ -102,5 +113,6 @@ func nicHasPendingReq(thisReqId string, nicId string) bool {
 			return true
 		}
 	}
+
 	return false
 }

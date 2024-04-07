@@ -107,6 +107,7 @@ var VmDisksListCmd = &cobra.Command{
 			}
 		}
 		t.Render()
+
 		return nil
 	},
 }
@@ -153,6 +154,7 @@ var VmDiskAddCmd = &cobra.Command{
 			return errors.New("failed")
 		}
 		fmt.Printf("Added\n")
+
 		return nil
 	},
 }
@@ -204,6 +206,7 @@ var VmDiskRmCmd = &cobra.Command{
 			return errors.New("failed")
 		}
 		fmt.Printf("Disk removed from VM\n")
+
 		return nil
 	},
 }

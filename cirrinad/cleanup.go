@@ -27,6 +27,7 @@ func cleanupVms() {
 		exists, err := util.PathExists(vmmPath)
 		if err != nil {
 			slog.Error("error checking VM", "err", err)
+
 			continue
 		}
 		if !exists {
@@ -59,6 +60,7 @@ func killLeftoverVM(aVm *vm.VM) {
 		pidStat, err = util.PidExists(int(aVm.BhyvePid))
 		if err != nil {
 			slog.Error("error checking VM", "err", err)
+
 			break
 		}
 		if !pidStat {

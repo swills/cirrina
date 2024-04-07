@@ -141,6 +141,7 @@ var VmCreateCmd = &cobra.Command{
 		VmDescriptionChanged = cmd.Flags().Changed("description")
 		CpusChanged = cmd.Flags().Changed("cpus")
 		MemChanged = cmd.Flags().Changed("mem")
+
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -177,6 +178,7 @@ var VmCreateCmd = &cobra.Command{
 			return err
 		}
 		fmt.Print("VM Created\n")
+
 		return nil
 	},
 }
@@ -281,6 +283,7 @@ var VmListCmd = &cobra.Command{
 			}
 		}
 		t.Render()
+
 		return nil
 	},
 }
@@ -316,6 +319,7 @@ var VmDestroyCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("VM Removed\n")
+
 		return nil
 	},
 }
@@ -362,6 +366,7 @@ var VmStopCmd = &cobra.Command{
 
 		if !CheckReqStat {
 			fmt.Printf("VM stopped\n")
+
 			return nil
 		}
 
@@ -381,6 +386,7 @@ var VmStopCmd = &cobra.Command{
 			time.Sleep(time.Second)
 		}
 		fmt.Printf("\n")
+
 		return nil
 	},
 }
@@ -431,6 +437,7 @@ var VmStartCmd = &cobra.Command{
 
 		if !CheckReqStat {
 			fmt.Print("VM started\n")
+
 			return nil
 		}
 
@@ -450,6 +457,7 @@ var VmStartCmd = &cobra.Command{
 			time.Sleep(time.Second)
 		}
 		fmt.Printf("\n")
+
 		return nil
 	},
 }
@@ -512,6 +520,7 @@ var VmConfigCmd = &cobra.Command{
 		Com4DevChanged = cmd.Flags().Changed("com4-dev")
 		Com4LogChanged = cmd.Flags().Changed("com4-log")
 		Com4SpeedChanged = cmd.Flags().Changed("com4-speed")
+
 		return nil
 	},
 	SilenceUsage: true,
@@ -768,6 +777,7 @@ var VmConfigCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("VM updated\n")
+
 		return nil
 	},
 }
@@ -792,6 +802,7 @@ var VmGetCmd = &cobra.Command{
 		default:
 			return errors.New("unknown output format")
 		}
+
 		return nil
 	},
 	SilenceUsage: true,
@@ -916,6 +927,7 @@ var VmGetCmd = &cobra.Command{
 		default:
 			fmt.Printf("unknown output format\n")
 		}
+
 		return nil
 	},
 }
@@ -945,6 +957,7 @@ var VmClearUefiVarsCmd = &cobra.Command{
 			return errors.New("failed")
 		}
 		fmt.Printf("UEFI Vars cleared\n")
+
 		return nil
 	},
 }

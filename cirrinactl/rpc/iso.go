@@ -46,6 +46,7 @@ func GetIsoIds() ([]string, error) {
 		}
 		ids = append(ids, VM.Value)
 	}
+
 	return ids, nil
 }
 
@@ -59,6 +60,7 @@ func RmIso(id string) error {
 	if !res.Success {
 		return errors.New("iso delete failure")
 	}
+
 	return nil
 }
 
@@ -74,6 +76,7 @@ func GetIsoInfo(id string) (IsoInfo, error) {
 	if err != nil {
 		return IsoInfo{}, errors.New(status.Convert(err).Message())
 	}
+
 	return IsoInfo{
 		Name:  *isoInfo.Name,
 		Descr: *isoInfo.Description,
@@ -112,6 +115,7 @@ func IsoNameToId(name string) (string, error) {
 	if !found {
 		return "", &NotFoundError{}
 	}
+
 	return isoId, nil
 }
 
@@ -236,5 +240,6 @@ func IsoUpload(isoId string, isoChecksum string,
 			Err:           nil,
 		}
 	}(isoFile, uploadStatChan)
+
 	return uploadStatChan, nil
 }

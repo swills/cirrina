@@ -53,11 +53,13 @@ func getIsoDb() *gorm.DB {
 		sqlDB.SetMaxOpenConns(1)
 		instance.isoDb = isoDb
 	})
+
 	return instance.isoDb
 }
 
 func (iso *ISO) BeforeCreate(_ *gorm.DB) (err error) {
 	iso.ID = uuid.NewString()
+
 	return nil
 }
 

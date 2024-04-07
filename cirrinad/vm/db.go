@@ -59,6 +59,7 @@ func GetVmDb() *gorm.DB {
 		instance.vmDb = vmDb
 		dbInitialized = true
 	}
+
 	return instance.vmDb
 }
 
@@ -175,6 +176,7 @@ func (vm *VM) SetDebugPort(port int) {
 
 func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
 	vm.ID = uuid.NewString()
+
 	return nil
 }
 
@@ -208,5 +210,6 @@ func GetAllDb() []*VM {
 
 func DbInitialized() bool {
 	db := GetVmDb()
+
 	return db.Migrator().HasColumn(VM{}, "id")
 }

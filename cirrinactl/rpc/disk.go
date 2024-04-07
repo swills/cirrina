@@ -45,6 +45,7 @@ func AddDisk(diskName string, diskDescription string, diskSize string,
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
+
 	return diskId.Value, nil
 }
 
@@ -129,6 +130,7 @@ func RmDisk(idPtr string) error {
 	if !res.Success {
 		return errors.New("disk delete failure")
 	}
+
 	return nil
 }
 
@@ -163,6 +165,7 @@ func DiskNameToId(name string) (string, error) {
 	if !found {
 		return "", &NotFoundError{}
 	}
+
 	return diskId, nil
 }
 
@@ -188,6 +191,7 @@ func DiskGetVmId(id string) (string, error) {
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
+
 	return vmId.Value, nil
 }
 
@@ -229,6 +233,7 @@ func UpdateDisk(id string, newDesc *string, newType *string, direct *bool, cache
 	if !res.Success {
 		return errors.New("failed to update disk")
 	}
+
 	return nil
 }
 
@@ -277,6 +282,7 @@ func DiskUpload(diskId string, diskChecksum string,
 				Complete:      false,
 				Err:           errors.New("nil stream"),
 			}
+
 			return
 		}
 
@@ -351,6 +357,7 @@ func DiskUpload(diskId string, diskChecksum string,
 			Err:           nil,
 		}
 	}(diskFile, uploadStatChan)
+
 	return uploadStatChan, nil
 }
 

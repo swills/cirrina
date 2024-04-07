@@ -19,6 +19,7 @@ var VmCom1Cmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
 		return nil
 	},
 }
@@ -32,6 +33,7 @@ var VmCom2Cmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
 		return nil
 	},
 }
@@ -45,6 +47,7 @@ var VmCom3Cmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
 		return nil
 	},
 }
@@ -58,6 +61,7 @@ var VmCom4Cmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
 		return nil
 	},
 }
@@ -93,6 +97,7 @@ func startCom(comNum int) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

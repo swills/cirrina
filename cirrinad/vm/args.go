@@ -30,6 +30,7 @@ func (vm *VM) getKeyboardArg() []string {
 	if vm.Config.Screen && vm.Config.KbdLayout != "default" {
 		return []string{"-K", vm.Config.KbdLayout}
 	}
+
 	return []string{}
 }
 
@@ -37,6 +38,7 @@ func (vm *VM) getACPIArg() []string {
 	if vm.Config.ACPI {
 		return []string{"-A"}
 	}
+
 	return []string{}
 }
 
@@ -54,6 +56,7 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 		thisIso, err := iso.GetById(isoItem)
 		if err != nil {
 			slog.Error("error getting ISO", "isoItem", isoItem, "err", err)
+
 			return []string{}, slot
 		}
 		if thisIso.Path == "" {
@@ -68,6 +71,7 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 			slot++
 		}
 	}
+
 	return cdString, slot
 }
 
@@ -82,6 +86,7 @@ func (vm *VM) getCpuArg() []string {
 	} else {
 		vmCpus = uint16(vm.Config.Cpu)
 	}
+
 	return []string{"-c", strconv.Itoa(int(vmCpus))}
 }
 
@@ -93,15 +98,18 @@ func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (hdArg string, err error) {
 	diskPath, err := thisDisk.GetPath()
 	if err != nil {
 		slog.Error("error getting disk path", "diskId", thisDisk.ID, "diskName", thisDisk.Name, "diskPath", diskPath, "err", err)
+
 		return "", err
 	}
 	diskExists, err := thisDisk.VerifyExists()
 	if err != nil {
 		slog.Error("error checking disk path exists", "diskId", thisDisk.ID, "diskName", thisDisk.Name, "diskPath", diskPath)
+
 		return "", err
 	}
 	if !diskExists {
 		slog.Error("disk path does not exist", "diskId", thisDisk.ID, "diskName", thisDisk.Name, "diskPath", diskPath)
+
 		return "", err
 	}
 	switch thisDisk.Type {
@@ -113,6 +121,7 @@ func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (hdArg string, err error) {
 		diskController = "virtio-blk"
 	default:
 		slog.Error("unknown disk type", "type", thisDisk.Type)
+
 		return "", errors.New("unknown disk type")
 	}
 	if thisDisk.DiskCache.Valid && !thisDisk.DiskCache.Bool {
@@ -140,6 +149,7 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 		thisDisk, err := disk.GetById(diskId)
 		if err != nil {
 			slog.Error("error getting disk, skipping", "diskId", diskId, "err", err)
+
 			continue
 		}
 		if thisDisk.Type == "AHCI-HD" {
@@ -147,18 +157,21 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 		}
 		if sataDevCount > maxSataDevs {
 			slog.Error("sata dev count exceeded, skipping disk", "diskId", diskId)
+
 			continue
 		}
 
 		oneHdString, err := vm.getOneDiskArg(thisDisk)
 		if err != nil || oneHdString == "" {
 			slog.Error("error adding disk, skipping", "diskId", diskId, "err", err)
+
 			continue
 		}
 		thisHd := []string{"-s", strconv.Itoa(slot) + "," + oneHdString}
 		diskString = append(diskString, thisHd...)
 		slot++
 	}
+
 	return diskString, slot
 }
 
@@ -166,6 +179,7 @@ func (vm *VM) getDPOArg() []string {
 	if vm.Config.DestroyPowerOff {
 		return []string{"-D"}
 	}
+
 	return []string{}
 }
 
@@ -173,6 +187,7 @@ func (vm *VM) getEOPArg() []string {
 	if vm.Config.ExitOnPause {
 		return []string{"-P"}
 	}
+
 	return []string{}
 }
 
@@ -184,6 +199,7 @@ func (vm *VM) getHLTArg() []string {
 	if vm.Config.UseHLT {
 		return []string{"-H"}
 	}
+
 	return []string{}
 }
 
@@ -193,6 +209,7 @@ func (vm *VM) getHostBridgeArg(slot int) ([]string, int) {
 	}
 	hostBridgeArg := []string{"-s", strconv.Itoa(slot) + ",hostbridge"}
 	slot++
+
 	return hostBridgeArg, slot
 }
 
@@ -204,6 +221,7 @@ func (vm *VM) getMSRArg() []string {
 	if vm.Config.IgnoreUnknownMSR {
 		return []string{"-w"}
 	}
+
 	return []string{}
 }
 
@@ -264,6 +282,7 @@ func (vm *VM) getDebugArg() []string {
 		"-G",
 		debugWaitStr + debugListenIP + ":" + debugListenPort,
 	}
+
 	return debugArg
 }
 
@@ -296,6 +315,7 @@ func (vm *VM) getSoundArg(slot int) ([]string, int) {
 	}
 	soundArg = []string{"-s", strconv.Itoa(slot) + soundString}
 	slot++
+
 	return soundArg, slot
 }
 
@@ -303,6 +323,7 @@ func (vm *VM) getUTCArg() []string {
 	if vm.Config.UTCTime {
 		return []string{"-u"}
 	}
+
 	return []string{}
 }
 
@@ -310,6 +331,7 @@ func (vm *VM) getWireArg() []string {
 	if vm.Config.WireGuestMem {
 		return []string{"-S"}
 	}
+
 	return []string{}
 }
 
@@ -323,6 +345,7 @@ func (vm *VM) getTabletArg(slot int) ([]string, int) {
 	}
 	tabletArg := []string{"-s", strconv.Itoa(slot) + ",xhci,tablet"}
 	slot++
+
 	return tabletArg, slot
 }
 
@@ -365,6 +388,7 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 		fbufArg[1] += ",wait"
 	}
 	slot++
+
 	return fbufArg, slot
 }
 
@@ -386,6 +410,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 			netType = "e1000"
 		default:
 			slog.Debug("unknown net type, cannot configure", "netType", nicItem.NetType)
+
 			return []string{}, originalSlot
 		}
 
@@ -395,6 +420,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 			err := nicItem.Save()
 			if err != nil {
 				slog.Error("failed to save net dev", "nic", nicItem.ID, "netdev", nicItem.NetDev)
+
 				return []string{}, slot
 			}
 			netDevArg = nicItem.NetDev
@@ -403,6 +429,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 			err := nicItem.Save()
 			if err != nil {
 				slog.Error("failed to save net dev", "nic", nicItem.ID, "netdev", nicItem.NetDev)
+
 				return []string{}, slot
 			}
 			netDevArg = nicItem.NetDev
@@ -410,17 +437,20 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 			ngNetDev, ngPeerHook, err := _switch.GetNgDev(nicItem.SwitchId)
 			if err != nil {
 				slog.Error("GetNgDev error", "err", err)
+
 				return []string{}, slot
 			}
 			nicItem.NetDev = ngNetDev + "," + ngPeerHook
 			err = nicItem.Save()
 			if err != nil {
 				slog.Error("failed to save net dev", "nic", nicItem.ID, "netdev", nicItem.NetDev)
+
 				return []string{}, slot
 			}
 			netDevArg = "netgraph,path=" + ngNetDev + ":,peerhook=" + ngPeerHook + ",socket=" + vm.Name
 		default:
 			slog.Debug("unknown net dev type", "netDevType", nicItem.NetDevType)
+
 			return []string{}, slot
 		}
 		slog.Debug("getNetArg", "netdevarg", netDevArg)
@@ -454,6 +484,7 @@ func GetMac(thisNic vm_nics.VmNic, vm *VM) string {
 		h1, err := rxhash.HashStruct(thisNicHashData)
 		if err != nil {
 			slog.Error("getNetArg error generating mac", "err", err)
+
 			return ""
 		}
 		slog.Debug("getNetArg", "h1", h1)
@@ -465,6 +496,7 @@ func GetMac(thisNic vm_nics.VmNic, vm *VM) string {
 	} else {
 		macAddress = thisNic.Mac
 	}
+
 	return macAddress
 }
 
@@ -487,6 +519,7 @@ func GetTapDev() string {
 			tapNum++
 		}
 	}
+
 	return tapDev
 }
 
@@ -509,6 +542,7 @@ func GetVmnetDev() string {
 			vmnetNum++
 		}
 	}
+
 	return vmnetDev
 }
 
@@ -522,6 +556,7 @@ func getCom(comDev string, vmName string, num int) ([]string, string) {
 	}
 	slog.Debug("getCom", "nmdm", nmdm)
 	comArg = append(comArg, "-l", "com"+strconv.Itoa(num)+","+nmdm)
+
 	return comArg, nmdm
 }
 
@@ -627,5 +662,6 @@ func (vm *VM) generateCommandLine() (name string, args []string) {
 	args = append(args, "-U", vm.ID)
 	args = append(args, vm.Name)
 	slog.Debug("generateCommandLine last slot", "slot", slot)
+
 	return name, args
 }

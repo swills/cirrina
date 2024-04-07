@@ -139,6 +139,7 @@ var NicListCmd = &cobra.Command{
 			}
 		}
 		t.Render()
+
 		return nil
 	},
 }
@@ -172,6 +173,7 @@ var NicCreateCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("NIC created. id: %s\n", res)
+
 		return nil
 	},
 }
@@ -196,6 +198,7 @@ var NicRemoveCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("NIC deleted\n")
+
 		return nil
 	},
 }
@@ -207,6 +210,7 @@ var NicSetSwitchCmd = &cobra.Command{
 	SilenceUsage: true,
 	Args: func(cmd *cobra.Command, args []string) error {
 		NicSwitchIdChanged = cmd.Flags().Changed("switch-id")
+
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -236,6 +240,7 @@ var NicSetSwitchCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("Added NIC to switch\n")
+
 		return nil
 	},
 }
@@ -270,6 +275,7 @@ var NicCloneCmd = &cobra.Command{
 
 		if !CheckReqStat {
 			fmt.Printf("Request submitted\n")
+
 			return nil
 		}
 
@@ -293,6 +299,7 @@ var NicCloneCmd = &cobra.Command{
 			fmt.Printf(" failed")
 		}
 		fmt.Printf("\n")
+
 		return nil
 	},
 }
@@ -311,6 +318,7 @@ var NicUpdateCmd = &cobra.Command{
 		NicRateOutChanged = cmd.Flags().Changed("rate-out")
 		NicSwitchIdChanged = cmd.Flags().Changed("switch-id")
 		NicSwitchNameChanged = cmd.Flags().Changed("switch-name")
+
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -373,6 +381,7 @@ var NicUpdateCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("Nic updated\n")
+
 		return nil
 	},
 }

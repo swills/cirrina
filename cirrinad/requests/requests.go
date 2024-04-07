@@ -52,6 +52,7 @@ type VmCloneReqData struct {
 
 func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {
 	req.ID = uuid.NewString()
+
 	return nil
 }
 
@@ -71,6 +72,7 @@ func CreateNicCloneReq(nicId string, newName string) (req Request, err error) {
 	if res.RowsAffected != 1 {
 		return Request{}, errors.New("failed to create request")
 	}
+
 	return newReq, nil
 }
 
@@ -89,12 +91,14 @@ func CreateVmReq(r reqType, vmId string) (req Request, err error) {
 	if res.RowsAffected != 1 {
 		return Request{}, errors.New("failed to create request")
 	}
+
 	return newReq, nil
 }
 
 func GetByID(id string) (rs Request, err error) {
 	db := GetReqDb()
 	db.Model(&Request{}).Limit(1).Find(&rs, &Request{ID: id})
+
 	return rs, nil
 }
 
@@ -102,6 +106,7 @@ func GetUnStarted() Request {
 	db := GetReqDb()
 	rs := Request{}
 	db.Limit(1).Where("started_at IS NULL").Find(&rs)
+
 	return rs
 }
 
@@ -165,6 +170,7 @@ func PendingReqExists(objId string) (reqIds []string) {
 			}
 		}
 	}
+
 	return reqIds
 }
 
@@ -175,10 +181,12 @@ func FailAllPending() (cleared int64) {
 			Complete: true,
 		},
 	)
+
 	return res.RowsAffected
 }
 
 func DbInitialized() bool {
 	db := GetReqDb()
+
 	return db.Migrator().HasColumn(Request{}, "id")
 }

@@ -23,5 +23,6 @@ func ReqStat(id string) (ReqStatus, error) {
 		Complete: res.Complete,
 		Success:  res.Success,
 	}
+
 	return rv, nil
 }

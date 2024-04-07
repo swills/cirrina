@@ -68,6 +68,7 @@ func Create(name string, description string, size string, diskType string, diskD
 	db := getDiskDb()
 	res := db.Create(&diskInst)
 	List.DiskList[diskInst.ID] = diskInst
+
 	return diskInst, res.Error
 }
 
@@ -87,22 +88,26 @@ func validateDisk(name string, diskDevType string, diskType string, filePath str
 	existingDisk, err := GetByName(name)
 	if err != nil {
 		slog.Error("error checking db for disk", "name", name, "err", err)
+
 		return err
 	}
 	if existingDisk.Name != "" {
 		slog.Error("disk exists in DB", "disk", name, "id", existingDisk.ID, "type", existingDisk.Type)
+
 		return fmt.Errorf("disk %s exists in db", name)
 	}
 
 	// check disk type
 	if diskType != "NVME" && diskType != "AHCI-HD" && diskType != "VIRTIO-BLK" {
 		slog.Error("disk create", "msg", "invalid disk type", "diskType", diskType)
+
 		return errors.New("invalid disk type")
 	}
 
 	// check disk dev type
 	if diskDevType != "FILE" && diskDevType != "ZVOL" {
 		slog.Error("disk create", "msg", "invalid disk dev type", "diskDevType", diskDevType)
+
 		return errors.New("invalid disk dev type")
 	}
 
@@ -118,6 +123,7 @@ func validateDisk(name string, diskDevType string, diskType string, filePath str
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -126,22 +132,27 @@ func checkDiskExistsZvolType(name string, volName string, existingDisk *Disk, vo
 	allVolumes, err := GetAllZfsVolumes()
 	if err != nil {
 		slog.Error("error checking if disk exists", "volName", volName, "err", err)
+
 		return err
 	}
 	if util.ContainsStr(allVolumes, volName) {
 		slog.Error("disk volume exists", "disk", name, "id", existingDisk.ID, "type", existingDisk.Type, "volName", volName)
+
 		return errors.New("disk exists")
 	}
 
 	diskExists, err := util.PathExists(volPath)
 	if err != nil {
 		slog.Error("error checking if disk exists", "volPath", volPath, "err", err)
+
 		return err
 	}
 	if diskExists {
 		slog.Error("disk vol path exists", "disk", name, "id", existingDisk.ID, "type", existingDisk.Type, "volPath", volPath)
+
 		return errors.New("disk exists")
 	}
+
 	return nil
 }
 
@@ -150,12 +161,15 @@ func checkDiskExistsFileType(name string, filePath string, existingDisk *Disk) e
 	diskExists, err := util.PathExists(filePath)
 	if err != nil {
 		slog.Error("error checking if disk exists", "filePath", filePath, "err", err)
+
 		return err
 	}
 	if diskExists {
 		slog.Error("disk file exists", "disk", name, "id", existingDisk.ID, "type", existingDisk.Type, "filePath", filePath)
+
 		return errors.New("disk exists")
 	}
+
 	return nil
 }
 
@@ -170,6 +184,7 @@ func createDiskFile(diskSize uint64, filePath string) error {
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("failed to create disk", "err", err)
+
 		return err
 	}
 	args = []string{"/usr/sbin/chown", myUser.Username, filePath}
@@ -179,6 +194,7 @@ func createDiskFile(diskSize uint64, filePath string) error {
 		return fmt.Errorf("failed to fix ownership of disk file %s: %w", filePath, err)
 	}
 	slog.Debug("disk.Create user mismatch fixed")
+
 	return nil
 }
 
@@ -189,8 +205,10 @@ func createDiskZvol(volName string, size string) error {
 	err := cmd.Run()
 	if err != nil {
 		slog.Error("failed to create disk", "err", err)
+
 		return err
 	}
+
 	return err
 }
 
@@ -198,6 +216,7 @@ func GetAllDb() []*Disk {
 	var result []*Disk
 	db := getDiskDb()
 	db.Find(&result)
+
 	return result
 }
 
@@ -208,6 +227,7 @@ func GetById(id string) (*Disk, error) {
 	if valid {
 		return diskInst, nil
 	}
+
 	return nil, errors.New("not found")
 }
 
@@ -217,6 +237,7 @@ func GetByName(name string) (*Disk, error) {
 			return diskInst, nil
 		}
 	}
+
 	return &Disk{}, nil
 }
 
@@ -237,6 +258,7 @@ func Delete(id string) (err error) {
 		return nil
 	} else {
 		errText := fmt.Sprintf("disk delete error, rows affected %v", res.RowsAffected)
+
 		return errors.New(errText)
 	}
 }
@@ -268,6 +290,7 @@ func (d *Disk) GetPath() (diskPath string, err error) {
 	default:
 		return "", errors.New("unknown disk dev type")
 	}
+
 	return diskPath, nil
 }
 
@@ -280,6 +303,7 @@ func (d *Disk) VerifyExists() (exists bool, err error) {
 
 	// perhaps it's not necessary to check the volume -- as long as there's a /dev/zvol entry, we're fine, right?
 	exists, err = util.PathExists(diskPath)
+
 	return exists, err
 }
 

@@ -22,6 +22,7 @@ var TuiCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
 		return nil
 	},
 }
@@ -154,6 +155,7 @@ func vmChangedFunc(index int, name string, _ string, _ rune) {
 		quit := tview.NewTextView()
 		quit.SetText("Quit?")
 		infoFlex.AddItem(quit, 0, 1, false)
+
 		return
 	}
 
@@ -230,6 +232,7 @@ func StartTui(serverAddr string) error {
 	if err := app.SetRoot(mainFlex, true).SetFocus(vmList).Run(); err != nil {
 		panic(err)
 	}
+
 	return nil
 }
 

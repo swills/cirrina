@@ -31,6 +31,7 @@ func (s *server) GetISOs(_ *cirrina.ISOsQuery, stream cirrina.VMInfo_GetISOsServ
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -43,15 +44,18 @@ func (s *server) GetISOInfo(_ context.Context, i *cirrina.ISOID) (*cirrina.ISOIn
 	isoInst, err := iso.GetById(isoUuid.String())
 	if err != nil {
 		slog.Error("error getting iso", "id", isoUuid.String(), "err", err)
+
 		return &ic, errors.New("not found")
 	}
 	if isoInst.Name == "" {
 		slog.Debug("iso not found")
+
 		return &ic, errors.New("not found")
 	}
 	ic.Name = &isoInst.Name
 	ic.Description = &isoInst.Description
 	ic.Size = &isoInst.Size
+
 	return &ic, nil
 }
 
@@ -67,6 +71,7 @@ func (s *server) AddISO(_ context.Context, i *cirrina.ISOInfo) (*cirrina.ISOID, 
 	if err != nil {
 		return &cirrina.ISOID{}, err
 	}
+
 	return &cirrina.ISOID{Value: isoInst.ID}, nil
 }
 
@@ -81,20 +86,24 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 	isoUploadReq := req.GetIsouploadinfo()
 	if isoUploadReq == nil || isoUploadReq.Isoid == nil {
 		slog.Error("nil isoUploadReq or iso id")
+
 		return errors.New("nil isoUploadReq or iso id")
 	}
 	isoUuid, err := uuid.Parse(isoUploadReq.Isoid.Value)
 	if err != nil {
 		slog.Error("iso id not specified or invalid on upload")
+
 		return errors.New("id not specified or invalid")
 	}
 	isoInst, err := iso.GetById(isoUuid.String())
 	if err != nil {
 		slog.Error("error getting iso", "id", isoUuid.String(), "err", err)
+
 		return errors.New("not found")
 	}
 	if isoInst.Name == "" {
 		slog.Debug("iso not found")
+
 		return errors.New("not found")
 	}
 	if isoInst.Path == "" {
@@ -109,6 +118,7 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 		if err2 != nil {
 			slog.Error("failed sending error response, ignoring", "err", err, "err2", err2)
 		}
+
 		return err
 	}
 
@@ -120,6 +130,7 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 		if err != nil {
 			slog.Error("UploadIso cannot send response", "err", err)
 		}
+
 		return nil
 	}
 	// we're done, return success to client
@@ -128,6 +139,7 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 	if err != nil {
 		slog.Error("cannot send and close", "err", err)
 	}
+
 	return nil
 }
 
@@ -135,6 +147,7 @@ func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina
 	isoFile, err := os.Create(isoInst.Path)
 	if err != nil {
 		slog.Error("Failed to open iso file", "err", err.Error())
+
 		return err
 	}
 	isoFileBuffer := bufio.NewWriter(isoFile)
@@ -146,10 +159,12 @@ func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina
 		req, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
 			slog.Debug("UploadIso", "msg", "no more data")
+
 			break
 		}
 		if err != nil {
 			slog.Error("UploadIso failed receiving", "err", err)
+
 			return err
 		}
 
@@ -160,6 +175,7 @@ func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina
 		_, err = isoFileBuffer.Write(chunk)
 		if err != nil {
 			slog.Error("UploadIso failed writing", "err", err)
+
 			return err
 		}
 		hasher.Write(chunk)
@@ -170,6 +186,7 @@ func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina
 	err = isoFileBuffer.Flush()
 	if err != nil {
 		slog.Error("error flushing iso file", "err", err)
+
 		return err
 	}
 
@@ -179,6 +196,7 @@ func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina
 			"imageSize", imageSize,
 			"isoUPloadReq.Size", isoUploadReq.Size,
 		)
+
 		return errors.New("iso upload size incorrect")
 	}
 	isoInst.Size = imageSize
@@ -190,6 +208,7 @@ func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina
 			"imageChecksum", imageChecksum,
 			"isoUploadReq.Sha512Sum", isoUploadReq.Sha512Sum,
 		)
+
 		return errors.New("iso upload checksum incorrect")
 	}
 	isoInst.Checksum = imageChecksum
@@ -198,8 +217,10 @@ func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina
 	err = isoFile.Close()
 	if err != nil {
 		slog.Error("error closing iso file", "err", err)
+
 		return err
 	}
+
 	return nil
 }
 
@@ -214,10 +235,12 @@ func (s *server) RemoveISO(_ context.Context, i *cirrina.ISOID) (*cirrina.ReqBoo
 	isoInst, err := iso.GetById(isoUuid.String())
 	if err != nil {
 		slog.Error("error getting iso", "id", isoUuid.String(), "err", err)
+
 		return &re, errors.New("not found")
 	}
 	if isoInst.Name == "" {
 		slog.Debug("iso not found")
+
 		return &re, errors.New("not found")
 	}
 
@@ -238,6 +261,7 @@ func (s *server) RemoveISO(_ context.Context, i *cirrina.ISOID) (*cirrina.ReqBoo
 					"vmname", thisVm.Name,
 				)
 				errorText := fmt.Sprintf("ISO in use by VM %v (%v)", thisVm.ID, thisVm.Name)
+
 				return &re, errors.New(errorText)
 			}
 		}
@@ -247,11 +271,13 @@ func (s *server) RemoveISO(_ context.Context, i *cirrina.ISOID) (*cirrina.ReqBoo
 	if res != nil {
 		slog.Error("error deleting iso", "res", res)
 		errorText := fmt.Sprintf("error deleting iso: %v", err)
+
 		return &re, errors.New(errorText)
 	}
 
 	// TODO dare we actually delete data from disk?
 
 	re.Success = true
+
 	return &re, nil
 }

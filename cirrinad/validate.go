@@ -47,22 +47,27 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 		// ignore exitErr as we check exit code below
 		if !errors.As(err, &exitErr) {
 			slog.Debug("checkSudoCmd failed starting command", "command", checkCmd.String(), "err", err.Error())
+
 			return err
 		}
 	}
 	exitCode = checkCmd.ProcessState.ExitCode()
 	if exitCode != expectedExit {
 		slog.Debug("exitCode mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
+
 		return errors.New("exitCode mismatch running command")
 	}
 	if !strings.HasPrefix(outBytes.String(), expectedStdOut) {
 		slog.Debug("stdout prefix mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
+
 		return errors.New("stdout prefix mismatch running command")
 	}
 	if !strings.HasPrefix(errBytes.String(), expectedStdErr) {
 		slog.Debug("stderr prefix mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
+
 		return errors.New("stderr prefix mismatch running command")
 	}
+
 	return nil
 }
 
@@ -95,6 +100,7 @@ nameLoop:
 			return "", err
 		}
 	}
+
 	return tmpFileName, nil
 }
 
@@ -105,6 +111,7 @@ func kmodLoaded(name string) (loaded bool) {
 	if err == nil {
 		loaded = true
 	}
+
 	return loaded
 }
 
@@ -115,6 +122,7 @@ func kmodInited(name string) (inited bool) {
 	if err == nil {
 		inited = true
 	}
+
 	return inited
 }
 
@@ -524,6 +532,7 @@ func validateLogConfig() {
 			slog.Error("failed getting log file sys info")
 			os.Exit(1)
 		}
+
 		return
 	}
 	logDir := filepath.Dir(config.Config.Log.Path)
@@ -722,6 +731,7 @@ func validateDb() {
 		exists := _switch.CheckInterfaceExists(bridge.Uplink)
 		if !exists {
 			slog.Warn("bridge uplink does not exist, will be ignored", "bridge", bridge.Name, "uplink", bridge.Uplink)
+
 			continue
 		}
 		switch bridge.Type {

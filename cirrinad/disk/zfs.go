@@ -40,6 +40,7 @@ func GetAllZfsVolumes() (allVolumes []string, err error) {
 	if err := scanner.Err(); err != nil {
 		return []string{}, err
 	}
+
 	return allVolumes, nil
 }
 
@@ -80,6 +81,7 @@ func GetZfsVolumeSize(volumeName string) (volSize uint64, err error) {
 	if err != nil {
 		return 0, err
 	}
+
 	return volSize, nil
 }
 
@@ -124,6 +126,7 @@ func getZfsVolBlockSize(volumeName string) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	return volBlockSize, nil
 }
 
@@ -134,11 +137,13 @@ func SetZfsVolumeSize(volumeName string, volSize uint64) error {
 	currentVolSize, err = GetZfsVolumeSize(volumeName)
 	if err != nil {
 		slog.Error("SetZfsVolumeSize", "msg", "failed getting current volume size", "err", err)
+
 		return err
 	}
 
 	if volSize == currentVolSize {
 		slog.Debug("SetZfsVolumeSize requested vol size already set")
+
 		return nil
 	}
 
@@ -147,6 +152,7 @@ func SetZfsVolumeSize(volumeName string, volSize uint64) error {
 	vbs, err = getZfsVolBlockSize(volumeName)
 	if err != nil {
 		slog.Error("error getting zfs vol block size", "err", err)
+
 		return err
 	}
 
@@ -161,6 +167,7 @@ func SetZfsVolumeSize(volumeName string, volSize uint64) error {
 
 	if volSize == currentVolSize {
 		slog.Debug("SetZfsVolumeSize adjusted vol size already set")
+
 		return nil
 	}
 
@@ -168,6 +175,7 @@ func SetZfsVolumeSize(volumeName string, volSize uint64) error {
 		// maybe I don't care when uploading new disk image -- will care on disk expand, adjust this later so
 		// we can force it if the user accepts data loss
 		slog.Error("SetZfsVolumeSize", "error", "new disk smaller than current disk")
+
 		return errors.New("new disk smaller than current disk")
 	}
 
@@ -178,8 +186,10 @@ func SetZfsVolumeSize(volumeName string, volSize uint64) error {
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("failed to set disk size", "err", err)
+
 		return err
 	}
+
 	return nil
 }
 
@@ -220,5 +230,6 @@ func GetZfsVolumeUsage(volumeName string) (volUsage uint64, err error) {
 	if err != nil {
 		return 0, err
 	}
+
 	return volUsage, nil
 }

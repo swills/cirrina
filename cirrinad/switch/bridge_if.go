@@ -42,8 +42,10 @@ func GetAllIfBridges() (bridges []string, err error) {
 	}
 	if err := scanner.Err(); err != nil {
 		slog.Error("error scanning ifconfig output", "err", err)
+
 		return []string{}, err
 	}
+
 	return r, nil
 }
 
@@ -78,8 +80,10 @@ func GetIfBridgeMembers(name string) (members []string, err error) {
 	}
 	if err := scanner.Err(); err != nil {
 		slog.Error("error scanning ifconfig output", "err", err)
+
 		return []string{}, err
 	}
+
 	return members, nil
 }
 
@@ -91,15 +95,18 @@ func createIfBridge(name string) error {
 	// TODO allow other bridge names by creating with a dummy name and then renaming
 	if !strings.HasPrefix(name, "bridge") {
 		slog.Error("invalid bridge name", "name", name)
+
 		return errors.New("invalid bridge name, bridge name must start with \"bridge\"")
 	}
 	allIfBridges, err := GetAllIfBridges()
 	if err != nil {
 		slog.Debug("failed to get all if bridges", "err", err)
+
 		return err
 	}
 	if util.ContainsStr(allIfBridges, name) {
 		slog.Debug("bridge already exists", "bridge", name)
+
 		return errors.New("duplicate bridge")
 	}
 
@@ -120,8 +127,10 @@ func actualIfBridgeCreate(name string) error {
 	}
 	if err := cmd.Wait(); err != nil {
 		slog.Error("failed running ifconfig", "err", err, "out", out)
+
 		return err
 	}
+
 	return nil
 }
 
@@ -137,6 +146,7 @@ func bridgeIfDeleteAllMembers(name string) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -149,8 +159,10 @@ func bridgeIfDeleteMember(bridgeName string, memberName string) error {
 	}
 	if err := cmd.Wait(); err != nil {
 		slog.Error("failed running ifconfig", "err", err, "out", out)
+
 		return err
 	}
+
 	return nil
 }
 
@@ -170,6 +182,7 @@ func CreateIfBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 			return err
 		}
 	}
+
 	return nil
 }
 

@@ -92,6 +92,7 @@ var IsoListCmd = &cobra.Command{
 			}
 		}
 		t.Render()
+
 		return nil
 	},
 }
@@ -110,6 +111,7 @@ var IsoCreateCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("ISO created. id: %s\n", res)
+
 		return nil
 	},
 }
@@ -171,6 +173,7 @@ func trackIsoUpload(pw progress.Writer, isoSize int64, f2 *os.File) {
 	upload, err = rpc.IsoUpload(IsoId, isoChecksum, uint64(isoSize), f2)
 	if err != nil {
 		uploadTracker.MarkAsErrored()
+
 		return
 	}
 	for !uploadTracker.IsDone() {
@@ -237,6 +240,7 @@ func uploadIsoWithStatus() error {
 		}
 		time.Sleep(time.Millisecond * 100)
 	}
+
 	return nil
 }
 
@@ -296,6 +300,7 @@ UploadLoop:
 
 	fmt.Printf("\n")
 	fmt.Printf("ISO Upload complete\n")
+
 	return nil
 }
 
@@ -353,7 +358,9 @@ var IsoRemoveCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+
 		fmt.Printf("ISO deleted\n")
+
 		return nil
 	},
 }

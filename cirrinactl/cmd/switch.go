@@ -82,6 +82,7 @@ var SwitchListCmd = &cobra.Command{
 			}
 		}
 		t.Render()
+
 		return nil
 	},
 }
@@ -104,6 +105,7 @@ var SwitchCreateCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("Switch created. id: %s\n", res)
+
 		return nil
 	},
 }
@@ -129,6 +131,7 @@ var SwitchDestroyCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("Switch deleted\n")
+
 		return nil
 	},
 }
@@ -153,6 +156,7 @@ var SwitchUplinkCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("Switch uplink set\n")
+
 		return nil
 	},
 }
@@ -163,6 +167,7 @@ var SwitchUpdateCmd = &cobra.Command{
 	SilenceUsage: true,
 	Args: func(cmd *cobra.Command, args []string) error {
 		SwitchDescriptionChanged = cmd.Flags().Changed("description")
+
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -187,6 +192,7 @@ var SwitchUpdateCmd = &cobra.Command{
 			return err
 		}
 		fmt.Printf("Switch updated\n")
+
 		return nil
 	},
 }

@@ -88,6 +88,7 @@ var VmIsoListCmd = &cobra.Command{
 			}
 		}
 		t.Render()
+
 		return nil
 	},
 }
@@ -134,6 +135,7 @@ var VmIsosAddCmd = &cobra.Command{
 			return errors.New("failed")
 		}
 		fmt.Printf("Added\n")
+
 		return nil
 	},
 }
@@ -186,6 +188,7 @@ var VmIsosRmCmd = &cobra.Command{
 			return errors.New("failed")
 		}
 		fmt.Printf("Removed\n")
+
 		return nil
 	},
 }

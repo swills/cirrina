@@ -44,8 +44,10 @@ func getAllEpair() (epairs []string, err error) {
 	}
 	if err := scanner.Err(); err != nil {
 		slog.Error("error scanning ifconfig output", "err", err)
+
 		return []string{}, err
 	}
+
 	return r, nil
 }
 
@@ -79,6 +81,7 @@ func CreateEpair(name string) (err error) {
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("failed to create epair", "name", name, "err", err)
+
 		return err
 	}
 	args = []string{"/sbin/ifconfig", name + "a", "up", "group", "cirrinad"}
@@ -86,6 +89,7 @@ func CreateEpair(name string) (err error) {
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("failed to up epair", "name", name+"a", "err", err)
+
 		return err
 	}
 	args = []string{"/sbin/ifconfig", name + "b", "up", "group", "cirrinad"}
@@ -93,8 +97,10 @@ func CreateEpair(name string) (err error) {
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("failed to up epair", "name", name+"b", "err", err)
+
 		return err
 	}
+
 	return nil
 }
 
@@ -107,8 +113,10 @@ func DestroyEpair(name string) (err error) {
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("failed to destroy epair", "name", name+"a", "err", err)
+
 		return err
 	}
+
 	return nil
 }
 
@@ -124,6 +132,7 @@ func SetRateLimit(name string, rateIn uint64, rateOut uint64) (err error) {
 			"name", name,
 			"rate", rateIn,
 		)
+
 		return err
 	}
 	err = NgCreatePipeWithRateLimit(name+"b", rateOut)
@@ -132,8 +141,10 @@ func SetRateLimit(name string, rateIn uint64, rateOut uint64) (err error) {
 			"name", name,
 			"rate", rateIn,
 		)
+
 		return err
 	}
+
 	return nil
 }
 
@@ -151,6 +162,7 @@ func NgCreatePipeWithRateLimit(name string, rate uint64) (err error) {
 			"name", name,
 			"err", err,
 		)
+
 		return err
 	}
 
@@ -162,6 +174,7 @@ func NgCreatePipeWithRateLimit(name string, rate uint64) (err error) {
 			"name", name,
 			"err", err,
 		)
+
 		return err
 	}
 
@@ -173,6 +186,7 @@ func NgCreatePipeWithRateLimit(name string, rate uint64) (err error) {
 			"name", name,
 			"err", err,
 		)
+
 		return err
 	}
 
@@ -189,6 +203,7 @@ func NgCreatePipeWithRateLimit(name string, rate uint64) (err error) {
 				"rate", rate,
 				"err", err,
 			)
+
 			return err
 		}
 	}
@@ -205,6 +220,7 @@ func NgDestroyPipe(name string) (err error) {
 			"name", name,
 			"err", err,
 		)
+
 		return err
 	}
 

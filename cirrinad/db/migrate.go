@@ -63,6 +63,7 @@ func getMetaDb() *gorm.DB {
 		sqlDB.SetMaxOpenConns(1)
 		instance.metaDb = metaDb
 	})
+
 	return instance.metaDb
 }
 
@@ -78,6 +79,7 @@ func getSchemaVersion() (schemaVersion uint32) {
 	metaDb := getMetaDb()
 	var m meta
 	metaDb.Find(&m)
+
 	return m.SchemaVersion
 }
 

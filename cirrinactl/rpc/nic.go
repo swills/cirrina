@@ -43,6 +43,7 @@ func AddNic(name string, description string, mac string, nicType string, nicDevT
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
+
 	return nicId.Value, nil
 }
 
@@ -59,6 +60,7 @@ func RmNic(idPtr string) error {
 	if !reqId.Success {
 		return errors.New("nic delete failure")
 	}
+
 	return nil
 }
 
@@ -149,6 +151,7 @@ func NicNameToId(name string) (nicId string, err error) {
 	if !found {
 		return "", errors.New("nic not found")
 	}
+
 	return nicId, nil
 }
 
@@ -206,6 +209,7 @@ func GetVmNicsAll() ([]string, error) {
 		}
 		rv = append(rv, VMNicId.Value)
 	}
+
 	return rv, nil
 }
 
@@ -227,6 +231,7 @@ func NicGetVm(id string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return res2, nil
 }
 
@@ -246,6 +251,7 @@ func CloneNic(id string, newName string) (string, error) {
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
+
 	return reqId.Value, nil
 }
 
@@ -303,6 +309,7 @@ func UpdateNic(id string, description *string, mac *string, nicType *string, nic
 	if !reqStat.Success {
 		return errors.New("failed to update switch")
 	}
+
 	return nil
 }
 
