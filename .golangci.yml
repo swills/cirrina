@@ -34,6 +34,19 @@ linters:
     - zerologlint
     - dupword
     - misspell
+    - tenv
+    - asasalint
+    - bidichk
+    - containedctx
+    - contextcheck
+    - durationcheck
+    - errchkjson
+    - exhaustive
+    - exportloopref
+    - gocheckcompilerdirectives
+    - gochecksumtype
+    - ginkgolinter
+    - gosmopolitan
 
 issues:
   exclude-rules:
@@ -47,6 +60,9 @@ issues:
       linters:
         - nestif
         - gocognit
+    - path: 'cirrinactl/cmd/tui.go'
+      linters:
+        - exhaustive
 
 linters-settings:
   cyclop:
