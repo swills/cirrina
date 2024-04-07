@@ -88,33 +88,7 @@ func writePidFile() {
 	_, err = os.Stat(pidFilePath)
 	if err == nil {
 		slog.Warn("pid file exists, checking pid")
-		existingPidFileContent, err := os.ReadFile(pidFilePath)
-		if err != nil {
-			slog.Error("pid file exists and unable to read it, please fix")
-			os.Exit(1)
-		}
-		existingPid, err := strconv.Atoi(string(existingPidFileContent))
-		if err != nil {
-			slog.Error("failed getting existing pid")
-			os.Exit(1)
-		}
-		slog.Debug("Checking pid", "pid", existingPid)
-		procExists, err := util.PidExists(existingPid)
-		if err != nil {
-			slog.Error("failed checking existing pid")
-			os.Exit(1)
-		}
-		if procExists {
-			slog.Error("duplicate processes not allowed, please kill existing pid", "existingPid", existingPid)
-			os.Exit(1)
-		} else {
-			slog.Warn("left over pid file detected, but process seems not to exist, deleting pid file")
-			err := os.Remove(pidFilePath)
-			if err != nil {
-				slog.Error("failed removing leftover pid file, please fix")
-				os.Exit(1)
-			}
-		}
+		checkExistingPidFile(pidFilePath)
 	}
 	myPid := os.Getpid()
 
@@ -124,6 +98,36 @@ func writePidFile() {
 		slog.Error("failed writing pid file", "err", err)
 		os.Exit(1)
 		return
+	}
+}
+
+func checkExistingPidFile(pidFilePath string) {
+	existingPidFileContent, err := os.ReadFile(pidFilePath)
+	if err != nil {
+		slog.Error("pid file exists and unable to read it, please fix")
+		os.Exit(1)
+	}
+	existingPid, err := strconv.Atoi(string(existingPidFileContent))
+	if err != nil {
+		slog.Error("failed getting existing pid")
+		os.Exit(1)
+	}
+	slog.Debug("Checking pid", "pid", existingPid)
+	procExists, err := util.PidExists(existingPid)
+	if err != nil {
+		slog.Error("failed checking existing pid")
+		os.Exit(1)
+	}
+	if procExists {
+		slog.Error("duplicate processes not allowed, please kill existing pid", "existingPid", existingPid)
+		os.Exit(1)
+	} else {
+		slog.Warn("left over pid file detected, but process seems not to exist, deleting pid file")
+		err := os.Remove(pidFilePath)
+		if err != nil {
+			slog.Error("failed removing leftover pid file, please fix")
+			os.Exit(1)
+		}
 	}
 }
 

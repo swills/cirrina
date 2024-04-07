@@ -22,6 +22,10 @@ linters:
     - bodyclose
     - noctx
     - perfsprint
+    - execinquery
+    - rowserrcheck
+    - sqlclosecheck
+    - nestif
 
 issues:
   exclude-rules:
@@ -31,6 +35,9 @@ issues:
     - path: 'cirrinactl/cmd/.*.go'
       linters:
         - forbidigo
+    - path: 'cirrinad/db/migrate.go'
+      linters:
+        - nestif
 
 linters-settings:
   gci:

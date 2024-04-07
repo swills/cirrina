@@ -415,87 +415,97 @@ func netStartupIf(vmNic vm_nics.VmNic) error {
 		return err
 	}
 
+	if vmNic.SwitchId == "" {
+		return nil
+	}
 	// Add interface to bridge
-	if vmNic.SwitchId != "" {
-		thisSwitch, err := _switch.GetById(vmNic.SwitchId)
+	thisSwitch, err := _switch.GetById(vmNic.SwitchId)
+	if err != nil {
+		slog.Error("bad switch id",
+			"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchId)
+		return err
+	}
+	if thisSwitch.Type != "IF" {
+		slog.Error("bridge/interface type mismatch",
+			"nicname", vmNic.Name,
+			"nicid", vmNic.ID,
+			"switchid", vmNic.SwitchId,
+		)
+		return errors.New("bridge/interface type mismatch")
+	}
+	if vmNic.RateLimit {
+		thisEpair, err := setupVmNicRateLimit(vmNic)
 		if err != nil {
-			slog.Error("bad switch id",
-				"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchId)
 			return err
 		}
-		if thisSwitch.Type != "IF" {
-			slog.Error("bridge/interface type mismatch",
+		err = _switch.BridgeIfAddMember(thisSwitch.Name, thisEpair+"b", true)
+		if err != nil {
+			slog.Error("failed to add nic to switch",
 				"nicname", vmNic.Name,
 				"nicid", vmNic.ID,
 				"switchid", vmNic.SwitchId,
+				"netdev", vmNic.NetDev,
+				"err", err,
 			)
-			return errors.New("bridge/interface type mismatch")
+			return err
 		}
-		if vmNic.RateLimit {
-			thisEpair := epair.GetDummyEpairName()
-			slog.Debug("netStartup rate limiting", "thisEpair", thisEpair)
-			err = epair.CreateEpair(thisEpair)
-			if err != nil {
-				slog.Error("error creating epair", err)
-				return err
-			}
-			vmNic.InstEpair = thisEpair
-			err = vmNic.Save()
-			if err != nil {
-				slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
-				return err
-			}
-			err = epair.SetRateLimit(thisEpair, vmNic.RateIn, vmNic.RateOut)
-			if err != nil {
-				slog.Error("failed to set epair rate limit", "epair", thisEpair)
-				return err
-			}
-			thisInstSwitch := _switch.GetDummyBridgeName()
-			var bridgeMembers []string
-			bridgeMembers = append(bridgeMembers, thisEpair+"a")
-			bridgeMembers = append(bridgeMembers, vmNic.NetDev)
-			err = _switch.CreateIfBridgeWithMembers(thisInstSwitch, bridgeMembers)
-			if err != nil {
-				slog.Error("failed to create switch",
-					"nic", vmNic.ID,
-					"thisInstSwitch", thisInstSwitch,
-					"err", err,
-				)
-				return err
-			}
-			vmNic.InstBridge = thisInstSwitch
-			err = vmNic.Save()
-			if err != nil {
-				slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
-				return err
-			}
-			err := _switch.BridgeIfAddMember(thisSwitch.Name, thisEpair+"b", true)
-			if err != nil {
-				slog.Error("failed to add nic to switch",
-					"nicname", vmNic.Name,
-					"nicid", vmNic.ID,
-					"switchid", vmNic.SwitchId,
-					"netdev", vmNic.NetDev,
-					"err", err,
-				)
-				return err
-			}
-		} else {
-			// mac := GetMac(vmNic, vm)
-			err := _switch.BridgeIfAddMember(thisSwitch.Name, vmNic.NetDev, false)
-			if err != nil {
-				slog.Error("failed to add nic to switch",
-					"nicname", vmNic.Name,
-					"nicid", vmNic.ID,
-					"switchid", vmNic.SwitchId,
-					"netdev", vmNic.NetDev,
-					"err", err,
-				)
-				return err
-			}
+	} else {
+		// mac := GetMac(vmNic, vm)
+		err := _switch.BridgeIfAddMember(thisSwitch.Name, vmNic.NetDev, false)
+		if err != nil {
+			slog.Error("failed to add nic to switch",
+				"nicname", vmNic.Name,
+				"nicid", vmNic.ID,
+				"switchid", vmNic.SwitchId,
+				"netdev", vmNic.NetDev,
+				"err", err,
+			)
+			return err
 		}
 	}
 	return nil
+}
+
+func setupVmNicRateLimit(vmNic vm_nics.VmNic) (string, error) {
+	var err error
+	thisEpair := epair.GetDummyEpairName()
+	slog.Debug("netStartup rate limiting", "thisEpair", thisEpair)
+	err = epair.CreateEpair(thisEpair)
+	if err != nil {
+		slog.Error("error creating epair", err)
+		return "", err
+	}
+	vmNic.InstEpair = thisEpair
+	err = vmNic.Save()
+	if err != nil {
+		slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+		return "", err
+	}
+	err = epair.SetRateLimit(thisEpair, vmNic.RateIn, vmNic.RateOut)
+	if err != nil {
+		slog.Error("failed to set epair rate limit", "epair", thisEpair)
+		return "", err
+	}
+	thisInstSwitch := _switch.GetDummyBridgeName()
+	var bridgeMembers []string
+	bridgeMembers = append(bridgeMembers, thisEpair+"a")
+	bridgeMembers = append(bridgeMembers, vmNic.NetDev)
+	err = _switch.CreateIfBridgeWithMembers(thisInstSwitch, bridgeMembers)
+	if err != nil {
+		slog.Error("failed to create switch",
+			"nic", vmNic.ID,
+			"thisInstSwitch", thisInstSwitch,
+			"err", err,
+		)
+		return "", err
+	}
+	vmNic.InstBridge = thisInstSwitch
+	err = vmNic.Save()
+	if err != nil {
+		slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+		return "", err
+	}
+	return thisEpair, nil
 }
 
 func netStartupNg(vmNic vm_nics.VmNic) error {

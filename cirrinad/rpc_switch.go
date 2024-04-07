@@ -321,28 +321,31 @@ func validateIfSwitch(i *cirrina.SwitchInfo) error {
 }
 
 func bringUpNewSwitch(switchInst *_switch.Switch) (*cirrina.SwitchId, error) {
-	if switchInst != nil && switchInst.ID != "" {
-		if switchInst.Type == "IF" {
-			slog.Debug("creating if bridge", "name", switchInst.Name)
-			err := _switch.BuildIfBridge(switchInst)
-			if err != nil {
-				slog.Error("error creating if bridge", "err", err)
-				// already created in db, so ignore system state and proceed on...
-				return &cirrina.SwitchId{Value: switchInst.ID}, nil
-			}
-		} else if switchInst.Type == "NG" {
-			slog.Debug("creating ng bridge", "name", switchInst.Name)
-			err := _switch.BuildNgBridge(switchInst)
-			if err != nil {
-				slog.Error("error creating ng bridge", "err", err)
-				// already created in db, so ignore system state and proceed on...
-				return &cirrina.SwitchId{Value: switchInst.ID}, nil
-			}
-		}
-		return &cirrina.SwitchId{Value: switchInst.ID}, nil
-	} else {
+	if switchInst == nil || switchInst.ID != "" {
 		return &cirrina.SwitchId{}, errors.New("unknown error creating switch")
 	}
+	switch switchInst.Type {
+	case "IF":
+		slog.Debug("creating if bridge", "name", switchInst.Name)
+		err := _switch.BuildIfBridge(switchInst)
+		if err != nil {
+			slog.Error("error creating if bridge", "err", err)
+			// already created in db, so ignore system state and proceed on...
+			return &cirrina.SwitchId{Value: switchInst.ID}, nil
+		}
+	case "NG":
+		slog.Debug("creating ng bridge", "name", switchInst.Name)
+		err := _switch.BuildNgBridge(switchInst)
+		if err != nil {
+			slog.Error("error creating ng bridge", "err", err)
+			// already created in db, so ignore system state and proceed on...
+			return &cirrina.SwitchId{Value: switchInst.ID}, nil
+		}
+	default:
+		slog.Error("unknown switch type bringing up new switch")
+		return &cirrina.SwitchId{}, errors.New("unknown switch type creating switch")
+	}
+	return &cirrina.SwitchId{Value: switchInst.ID}, nil
 }
 
 func mapSwitchTypeTypeToDBString(switchType cirrina.SwitchType) (string, error) {

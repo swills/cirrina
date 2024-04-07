@@ -378,22 +378,30 @@ func (s *server) CloneVmNic(_ context.Context, cloneReq *cirrina.VmNicCloneReq) 
 func vmNicParseRateLimit(vmNicInst *vm_nics.VmNic, rateLimit *bool, rateIn *uint64, rateOut *uint64) {
 	// can only set rate limiting on IF type devs (TAP and VMNET), not netgraph devs
 	if vmNicInst.NetDevType == "TAP" || vmNicInst.NetDevType == "VMNET" {
-		if rateLimit != nil {
-			vmNicInst.RateLimit = *rateLimit
-		}
-		if vmNicInst.RateLimit {
-			if rateIn != nil {
-				vmNicInst.RateIn = *rateIn
-			}
-			if rateOut != nil {
-				vmNicInst.RateOut = *rateOut
-			}
-		} else { // rate limit disabled, force to zero
-			vmNicInst.RateIn = 0
-			vmNicInst.RateOut = 0
-		}
+		vmNicParseRateLimitIf(vmNicInst, rateLimit, rateIn, rateOut)
 	} else {
-		vmNicInst.RateLimit = false
+		vmNicParseRateLimitNg(vmNicInst)
+	}
+}
+
+func vmNicParseRateLimitNg(vmNicInst *vm_nics.VmNic) {
+	vmNicInst.RateLimit = false
+	vmNicInst.RateIn = 0
+	vmNicInst.RateOut = 0
+}
+
+func vmNicParseRateLimitIf(vmNicInst *vm_nics.VmNic, rateLimit *bool, rateIn *uint64, rateOut *uint64) {
+	if rateLimit != nil {
+		vmNicInst.RateLimit = *rateLimit
+	}
+	if vmNicInst.RateLimit {
+		if rateIn != nil {
+			vmNicInst.RateIn = *rateIn
+		}
+		if rateOut != nil {
+			vmNicInst.RateOut = *rateOut
+		}
+	} else { // rate limit disabled, force to zero
 		vmNicInst.RateIn = 0
 		vmNicInst.RateOut = 0
 	}

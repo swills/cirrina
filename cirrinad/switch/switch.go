@@ -224,6 +224,7 @@ func BridgeIfAddMember(bridgeName string, memberName string, learn bool) error {
 		return errors.New(errtxt)
 	}
 
+	slog.Debug("learn info", "learn", learn)
 	// code I was testing for disabling "learning" on bridges, ie, being like vmware to a degree -- that is, not
 	// allow VMs to be "promiscuous" and snoop on each others traffic
 	// decided not to use right now. may come back to it later
@@ -415,7 +416,8 @@ func GetNgDev(switchId string) (bridge string, peer string, err error) {
 }
 
 func (d *Switch) UnsetUplink() error {
-	if d.Type == "IF" {
+	switch d.Type {
+	case "IF":
 		slog.Debug("unsetting IF bridge uplink", "id", d.ID)
 		err := bridgeIfDeleteMember(d.Name, d.Uplink)
 		if err != nil {
@@ -427,7 +429,7 @@ func (d *Switch) UnsetUplink() error {
 			return err
 		}
 		return nil
-	} else if d.Type == "NG" {
+	case "NG":
 		slog.Debug("unsetting NG bridge uplink", "id", d.ID)
 		err := bridgeNgRemoveUplink(d.Name, d.Uplink)
 		if err != nil {
@@ -439,8 +441,9 @@ func (d *Switch) UnsetUplink() error {
 			return err
 		}
 		return nil
+	default:
+		return errors.New("unknown switch type")
 	}
-	return errors.New("unknown switch type")
 }
 
 func (d *Switch) SetUplink(uplink string) error {
@@ -450,7 +453,8 @@ func (d *Switch) SetUplink(uplink string) error {
 		return errors.New("invalid switch uplink name")
 	}
 
-	if d.Type == "IF" {
+	switch d.Type {
+	case "IF":
 		alreadyUsed, err := MemberUsedByIfBridge(uplink)
 		if err != nil {
 			return err
@@ -473,7 +477,7 @@ func (d *Switch) SetUplink(uplink string) error {
 			return err
 		}
 		return nil
-	} else if d.Type == "NG" {
+	case "NG":
 		// it can't be a member of another bridge already
 		alreadyUsed, err := MemberUsedByNgBridge(uplink)
 		if err != nil {
@@ -499,8 +503,9 @@ func (d *Switch) SetUplink(uplink string) error {
 			return err
 		}
 		return nil
+	default:
+		return errors.New("unknown switch type")
 	}
-	return errors.New("unknown switch type")
 }
 
 func (d *Switch) Save() error {

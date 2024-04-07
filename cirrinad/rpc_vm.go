@@ -129,10 +129,7 @@ func updateVmDebug(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	if rc.DebugPort != nil {
 		if *rc.DebugPort != "AUTO" {
 			port, err := strconv.Atoi(*rc.DebugPort)
-			if err != nil {
-				return errors.New("invalid debug port")
-			}
-			if port < 1024 || port > 65535 {
+			if err != nil || port < 1024 || port > 65535 {
 				return errors.New("invalid debug port")
 			}
 		}
@@ -288,10 +285,7 @@ func updateVmScreenOptions(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	if rc.Vncport != nil {
 		if *rc.Vncport != "AUTO" {
 			port, err := strconv.Atoi(*rc.Vncport)
-			if err != nil {
-				return errors.New("invalid vnc port")
-			}
-			if port < 1024 || port > 65535 {
+			if err != nil || port < 1024 || port > 65535 {
 				return errors.New("invalid vnc port")
 			}
 		}

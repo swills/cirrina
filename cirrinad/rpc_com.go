@@ -234,7 +234,7 @@ func comInteractiveSetup(thisCom *serial.Port) error {
 
 // comInteractiveStreamReceive user -> com and/or log
 func comInteractiveStreamReceive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, thisCom *serial.Port, thisComLog bool, vl *os.File) (error, bool) {
-	if vmInst.Status != "RUNNING" && vmInst.Status != "STOPPING" {
+	if !vmInst.Running() {
 		return nil, true
 	}
 	in, err := stream.Recv()
@@ -262,46 +262,60 @@ func comInteractiveStreamReceive(stream cirrina.VMInfo_Com1InteractiveServer, vm
 func comInteractiveStreamSend(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, thisCom *serial.Port, thisComLog bool, thisRChan chan byte) {
 	b := make([]byte, 1)
 	for {
-		if thisCom == nil || (vmInst.Status != "RUNNING" && vmInst.Status != "STOPPING") {
+		if thisCom == nil || !vmInst.Running() {
 			return
 		}
 
 		// get byte from channel if logging, else read port directly
 		if thisComLog {
-			var b2 = <-thisRChan
-			b[0] = b2
-			req := cirrina.ComDataResponse{
-				ComOutBytes: b,
-			}
-			err := stream.Send(&req)
-			if err != nil {
-				// unreachable
-				slog.Debug("ComInteractive logged failure sending to com channel", "err", err)
+			if comIntStreamSendFromLog(stream, thisRChan, b) {
 				return
 			}
 		} else {
-			nb, err := thisCom.Read(b)
-			if nb > 1 {
-				slog.Error("ComInteractive read more than 1 byte", "nb", nb)
-			}
-			if err == io.EOF && vmInst.Status != vm.RUNNING && vmInst.Status != vm.STOPPING {
-				slog.Debug("ComInteractive", "msg", "vm not running, exiting")
+			if comIntStreamSendFromDev(stream, vmInst, thisCom, b) {
 				return
-			}
-			if err != nil && err != io.EOF {
-				slog.Error("ComInteractive error reading com port", "err", err)
-				return
-			}
-			if nb != 0 {
-				req := cirrina.ComDataResponse{
-					ComOutBytes: b,
-				}
-				err = stream.Send(&req)
-				if err != nil {
-					// slog.Debug("ComInteractive un-logged failure sending to com channel", "err", err)
-					return
-				}
 			}
 		}
 	}
+}
+
+func comIntStreamSendFromDev(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, thisCom *serial.Port, b []byte) bool {
+	nb, err := thisCom.Read(b)
+	if nb > 1 {
+		slog.Error("ComInteractive read more than 1 byte", "nb", nb)
+	}
+	if err == io.EOF && !vmInst.Running() {
+		slog.Debug("ComInteractive", "msg", "vm not running, exiting")
+		return true
+	}
+	if err != nil && err != io.EOF {
+		slog.Error("ComInteractive error reading com port", "err", err)
+		return true
+	}
+	if nb != 0 {
+		req := cirrina.ComDataResponse{
+			ComOutBytes: b,
+		}
+		err = stream.Send(&req)
+		if err != nil {
+			// slog.Debug("ComInteractive un-logged failure sending to com channel", "err", err)
+			return true
+		}
+	}
+	return false
+}
+
+func comIntStreamSendFromLog(stream cirrina.VMInfo_Com1InteractiveServer, thisRChan chan byte, b []byte) bool {
+	var b2 = <-thisRChan
+	b[0] = b2
+	req := cirrina.ComDataResponse{
+		ComOutBytes: b,
+	}
+	err := stream.Send(&req)
+	if err != nil {
+		// unreachable
+		slog.Debug("ComInteractive logged failure sending to com channel", "err", err)
+		return true
+	}
+	return false
 }
