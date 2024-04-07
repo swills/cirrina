@@ -23,7 +23,6 @@ var instance *singleton
 var once sync.Once
 
 func getIsoDb() *gorm.DB {
-
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "IsoDb: ", log.LstdFlags),
 		logger.Config{

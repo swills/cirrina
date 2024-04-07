@@ -25,7 +25,6 @@ var instance *singleton
 var once sync.Once
 
 func getDiskDb() *gorm.DB {
-
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "DiskDb: ", log.LstdFlags),
 		logger.Config{

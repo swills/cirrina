@@ -74,7 +74,6 @@ func destroyPidFile() {
 		slog.Error("failed removing leftover pid file")
 		os.Exit(1)
 	}
-
 }
 
 // write pid file, make sure it doesn't exist already, exit if it does

@@ -65,7 +65,6 @@ func GetKbdDescription(path string) (description string, err error) {
 			} else {
 				description = "unknown"
 			}
-
 		}
 	}
 

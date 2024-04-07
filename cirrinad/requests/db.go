@@ -25,7 +25,6 @@ func DbReconfig() {
 }
 
 func GetReqDb() *gorm.DB {
-
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "ReqDb: ", log.LstdFlags),
 		logger.Config{

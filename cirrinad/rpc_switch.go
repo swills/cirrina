@@ -276,7 +276,6 @@ func validateNgSwitch(i *cirrina.SwitchInfo) error {
 	if err != nil {
 		slog.Error("invalid bridge name", "name", *i.Name)
 		return errors.New("invalid bridge name")
-
 	}
 	bridgeNumFormattedString := strconv.FormatInt(int64(bridgeNum), 10)
 	// Check for silly things like "0123"
@@ -309,7 +308,6 @@ func validateIfSwitch(i *cirrina.SwitchInfo) error {
 	if err != nil {
 		slog.Error("invalid bridge name", "name", *i.Name)
 		return errors.New("invalid bridge name")
-
 	}
 	bridgeNumFormattedString := strconv.FormatInt(int64(bridgeNum), 10)
 	// Check for silly things like "0123"

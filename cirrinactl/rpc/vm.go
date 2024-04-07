@@ -208,7 +208,6 @@ func VmStopped(id string) (bool, error) {
 		return true, nil
 	}
 	return false, nil
-
 }
 
 func VmNameToId(name string) (string, error) {

@@ -462,7 +462,6 @@ func receiveDiskFile(stream cirrina.VMInfo_UploadDiskServer, diskPath string, im
 			"diskUploadReq.Size", diskUploadReq.Size,
 		)
 		return errors.New("disk upload size incorrect")
-
 	}
 
 	// verify checksum
@@ -522,7 +521,6 @@ func mapDiskTypeTypeToDBString(diskType cirrina.DiskType) (string, error) {
 }
 
 func mapDiskTypeDbStringToType(diskType string) (*cirrina.DiskType, error) {
-
 	DiskTypeNVME := cirrina.DiskType_NVME
 	DiskTypeAHCI := cirrina.DiskType_AHCIHD
 	DiskTypeVIRT := cirrina.DiskType_VIRTIOBLK

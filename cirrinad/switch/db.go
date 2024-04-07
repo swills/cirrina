@@ -23,7 +23,6 @@ var instance *singleton
 var once sync.Once
 
 func getSwitchDb() *gorm.DB {
-
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "SwitchDb: ", log.LstdFlags),
 		logger.Config{

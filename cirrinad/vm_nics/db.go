@@ -23,7 +23,6 @@ var instance *singleton
 var once sync.Once
 
 func GetVmNicDb() *gorm.DB {
-
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "VmNicDb: ", log.LstdFlags),
 		logger.Config{

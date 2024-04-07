@@ -405,7 +405,6 @@ func (vm *VM) createUefiVarsFile() {
 }
 
 func netStartupIf(vmNic vm_nics.VmNic) error {
-
 	// Create interface
 	args := []string{"/sbin/ifconfig", vmNic.NetDev, "create", "group", "cirrinad"}
 	cmd := exec.Command(config.Config.Sys.Sudo, args...)

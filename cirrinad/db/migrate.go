@@ -133,7 +133,6 @@ func migration2024022401(schemaVersion uint32, vmNicDb *gorm.DB, vmDb *gorm.DB) 
 				}
 				allVMs := vm.GetAllDb()
 				for _, vmInst := range allVMs {
-
 					type Result struct {
 						Nics string
 					}
@@ -183,7 +182,6 @@ func migration2024022402(schemaVersion uint32, vmDb *gorm.DB) {
 	if schemaVersion < 2024022402 {
 		if vm.DbInitialized() {
 			if vmDb.Migrator().HasColumn(&vm.Config{}, "nics") {
-
 				slog.Debug("removing config.nics")
 				err := vmDb.Migrator().DropColumn(&vm.Config{}, "nics")
 				if err != nil {

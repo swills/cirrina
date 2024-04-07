@@ -16,7 +16,6 @@ import (
 func AddDisk(diskName string, diskDescription string, diskSize string,
 	diskType string, diskDevType string, diskCache bool, diskDirect bool,
 ) (string, error) {
-
 	var err error
 	var thisDiskType *cirrina.DiskType
 	var thisDiskDevType *cirrina.DiskDevType

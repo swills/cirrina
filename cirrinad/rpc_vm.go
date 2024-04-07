@@ -265,7 +265,6 @@ func updateVmSound(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 }
 
 func updateVmScreen(rc *cirrina.VMConfig, vmInst *vm.VM) {
-
 	if rc.Screen != nil {
 		if *rc.Screen {
 			vmInst.Config.Screen = true

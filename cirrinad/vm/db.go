@@ -27,7 +27,6 @@ func DbReconfig() {
 }
 
 func GetVmDb() *gorm.DB {
-
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "VmDb: ", log.LstdFlags),
 		logger.Config{
