@@ -34,338 +34,433 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 		return &re, errors.New("not found")
 	}
 
-	reflect := rc.ProtoReflect()
+	err = updateVmBasics(rc, vmInst)
+	if err != nil {
+		return &re, err
+	}
 
-	if isOptionPassed(reflect, "name") {
-		if !util.ValidVmName(*rc.Name) {
-			return &re, errors.New("invalid name")
-		}
-		if _, err := vm.GetByName(*rc.Name); err == nil {
-			return &re, fmt.Errorf("%v already exists", *rc.Name)
-		}
-		vmInst.Name = *rc.Name
+	err = updateVmCom1(rc, vmInst)
+	if err != nil {
+		return &re, err
 	}
-	if isOptionPassed(reflect, "description") {
-		vmInst.Description = *rc.Description
+	err = updateVmCom2(rc, vmInst)
+	if err != nil {
+		return &re, err
 	}
-	if isOptionPassed(reflect, "cpu") {
-		vmInst.Config.Cpu = *rc.Cpu
+	err = updateVmCom3(rc, vmInst)
+	if err != nil {
+		return &re, err
 	}
-	if isOptionPassed(reflect, "mem") {
-		vmInst.Config.Mem = *rc.Mem
+	err = updateVmCom4(rc, vmInst)
+	if err != nil {
+		return &re, err
 	}
-	if isOptionPassed(reflect, "priority") {
-		vmInst.Config.Priority = *rc.Priority
+
+	err = updateVmScreen(rc, vmInst)
+	if err != nil {
+		return &re, err
 	}
-	if isOptionPassed(reflect, "protect") {
-		vmInst.Config.Protect = sql.NullBool{Bool: *rc.Protect, Valid: true}
+	err = updateVmScreenOptions(rc, vmInst)
+	if err != nil {
+		return &re, err
 	}
-	if isOptionPassed(reflect, "vncwait") {
-		if *rc.Vncwait {
-			vmInst.Config.VNCWait = true
-		} else {
-			vmInst.Config.VNCWait = false
-		}
+
+	err = updateVmSound(rc, vmInst)
+	if err != nil {
+		return &re, err
 	}
-	if isOptionPassed(reflect, "acpi") {
-		if *rc.Acpi {
-			vmInst.Config.ACPI = true
-		} else {
-			vmInst.Config.ACPI = false
-		}
+
+	updateVmStart(rc, vmInst)
+	updateVmAdvanced1(rc, vmInst)
+	updateVmAdvanced2(rc, vmInst)
+
+	err = updateVmDebug(rc, vmInst)
+	if err != nil {
+		return &re, err
 	}
-	if isOptionPassed(reflect, "utc") {
-		if *rc.Utc {
-			vmInst.Config.UTCTime = true
-		} else {
-			vmInst.Config.UTCTime = false
-		}
-	}
-	if isOptionPassed(reflect, "max_wait") {
-		vmInst.Config.MaxWait = *rc.MaxWait
-	}
-	if isOptionPassed(reflect, "tablet") {
-		if *rc.Tablet {
-			vmInst.Config.Tablet = true
-		} else {
-			vmInst.Config.Tablet = false
-		}
-	}
-	if isOptionPassed(reflect, "storeuefi") {
-		if *rc.Storeuefi {
-			vmInst.Config.StoreUEFIVars = true
-		} else {
-			vmInst.Config.StoreUEFIVars = false
-		}
-	}
-	if isOptionPassed(reflect, "wireguestmem") {
-		if *rc.Wireguestmem {
-			vmInst.Config.WireGuestMem = true
-		} else {
-			vmInst.Config.WireGuestMem = false
-		}
-	}
-	if isOptionPassed(reflect, "restart") {
-		if *rc.Restart {
-			vmInst.Config.Restart = true
-		} else {
-			vmInst.Config.Restart = false
-		}
-	}
-	if isOptionPassed(reflect, "screen") {
-		if *rc.Screen {
-			vmInst.Config.Screen = true
-		} else {
-			vmInst.Config.Screen = false
-		}
-	}
-	if isOptionPassed(reflect, "hlt") {
-		if *rc.Hlt {
-			vmInst.Config.UseHLT = true
-		} else {
-			vmInst.Config.UseHLT = false
-		}
-	}
-	if isOptionPassed(reflect, "eop") {
-		if *rc.Eop {
-			vmInst.Config.ExitOnPause = true
-		} else {
-			vmInst.Config.ExitOnPause = false
-		}
-	}
-	if isOptionPassed(reflect, "dpo") {
-		if *rc.Dpo {
-			vmInst.Config.DestroyPowerOff = true
-		} else {
-			vmInst.Config.DestroyPowerOff = false
-		}
-	}
-	if isOptionPassed(reflect, "ium") {
-		if *rc.Ium {
-			vmInst.Config.IgnoreUnknownMSR = true
-		} else {
-			vmInst.Config.IgnoreUnknownMSR = false
-		}
-	}
-	if isOptionPassed(reflect, "hostbridge") {
-		if *rc.Hostbridge {
-			vmInst.Config.HostBridge = true
-		} else {
-			vmInst.Config.HostBridge = false
-		}
-	}
-	if isOptionPassed(reflect, "restart_delay") {
-		vmInst.Config.RestartDelay = *rc.RestartDelay
-	}
-	if isOptionPassed(reflect, "screen_width") {
-		vmInst.Config.ScreenWidth = *rc.ScreenWidth
-	}
-	if isOptionPassed(reflect, "screen_height") {
-		vmInst.Config.ScreenHeight = *rc.ScreenHeight
-	}
-	if isOptionPassed(reflect, "vncport") {
-		if *rc.Vncport != "AUTO" {
-			port, err := strconv.Atoi(*rc.Vncport)
-			if err != nil {
-				return &re, errors.New("invalid vnc port")
-			}
-			if port < 1024 || port > 65535 {
-				return &re, errors.New("invalid vnc port")
-			}
-		}
-		vmInst.Config.VNCPort = *rc.Vncport
-	}
-	if isOptionPassed(reflect, "keyboard") {
-		layoutNames := GetKbdLayoutNames()
-		if !util.ContainsStr(layoutNames, *rc.Keyboard) {
-			return &re, errors.New("invalid keyboard layout")
-		}
-		vmInst.Config.KbdLayout = *rc.Keyboard
-	}
-	if isOptionPassed(reflect, "autostart") {
-		if *rc.Autostart {
-			vmInst.Config.AutoStart = true
-		} else {
-			vmInst.Config.AutoStart = false
-		}
-	}
-	if isOptionPassed(reflect, "sound") {
-		if *rc.Sound {
-			vmInst.Config.Sound = true
-		} else {
-			vmInst.Config.Sound = false
-		}
-	}
-	if isOptionPassed(reflect, "sound_in") {
-		if !strings.HasPrefix(*rc.SoundIn, "/dev/dsp") {
-			return &re, errors.New("invalid sound dev")
-		}
-		vmInst.Config.SoundIn = *rc.SoundIn
-	}
-	if isOptionPassed(reflect, "sound_out") {
-		if !strings.HasPrefix(*rc.SoundOut, "/dev/dsp") {
-			return &re, errors.New("invalid sound dev")
-		}
-		vmInst.Config.SoundOut = *rc.SoundOut
-	}
-	if isOptionPassed(reflect, "com1") {
-		if *rc.Com1 {
-			vmInst.Config.Com1 = true
-		} else {
-			vmInst.Config.Com1 = false
-		}
-	}
-	if isOptionPassed(reflect, "com1dev") {
-		if *rc.Com1Dev != "AUTO" {
-			if !strings.HasPrefix(*rc.Com1Dev, "/dev/nmdm") {
-				return &re, errors.New("invalid com dev")
-			}
-		}
-		vmInst.Config.Com1Dev = *rc.Com1Dev
-	}
-	if isOptionPassed(reflect, "com2") {
-		if *rc.Com2 {
-			vmInst.Config.Com2 = true
-		} else {
-			vmInst.Config.Com2 = false
-		}
-	}
-	if isOptionPassed(reflect, "com2dev") {
-		if *rc.Com2Dev != "AUTO" {
-			if !strings.HasPrefix(*rc.Com2Dev, "/dev/nmdm") {
-				return &re, errors.New("invalid com dev")
-			}
-		}
-		vmInst.Config.Com2Dev = *rc.Com2Dev
-	}
-	if isOptionPassed(reflect, "com3") {
-		if *rc.Com3 {
-			vmInst.Config.Com3 = true
-		} else {
-			vmInst.Config.Com3 = false
-		}
-	}
-	if isOptionPassed(reflect, "com3dev") {
-		if *rc.Com3Dev != "AUTO" {
-			if !strings.HasPrefix(*rc.Com3Dev, "/dev/nmdm") {
-				return &re, errors.New("invalid com dev")
-			}
-		}
-		vmInst.Config.Com3Dev = *rc.Com3Dev
-	}
-	if isOptionPassed(reflect, "com4") {
-		if *rc.Com4 {
-			vmInst.Config.Com4 = true
-		} else {
-			vmInst.Config.Com4 = false
-		}
-	}
-	if isOptionPassed(reflect, "com4dev") {
-		if *rc.Com4Dev != "AUTO" {
-			if !strings.HasPrefix(*rc.Com4Dev, "/dev/nmdm") {
-				return &re, errors.New("invalid com dev")
-			}
-		}
-		vmInst.Config.Com4Dev = *rc.Com4Dev
-	}
-	// TODO -- potential security issue, should it be removed?
-	if isOptionPassed(reflect, "extra_args") {
-		vmInst.Config.ExtraArgs = *rc.ExtraArgs
-	}
-	if isOptionPassed(reflect, "com1log") {
-		if *rc.Com1Log {
-			vmInst.Config.Com1Log = true
-		} else {
-			vmInst.Config.Com1Log = false
-		}
-	}
-	if isOptionPassed(reflect, "com2log") {
-		if *rc.Com2Log {
-			vmInst.Config.Com2Log = true
-		} else {
-			vmInst.Config.Com2Log = false
-		}
-	}
-	if isOptionPassed(reflect, "com3log") {
-		if *rc.Com3Log {
-			vmInst.Config.Com3Log = true
-		} else {
-			vmInst.Config.Com3Log = false
-		}
-	}
-	if isOptionPassed(reflect, "com4log") {
-		if *rc.Com4Log {
-			vmInst.Config.Com4Log = true
-		} else {
-			vmInst.Config.Com4Log = false
-		}
-	}
-	if isOptionPassed(reflect, "com1speed") {
-		vmInst.Config.Com1Speed = *rc.Com1Speed
-	}
-	if isOptionPassed(reflect, "com2speed") {
-		vmInst.Config.Com2Speed = *rc.Com2Speed
-	}
-	if isOptionPassed(reflect, "com3speed") {
-		vmInst.Config.Com3Speed = *rc.Com3Speed
-	}
-	if isOptionPassed(reflect, "com4speed") {
-		vmInst.Config.Com4Speed = *rc.Com4Speed
-	}
-	if isOptionPassed(reflect, "autostart_delay") {
-		if *rc.AutostartDelay > 3600 {
-			vmInst.Config.AutoStartDelay = 3600
-		} else {
-			vmInst.Config.AutoStartDelay = *rc.AutostartDelay
-		}
-	}
-	if isOptionPassed(reflect, "debug") {
-		if *rc.Debug {
-			vmInst.Config.Debug = true
-		} else {
-			vmInst.Config.Debug = false
-		}
-	}
-	if isOptionPassed(reflect, "debug_wait") {
-		if *rc.DebugWait {
-			vmInst.Config.DebugWait = true
-		} else {
-			vmInst.Config.DebugWait = false
-		}
-	}
-	if isOptionPassed(reflect, "debug_port") {
-		if *rc.DebugPort != "AUTO" {
-			port, err := strconv.Atoi(*rc.DebugPort)
-			if err != nil {
-				return &re, errors.New("invalid debug port")
-			}
-			if port < 1024 || port > 65535 {
-				return &re, errors.New("invalid debug port")
-			}
-		}
-		vmInst.Config.DebugPort = *rc.DebugPort
-	}
-	if isOptionPassed(reflect, "pcpu") {
-		vmInst.Config.Pcpu = *rc.Pcpu
-	}
-	if isOptionPassed(reflect, "rbps") {
-		vmInst.Config.Rbps = *rc.Rbps
-	}
-	if isOptionPassed(reflect, "wbps") {
-		vmInst.Config.Wbps = *rc.Wbps
-	}
-	if isOptionPassed(reflect, "riops") {
-		vmInst.Config.Riops = *rc.Riops
-	}
-	if isOptionPassed(reflect, "wiops") {
-		vmInst.Config.Wiops = *rc.Wiops
-	}
+
+	updateVmPriorityLimits(rc, vmInst)
+
 	err = vmInst.Save()
 	if err != nil {
 		return &re, err
 	}
 	re.Success = true
 	return &re, nil
+}
+
+func updateVmPriorityLimits(rc *cirrina.VMConfig, vmInst *vm.VM) {
+	if rc.Priority != nil {
+		vmInst.Config.Priority = *rc.Priority
+	}
+	if rc.Protect != nil {
+		vmInst.Config.Protect = sql.NullBool{Bool: *rc.Protect, Valid: true}
+	}
+	if rc.Pcpu != nil {
+		vmInst.Config.Pcpu = *rc.Pcpu
+	}
+	if rc.Rbps != nil {
+		vmInst.Config.Rbps = *rc.Rbps
+	}
+	if rc.Wbps != nil {
+		vmInst.Config.Wbps = *rc.Wbps
+	}
+	if rc.Riops != nil {
+		vmInst.Config.Riops = *rc.Riops
+	}
+	if rc.Wiops != nil {
+		vmInst.Config.Wiops = *rc.Wiops
+	}
+}
+
+func updateVmDebug(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+	if rc.Debug != nil {
+		if *rc.Debug {
+			vmInst.Config.Debug = true
+		} else {
+			vmInst.Config.Debug = false
+		}
+	}
+	if rc.DebugWait != nil {
+		if *rc.DebugWait {
+			vmInst.Config.DebugWait = true
+		} else {
+			vmInst.Config.DebugWait = false
+		}
+	}
+	if rc.DebugPort != nil {
+		if *rc.DebugPort != "AUTO" {
+			port, err := strconv.Atoi(*rc.DebugPort)
+			if err != nil {
+				return errors.New("invalid debug port")
+			}
+			if port < 1024 || port > 65535 {
+				return errors.New("invalid debug port")
+			}
+		}
+		vmInst.Config.DebugPort = *rc.DebugPort
+	}
+	return nil
+}
+
+func updateVmAdvanced1(rc *cirrina.VMConfig, vmInst *vm.VM) {
+	if rc.Hostbridge != nil {
+		if *rc.Hostbridge {
+			vmInst.Config.HostBridge = true
+		} else {
+			vmInst.Config.HostBridge = false
+		}
+	}
+	if rc.Acpi != nil {
+		if *rc.Acpi {
+			vmInst.Config.ACPI = true
+		} else {
+			vmInst.Config.ACPI = false
+		}
+	}
+	if rc.Storeuefi != nil {
+		if *rc.Storeuefi {
+			vmInst.Config.StoreUEFIVars = true
+		} else {
+			vmInst.Config.StoreUEFIVars = false
+		}
+	}
+	if rc.Utc != nil {
+		if *rc.Utc {
+			vmInst.Config.UTCTime = true
+		} else {
+			vmInst.Config.UTCTime = false
+		}
+	}
+	if rc.Wireguestmem != nil {
+		if *rc.Wireguestmem {
+			vmInst.Config.WireGuestMem = true
+		} else {
+			vmInst.Config.WireGuestMem = false
+		}
+	}
+}
+
+func updateVmAdvanced2(rc *cirrina.VMConfig, vmInst *vm.VM) {
+	if rc.Dpo != nil {
+		if *rc.Dpo {
+			vmInst.Config.DestroyPowerOff = true
+		} else {
+			vmInst.Config.DestroyPowerOff = false
+		}
+	}
+	if rc.Eop != nil {
+		if *rc.Eop {
+			vmInst.Config.ExitOnPause = true
+		} else {
+			vmInst.Config.ExitOnPause = false
+		}
+	}
+	if rc.Ium != nil {
+		if *rc.Ium {
+			vmInst.Config.IgnoreUnknownMSR = true
+		} else {
+			vmInst.Config.IgnoreUnknownMSR = false
+		}
+	}
+	if rc.Hlt != nil {
+		if *rc.Hlt {
+			vmInst.Config.UseHLT = true
+		} else {
+			vmInst.Config.UseHLT = false
+		}
+	}
+	// TODO -- potential security issue, should it be removed?
+	if rc.ExtraArgs != nil {
+		vmInst.Config.ExtraArgs = *rc.ExtraArgs
+	}
+}
+
+func updateVmStart(rc *cirrina.VMConfig, vmInst *vm.VM) {
+	if rc.Autostart != nil {
+		if *rc.Autostart {
+			vmInst.Config.AutoStart = true
+		} else {
+			vmInst.Config.AutoStart = false
+		}
+	}
+	if rc.AutostartDelay != nil {
+		if *rc.AutostartDelay > 3600 {
+			vmInst.Config.AutoStartDelay = 3600
+		} else {
+			vmInst.Config.AutoStartDelay = *rc.AutostartDelay
+		}
+	}
+	if rc.Restart != nil {
+		if *rc.Restart {
+			vmInst.Config.Restart = true
+		} else {
+			vmInst.Config.Restart = false
+		}
+	}
+	if rc.RestartDelay != nil {
+		vmInst.Config.RestartDelay = *rc.RestartDelay
+	}
+	if rc.MaxWait != nil {
+		vmInst.Config.MaxWait = *rc.MaxWait
+	}
+}
+
+func updateVmSound(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+	if rc.Sound != nil {
+		if *rc.Sound {
+			vmInst.Config.Sound = true
+		} else {
+			vmInst.Config.Sound = false
+		}
+	}
+	if rc.SoundIn != nil {
+		if !strings.HasPrefix(*rc.SoundIn, "/dev/dsp") {
+			return errors.New("invalid sound dev")
+		}
+		vmInst.Config.SoundIn = *rc.SoundIn
+	}
+	if rc.SoundOut != nil {
+		if !strings.HasPrefix(*rc.SoundOut, "/dev/dsp") {
+			return errors.New("invalid sound dev")
+		}
+		vmInst.Config.SoundOut = *rc.SoundOut
+	}
+	return nil
+}
+
+func updateVmScreen(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+
+	if rc.Screen != nil {
+		if *rc.Screen {
+			vmInst.Config.Screen = true
+		} else {
+			vmInst.Config.Screen = false
+		}
+	}
+	if rc.ScreenWidth != nil {
+		vmInst.Config.ScreenWidth = *rc.ScreenWidth
+	}
+	if rc.ScreenHeight != nil {
+		vmInst.Config.ScreenHeight = *rc.ScreenHeight
+	}
+
+	return nil
+}
+
+func updateVmScreenOptions(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+	if rc.Vncport != nil {
+		if *rc.Vncport != "AUTO" {
+			port, err := strconv.Atoi(*rc.Vncport)
+			if err != nil {
+				return errors.New("invalid vnc port")
+			}
+			if port < 1024 || port > 65535 {
+				return errors.New("invalid vnc port")
+			}
+		}
+		vmInst.Config.VNCPort = *rc.Vncport
+	}
+	if rc.Keyboard != nil {
+		layoutNames := GetKbdLayoutNames()
+		if !util.ContainsStr(layoutNames, *rc.Keyboard) {
+			return errors.New("invalid keyboard layout")
+		}
+		vmInst.Config.KbdLayout = *rc.Keyboard
+	}
+	if rc.Tablet != nil {
+		if *rc.Tablet {
+			vmInst.Config.Tablet = true
+		} else {
+			vmInst.Config.Tablet = false
+		}
+	}
+	if rc.Vncwait != nil {
+		if *rc.Vncwait {
+			vmInst.Config.VNCWait = true
+		} else {
+			vmInst.Config.VNCWait = false
+		}
+	}
+	return nil
+}
+
+func updateVmCom1(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+	if rc.Com1 != nil {
+		if *rc.Com1 {
+			vmInst.Config.Com1 = true
+		} else {
+			vmInst.Config.Com1 = false
+		}
+	}
+	if rc.Com1Dev != nil {
+		if *rc.Com1Dev != "AUTO" {
+			if !strings.HasPrefix(*rc.Com1Dev, "/dev/nmdm") {
+				return errors.New("invalid com dev")
+			}
+		}
+		vmInst.Config.Com1Dev = *rc.Com1Dev
+	}
+	if rc.Com1Log != nil {
+		if *rc.Com1Log {
+			vmInst.Config.Com1Log = true
+		} else {
+			vmInst.Config.Com1Log = false
+		}
+	}
+	if rc.Com1Speed != nil {
+		vmInst.Config.Com1Speed = *rc.Com1Speed
+	}
+	return nil
+}
+
+func updateVmCom2(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+	if rc.Com2 != nil {
+		if *rc.Com2 {
+			vmInst.Config.Com2 = true
+		} else {
+			vmInst.Config.Com2 = false
+		}
+	}
+	if rc.Com2Dev != nil {
+		if *rc.Com2Dev != "AUTO" {
+			if !strings.HasPrefix(*rc.Com2Dev, "/dev/nmdm") {
+				return errors.New("invalid com dev")
+			}
+		}
+		vmInst.Config.Com2Dev = *rc.Com2Dev
+	}
+	if rc.Com2Log != nil {
+		if *rc.Com2Log {
+			vmInst.Config.Com2Log = true
+		} else {
+			vmInst.Config.Com2Log = false
+		}
+	}
+	if rc.Com2Speed != nil {
+		vmInst.Config.Com2Speed = *rc.Com2Speed
+	}
+	return nil
+}
+
+func updateVmCom3(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+	if rc.Com3 != nil {
+		if *rc.Com3 {
+			vmInst.Config.Com3 = true
+		} else {
+			vmInst.Config.Com3 = false
+		}
+	}
+	if rc.Com3Dev != nil {
+		if *rc.Com3Dev != "AUTO" {
+			if !strings.HasPrefix(*rc.Com3Dev, "/dev/nmdm") {
+				return errors.New("invalid com dev")
+			}
+		}
+		vmInst.Config.Com3Dev = *rc.Com3Dev
+	}
+	if rc.Com3Log != nil {
+		if *rc.Com3Log {
+			vmInst.Config.Com3Log = true
+		} else {
+			vmInst.Config.Com3Log = false
+		}
+	}
+	if rc.Com3Speed != nil {
+		vmInst.Config.Com3Speed = *rc.Com3Speed
+	}
+	return nil
+}
+
+func updateVmCom4(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+	if rc.Com4 != nil {
+		if *rc.Com4 {
+			vmInst.Config.Com4 = true
+		} else {
+			vmInst.Config.Com4 = false
+		}
+	}
+	if rc.Com4Dev != nil {
+		if *rc.Com4Dev != "AUTO" {
+			if !strings.HasPrefix(*rc.Com4Dev, "/dev/nmdm") {
+				return errors.New("invalid com dev")
+			}
+		}
+		vmInst.Config.Com4Dev = *rc.Com4Dev
+	}
+	if rc.Com4Log != nil {
+		if *rc.Com4Log {
+			vmInst.Config.Com4Log = true
+		} else {
+			vmInst.Config.Com4Log = false
+		}
+	}
+	if rc.Com4Speed != nil {
+		vmInst.Config.Com4Speed = *rc.Com4Speed
+	}
+	return nil
+}
+
+func updateVmBasics(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+	if rc.Name != nil {
+		if !util.ValidVmName(*rc.Name) {
+			return errors.New("invalid name")
+		}
+		if _, err := vm.GetByName(*rc.Name); err == nil {
+			return fmt.Errorf("%v already exists", *rc.Name)
+		}
+		vmInst.Name = *rc.Name
+	}
+	if rc.Description != nil {
+		vmInst.Description = *rc.Description
+	}
+	if rc.Cpu != nil {
+		vmInst.Config.Cpu = *rc.Cpu
+	}
+	if rc.Mem != nil {
+		vmInst.Config.Mem = *rc.Mem
+	}
+	return nil
 }
 
 func (s *server) GetVmId(_ context.Context, v *wrapperspb.StringValue) (*cirrina.VMID, error) {

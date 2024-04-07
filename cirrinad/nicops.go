@@ -22,17 +22,14 @@ func nicClone(rs *requests.Request) {
 	var nicInst *vm_nics.VmNic
 	nicInst, err = vm_nics.GetById(reqData.NicId)
 	if err != nil {
-		slog.Error("deleteVM error getting nic", "nic", reqData.NicId, "err", err)
+		slog.Error("nicClone error getting nic", "nic", reqData.NicId, "err", err)
 		rs.Failed()
 		return
 	}
-	pendingReqIds := requests.PendingReqExists(nicInst.ID)
-	for _, pendingReqId := range pendingReqIds {
-		if pendingReqId != rs.ID {
-			slog.Error("failing request to clone NIC which has pending request", "nic", nicInst.ID)
-			rs.Failed()
-			return
-		}
+	if nicHasPendingReq(rs.ID, nicInst.ID) {
+		slog.Error("failing request to clone NIC which has pending request", "nic", nicInst.ID)
+		rs.Failed()
+		return
 	}
 	existingVmNic, err := vm_nics.GetByName(reqData.NewNicName)
 	if err != nil {
@@ -93,4 +90,15 @@ func nicClone(rs *requests.Request) {
 	}
 	slog.Debug("cloned nic", "newVmNicId", newVmNicId)
 	rs.Succeeded()
+}
+
+// nicHasPendingReq check if the nic has pending requests other than this one
+func nicHasPendingReq(thisReqId string, nicId string) bool {
+	pendingReqIds := requests.PendingReqExists(nicId)
+	for _, pendingReqId := range pendingReqIds {
+		if pendingReqId != thisReqId {
+			return true
+		}
+	}
+	return false
 }

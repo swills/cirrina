@@ -14,5 +14,5 @@ repos:
                 cirrina/cirrina.pb.go
             )$
       - id: go-critic
-#      - id: go-cyclo
-#        args: [-over=15]
+      - id: go-cyclo
+        args: [-over=15]

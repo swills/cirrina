@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"math"
@@ -17,6 +18,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"unicode"
 
@@ -101,70 +103,155 @@ func ContainsInt(elems []int, v int) bool {
 	return false
 }
 
-func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (port int, err error) {
-	cmd := exec.Command("netstat", "-an", "--libxo", "json")
-	stdout, err := cmd.StdoutPipe()
+func captureReader(r io.Reader) ([]byte, error) {
+	var out []byte
+	buf := make([]byte, 1024)
+	for {
+		n, err := r.Read(buf)
+		if n > 0 {
+			d := buf[:n]
+			out = append(out, d...)
+		}
+		if err != nil {
+			// Read returns io.EOF at the end of file, which is not an error for us
+			if err == io.EOF {
+				err = nil
+			}
+			return out, err
+		}
+	}
+}
+
+// runCommandAndCaptureOutput does what it says on the tin. maybe I should make a version that takes a string to pass
+// in on standard input. also maybe I should make this public here. perhaps pointer args would be better
+func runCommandAndCaptureOutput(cmdName string, cmdArgs []string) ([]byte, error) {
+	var outResult []byte
+	var errResult []byte
+	var errStdout, errStderr error
+
+	cmd := exec.Command(cmdName, cmdArgs...)
+	stdoutIn, err := cmd.StdoutPipe()
 	if err != nil {
-		return 0, err
+		return []byte{}, err
+	}
+	stderrIn, err := cmd.StderrPipe()
+	if err != nil {
+		return []byte{}, err
 	}
 	if err := cmd.Start(); err != nil {
-		return 0, err
+		return []byte{}, err
 	}
-	var result map[string]interface{}
-	if err := json.NewDecoder(stdout).Decode(&result); err != nil {
-		return 0, err
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		outResult, errStdout = captureReader(stdoutIn)
+		wg.Done()
+	}()
+
+	errResult, errStderr = captureReader(stderrIn)
+
+	wg.Wait()
+
+	if errStdout != nil {
+		return []byte{}, errStderr
+	}
+	if errStderr != nil {
+		return []byte{}, errStderr
+	}
+	if len(errResult) > 0 {
+		return []byte{}, errors.New(string(errResult))
 	}
 	if err := cmd.Wait(); err != nil {
-		slog.Error("GetFreeTCPPort", "err", err)
-		return 0, err
+		return []byte{}, err
+	}
+
+	return outResult, nil
+}
+
+func getNetstatJsonOutput() ([]byte, error) {
+	return runCommandAndCaptureOutput("/usr/bin/netstat", []string{"-an", "--libxo", "json"})
+}
+
+func parseNetstatSocket(socket map[string]interface{}) (int, error) {
+	var portInt int
+	var err error
+
+	if socket["protocol"] != "tcp4" && socket["protocol"] != "tcp46" && socket["protocol"] != "tcp6" {
+		return 0, errors.New("not a tcp socket")
+	}
+	state, valid := socket["tcp-state"].(string)
+	if !valid {
+		return 0, errors.New("missing tcp-stat")
+	}
+	realState := strings.TrimSpace(state)
+	if realState != "LISTEN" {
+		return 0, errors.New("port is not a listen port")
+	}
+	local, valid := socket["local"].(map[string]interface{})
+	if !valid {
+		return 0, errors.New("not a listen socket")
+	}
+	port, valid := local["port"]
+	if !valid {
+		return 0, errors.New("tcp port not found")
+	}
+	p, valid := port.(string)
+	if !valid {
+		return 0, errors.New("tcp port not parsable")
+	}
+	portInt, err = strconv.Atoi(p)
+	if err != nil {
+		return 0, errors.New("tcp port failed to convert to int")
+	}
+	return portInt, nil
+}
+
+func parseNetstatJsonOutput(netstatOutput []byte) ([]int, error) {
+	var result map[string]interface{}
+
+	err := json.Unmarshal(netstatOutput, &result)
+	if err != nil {
+		return nil, err
 	}
 	statistics, valid := result["statistics"].(map[string]interface{})
 	if !valid {
-		return 0, nil
+		return nil, errors.New("failed parsing output, statistics not found")
 	}
 	sockets, valid := statistics["socket"].([]interface{})
 	if !valid {
-		return 0, errors.New("failed parsing netstat output - 1")
+		return nil, errors.New("failed parsing output, socket not found")
 	}
-	localListenPorts := make(map[int]struct{})
+
+	var localPortList []int
 	for _, value := range sockets {
 		socket, valid := value.(map[string]interface{})
 		if !valid {
 			continue
 		}
-		if socket["protocol"] == "tcp4" || socket["protocol"] == "tcp46" || socket["protocol"] == "tcp6" {
-			state, valid := socket["tcp-state"].(string)
-			if !valid {
-				continue
-			}
-			realState := strings.TrimSpace(state)
-			if realState == "LISTEN" {
-				local, valid := socket["local"].(map[string]interface{})
-				if !valid {
-					continue
-				}
-				port, valid := local["port"]
-				if !valid {
-					continue
-				}
-				p, valid := port.(string)
-				if !valid {
-					continue
-				}
-				portInt, err := strconv.Atoi(p)
-				if err != nil {
-					return 0, err
-				}
-				if _, exists := localListenPorts[portInt]; !exists {
-					localListenPorts[portInt] = struct{}{}
-				}
-			}
+		portInt, err := parseNetstatSocket(socket)
+		if err != nil {
+			continue
+		}
+		if !ContainsInt(localPortList, portInt) {
+			localPortList = append(localPortList, portInt)
 		}
 	}
-	var uniqueLocalListenPorts []int
-	for l := range localListenPorts {
-		uniqueLocalListenPorts = append(uniqueLocalListenPorts, l)
+
+	return localPortList, nil
+}
+
+func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (port int, err error) {
+	// get and parse netstat output
+	netstatJson, err := getNetstatJsonOutput()
+	if err != nil {
+		return 0, err
 	}
+	uniqueLocalListenPorts, err := parseNetstatJsonOutput(netstatJson)
+	if err != nil {
+		return 0, err
+	}
+
 	sort.Slice(uniqueLocalListenPorts, func(i, j int) bool {
 		return uniqueLocalListenPorts[i] < uniqueLocalListenPorts[j]
 	})

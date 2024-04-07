@@ -20,67 +20,42 @@ func (s *server) AddVmNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 	var vmNicId *cirrina.VmNicId
 	var err error
 
-	reflect := v.ProtoReflect()
-
 	if v.Name == nil || !util.ValidNicName(*v.Name) {
 		return vmNicId, errors.New("invalid name")
 	}
 	vmNicInst.Name = *v.Name
 
-	if isOptionPassed(reflect, "description") {
+	if v.Description != nil {
 		vmNicInst.Description = *v.Description
 	}
-	if isOptionPassed(reflect, "mac") {
+	if v.Mac != nil {
 		vmNicInst.Mac, err = vm_nics.ParseMac(*v.Mac)
 		if err != nil {
 			return vmNicId, err
 		}
 	}
-	if isOptionPassed(reflect, "netdevtype") {
-		var newNetDevType string
-		newNetDevType, err = vm_nics.ParseNetDevType(*v.Netdevtype)
+	if v.Netdevtype != nil {
+		newNetDevType, err := vm_nics.ParseNetDevType(*v.Netdevtype)
 		if err != nil {
 			return vmNicId, err
 		}
 		vmNicInst.NetDevType = newNetDevType
 	}
-	if isOptionPassed(reflect, "nettype") {
-		var newNetType string
-		newNetType, err = vm_nics.ParseNetType(*v.Nettype)
+	if v.Nettype != nil {
+		newNetType, err := vm_nics.ParseNetType(*v.Nettype)
 		if err != nil {
 			return vmNicId, err
 		}
 		vmNicInst.NetType = newNetType
 	}
-	if isOptionPassed(reflect, "switchid") {
-		var newSwitchId string
-		newSwitchId, err = _switch.ParseSwitchId(*v.Switchid, vmNicInst.NetType)
+	if v.Switchid != nil {
+		newSwitchId, err := _switch.ParseSwitchId(*v.Switchid, vmNicInst.NetType)
 		if err != nil {
 			return vmNicId, err
 		}
 		vmNicInst.SwitchId = newSwitchId
 	}
-	// can only set rate limiting on IF type devs (TAP and VMNET), not netgraph devs
-	if vmNicInst.NetDevType == "TAP" || vmNicInst.NetDevType == "VMNET" {
-		if isOptionPassed(reflect, "ratelimit") {
-			vmNicInst.RateLimit = *v.Ratelimit
-		}
-		if vmNicInst.RateLimit {
-			if isOptionPassed(reflect, "ratein") {
-				vmNicInst.RateIn = *v.Ratein
-			}
-			if isOptionPassed(reflect, "rateout") {
-				vmNicInst.RateOut = *v.Rateout
-			}
-		} else { // rate limit disabled, force to zero
-			vmNicInst.RateIn = 0
-			vmNicInst.RateOut = 0
-		}
-	} else {
-		vmNicInst.RateLimit = false
-		vmNicInst.RateIn = 0
-		vmNicInst.RateOut = 0
-	}
+	vmNicParseRateLimit(&vmNicInst, v.Ratelimit, v.Ratein, v.Rateout)
 	newVmNicId, err := vm_nics.Create(&vmNicInst)
 	if err != nil {
 		return &cirrina.VmNicId{}, err
@@ -288,36 +263,44 @@ func (s *server) GetVmNicVm(_ context.Context, i *cirrina.VmNicId) (v *cirrina.V
 	return &pvmId, nil
 }
 
+func updateReqIsValid(v *cirrina.VmNicInfoUpdate) (*vm_nics.VmNic, bool) {
+	var err error
+	var vmNicInst *vm_nics.VmNic
+	if v == nil || v.Vmnicid == nil || v.Vmnicid.Value == "" {
+		return &vm_nics.VmNic{}, false
+	}
+	nicUuid, err := uuid.Parse(v.Vmnicid.Value)
+	if err != nil {
+		return &vm_nics.VmNic{}, false
+	}
+
+	vmNicInst, err = vm_nics.GetById(nicUuid.String())
+	if err != nil {
+		return &vm_nics.VmNic{}, false
+	}
+
+	return vmNicInst, true
+}
+
 func (s *server) UpdateVmNic(_ context.Context, v *cirrina.VmNicInfoUpdate) (*cirrina.ReqBool, error) {
 	var re cirrina.ReqBool
 	var err error
 
-	if v == nil || v.Vmnicid == nil || v.Vmnicid.Value == "" {
-		return &re, errors.New("request error")
-	}
-	nicUuid, err := uuid.Parse(v.Vmnicid.Value)
-	if err != nil {
-		return &re, errors.New("request error")
-	}
+	vmNicInst, isValid := updateReqIsValid(v)
 
-	vmNicInst, err := vm_nics.GetById(nicUuid.String())
-	if err != nil {
-		slog.Error("error finding nic", "vm", v.Vmnicid.Value, "err", err)
-		return &re, errors.New("not found")
+	if !isValid {
+		return &re, errors.New("request error")
 	}
 
 	if v.Name != nil {
 		if !util.ValidNicName(*v.Name) {
 			return &re, errors.New("invalid name")
-		} else {
-			vmNicInst.Name = *v.Name
 		}
+		vmNicInst.Name = *v.Name
 	}
-
 	if v.Description != nil {
 		vmNicInst.Description = *v.Description
 	}
-
 	if v.Mac != nil {
 		var newMac string
 		newMac, err = vm_nics.ParseMac(*v.Mac)
@@ -327,52 +310,28 @@ func (s *server) UpdateVmNic(_ context.Context, v *cirrina.VmNicInfoUpdate) (*ci
 		vmNicInst.Mac = newMac
 	}
 	if v.Netdevtype != nil {
-		var newNetDevType string
-		newNetDevType, err = vm_nics.ParseNetDevType(*v.Netdevtype)
+		newNetDevType, err := vm_nics.ParseNetDevType(*v.Netdevtype)
 		if err != nil {
 			return &re, err
 		}
 		vmNicInst.NetDevType = newNetDevType
 	}
 	if v.Nettype != nil {
-		var newNetType string
-		newNetType, err = vm_nics.ParseNetType(*v.Nettype)
+		newNetType, err := vm_nics.ParseNetType(*v.Nettype)
 		if err != nil {
 			return &re, err
 		}
 		vmNicInst.NetType = newNetType
 	}
 	if v.Switchid != nil {
-		vmNicInst.SwitchId = *v.Switchid
-		var newSwitchId string
-		newSwitchId, err = _switch.ParseSwitchId(*v.Switchid, vmNicInst.NetType)
+		newSwitchId, err := _switch.ParseSwitchId(*v.Switchid, vmNicInst.NetType)
 		if err != nil {
 			return &re, err
 		}
 		vmNicInst.SwitchId = newSwitchId
 	}
+	vmNicParseRateLimit(vmNicInst, v.Ratelimit, v.Ratein, v.Rateout)
 
-	// can only set rate limiting on "IF" type devs (TAP and VMNET), not netgraph devs
-	if vmNicInst.NetDevType == "TAP" || vmNicInst.NetDevType == "VMNET" {
-		if v.Ratelimit != nil {
-			vmNicInst.RateLimit = *v.Ratelimit
-		}
-		if vmNicInst.RateLimit {
-			if v.Ratein != nil {
-				vmNicInst.RateIn = *v.Ratein
-			}
-			if v.Rateout != nil {
-				vmNicInst.RateOut = *v.Rateout
-			}
-		} else { // rate limit disabled, force to zero
-			vmNicInst.RateIn = 0
-			vmNicInst.RateOut = 0
-		}
-	} else {
-		vmNicInst.RateLimit = false
-		vmNicInst.RateIn = 0
-		vmNicInst.RateOut = 0
-	}
 	err = vmNicInst.Save()
 	if err != nil {
 		return &re, err
@@ -412,4 +371,29 @@ func (s *server) CloneVmNic(_ context.Context, cloneReq *cirrina.VmNicCloneReq) 
 		return &cirrina.RequestID{}, err
 	}
 	return &cirrina.RequestID{Value: newReq.ID}, nil
+}
+
+// vmNicParseRateLimit helper for dealing with rate limiting
+func vmNicParseRateLimit(vmNicInst *vm_nics.VmNic, rateLimit *bool, rateIn *uint64, rateOut *uint64) {
+	// can only set rate limiting on IF type devs (TAP and VMNET), not netgraph devs
+	if vmNicInst.NetDevType == "TAP" || vmNicInst.NetDevType == "VMNET" {
+		if rateLimit != nil {
+			vmNicInst.RateLimit = *rateLimit
+		}
+		if vmNicInst.RateLimit {
+			if rateIn != nil {
+				vmNicInst.RateIn = *rateIn
+			}
+			if rateOut != nil {
+				vmNicInst.RateOut = *rateOut
+			}
+		} else { // rate limit disabled, force to zero
+			vmNicInst.RateIn = 0
+			vmNicInst.RateOut = 0
+		}
+	} else {
+		vmNicInst.RateLimit = false
+		vmNicInst.RateIn = 0
+		vmNicInst.RateOut = 0
+	}
 }

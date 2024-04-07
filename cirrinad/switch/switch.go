@@ -205,7 +205,7 @@ func DestroyBridges() {
 	}
 }
 
-func BridgeIfAddMember(bridgeName string, memberName string, learn bool, mac string) error {
+func BridgeIfAddMember(bridgeName string, memberName string, learn bool) error {
 	// TODO
 	// netDevs := util.GetHostInterfaces()
 	//
@@ -225,44 +225,48 @@ func BridgeIfAddMember(bridgeName string, memberName string, learn bool, mac str
 		return errors.New(errtxt)
 	}
 
-	if !learn {
-		slog.Debug("BridgeIfAddMember", "learn", learn, "mac", mac)
-		// cmd = exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "-learn", memberName)
-		// cmd.Stdout = &out
-		// if err := cmd.Start(); err != nil {
-		// 	return err
-		// }
-		// if err := cmd.Wait(); err != nil {
-		// 	slog.Error("failed running ifconfig", "err", err, "out", out)
-		// 	errtxt := fmt.Sprintf("ifconfig failed: err: %v, out: %v", err, out)
-		// 	return errors.New(errtxt)
-		// }
-		//
-		// cmd = exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "-discover", memberName)
-		// cmd.Stdout = &out
-		// if err := cmd.Start(); err != nil {
-		// 	return err
-		// }
-		// if err := cmd.Wait(); err != nil {
-		// 	slog.Error("failed running ifconfig", "err", err, "out", out)
-		// 	errtxt := fmt.Sprintf("ifconfig failed: err: %v, out: %v", err, out)
-		// 	return errors.New(errtxt)
-		// }
-		// if mac != "" {
-		// 	// https://cgit.freebsd.org/src/tree/sbin/ifconfig/ifbridge.c?id=eba230afba4932f02a1ca44efc797cf7499a5cb0#n405
-		// 	// patched this to 0
-		// 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/obj/usr/src/amd64.amd64/sbin/ifconfig/ifconfig", bridgeName, "static", memberName, mac)
-		// 	cmd.Stdout = &out
-		// 	if err := cmd.Start(); err != nil {
-		// 		return err
-		// 	}
-		// 	if err := cmd.Wait(); err != nil {
-		// 		slog.Error("failed running ifconfig", "err", err, "out", out)
-		// 		errtxt := fmt.Sprintf("ifconfig failed: err: %v, out: %v", err, out)
-		// 		return errors.New(errtxt)
-		// 	}
-		// }
-	}
+	// code I was testing for disabling "learning" on bridges, ie, being like vmware to a degree -- that is, not
+	// allow VMs to be "promiscuous" and snoop on each others traffic
+	// decided not to use right now. may come back to it later
+
+	// if !learn {
+	// slog.Debug("BridgeIfAddMember", "learn", learn, "mac", mac)
+	// cmd = exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "-learn", memberName)
+	// cmd.Stdout = &out
+	// if err := cmd.Start(); err != nil {
+	// 	return err
+	// }
+	// if err := cmd.Wait(); err != nil {
+	// 	slog.Error("failed running ifconfig", "err", err, "out", out)
+	// 	errtxt := fmt.Sprintf("ifconfig failed: err: %v, out: %v", err, out)
+	// 	return errors.New(errtxt)
+	// }
+	//
+	// cmd = exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "-discover", memberName)
+	// cmd.Stdout = &out
+	// if err := cmd.Start(); err != nil {
+	// 	return err
+	// }
+	// if err := cmd.Wait(); err != nil {
+	// 	slog.Error("failed running ifconfig", "err", err, "out", out)
+	// 	errtxt := fmt.Sprintf("ifconfig failed: err: %v, out: %v", err, out)
+	// 	return errors.New(errtxt)
+	// }
+	// if mac != "" {
+	// 	// https://cgit.freebsd.org/src/tree/sbin/ifconfig/ifbridge.c?id=eba230afba4932f02a1ca44efc797cf7499a5cb0#n405
+	// 	// patched this to 0
+	// 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/obj/usr/src/amd64.amd64/sbin/ifconfig/ifconfig", bridgeName, "static", memberName, mac)
+	// 	cmd.Stdout = &out
+	// 	if err := cmd.Start(); err != nil {
+	// 		return err
+	// 	}
+	// 	if err := cmd.Wait(); err != nil {
+	// 		slog.Error("failed running ifconfig", "err", err, "out", out)
+	// 		errtxt := fmt.Sprintf("ifconfig failed: err: %v, out: %v", err, out)
+	// 		return errors.New(errtxt)
+	// 	}
+	// }
+	// }
 
 	return nil
 }
@@ -460,7 +464,7 @@ func (d *Switch) SetUplink(uplink string) error {
 		}
 
 		slog.Debug("setting IF bridge uplink", "id", d.ID)
-		err = BridgeIfAddMember(d.Name, uplink, true, "")
+		err = BridgeIfAddMember(d.Name, uplink, true)
 		if err != nil {
 			return err
 		}

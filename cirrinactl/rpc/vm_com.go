@@ -64,55 +64,12 @@ func UseCom(id string, comNum int) error {
 	fmt.Print("\033[H\033[2J")
 
 	// send
-	go func(stream cirrina.VMInfo_Com1InteractiveClient) {
-		for {
-			select {
-			case <-bgCtx.Done():
-				return
-			default:
-				b := make([]byte, 1)
-				_, err = os.Stdin.Read(b)
-				if err != nil {
-					cancel()
-					return
-				}
-				if b[0] == 0x1c { // == FS ("File Separator") control character -- ctrl-\ -- see ascii.7
-					cancel()
-					return
-				}
-				req := &cirrina.ComDataRequest{
-					Data: &cirrina.ComDataRequest_ComInBytes{
-						ComInBytes: b,
-					},
-				}
-				err = stream.Send(req)
-				if err != nil {
-					cancel()
-					return
-				}
-			}
-		}
-	}(stream)
+	go comSend(bgCtx, cancel, stream)
 
 	// receive
-	go func(stream cirrina.VMInfo_Com1InteractiveClient) {
-		for {
-			select {
-			case <-bgCtx.Done():
-				return
-			default:
-				var out *cirrina.ComDataResponse
-				out, err = stream.Recv()
-				if err != nil {
-					cancel()
-					return
-				}
-				fmt.Print(string(out.ComOutBytes))
-			}
-		}
-	}(stream)
+	go comReceive(bgCtx, cancel, stream)
 
-	// monitor
+	// monitor that the VM is still up
 	for {
 		select {
 		case <-bgCtx.Done():
@@ -131,6 +88,58 @@ func UseCom(id string, comNum int) error {
 				return nil
 			}
 			time.Sleep(1 * time.Second)
+		}
+	}
+}
+
+// comSend reads data from the local terminal and sends it to the remote serial port
+func comSend(bgCtx context.Context, cancel context.CancelFunc, stream cirrina.VMInfo_Com1InteractiveClient) {
+	var err error
+	var req *cirrina.ComDataRequest
+	b := make([]byte, 1)
+	for {
+		select {
+		case <-bgCtx.Done():
+			return
+		default:
+			_, err = os.Stdin.Read(b)
+			if err != nil {
+				cancel()
+				return
+			}
+			if b[0] == 0x1c { // == FS ("File Separator") control character -- ctrl-\ -- see ascii.7
+				cancel()
+				return
+			}
+			req = &cirrina.ComDataRequest{
+				Data: &cirrina.ComDataRequest_ComInBytes{
+					ComInBytes: b,
+				},
+			}
+			err = stream.Send(req)
+			if err != nil {
+				cancel()
+				return
+			}
+		}
+	}
+}
+
+// comReceive receives data from the remote serial port and outputs it to the local terminal
+func comReceive(bgCtx context.Context, cancel context.CancelFunc, stream cirrina.VMInfo_Com1InteractiveClient) {
+	var err error
+	var out *cirrina.ComDataResponse
+	for {
+		select {
+		case <-bgCtx.Done():
+			return
+		default:
+			out, err = stream.Recv()
+			if err != nil {
+				cancel()
+				return
+			}
+			fmt.Print(string(out.ComOutBytes))
 		}
 	}
 }

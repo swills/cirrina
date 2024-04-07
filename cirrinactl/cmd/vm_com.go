@@ -78,7 +78,11 @@ func startCom(comNum int) error {
 		return err
 	}
 	if !running {
-		return errors.New("vm not running")
+		if VmName != "" {
+			return fmt.Errorf("vm %s not running", VmName)
+		} else {
+			return fmt.Errorf("vm %s not running", VmId)
+		}
 	}
 
 	fmt.Print("starting terminal session, press ctrl-\\ to quit\n")

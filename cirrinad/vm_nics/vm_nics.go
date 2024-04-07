@@ -37,51 +37,24 @@ func GetAll() []*VmNic {
 }
 
 func Create(vmNicInst *VmNic) (newNicId string, err error) {
-	if !util.ValidNicName(vmNicInst.Name) {
-		return newNicId, errors.New("invalid name")
-	}
-	existingVmNic, err := GetByName(vmNicInst.Name)
-	if err != nil {
-		slog.Error("error checking db for VmNic", "name", vmNicInst.Name, "err", err)
-		return newNicId, err
-	}
-	if existingVmNic.Name != "" {
-		slog.Error("VmNic exists", "VmNic", vmNicInst.Name)
-		return newNicId, errors.New("VmNic exists")
-	}
-
 	if vmNicInst.Mac == "" {
 		vmNicInst.Mac = "AUTO"
 	}
-
-	if vmNicInst.Mac != "AUTO" {
-		newMac, err := net.ParseMAC(vmNicInst.Mac)
-		if err != nil {
-			return newNicId, errors.New("bad MAC address")
-		}
-		vmNicInst.Mac = newMac.String()
-	}
-
 	if vmNicInst.NetType == "" {
 		vmNicInst.NetType = "VIRTIONET"
 	}
-
-	if vmNicInst.NetType != "VIRTIONET" && vmNicInst.NetType != "E1000" {
-		return newNicId, errors.New("bad net type")
-	}
-
 	if vmNicInst.NetDevType == "" {
 		vmNicInst.NetDevType = "TAP"
 	}
 
-	if vmNicInst.NetDevType != "TAP" && vmNicInst.NetDevType != "VMNET" && vmNicInst.NetDevType != "NETGRAPH" {
-		return newNicId, errors.New("bad net dev type")
+	valid, err := validateNewNic(vmNicInst)
+	if err != nil {
+		slog.Error("error validating nic", "VmNic", vmNicInst, "err", err)
+		return newNicId, err
 	}
-
-	if vmNicInst.RateLimit {
-		if vmNicInst.RateIn <= 0 || vmNicInst.RateOut <= 0 {
-			return newNicId, errors.New("bad network rate limit")
-		}
+	if !valid {
+		slog.Error("VmNic exists or not valid", "VmNic", vmNicInst.Name)
+		return newNicId, errors.New("VmNic exists or not valid")
 	}
 
 	db := GetVmNicDb()
@@ -212,4 +185,42 @@ func ParseNetType(netType cirrina.NetType) (res string, err error) {
 		err = errors.New("invalid net type name")
 	}
 	return res, err
+}
+
+// validateNewNic validate and normalize new nic
+func validateNewNic(vmNicInst *VmNic) (bool, error) {
+	if !util.ValidNicName(vmNicInst.Name) {
+		return false, errors.New("invalid name")
+	}
+	existingVmNic, err := GetByName(vmNicInst.Name)
+	if err != nil {
+		return false, err
+	}
+	if existingVmNic.Name != "" {
+		return true, nil
+	}
+
+	if vmNicInst.NetType != "VIRTIONET" && vmNicInst.NetType != "E1000" {
+		return false, errors.New("bad net type")
+	}
+
+	if vmNicInst.NetDevType != "TAP" && vmNicInst.NetDevType != "VMNET" && vmNicInst.NetDevType != "NETGRAPH" {
+		return false, errors.New("bad net dev type")
+	}
+
+	if vmNicInst.RateLimit {
+		if vmNicInst.RateIn <= 0 || vmNicInst.RateOut <= 0 {
+			return false, errors.New("bad network rate limit")
+		}
+	}
+	if vmNicInst.Mac != "AUTO" {
+		newMac, err := net.ParseMAC(vmNicInst.Mac)
+		if err != nil {
+			return false, errors.New("bad MAC address")
+		}
+		// normalize MAC
+		vmNicInst.Mac = newMac.String()
+	}
+
+	return true, nil
 }

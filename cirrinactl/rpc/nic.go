@@ -3,6 +3,7 @@ package rpc
 import (
 	"cirrina/cirrina"
 	"errors"
+	"fmt"
 	"io"
 
 	"google.golang.org/grpc/status"
@@ -16,9 +17,7 @@ func AddNic(name string, description string, mac string, nicType string, nicDevT
 	}
 
 	var newVmNic cirrina.VmNicInfo
-
-	var thisNetType cirrina.NetType
-	var thisNetDevType cirrina.NetDevType
+	var err error
 
 	newVmNic.Name = &name
 	newVmNic.Description = &description
@@ -28,30 +27,16 @@ func AddNic(name string, description string, mac string, nicType string, nicDevT
 	newVmNic.Ratein = &rateIn
 	newVmNic.Rateout = &rateOut
 
-	switch {
-	case nicType == "VIRTIONET" || nicType == "virtio-net":
-		thisNetType = cirrina.NetType_VIRTIONET
-	case nicType == "E1000" || nicType == "e1000":
-		thisNetType = cirrina.NetType_E1000
-	default:
-		return "", errors.New("net type must be either VIRTIONET or E1000")
+	newVmNic.Nettype, err = mapNicTypeStringToType(nicType)
+	if err != nil {
+		return "", err
 	}
 
-	switch {
-	case nicDevType == "TAP" || nicDevType == "tap":
-		thisNetDevType = cirrina.NetDevType_TAP
-	case nicDevType == "VMNET" || nicDevType == "vmnet":
-		thisNetDevType = cirrina.NetDevType_VMNET
-	case nicDevType == "NETGRAPH" || nicDevType == "netgraph":
-		thisNetDevType = cirrina.NetDevType_NETGRAPH
-	default:
-		return "", errors.New("net dev type must be one of TAP or VMNET or NETGRAPH")
+	newVmNic.Netdevtype, err = mapNicDevTypeStringToType(nicDevType)
+	if err != nil {
+		return "", err
 	}
 
-	newVmNic.Nettype = &thisNetType
-	newVmNic.Netdevtype = &thisNetDevType
-
-	var err error
 	var nicId *cirrina.VmNicId
 	nicId, err = serverClient.AddVmNic(defaultServerContext, &newVmNic)
 	if err != nil {
@@ -78,50 +63,62 @@ func RmNic(idPtr string) error {
 
 func GetVmNicInfo(id string) (NicInfo, error) {
 	var err error
+	var info NicInfo
 	var res *cirrina.VmNicInfo
+
 	res, err = serverClient.GetVmNicInfo(defaultServerContext, &cirrina.VmNicId{Value: id})
 	if err != nil {
 		return NicInfo{}, errors.New(status.Convert(err).Message())
 	}
-	netDevType := "unknown"
-	switch *res.Netdevtype {
-	case cirrina.NetDevType_TAP:
-		netDevType = "tap"
-	case cirrina.NetDevType_VMNET:
-		netDevType = "vmnet"
-	case cirrina.NetDevType_NETGRAPH:
-		netDevType = "netgraph"
+	if res == nil {
+		return NicInfo{}, errors.New("invalid server response")
 	}
-	netType := "unknown"
-	if *res.Nettype == cirrina.NetType_VIRTIONET {
-		netType = "virtio-net"
-	} else if *res.Nettype == cirrina.NetType_E1000 {
-		netType = "e1000"
+
+	if res.Name != nil {
+		info.Name = *res.Name
 	}
-	uplinkName := ""
+
+	if res.Description != nil {
+		info.Descr = *res.Description
+	}
+
+	if res.Mac != nil {
+		info.Mac = *res.Mac
+	}
+
+	if res.Nettype != nil {
+		info.NetType = mapNicTypeTypeToString(*res.Nettype)
+	}
+
+	if res.Netdevtype != nil {
+		info.NetDevType = mapNicDevTypeTypeToString(*res.Netdevtype)
+	}
+
 	if res.Switchid != nil && *res.Switchid != "" {
-		uplinkName, err = SwitchIdToName(*res.Switchid)
+		info.Uplink, err = SwitchIdToName(*res.Switchid)
 		if err != nil {
-			return NicInfo{}, err
+			info.Uplink = ""
 		}
 	}
-	var vmName string
-	vmName, err = NicGetVm(id)
+
+	info.VmName, err = NicGetVm(id)
 	if err != nil {
-		return NicInfo{}, err
+		info.VmName = ""
 	}
-	return NicInfo{
-		Name:        *res.Name,
-		Descr:       *res.Description,
-		Mac:         *res.Mac,
-		NetType:     netType,
-		NetDevType:  netDevType,
-		Uplink:      uplinkName,
-		VmName:      vmName,
-		RateLimited: *res.Ratelimit,
-		RateIn:      *res.Ratein,
-		RateOut:     *res.Rateout,
-	}, nil
+
+	if res.Ratelimit != nil {
+		info.RateLimited = *res.Ratelimit
+	}
+
+	if res.Ratein != nil {
+		info.RateIn = *res.Ratein
+	}
+
+	if res.Rateout != nil {
+		info.RateOut = *res.Rateout
+	}
+
+	return info, nil
 }
 
 func NicNameToId(name string) (nicId string, err error) {
@@ -268,41 +265,17 @@ func UpdateNic(id string, description *string, mac *string, nicType *string, nic
 	}
 
 	if nicType != nil {
-		var useNetType cirrina.NetType
-		switch *nicType {
-		case "VIRTIONET":
-			fallthrough
-		case "virtio-net":
-			useNetType = cirrina.NetType_VIRTIONET
-		case "E1000":
-			fallthrough
-		case "e1000":
-			useNetType = cirrina.NetType_E1000
-		default:
-			useNetType = cirrina.NetType_VIRTIONET
+		j.Nettype, err = mapNicTypeStringToType(*nicType)
+		if err != nil {
+			return err
 		}
-		j.Nettype = &useNetType
 	}
 
 	if nicDevType != nil {
-		var useNetDevType cirrina.NetDevType
-		switch *nicDevType {
-		case "TAP":
-			fallthrough
-		case "tap":
-			useNetDevType = cirrina.NetDevType_TAP
-		case "VMNET":
-			fallthrough
-		case "vmnet":
-			useNetDevType = cirrina.NetDevType_VMNET
-		case "NETGRAPH":
-			fallthrough
-		case "netgraph":
-			useNetDevType = cirrina.NetDevType_NETGRAPH
-		default:
-			useNetDevType = cirrina.NetDevType_TAP
+		j.Netdevtype, err = mapNicDevTypeStringToType(*nicDevType)
+		if err != nil {
+			return err
 		}
-		j.Netdevtype = &useNetDevType
 	}
 
 	if rateLimit != nil {
@@ -316,6 +289,7 @@ func UpdateNic(id string, description *string, mac *string, nicType *string, nic
 	if rateOut != nil {
 		j.Rateout = rateOut
 	}
+
 	if switchId != nil {
 		j.Switchid = switchId
 	}
@@ -329,4 +303,59 @@ func UpdateNic(id string, description *string, mac *string, nicType *string, nic
 		return errors.New("failed to update switch")
 	}
 	return nil
+}
+
+func mapNicTypeStringToType(nicType string) (*cirrina.NetType, error) {
+	NetTypeVirtioNet := cirrina.NetType_VIRTIONET
+	NetTypeE1000 := cirrina.NetType_E1000
+
+	switch {
+	case nicType == "VIRTIONET" || nicType == "virtionet" || nicType == "VIRTIO-NET" || nicType == "virtio-net":
+		return &NetTypeVirtioNet, nil
+	case nicType == "E1000" || nicType == "e1000":
+		return &NetTypeE1000, nil
+	default:
+		return nil, fmt.Errorf("invalid nic type %s, must be either VIRTIONET or E1000", nicType)
+	}
+}
+
+func mapNicDevTypeStringToType(nicDevType string) (*cirrina.NetDevType, error) {
+	NetDevTypeTAP := cirrina.NetDevType_TAP
+	NetDevTypeVMNet := cirrina.NetDevType_VMNET
+	NetDevTypeNetGraph := cirrina.NetDevType_NETGRAPH
+
+	switch {
+	case nicDevType == "TAP" || nicDevType == "tap":
+		return &NetDevTypeTAP, nil
+	case nicDevType == "VMNET" || nicDevType == "vmnet":
+		return &NetDevTypeVMNet, nil
+	case nicDevType == "NETGRAPH" || nicDevType == "netgraph":
+		return &NetDevTypeNetGraph, nil
+	default:
+		return nil, fmt.Errorf("invalid nic dev type %s, must be one of TAP, VMNET or NETGRAPH", nicDevType)
+	}
+}
+
+func mapNicTypeTypeToString(nicType cirrina.NetType) string {
+	switch nicType {
+	case cirrina.NetType_VIRTIONET:
+		return "virtio-net"
+	case cirrina.NetType_E1000:
+		return "e1000"
+	default:
+		return ""
+	}
+}
+
+func mapNicDevTypeTypeToString(nicDevType cirrina.NetDevType) string {
+	switch nicDevType {
+	case cirrina.NetDevType_TAP:
+		return "tap"
+	case cirrina.NetDevType_VMNET:
+		return "vmnet"
+	case cirrina.NetDevType_NETGRAPH:
+		return "netgraph"
+	default:
+		return ""
+	}
 }

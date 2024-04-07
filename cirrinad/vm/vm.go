@@ -403,6 +403,118 @@ func (vm *VM) createUefiVarsFile() {
 	}
 }
 
+func netStartupIf(vmNic vm_nics.VmNic) error {
+
+	// Create interface
+	args := []string{"/sbin/ifconfig", vmNic.NetDev, "create", "group", "cirrinad"}
+	cmd := exec.Command(config.Config.Sys.Sudo, args...)
+	err := cmd.Run()
+	if err != nil {
+		slog.Error("failed to create tap", "err", err)
+		return err
+	}
+
+	// Add interface to bridge
+	if vmNic.SwitchId != "" {
+		thisSwitch, err := _switch.GetById(vmNic.SwitchId)
+		if err != nil {
+			slog.Error("bad switch id",
+				"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchId)
+			return err
+		}
+		if thisSwitch.Type != "IF" {
+			slog.Error("bridge/interface type mismatch",
+				"nicname", vmNic.Name,
+				"nicid", vmNic.ID,
+				"switchid", vmNic.SwitchId,
+			)
+			return errors.New("bridge/interface type mismatch")
+		}
+		if vmNic.RateLimit {
+			thisEpair := epair.GetDummyEpairName()
+			slog.Debug("netStartup rate limiting", "thisEpair", thisEpair)
+			err = epair.CreateEpair(thisEpair)
+			if err != nil {
+				slog.Error("error creating epair", err)
+				return err
+			}
+			vmNic.InstEpair = thisEpair
+			err = vmNic.Save()
+			if err != nil {
+				slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+				return err
+			}
+			err = epair.SetRateLimit(thisEpair, vmNic.RateIn, vmNic.RateOut)
+			if err != nil {
+				slog.Error("failed to set epair rate limit", "epair", thisEpair)
+				return err
+			}
+			thisInstSwitch := _switch.GetDummyBridgeName()
+			var bridgeMembers []string
+			bridgeMembers = append(bridgeMembers, thisEpair+"a")
+			bridgeMembers = append(bridgeMembers, vmNic.NetDev)
+			err = _switch.CreateIfBridgeWithMembers(thisInstSwitch, bridgeMembers)
+			if err != nil {
+				slog.Error("failed to create switch",
+					"nic", vmNic.ID,
+					"thisInstSwitch", thisInstSwitch,
+					"err", err,
+				)
+				return err
+			}
+			vmNic.InstBridge = thisInstSwitch
+			err = vmNic.Save()
+			if err != nil {
+				slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+				return err
+			}
+			err := _switch.BridgeIfAddMember(thisSwitch.Name, thisEpair+"b", true)
+			if err != nil {
+				slog.Error("failed to add nic to switch",
+					"nicname", vmNic.Name,
+					"nicid", vmNic.ID,
+					"switchid", vmNic.SwitchId,
+					"netdev", vmNic.NetDev,
+					"err", err,
+				)
+				return err
+			}
+		} else {
+			// mac := GetMac(vmNic, vm)
+			err := _switch.BridgeIfAddMember(thisSwitch.Name, vmNic.NetDev, false)
+			if err != nil {
+				slog.Error("failed to add nic to switch",
+					"nicname", vmNic.Name,
+					"nicid", vmNic.ID,
+					"switchid", vmNic.SwitchId,
+					"netdev", vmNic.NetDev,
+					"err", err,
+				)
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func netStartupNg(vmNic vm_nics.VmNic) error {
+	thisSwitch, err := _switch.GetById(vmNic.SwitchId)
+	if err != nil {
+		slog.Error("bad switch id",
+			"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchId)
+		return err
+	}
+	if thisSwitch.Type != "NG" {
+		slog.Error("bridge/interface type mismatch",
+			"nicname", vmNic.Name,
+			"nicid", vmNic.ID,
+			"switchid", vmNic.SwitchId,
+		)
+		return errors.New("bridge/interface type mismatch")
+	}
+	return nil
+}
+
 func (vm *VM) netStartup() {
 	vmNicsList, err := vm.GetNics()
 
@@ -414,109 +526,16 @@ func (vm *VM) netStartup() {
 	for _, vmNic := range vmNicsList {
 		switch {
 		case vmNic.NetDevType == "TAP" || vmNic.NetDevType == "VMNET":
-			// Create interface
-			args := []string{"/sbin/ifconfig", vmNic.NetDev, "create", "group", "cirrinad"}
-			cmd := exec.Command(config.Config.Sys.Sudo, args...)
-			err := cmd.Run()
+			err := netStartupIf(vmNic)
 			if err != nil {
-				slog.Error("failed to create tap", "err", err)
+				slog.Error("error bringing up nic", "err", err)
 				continue
-			}
-			// Add interface to bridge
-			if vmNic.SwitchId != "" {
-				thisSwitch, err := _switch.GetById(vmNic.SwitchId)
-				if err != nil {
-					slog.Error("bad switch id",
-						"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchId)
-					continue
-				}
-				if thisSwitch.Type == "IF" {
-					if vmNic.RateLimit {
-						thisEpair := epair.GetDummyEpairName()
-						slog.Debug("netStartup rate limiting", "thisEpair", thisEpair)
-						err = epair.CreateEpair(thisEpair)
-						if err != nil {
-							slog.Error("error creating epair", err)
-							continue
-						}
-						vmNic.InstEpair = thisEpair
-						err = vmNic.Save()
-						if err != nil {
-							slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
-							continue
-						}
-						err = epair.SetRateLimit(thisEpair, vmNic.RateIn, vmNic.RateOut)
-						if err != nil {
-							slog.Error("failed to set epair rate limit", "epair", thisEpair)
-							continue
-						}
-						thisInstSwitch := _switch.GetDummyBridgeName()
-						var bridgeMembers []string
-						bridgeMembers = append(bridgeMembers, thisEpair+"a")
-						bridgeMembers = append(bridgeMembers, vmNic.NetDev)
-						err = _switch.CreateIfBridgeWithMembers(thisInstSwitch, bridgeMembers)
-						if err != nil {
-							slog.Error("failed to create switch",
-								"nic", vmNic.ID,
-								"thisInstSwitch", thisInstSwitch,
-								"err", err,
-							)
-							continue
-						}
-						vmNic.InstBridge = thisInstSwitch
-						err = vmNic.Save()
-						if err != nil {
-							slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
-							continue
-						}
-						err := _switch.BridgeIfAddMember(thisSwitch.Name, thisEpair+"b", true, "")
-						if err != nil {
-							slog.Error("failed to add nic to switch",
-								"nicname", vmNic.Name,
-								"nicid", vmNic.ID,
-								"switchid", vmNic.SwitchId,
-								"netdev", vmNic.NetDev,
-								"err", err,
-							)
-							continue
-						}
-
-					} else {
-						mac := GetMac(vmNic, vm)
-						err := _switch.BridgeIfAddMember(thisSwitch.Name, vmNic.NetDev, false, mac)
-						if err != nil {
-							slog.Error("failed to add nic to switch",
-								"nicname", vmNic.Name,
-								"nicid", vmNic.ID,
-								"switchid", vmNic.SwitchId,
-								"netdev", vmNic.NetDev,
-								"err", err,
-							)
-							continue
-						}
-					}
-				} else {
-					slog.Error("bridge/interface type mismatch",
-						"nicname", vmNic.Name,
-						"nicid", vmNic.ID,
-						"switchid", vmNic.SwitchId,
-					)
-					continue
-				}
 			}
 		case vmNic.NetDevType == "NETGRAPH":
-			thisSwitch, err := _switch.GetById(vmNic.SwitchId)
+			err := netStartupNg(vmNic)
 			if err != nil {
-				slog.Error("bad switch id",
-					"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchId)
+				slog.Error("error bringing up nic", "err", err)
 				continue
-			}
-			if thisSwitch.Type != "NG" {
-				slog.Error("bridge/interface type mismatch",
-					"nicname", vmNic.Name,
-					"nicid", vmNic.ID,
-					"switchid", vmNic.SwitchId,
-				)
 			}
 		default:
 			slog.Debug("unknown net type, can't set up")
@@ -608,44 +627,19 @@ func (vm *VM) applyResourceLimits(vmPid string) {
 	}
 }
 
+// NetCleanup clean up all of a VMs nics
 func (vm *VM) NetCleanup() {
 	vmNicsList, err := vm.GetNics()
 	if err != nil {
-		slog.Error("netStartup failed to get nics", "err", err)
+		slog.Error("failed to get nics", "err", err)
 		return
 	}
 	for _, vmNic := range vmNicsList {
 		switch {
 		case vmNic.NetDevType == "TAP" || vmNic.NetDevType == "VMNET":
-			if vmNic.NetDev != "" {
-				args := []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"}
-				cmd := exec.Command(config.Config.Sys.Sudo, args...)
-				err := cmd.Run()
-				if err != nil {
-					slog.Error("failed to destroy network interface", "err", err)
-				}
-			}
-			if vmNic.InstEpair != "" {
-				err = epair.DestroyEpair(vmNic.InstEpair)
-				if err != nil {
-					slog.Error("failed to destroy epair", err)
-				}
-			}
-			if vmNic.InstBridge != "" {
-				err = _switch.DestroyIfBridge(vmNic.InstBridge, false)
-				if err != nil {
-					slog.Error("failed to destroy switch", err)
-				}
-			}
-			if vmNic.InstEpair != "" {
-				err = epair.NgDestroyPipe(vmNic.InstEpair + "a")
-				if err != nil {
-					slog.Error("failed to ng pipe", err)
-				}
-				err = epair.NgDestroyPipe(vmNic.InstEpair + "b")
-				if err != nil {
-					slog.Error("failed to ng pipe", err)
-				}
+			err = cleanupIfNic(vmNic)
+			if err != nil {
+				slog.Error("error cleaning up nic", "vmNic", vmNic, "err", err)
 			}
 		case vmNic.NetDevType == "NETGRAPH":
 			// nothing to do for netgraph
@@ -812,65 +806,20 @@ func (vm *VM) SetNics(nicIds []string) error {
 	if vm.Status != STOPPED {
 		return errors.New("VM must be stopped before adding NIC(s)")
 	}
-	occurred := map[string]bool{}
 
 	// remove all nics from VM
-	thisVmNics, err := vm.GetNics()
+	err := removeAllNicsFromVm(vm)
 	if err != nil {
-		slog.Error("error looking up vm nics", "err", err)
 		return err
 	}
 
-	for _, aNic := range thisVmNics {
-		aNic.ConfigID = 0
-		err := aNic.Save()
-		if err != nil {
-			slog.Error("error saving NIC", "err", err)
-			return err
-		}
+	// check that these nics can be attached to this VM
+	err = validateNics(nicIds, vm)
+	if err != nil {
+		return err
 	}
 
 	// add the nics
-	for _, aNic := range nicIds {
-		slog.Debug("checking vm nic exists", "vmnic", aNic)
-
-		nicUuid, err := uuid.Parse(aNic)
-		if err != nil {
-			return errors.New("nic id not specified or invalid")
-		}
-
-		thisNic, err := vm_nics.GetById(nicUuid.String())
-		if err != nil {
-			slog.Error("error getting nic", "nic", aNic, "err", err)
-			return errors.New("nic not found")
-		}
-		if thisNic.Name == "" {
-			return errors.New("nic not found")
-		}
-
-		if !occurred[aNic] {
-			occurred[aNic] = true
-		} else {
-			slog.Error("duplicate nic id", "nic", aNic)
-			return errors.New("nic may only be added once")
-		}
-
-		slog.Debug("checking if nic is attached to another VM", "nic", aNic)
-		allVms := GetAll()
-		for _, aVm := range allVms {
-			vmNics, err := aVm.GetNics()
-			if err != nil {
-				return err
-			}
-			for _, aVmNic := range vmNics {
-				if aNic == aVmNic.ID && aVm.ID != vm.ID {
-					slog.Error("nic is already attached to VM", "disk", aNic, "vm", aVm.ID)
-					return errors.New("nic already attached")
-				}
-			}
-		}
-	}
-
 	for _, nicId := range nicIds {
 		vmNic, err := vm_nics.GetById(nicId)
 		if err != nil {
@@ -885,6 +834,7 @@ func (vm *VM) SetNics(nicIds []string) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -895,51 +845,12 @@ func (vm *VM) AttachDisks(diskids []string) error {
 		return errors.New("VM must be stopped before adding disk(s)")
 	}
 
-	occurred := map[string]bool{}
-
-	for _, aDisk := range diskids {
-		slog.Debug("checking disk exists", "disk", aDisk)
-
-		diskUuid, err := uuid.Parse(aDisk)
-		if err != nil {
-			return errors.New("disk id not specified or invalid")
-		}
-
-		thisDisk, err := disk.GetById(diskUuid.String())
-		if err != nil {
-			return err
-		}
-		if err != nil {
-			slog.Error("error getting disk", "disk", aDisk, "err", err)
-			return errors.New("disk not found")
-		}
-		if thisDisk.Name == "" {
-			return errors.New("disk not found")
-		}
-
-		if !occurred[aDisk] {
-			occurred[aDisk] = true
-		} else {
-			slog.Error("duplicate disk id", "disk", aDisk)
-			return errors.New("disk may only be added once")
-		}
-
-		slog.Debug("checking if disk is attached to another VM", "disk", aDisk)
-		allVms := GetAll()
-		for _, aVm := range allVms {
-			vmDisks, err := aVm.GetDisks()
-			if err != nil {
-				return err
-			}
-			for _, aVmDisk := range vmDisks {
-				if aDisk == aVmDisk.ID && aVm.ID != vm.ID {
-					slog.Error("disk is already attached to VM", "disk", aDisk, "vm", aVm.ID)
-					return errors.New("disk already attached")
-				}
-			}
-		}
+	err := validateDisks(diskids, vm)
+	if err != nil {
+		return err
 	}
 
+	// build disk list string to put into DB
 	var disksConfigVal string
 	count := 0
 	for _, diskId := range diskids {
@@ -950,7 +861,7 @@ func (vm *VM) AttachDisks(diskids []string) error {
 		count += 1
 	}
 	vm.Config.Disks = disksConfigVal
-	err := vm.Save()
+	err = vm.Save()
 	if err != nil {
 		slog.Error("error saving VM", "err", err)
 		return err
@@ -960,103 +871,27 @@ func (vm *VM) AttachDisks(diskids []string) error {
 
 func (vm *VM) killComLoggers() {
 	slog.Debug("killing com loggers")
-	if vm.Com1 != nil {
-		_ = vm.Com1.Close()
-		vm.Com1 = nil
-	}
-	if vm.Com1rchan != nil {
-		vm.Com1rchan = nil
-	}
-	if vm.Com2 != nil {
-		_ = vm.Com2.Close()
-		vm.Com2 = nil
-	}
-	if vm.Com2rchan != nil {
-		vm.Com2rchan = nil
-	}
-	if vm.Com3 != nil {
-		_ = vm.Com3.Close()
-		vm.Com3 = nil
-	}
-	if vm.Com3rchan != nil {
-		vm.Com3rchan = nil
-	}
-	if vm.Com4 != nil {
-		_ = vm.Com4.Close()
-		vm.Com4 = nil
-	}
-	if vm.Com4rchan != nil {
-		vm.Com4rchan = nil
+	var err error
+
+	// change to range when moving to Go 1.22
+	for comNum := 1; comNum <= 4; comNum++ {
+		err = vm.killCom(comNum)
+		if err != nil {
+			slog.Error("com kill error", "comNum", 1, "err", err)
+			// no need to return error here either
+		}
 	}
 }
 
 func (vm *VM) setupComLoggers() {
-	if vm.Com1Dev != "" && vm.Com1 == nil {
-		err := ensureComDevReadable(vm.Com1Dev)
-		if err != nil {
-			slog.Error("ensureComDevReadable error", "err", err)
-			return
-		}
-		cr, err := startSerialPort(vm.Com1Dev, uint(vm.Config.Com1Speed))
-		if err != nil {
-			slog.Error("setupComLoggers", "err", err)
-			return
-		}
-		vm.Com1 = cr
+	var err error
 
-		if vm.Config.Com1Log {
-			go comLogger(vm, 1)
-		}
-	}
-	if vm.Com2Dev != "" && vm.Com2 == nil {
-		err := ensureComDevReadable(vm.Com2Dev)
+	// change to range when moving to Go 1.22
+	for comNum := 1; comNum <= 4; comNum++ {
+		err = vm.setupCom(comNum)
 		if err != nil {
-			slog.Error("ensureComDevReadable error", "err", err)
-			return
-		}
-		cr, err := startSerialPort(vm.Com2Dev, uint(vm.Config.Com2Speed))
-		if err != nil {
-			slog.Error("setupComLoggers", "err", err)
-			return
-		}
-		vm.Com2 = cr
-
-		if vm.Config.Com2Log {
-			go comLogger(vm, 2)
-		}
-	}
-	if vm.Com3Dev != "" && vm.Com3 == nil {
-		err := ensureComDevReadable(vm.Com3Dev)
-		if err != nil {
-			slog.Error("ensureComDevReadable error", "err", err)
-			return
-		}
-		cr, err := startSerialPort(vm.Com3Dev, uint(vm.Config.Com3Speed))
-		if err != nil {
-			slog.Error("setupComLoggers", "err", err)
-			return
-		}
-		vm.Com3 = cr
-
-		if vm.Config.Com3Log {
-			go comLogger(vm, 3)
-		}
-	}
-	if vm.Com4Dev != "" && vm.Com4 == nil {
-		err := ensureComDevReadable(vm.Com4Dev)
-		if err != nil {
-			slog.Error("ensureComDevReadable error", "err", err)
-			return
-		}
-		cr, err := startSerialPort(vm.Com4Dev, uint(vm.Config.Com4Speed))
-		if err != nil {
-			slog.Error("setupComLoggers", "err", err)
-			return
-		}
-		vm.Com4 = cr
-
-		if vm.Config.Com4Log {
-			go comLogger(vm, 4)
+			slog.Error("com setup error", "comNum", comNum, "err", err)
+			// not returning error since we leave the VM running and hope for the best
 		}
 	}
 }
@@ -1064,9 +899,7 @@ func (vm *VM) setupComLoggers() {
 func comLogger(vm *VM, comNum int) {
 	var thisCom *serial.Port
 	var thisRChan chan byte
-	var thisComChanWriteFlag bool
 	comChan := make(chan byte, 4096)
-	slog.Debug("comLogger starting", "comNum", comNum)
 
 	switch comNum {
 	case 1:
@@ -1114,70 +947,383 @@ func comLogger(vm *VM, comNum int) {
 		_ = vl.Close()
 	}(vl)
 
+	for {
+		if comLoggerRead(vm, comNum, thisCom, vl, thisRChan) {
+			return
+		}
+	}
+}
+
+func (vm *VM) Running() bool {
+	if vm.Status == RUNNING || vm.Status == STOPPING {
+		return true
+	}
+	return false
+}
+
+func (vm *VM) GetComWrite(comNum int) bool {
+	var thisComChanWriteFlag bool
+	switch comNum {
+	case 1:
+		thisComChanWriteFlag = vm.Com1write
+	case 2:
+		thisComChanWriteFlag = vm.Com2write
+	case 3:
+		thisComChanWriteFlag = vm.Com3write
+	case 4:
+		thisComChanWriteFlag = vm.Com4write
+	}
+	return thisComChanWriteFlag
+}
+
+func comLoggerRead(vm *VM, comNum int, thisCom *serial.Port, vl *os.File, thisRChan chan byte) bool {
+	var thisComChanWriteFlag bool
 	b := make([]byte, 1)
 	b2 := make([]byte, 1)
-	n := 0
 
-	for {
-		if vm.Status != RUNNING && vm.Status != STOPPING {
-			slog.Debug("comLogger vm not running, exiting2",
-				"vm_id", vm.ID,
-				"comNum", comNum,
-				"vm.Status", vm.Status,
-			)
-			return
-		}
-		if thisCom == nil {
-			slog.Error("comLogger", "msg", "unable to read nil port")
-			return
-		}
+	if !vm.Running() {
+		slog.Debug("comLogger vm not running, exiting2",
+			"vm_id", vm.ID,
+			"comNum", comNum,
+			"vm.Status", vm.Status,
+		)
+		return true
+	}
+	if thisCom == nil {
+		slog.Error("comLogger", "msg", "unable to read nil port")
+		return true
+	}
 
-		switch comNum {
-		case 1:
-			thisComChanWriteFlag = vm.Com1write
-		case 2:
-			thisComChanWriteFlag = vm.Com2write
-		case 3:
-			thisComChanWriteFlag = vm.Com3write
-		case 4:
-			thisComChanWriteFlag = vm.Com4write
-		}
+	thisComChanWriteFlag = vm.GetComWrite(comNum)
 
-		nb, err := thisCom.Read(b)
-		if nb > 1 {
-			slog.Error("comLogger read more than 1 byte", "nb", nb)
-		}
-		if err == io.EOF && vm.Status != RUNNING && vm.Status != STOPPING {
-			slog.Debug("comLogger vm not running, exiting",
-				"vm_id", vm.ID,
-				"comNum", comNum,
-				"vm.Status", vm.Status,
-			)
-			return
-		}
-		if err != nil && err != io.EOF {
-			slog.Error("comLogger", "error reading", err)
-			return
-		}
+	nb, err := thisCom.Read(b)
+	if nb > 1 {
+		slog.Error("comLogger read more than 1 byte", "nb", nb)
+	}
+	if err == io.EOF && !vm.Running() {
+		slog.Debug("comLogger vm not running, exiting",
+			"vm_id", vm.ID,
+			"comNum", comNum,
+			"vm.Status", vm.Status,
+		)
+		return true
+	}
+	if err != nil && err != io.EOF {
+		slog.Error("comLogger", "error reading", err)
+		return true
+	}
+	if nb != 0 {
+		// write to log file
+		_, err = vl.Write(b)
 
-		if nb != 0 {
-			// write to log file
-			_, err = vl.Write(b)
-
-			// write to channel used by remote users, if someone is reading from it
-			if thisRChan != nil && thisComChanWriteFlag {
-				nb2 := copy(b2, b)
-				if nb != nb2 {
-					slog.Error("comLogger", "msg", "some bytes lost")
-				}
-				thisRChan <- b2[0]
+		// write to channel used by remote users, if someone is reading from it
+		if thisRChan != nil && thisComChanWriteFlag {
+			nb2 := copy(b2, b)
+			if nb != nb2 {
+				slog.Error("comLogger", "msg", "some bytes lost")
 			}
+			thisRChan <- b2[0]
+		}
 
-			n += nb
-			if err != nil {
-				slog.Error("comLogger", "error writing", err)
-				return
+		if err != nil {
+			slog.Error("comLogger", "error writing", err)
+			return true
+		}
+	}
+	return false
+}
+
+func (vm *VM) killCom(comNum int) error {
+
+	var com *serial.Port
+	var comRChan chan byte
+
+	switch comNum {
+	case 1:
+		com = vm.Com1
+		comRChan = vm.Com1rchan
+		if comRChan != nil {
+			close(vm.Com1rchan)
+			vm.Com1rchan = nil
+		}
+	case 2:
+		com = vm.Com2
+		comRChan = vm.Com2rchan
+		if comRChan != nil {
+			close(vm.Com2rchan)
+			vm.Com2rchan = nil
+		}
+	case 3:
+		com = vm.Com3
+		comRChan = vm.Com3rchan
+		if comRChan != nil {
+			close(vm.Com3rchan)
+			vm.Com3rchan = nil
+		}
+	case 4:
+		com = vm.Com4
+		comRChan = vm.Com4rchan
+		if comRChan != nil {
+			close(vm.Com4rchan)
+			vm.Com4rchan = nil
+		}
+	default:
+		slog.Error("invalid com port number", "comNum", comNum)
+		return errors.New("invalid com port number")
+	}
+
+	if com != nil {
+		_ = com.Close()
+		com = nil
+	}
+	return nil
+}
+
+func (vm *VM) setupCom(comNum int) error {
+	var comConfig bool
+	var comLog bool
+	var comDev string
+	var comSpeed uint32
+
+	switch comNum {
+	case 1:
+		comConfig = vm.Config.Com1
+		comLog = vm.Config.Com1Log
+		comDev = vm.Com1Dev
+		comSpeed = vm.Config.Com1Speed
+	case 2:
+		comConfig = vm.Config.Com2
+		comLog = vm.Config.Com2Log
+		comDev = vm.Com2Dev
+		comSpeed = vm.Config.Com2Speed
+	case 3:
+		comConfig = vm.Config.Com3
+		comLog = vm.Config.Com3Log
+		comDev = vm.Com3Dev
+		comSpeed = vm.Config.Com3Speed
+	case 4:
+		comConfig = vm.Config.Com4
+		comLog = vm.Config.Com4Log
+		comDev = vm.Com4Dev
+		comSpeed = vm.Config.Com4Speed
+	default:
+		slog.Error("invalid com port number", "comNum", comNum)
+		return errors.New("invalid com port number")
+	}
+	if !comConfig {
+		slog.Debug("vm com not enabled, skipping setup", "comNum", comNum, "comConfig", comConfig)
+		return nil
+	}
+	if comDev == "" {
+		slog.Error("com port enabled but com dev not set", "comNum", comNum, "comConfig", comConfig)
+		return errors.New("com port enabled but comDev not set")
+	}
+	// if com != nil {
+	// 	slog.Error("com port already set, cannot setup com port", "comNum", comNum, "com", com)
+	// 	return errors.New("com port already set")
+	// }
+
+	// attach serial port object to VM object
+	slog.Debug("checking com is readable", "comDev", comDev)
+	err := ensureComDevReadable(comDev)
+	if err != nil {
+		slog.Error("error checking com readable", "comNum", comNum, "err", err)
+		return err
+	}
+	cr, err := startSerialPort(comDev, uint(comSpeed))
+	if err != nil {
+		slog.Error("error starting com", "comNum", comNum, "err", err)
+		return err
+	}
+	// com = cr
+
+	// actually setup logging if required
+	if comLog {
+		go comLogger(vm, comNum)
+	}
+
+	switch comNum {
+	case 1:
+		vm.Com1 = cr
+	case 2:
+		vm.Com2 = cr
+	case 3:
+		vm.Com3 = cr
+	case 4:
+		vm.Com4 = cr
+	default:
+		slog.Error("invalid com port number", "comNum", comNum)
+		return errors.New("invalid com port number")
+	}
+	return nil
+}
+
+// validateDisks check if disks can be attached to a VM
+func validateDisks(diskids []string, vm *VM) error {
+	occurred := map[string]bool{}
+
+	for _, aDisk := range diskids {
+		slog.Debug("checking disk exists", "disk", aDisk)
+
+		diskUuid, err := uuid.Parse(aDisk)
+		if err != nil {
+			return errors.New("disk id not specified or invalid")
+		}
+
+		thisDisk, err := disk.GetById(diskUuid.String())
+		if err != nil {
+			return err
+		}
+		if err != nil {
+			slog.Error("error getting disk", "disk", aDisk, "err", err)
+			return errors.New("disk not found")
+		}
+		if thisDisk.Name == "" {
+			return errors.New("disk not found")
+		}
+
+		if !occurred[aDisk] {
+			occurred[aDisk] = true
+		} else {
+			slog.Error("duplicate disk id", "disk", aDisk)
+			return errors.New("disk may only be added once")
+		}
+
+		slog.Debug("checking if disk is attached to another VM", "disk", aDisk)
+		diskIsAttached, err := diskAttached(aDisk, vm)
+		if err != nil {
+			return err
+		}
+		if diskIsAttached {
+			return errors.New("disk already attached")
+		}
+	}
+	return nil
+}
+
+// diskAttached check if disk is attached to another VM besides this one
+func diskAttached(aDisk string, vm *VM) (bool, error) {
+	allVms := GetAll()
+	for _, aVm := range allVms {
+		vmDisks, err := aVm.GetDisks()
+		if err != nil {
+			return true, err
+		}
+		for _, aVmDisk := range vmDisks {
+			if aDisk == aVmDisk.ID && aVm.ID != vm.ID {
+				return true, nil
 			}
 		}
 	}
+	return false, nil
+}
+
+// validateNics check if nics can be attached to a VM
+func validateNics(nicIds []string, vm *VM) error {
+	occurred := map[string]bool{}
+	for _, aNic := range nicIds {
+		slog.Debug("checking vm nic exists", "vmnic", aNic)
+
+		nicUuid, err := uuid.Parse(aNic)
+		if err != nil {
+			return errors.New("nic id not specified or invalid")
+		}
+
+		thisNic, err := vm_nics.GetById(nicUuid.String())
+		if err != nil {
+			slog.Error("error getting nic", "nic", aNic, "err", err)
+			return errors.New("nic not found")
+		}
+		if thisNic.Name == "" {
+			return errors.New("nic not found")
+		}
+
+		if !occurred[aNic] {
+			occurred[aNic] = true
+		} else {
+			slog.Error("duplicate nic id", "nic", aNic)
+			return errors.New("nic may only be added once")
+		}
+
+		slog.Debug("checking if nic is attached to another VM", "nic", aNic)
+		err = nicAttached(aNic, vm)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// nicAttached check if nic is attached to another VM besides this one
+func nicAttached(aNic string, vm *VM) error {
+	allVms := GetAll()
+	for _, aVm := range allVms {
+		vmNics, err := aVm.GetNics()
+		if err != nil {
+			return err
+		}
+		for _, aVmNic := range vmNics {
+			if aNic == aVmNic.ID && aVm.ID != vm.ID {
+				slog.Error("nic is already attached to VM", "disk", aNic, "vm", aVm.ID)
+				return errors.New("nic already attached")
+			}
+		}
+	}
+	return nil
+}
+
+// removeAllNicsFromVm does what it says on the tin, mate
+func removeAllNicsFromVm(vm *VM) error {
+	thisVmNics, err := vm.GetNics()
+	if err != nil {
+		slog.Error("error looking up vm nics", "err", err)
+		return err
+	}
+	for _, aNic := range thisVmNics {
+		aNic.ConfigID = 0
+		err := aNic.Save()
+		if err != nil {
+			slog.Error("error saving NIC", "err", err)
+			return err
+		}
+	}
+	return nil
+}
+
+// cleanup tap/vmnet type nic
+func cleanupIfNic(vmNic vm_nics.VmNic) error {
+	var err error
+	if vmNic.NetDev != "" {
+		args := []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"}
+		cmd := exec.Command(config.Config.Sys.Sudo, args...)
+		err := cmd.Run()
+		if err != nil {
+			slog.Error("failed to destroy network interface", "err", err)
+		}
+	}
+	if vmNic.InstEpair != "" {
+		err = epair.DestroyEpair(vmNic.InstEpair)
+		if err != nil {
+			slog.Error("failed to destroy epair", err)
+		}
+	}
+	if vmNic.InstBridge != "" {
+		err = _switch.DestroyIfBridge(vmNic.InstBridge, false)
+		if err != nil {
+			slog.Error("failed to destroy switch", err)
+		}
+	}
+	// tap/vmnet nics may be connected to an epair which is connected
+	// to a netgraph pipe for purposes for rate limiting
+	if vmNic.InstEpair != "" {
+		err = epair.NgDestroyPipe(vmNic.InstEpair + "a")
+		if err != nil {
+			slog.Error("failed to ng pipe", err)
+		}
+		err = epair.NgDestroyPipe(vmNic.InstEpair + "b")
+		if err != nil {
+			slog.Error("failed to ng pipe", err)
+		}
+	}
+	return err
 }

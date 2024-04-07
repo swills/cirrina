@@ -70,7 +70,11 @@ func SwitchIdToName(s string) (string, error) {
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
-	return *res.Name, nil
+	if res.Name != nil {
+		return *res.Name, nil
+	} else {
+		return "", nil
+	}
 }
 
 func GetSwitches() ([]string, error) {

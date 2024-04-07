@@ -180,6 +180,13 @@ func GetUsedVncPorts() []int {
 	var ret []int
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
+
+	// TODO -- this was initially meant to avoid two VMs using the same VNC port
+	// but want to allow that as long as they aren't running at the same time -- unfortunately, at this point,
+	// where we are starting the VM, it's too late to check and return an error and fail the startup request
+	// need to add a check in VM startup request processing to check that and return error
+	//
+	// right now, the behavior is to simply move to a different port
 	for _, vmInst := range List.VmList {
 		if vmInst.Status != STOPPED {
 			ret = append(ret, int(vmInst.VNCPort))

@@ -1,15 +1,21 @@
 
 # TODO
 
+* Fix zvol ownership!
+* Allow `.` in disk file name, if it's not at the start of the file name and if it's not followed by another `.`
+* Disk resize -- include force flag to allow reducing disk size which includes data loss
+* Convert all UUIDs from strings to UUID type
+* Convert all paths from strings to path/filepath
 * Convert all bool in database to `sql.NullBool`
 * Add disk update to server/client
 * Add zvol support to GUI - including listing dev type in disk list
 * Add vm priority (nice) stuff to GUI
 * Add check for disk size reduction in file based image uploads
-* Disk resize -- include force flag to allow reducing disk size which includes data loss
 * Disk cloning
 * VM cloning
 * Auto decompress isos/disk images
+* Update max vnc screen size, see src fb51ddb20d57a43d666508e600af1bc7ac85c4e8
+  * use kern.osreldate: 1500017 and earlier, 1920x1200 is the max, for 15 or later, 3840x2160
 
 * Basics
     * Ensuring no crashes

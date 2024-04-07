@@ -58,13 +58,8 @@ func getVmItems() ([]vmItem, error) {
 			return []vmItem{}, err
 		}
 		var aItem vmItem
-		if res.Name != nil {
-			aItem.name = *res.Name
-
-		}
-		if res.Description != nil {
-			aItem.desc = *res.Description
-		}
+		aItem.name = res.Name
+		aItem.desc = res.Description
 		vmItems = append(vmItems, aItem)
 	}
 

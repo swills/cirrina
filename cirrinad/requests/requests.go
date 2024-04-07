@@ -132,6 +132,7 @@ func (req *Request) Failed() {
 	)
 }
 
+// PendingReqExists return pending request IDs for given object ID
 func PendingReqExists(objId string) (reqIds []string) {
 	db := GetReqDb()
 	var err error

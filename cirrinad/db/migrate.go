@@ -107,6 +107,20 @@ func CustomMigrate() {
 
 	schemaVersion := getSchemaVersion()
 	// 2024022401 - copy nics from config.nics to vm_nics.config_id
+	migration2024022401(schemaVersion, vmNicDb, vmDb)
+
+	// 2024022402 - drop config.nics
+	migration2024022402(schemaVersion, vmDb)
+
+	// 2024022403 - remove vm_id from requests
+	migration2024022403(schemaVersion, reqDb)
+
+	// 2024022403
+
+	slog.Debug("finished custom migration")
+}
+
+func migration2024022401(schemaVersion uint32, vmNicDb *gorm.DB, vmDb *gorm.DB) {
 	if schemaVersion < 2024022401 {
 		if vm_nics.DbInitialized() {
 			if !vmNicDb.Migrator().HasColumn(vm_nics.VmNic{}, "config_id") {
@@ -162,8 +176,9 @@ func CustomMigrate() {
 		}
 		setSchemaVersion(2024022401)
 	}
+}
 
-	// 2024022402 - drop config.nics
+func migration2024022402(schemaVersion uint32, vmDb *gorm.DB) {
 	if schemaVersion < 2024022402 {
 		if vm.DbInitialized() {
 			if vmDb.Migrator().HasColumn(&vm.Config{}, "nics") {
@@ -180,8 +195,9 @@ func CustomMigrate() {
 		}
 		setSchemaVersion(2024022402)
 	}
+}
 
-	// 2024022403 - remove vm_id from requests
+func migration2024022403(schemaVersion uint32, reqDb *gorm.DB) {
 	if schemaVersion < 2024022403 {
 		if requests.DbInitialized() {
 			// sqlite doesn't let you remove a column, so just nuke it, the requests table isn't critical
@@ -197,8 +213,4 @@ func CustomMigrate() {
 		}
 		setSchemaVersion(2024022403)
 	}
-
-	// 2024022403
-
-	slog.Debug("finished custom migration")
 }

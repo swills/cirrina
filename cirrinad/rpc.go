@@ -9,16 +9,10 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
 type server struct {
 	cirrina.UnimplementedVMInfoServer
-}
-
-func isOptionPassed(reflect protoreflect.Message, name string) bool {
-	field := reflect.Descriptor().Fields().ByName(protoreflect.Name(name))
-	return reflect.Has(field)
 }
 
 func rpcServer() {
