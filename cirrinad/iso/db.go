@@ -15,14 +15,14 @@ import (
 )
 
 type singleton struct {
-	isoDb *gorm.DB
+	isoDB *gorm.DB
 }
 
 var instance *singleton
 
 var once sync.Once
 
-func getIsoDb() *gorm.DB {
+func getIsoDB() *gorm.DB {
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "IsoDb: ", log.LstdFlags),
 		logger.Config{
@@ -35,7 +35,7 @@ func getIsoDb() *gorm.DB {
 
 	once.Do(func() {
 		instance = &singleton{}
-		isoDb, err := gorm.Open(
+		isoDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
 			&gorm.Config{
 				Logger:      noColorLogger,
@@ -45,16 +45,16 @@ func getIsoDb() *gorm.DB {
 		if err != nil {
 			panic("failed to connect database")
 		}
-		sqlDB, err := isoDb.DB()
+		sqlDB, err := isoDB.DB()
 		if err != nil {
 			panic("failed to create sqlDB database")
 		}
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
-		instance.isoDb = isoDb
+		instance.isoDB = isoDB
 	})
 
-	return instance.isoDb
+	return instance.isoDB
 }
 
 func (iso *ISO) BeforeCreate(_ *gorm.DB) (err error) {
@@ -63,8 +63,8 @@ func (iso *ISO) BeforeCreate(_ *gorm.DB) (err error) {
 	return nil
 }
 
-func DbAutoMigrate() {
-	db := getIsoDb()
+func DBAutoMigrate() {
+	db := getIsoDB()
 	err := db.AutoMigrate(&ISO{})
 	if err != nil {
 		panic("failed to auto-migrate ISO")

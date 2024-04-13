@@ -1,4 +1,4 @@
-package _switch
+package vmswitch
 
 import (
 	"bytes"
@@ -13,11 +13,11 @@ import (
 
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
-	"cirrina/cirrinad/vm_nics"
+	"cirrina/cirrinad/vmnic"
 )
 
-func GetById(id string) (s *Switch, err error) {
-	db := getSwitchDb()
+func GetByID(id string) (s *Switch, err error) {
+	db := getSwitchDB()
 	db.Limit(1).Find(&s, "id = ?", id)
 	if s.Name == "" {
 		return s, errors.New("not found")
@@ -27,7 +27,7 @@ func GetById(id string) (s *Switch, err error) {
 }
 
 func GetByName(name string) (s *Switch, err error) {
-	db := getSwitchDb()
+	db := getSwitchDB()
 	db.Limit(1).Find(&s, "name = ?", name)
 	if s.ID == "" {
 		return s, errors.New("not found")
@@ -38,7 +38,7 @@ func GetByName(name string) (s *Switch, err error) {
 
 func GetAll() []*Switch {
 	var result []*Switch
-	db := getSwitchDb()
+	db := getSwitchDB()
 	db.Find(&result)
 
 	return result
@@ -95,7 +95,7 @@ func Create(name string, description string, switchType string, uplink string) (
 		Type:        switchType,
 		Uplink:      uplink,
 	}
-	db := getSwitchDb()
+	db := getSwitchDB()
 	res := db.Create(&switchInst)
 
 	return switchInst, res.Error
@@ -105,8 +105,8 @@ func Delete(id string) (err error) {
 	if id == "" {
 		return errors.New("unable to delete, switch id empty")
 	}
-	db := getSwitchDb()
-	dSwitch, err := GetById(id)
+	db := getSwitchDB()
+	dSwitch, err := GetByID(id)
 	if err != nil {
 		errorText := fmt.Sprintf("switch %v not found", id)
 
@@ -129,9 +129,9 @@ func Delete(id string) (err error) {
 }
 
 func CheckSwitchInUse(id string) error {
-	vmNics := vm_nics.GetAll()
+	vmNics := vmnic.GetAll()
 	for _, vmNic := range vmNics {
-		if vmNic.SwitchId == id {
+		if vmNic.SwitchID == id {
 			return errors.New("switch in use")
 		}
 	}
@@ -429,10 +429,10 @@ func ngGetBridgeNextLink(bridge string) (nextLink string, err error) {
 	return nextLink, nil
 }
 
-func GetNgDev(switchId string) (bridge string, peer string, err error) {
-	thisSwitch, err := GetById(switchId)
+func GetNgDev(switchID string) (bridge string, peer string, err error) {
+	thisSwitch, err := GetByID(switchID)
 	if err != nil {
-		slog.Error("switch lookup error", "switchid", switchId)
+		slog.Error("switch lookup error", "switchid", switchID)
 	}
 
 	bridgePeers, err := GetNgBridgeMembers(thisSwitch.Name)
@@ -545,7 +545,7 @@ func (d *Switch) SetUplink(uplink string) error {
 }
 
 func (d *Switch) Save() error {
-	db := getSwitchDb()
+	db := getSwitchDB()
 
 	res := db.Model(&d).
 		Updates(map[string]interface{}{
@@ -646,19 +646,19 @@ type Switch struct {
 	Uplink      string
 }
 
-func ParseSwitchId(switchId string, netDevType string) (res string, err error) {
-	if switchId == "" {
-		return switchId, err
+func ParseSwitchID(switchID string, netDevType string) (res string, err error) {
+	if switchID == "" {
+		return switchID, err
 	}
 
-	switchUuid, err := uuid.Parse(switchId)
+	switchUUID, err := uuid.Parse(switchID)
 	if err != nil {
 		return res, errors.New("switch id invalid")
 	}
-	switchInst, err := GetById(switchUuid.String())
+	switchInst, err := GetByID(switchUUID.String())
 	if err != nil {
 		slog.Debug("error getting switch id",
-			"id", switchId,
+			"id", switchID,
 			"err", err,
 		)
 
@@ -676,7 +676,7 @@ func ParseSwitchId(switchId string, netDevType string) (res string, err error) {
 			return res, errors.New("uplink switch has wrong type")
 		}
 	}
-	res = switchUuid.String()
+	res = switchUUID.String()
 
 	return res, nil
 }

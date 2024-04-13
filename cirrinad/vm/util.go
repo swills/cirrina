@@ -19,7 +19,7 @@ import (
 	"cirrina/cirrinad/util"
 )
 
-func GetVmLogPath(logpath string) error {
+func GetVMLogPath(logpath string) error {
 	ex, err := util.PathExists(logpath)
 	if err != nil {
 		return err
@@ -34,9 +34,9 @@ func GetVmLogPath(logpath string) error {
 	return nil
 }
 
-func InitOneVm(vmInst *VM) {
+func InitOneVM(vmInst *VM) {
 	vmLogPath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name
-	err := GetVmLogPath(vmLogPath)
+	err := GetVMLogPath(vmLogPath)
 	if err != nil {
 		panic(err)
 	}
@@ -63,11 +63,11 @@ func InitOneVm(vmInst *VM) {
 		programLevel.Set(slog.LevelInfo)
 	}
 
-	List.VmList[vmInst.ID] = vmInst
+	List.VMList[vmInst.ID] = vmInst
 }
 
 func AutoStartVMs() {
-	for _, vmInst := range List.VmList {
+	for _, vmInst := range List.VMList {
 		if vmInst.Config.AutoStart {
 			go doAutostart(vmInst)
 		}
@@ -88,7 +88,7 @@ func doAutostart(vmInst *VM) {
 }
 
 func GetAll() (allVMs []*VM) {
-	for _, value := range List.VmList {
+	for _, value := range List.VMList {
 		allVMs = append(allVMs, value)
 	}
 
@@ -98,7 +98,7 @@ func GetAll() (allVMs []*VM) {
 func GetByName(name string) (v *VM, err error) {
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
-	for _, t := range List.VmList {
+	for _, t := range List.VMList {
 		if t.Name == name {
 			return t, nil
 		}
@@ -107,10 +107,10 @@ func GetByName(name string) (v *VM, err error) {
 	return &VM{}, errors.New("not found")
 }
 
-func GetById(id string) (v *VM, err error) {
+func GetByID(id string) (v *VM, err error) {
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
-	vmInst, valid := List.VmList[id]
+	vmInst, valid := List.VMList[id]
 	if valid {
 		return vmInst, nil
 	}
@@ -118,15 +118,15 @@ func GetById(id string) (v *VM, err error) {
 	return nil, errors.New("not found")
 }
 
-func LogAllVmStatus() {
+func LogAllVMStatus() {
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
-	for _, vmInst := range List.VmList {
+	for _, vmInst := range List.VMList {
 		if vmInst.Status != RUNNING {
 			slog.Info("vm",
 				"id", vmInst.ID,
 				"name", vmInst.Name,
-				"cpus", vmInst.Config.Cpu,
+				"cpus", vmInst.Config.CPU,
 				"state", vmInst.Status,
 				"pid", nil,
 			)
@@ -137,7 +137,7 @@ func LogAllVmStatus() {
 				slog.Info("vm",
 					"id", vmInst.ID,
 					"name", vmInst.Name,
-					"cpus", vmInst.Config.Cpu,
+					"cpus", vmInst.Config.CPU,
 					"state", vmInst.Status,
 					"pid", nil,
 				)
@@ -145,7 +145,7 @@ func LogAllVmStatus() {
 				slog.Info("vm",
 					"id", vmInst.ID,
 					"name", vmInst.Name,
-					"cpus", vmInst.Config.Cpu,
+					"cpus", vmInst.Config.CPU,
 					"state", vmInst.Status,
 					"pid", vmInst.proc.Pid(),
 				)
@@ -158,7 +158,7 @@ func GetRunningVMs() int {
 	count := 0
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
-	for _, vmInst := range List.VmList {
+	for _, vmInst := range List.VMList {
 		if vmInst.Status != STOPPED {
 			count += 1
 		}
@@ -170,7 +170,7 @@ func GetRunningVMs() int {
 func KillVMs() {
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
-	for _, vmInst := range List.VmList {
+	for _, vmInst := range List.VMList {
 		if vmInst.Status != STOPPED {
 			go func(aVmInst *VM) {
 				err := aVmInst.Stop()
@@ -193,7 +193,7 @@ func GetUsedVncPorts() []int {
 	// need to add a check in VM startup request processing to check that and return error
 	//
 	// right now, the behavior is to simply move to a different port
-	for _, vmInst := range List.VmList {
+	for _, vmInst := range List.VMList {
 		if vmInst.Status != STOPPED {
 			ret = append(ret, int(vmInst.VNCPort))
 		}
@@ -206,7 +206,7 @@ func GetUsedDebugPorts() []int {
 	var ret []int
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
-	for _, vmInst := range List.VmList {
+	for _, vmInst := range List.VMList {
 		if vmInst.Status != STOPPED {
 			ret = append(ret, int(vmInst.DebugPort))
 		}
@@ -219,7 +219,7 @@ func GetUsedNetPorts() []string {
 	var ret []string
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
-	for _, vmInst := range List.VmList {
+	for _, vmInst := range List.VMList {
 		vmNicsList, err := vmInst.GetNics()
 		if err != nil {
 			slog.Error("GetUsedNetPorts failed to get nics", "err", err)
@@ -275,15 +275,15 @@ func ensureComDevReadable(comDev string) error {
 	if comReadStat == nil {
 		return errors.New("failed converting comReadFileInfo to Stat_t")
 	}
-	myUid, _, err := util.GetMyUidGid()
+	myUID, _, err := util.GetMyUIDGID()
 	if err != nil {
 		return errors.New("failed getting my uid")
 	}
-	if comReadStat.Uid == myUid {
+	if comReadStat.Uid == myUID {
 		// everything is good, nothing to do
 		return nil
 	}
-	slog.Debug("ensureComDevReadable uid mismatch, fixing", "uid", comReadStat.Uid, "myUid", myUid)
+	slog.Debug("ensureComDevReadable uid mismatch, fixing", "uid", comReadStat.Uid, "myUID", myUID)
 	myUser, err := user.Current()
 	if err != nil {
 		return err

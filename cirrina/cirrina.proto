@@ -309,8 +309,8 @@ service VMInfo {
   rpc AddVM(VMConfig) returns (VMID);
   rpc GetVMs(VMsQuery) returns (stream VMID);
   rpc GetVMConfig(VMID) returns (VMConfig);
-  rpc GetVmName(VMID) returns (google.protobuf.StringValue);
-  rpc GetVmId(google.protobuf.StringValue) returns (VMID);
+  rpc GetVMName(VMID) returns (google.protobuf.StringValue);
+  rpc GetVMID(google.protobuf.StringValue) returns (VMID);
   rpc GetVMState(VMID) returns (VMState);
   rpc UpdateVM(VMConfig) returns (ReqBool);
   rpc StartVM(VMID) returns (RequestID);
@@ -327,8 +327,8 @@ service VMInfo {
   rpc GetISOInfo(ISOID) returns (ISOInfo);
   rpc AddISO(ISOInfo) returns (ISOID);
   rpc RemoveISO(ISOID) returns (ReqBool);
-  rpc SetVmISOs(SetISOReq) returns (ReqBool);
-  rpc GetVmISOs(VMID) returns (stream ISOID);
+  rpc SetVMISOs(SetISOReq) returns (ReqBool);
+  rpc GetVMISOs(VMID) returns (stream ISOID);
   rpc UploadIso(stream ISOImageRequest) returns (ReqBool);
 
   rpc GetDisks(DisksQuery) returns (stream DiskId);
@@ -336,9 +336,9 @@ service VMInfo {
   rpc SetDiskInfo(DiskInfoUpdate) returns (ReqBool);
   rpc AddDisk(DiskInfo) returns (DiskId);
   rpc RemoveDisk(DiskId) returns (ReqBool);
-  rpc SetVmDisks(SetDiskReq) returns (ReqBool);
-  rpc GetVmDisks(VMID) returns (stream DiskId);
-  rpc GetDiskVm(DiskId) returns (VMID);
+  rpc SetVMDisks(SetDiskReq) returns (ReqBool);
+  rpc GetVMDisks(VMID) returns (stream DiskId);
+  rpc GetDiskVM(DiskId) returns (VMID);
   rpc UploadDisk(stream DiskImageRequest) returns (ReqBool);
 
   rpc GetSwitches(SwitchesQuery) returns (stream SwitchId);
@@ -348,17 +348,17 @@ service VMInfo {
   rpc RemoveSwitch(SwitchId) returns (ReqBool);
   rpc SetSwitchUplink(SwitchUplinkReq) returns (ReqBool);
 
-  rpc GetVmNicsAll(VmNicsQuery) returns (stream VmNicId);
-  rpc GetVmNicInfo(VmNicId) returns (VmNicInfo);
-  rpc AddVmNic(VmNicInfo) returns (VmNicId);
-  rpc UpdateVmNic(VmNicInfoUpdate) returns (ReqBool);
-  rpc RemoveVmNic(VmNicId) returns (ReqBool);
-  rpc SetVmNicSwitch(SetVmNicSwitchReq) returns (ReqBool);
-  rpc GetVmNicVm(VmNicId) returns (VMID);
-  rpc CloneVmNic(VmNicCloneReq) returns (RequestID);
+  rpc GetVMNicsAll(VmNicsQuery) returns (stream VmNicId);
+  rpc GetVMNicInfo(VmNicId) returns (VmNicInfo);
+  rpc AddVMNic(VmNicInfo) returns (VmNicId);
+  rpc UpdateVMNic(VmNicInfoUpdate) returns (ReqBool);
+  rpc RemoveVMNic(VmNicId) returns (ReqBool);
+  rpc SetVMNicSwitch(SetVmNicSwitchReq) returns (ReqBool);
+  rpc GetVMNicVM(VmNicId) returns (VMID);
+  rpc CloneVMNic(VmNicCloneReq) returns (RequestID);
 
-  rpc SetVmNics(SetNicReq) returns (ReqBool);
-  rpc GetVmNics(VMID) returns (stream VmNicId);
+  rpc SetVMNics(SetNicReq) returns (ReqBool);
+  rpc GetVMNics(VMID) returns (stream VmNicId);
 
   rpc Com1Interactive(stream ComDataRequest) returns (stream ComDataResponse);
   rpc Com2Interactive(stream ComDataRequest) returns (stream ComDataResponse);

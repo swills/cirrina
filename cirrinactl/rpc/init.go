@@ -43,7 +43,7 @@ type NicInfo struct {
 	NetType     string
 	NetDevType  string
 	Uplink      string
-	VmName      string
+	VMName      string
 	RateLimited bool
 	RateIn      uint64
 	RateOut     uint64
@@ -56,11 +56,11 @@ type SwitchInfo struct {
 	Uplink     string
 }
 
-type VmConfig struct {
-	Id             string `json:"Id"             yaml:"Id"`
+type VMConfig struct {
+	ID             string `json:"ID"             yaml:"ID"`
 	Name           string `json:"Name"           yaml:"Name"`
 	Description    string `json:"Description"    yaml:"Description"`
-	Cpu            uint32 `json:"Cpu"            yaml:"Cpu"`
+	CPU            uint32 `json:"CPU"            yaml:"CPU"`
 	Mem            uint32 `json:"Mem"            yaml:"Mem"`
 	MaxWait        uint32 `json:"MaxWait"        yaml:"MaxWait"`
 	Restart        bool   `json:"Restart"        yaml:"Restart"`

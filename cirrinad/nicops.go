@@ -8,7 +8,7 @@ import (
 
 	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/util"
-	"cirrina/cirrinad/vm_nics"
+	"cirrina/cirrinad/vmnic"
 )
 
 func nicClone(rs *requests.Request) {
@@ -21,10 +21,10 @@ func nicClone(rs *requests.Request) {
 
 		return
 	}
-	var nicInst *vm_nics.VmNic
-	nicInst, err = vm_nics.GetById(reqData.NicId)
+	var nicInst *vmnic.VMNic
+	nicInst, err = vmnic.GetByID(reqData.NicID)
 	if err != nil {
-		slog.Error("nicClone error getting nic", "nic", reqData.NicId, "err", err)
+		slog.Error("nicClone error getting nic", "nic", reqData.NicID, "err", err)
 		rs.Failed()
 
 		return
@@ -35,26 +35,21 @@ func nicClone(rs *requests.Request) {
 
 		return
 	}
-	existingVmNic, err := vm_nics.GetByName(reqData.NewNicName)
+	existingVMNic, err := vmnic.GetByName(reqData.NewNicName)
 	if err != nil {
-		slog.Error("error getting name of new NIC", "nic", reqData.NicId, "err", err)
+		slog.Error("error getting name of new NIC", "nic", reqData.NicID, "err", err)
 		rs.Failed()
 
 		return
 	}
-	if existingVmNic.Name != "" {
-		slog.Error("cloned nic already exists", "nic", reqData.NicId, "err", err, "newName", reqData.NewNicName)
+	if existingVMNic.Name != "" {
+		slog.Error("cloned nic already exists", "nic", reqData.NicID, "err", err, "newName", reqData.NewNicName)
 		rs.Failed()
 
 		return
 	}
 	var newMac net.HardwareAddr
-	if reqData.NewNicMac == "" {
-		slog.Error("error cloning nic, blank mac")
-		rs.Failed()
 
-		return
-	}
 	// check that mac is not broadcast and is not multicast. do not need to check if it's parseable here
 	// because both do that also
 	if reqData.NewNicMac != "" && reqData.NewNicMac != "AUTO" {
@@ -94,22 +89,22 @@ func nicClone(rs *requests.Request) {
 		newNic.Mac = newMac.String()
 	}
 
-	newVmNicId, err := vm_nics.Create(&newNic)
+	newVMNicID, err := vmnic.Create(&newNic)
 	if err != nil {
 		slog.Error("error saving cloned nic", "err", err)
 		rs.Failed()
 
 		return
 	}
-	slog.Debug("cloned nic", "newVmNicId", newVmNicId)
+	slog.Debug("cloned nic", "newVMNicID", newVMNicID)
 	rs.Succeeded()
 }
 
 // nicHasPendingReq check if the nic has pending requests other than this one
-func nicHasPendingReq(thisReqId string, nicId string) bool {
-	pendingReqIds := requests.PendingReqExists(nicId)
-	for _, pendingReqId := range pendingReqIds {
-		if pendingReqId != thisReqId {
+func nicHasPendingReq(thisReqID string, nicID string) bool {
+	pendingReqIds := requests.PendingReqExists(nicID)
+	for _, pendingReqID := range pendingReqIds {
+		if pendingReqID != thisReqID {
 			return true
 		}
 	}

@@ -17,14 +17,14 @@ import (
 )
 
 type singleton struct {
-	diskDb *gorm.DB
+	diskDB *gorm.DB
 }
 
 var instance *singleton
 
 var once sync.Once
 
-func getDiskDb() *gorm.DB {
+func getDiskDB() *gorm.DB {
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "DiskDb: ", log.LstdFlags),
 		logger.Config{
@@ -37,7 +37,7 @@ func getDiskDb() *gorm.DB {
 
 	once.Do(func() {
 		instance = &singleton{}
-		diskDb, err := gorm.Open(
+		diskDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
 			&gorm.Config{
 				Logger:      noColorLogger,
@@ -47,16 +47,16 @@ func getDiskDb() *gorm.DB {
 		if err != nil {
 			panic("failed to connect database")
 		}
-		sqlDB, err := diskDb.DB()
+		sqlDB, err := diskDB.DB()
 		if err != nil {
 			panic("failed to create sqlDB database")
 		}
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
-		instance.diskDb = diskDb
+		instance.diskDB = diskDB
 	})
 
-	return instance.diskDb
+	return instance.diskDB
 }
 
 func (d *Disk) BeforeCreate(_ *gorm.DB) (err error) {
@@ -68,17 +68,17 @@ func (d *Disk) BeforeCreate(_ *gorm.DB) (err error) {
 	return nil
 }
 
-func DbAutoMigrate() {
-	db := getDiskDb()
+func DBAutoMigrate() {
+	db := getDiskDB()
 	err := db.AutoMigrate(&Disk{})
 	if err != nil {
 		panic("failed to auto-migrate disk")
 	}
 	err = db.Migrator().DropColumn(&Disk{}, "path")
 	if err != nil {
-		slog.Error("DiskDb DbAutoMigrate failed to drop path column, continuing anyway")
+		slog.Error("DiskDb DBAutoMigrate failed to drop path column, continuing anyway")
 	}
-	for _, diskInst := range GetAllDb() {
+	for _, diskInst := range GetAllDB() {
 		InitOneDisk(diskInst)
 	}
 }

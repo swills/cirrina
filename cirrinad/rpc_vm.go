@@ -22,11 +22,11 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	re := cirrina.ReqBool{}
 	re.Success = false
 
-	vmUuid, err := uuid.Parse(rc.Id)
+	vmUUID, err := uuid.Parse(rc.Id)
 	if err != nil {
 		return &re, errors.New("id not specified or invalid")
 	}
-	vmInst, err := vm.GetById(vmUuid.String())
+	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
 		slog.Error("UpdateVM error getting vm", "vm", rc.Id, "err", err)
 
@@ -36,49 +36,49 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 		return &re, errors.New("not found")
 	}
 
-	err = updateVmBasics(rc, vmInst)
+	err = updateVMBasics(rc, vmInst)
 	if err != nil {
 		return &re, err
 	}
 
-	err = updateVmCom1(rc, vmInst)
+	err = updateVMCom1(rc, vmInst)
 	if err != nil {
 		return &re, err
 	}
-	err = updateVmCom2(rc, vmInst)
+	err = updateVMCom2(rc, vmInst)
 	if err != nil {
 		return &re, err
 	}
-	err = updateVmCom3(rc, vmInst)
+	err = updateVMCom3(rc, vmInst)
 	if err != nil {
 		return &re, err
 	}
-	err = updateVmCom4(rc, vmInst)
-	if err != nil {
-		return &re, err
-	}
-
-	updateVmScreen(rc, vmInst)
-	err = updateVmScreenOptions(rc, vmInst)
+	err = updateVMCom4(rc, vmInst)
 	if err != nil {
 		return &re, err
 	}
 
-	err = updateVmSound(rc, vmInst)
+	updateVMScreen(rc, vmInst)
+	err = updateVMScreenOptions(rc, vmInst)
 	if err != nil {
 		return &re, err
 	}
 
-	updateVmStart(rc, vmInst)
-	updateVmAdvanced1(rc, vmInst)
-	updateVmAdvanced2(rc, vmInst)
-
-	err = updateVmDebug(rc, vmInst)
+	err = updateVMSound(rc, vmInst)
 	if err != nil {
 		return &re, err
 	}
 
-	updateVmPriorityLimits(rc, vmInst)
+	updateVMStart(rc, vmInst)
+	updateVMAdvanced1(rc, vmInst)
+	updateVMAdvanced2(rc, vmInst)
+
+	err = updateVMDebug(rc, vmInst)
+	if err != nil {
+		return &re, err
+	}
+
+	updateVMPriorityLimits(rc, vmInst)
 
 	err = vmInst.Save()
 	if err != nil {
@@ -89,7 +89,7 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 	return &re, nil
 }
 
-func updateVmPriorityLimits(rc *cirrina.VMConfig, vmInst *vm.VM) {
+func updateVMPriorityLimits(rc *cirrina.VMConfig, vmInst *vm.VM) {
 	if rc.Priority != nil {
 		vmInst.Config.Priority = *rc.Priority
 	}
@@ -113,7 +113,7 @@ func updateVmPriorityLimits(rc *cirrina.VMConfig, vmInst *vm.VM) {
 	}
 }
 
-func updateVmDebug(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+func updateVMDebug(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	if rc.Debug != nil {
 		if *rc.Debug {
 			vmInst.Config.Debug = true
@@ -141,7 +141,7 @@ func updateVmDebug(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	return nil
 }
 
-func updateVmAdvanced1(rc *cirrina.VMConfig, vmInst *vm.VM) {
+func updateVMAdvanced1(rc *cirrina.VMConfig, vmInst *vm.VM) {
 	if rc.Hostbridge != nil {
 		if *rc.Hostbridge {
 			vmInst.Config.HostBridge = true
@@ -179,7 +179,7 @@ func updateVmAdvanced1(rc *cirrina.VMConfig, vmInst *vm.VM) {
 	}
 }
 
-func updateVmAdvanced2(rc *cirrina.VMConfig, vmInst *vm.VM) {
+func updateVMAdvanced2(rc *cirrina.VMConfig, vmInst *vm.VM) {
 	if rc.Dpo != nil {
 		if *rc.Dpo {
 			vmInst.Config.DestroyPowerOff = true
@@ -214,7 +214,7 @@ func updateVmAdvanced2(rc *cirrina.VMConfig, vmInst *vm.VM) {
 	}
 }
 
-func updateVmStart(rc *cirrina.VMConfig, vmInst *vm.VM) {
+func updateVMStart(rc *cirrina.VMConfig, vmInst *vm.VM) {
 	if rc.Autostart != nil {
 		if *rc.Autostart {
 			vmInst.Config.AutoStart = true
@@ -244,7 +244,7 @@ func updateVmStart(rc *cirrina.VMConfig, vmInst *vm.VM) {
 	}
 }
 
-func updateVmSound(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+func updateVMSound(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	if rc.Sound != nil {
 		if *rc.Sound {
 			vmInst.Config.Sound = true
@@ -268,7 +268,7 @@ func updateVmSound(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	return nil
 }
 
-func updateVmScreen(rc *cirrina.VMConfig, vmInst *vm.VM) {
+func updateVMScreen(rc *cirrina.VMConfig, vmInst *vm.VM) {
 	if rc.Screen != nil {
 		if *rc.Screen {
 			vmInst.Config.Screen = true
@@ -284,7 +284,7 @@ func updateVmScreen(rc *cirrina.VMConfig, vmInst *vm.VM) {
 	}
 }
 
-func updateVmScreenOptions(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+func updateVMScreenOptions(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	if rc.Vncport != nil {
 		if *rc.Vncport != "AUTO" {
 			port, err := strconv.Atoi(*rc.Vncport)
@@ -319,7 +319,7 @@ func updateVmScreenOptions(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	return nil
 }
 
-func updateVmCom1(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+func updateVMCom1(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	if rc.Com1 != nil {
 		if *rc.Com1 {
 			vmInst.Config.Com1 = true
@@ -349,7 +349,7 @@ func updateVmCom1(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	return nil
 }
 
-func updateVmCom2(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+func updateVMCom2(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	if rc.Com2 != nil {
 		if *rc.Com2 {
 			vmInst.Config.Com2 = true
@@ -379,7 +379,7 @@ func updateVmCom2(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	return nil
 }
 
-func updateVmCom3(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+func updateVMCom3(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	if rc.Com3 != nil {
 		if *rc.Com3 {
 			vmInst.Config.Com3 = true
@@ -409,7 +409,7 @@ func updateVmCom3(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	return nil
 }
 
-func updateVmCom4(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+func updateVMCom4(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	if rc.Com4 != nil {
 		if *rc.Com4 {
 			vmInst.Config.Com4 = true
@@ -439,9 +439,9 @@ func updateVmCom4(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	return nil
 }
 
-func updateVmBasics(rc *cirrina.VMConfig, vmInst *vm.VM) error {
+func updateVMBasics(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	if rc.Name != nil {
-		if !util.ValidVmName(*rc.Name) {
+		if !util.ValidVMName(*rc.Name) {
 			return errors.New("invalid name")
 		}
 		if _, err := vm.GetByName(*rc.Name); err == nil {
@@ -453,7 +453,7 @@ func updateVmBasics(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 		vmInst.Description = *rc.Description
 	}
 	if rc.Cpu != nil {
-		vmInst.Config.Cpu = *rc.Cpu
+		vmInst.Config.CPU = *rc.Cpu
 	}
 	if rc.Mem != nil {
 		vmInst.Config.Mem = *rc.Mem
@@ -462,7 +462,7 @@ func updateVmBasics(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	return nil
 }
 
-func (s *server) GetVmId(_ context.Context, v *wrapperspb.StringValue) (*cirrina.VMID, error) {
+func (s *server) GetVMID(_ context.Context, v *wrapperspb.StringValue) (*cirrina.VMID, error) {
 	var vmName string
 
 	if v == nil {
@@ -478,12 +478,12 @@ func (s *server) GetVmId(_ context.Context, v *wrapperspb.StringValue) (*cirrina
 	return &cirrina.VMID{Value: vmInst.ID}, nil
 }
 
-func (s *server) GetVmName(_ context.Context, v *cirrina.VMID) (*wrapperspb.StringValue, error) {
-	vmUuid, err := uuid.Parse(v.Value)
+func (s *server) GetVMName(_ context.Context, v *cirrina.VMID) (*wrapperspb.StringValue, error) {
+	vmUUID, err := uuid.Parse(v.Value)
 	if err != nil {
 		return wrapperspb.String(""), errors.New("id not specified or invalid")
 	}
-	vmInst, err := vm.GetById(vmUuid.String())
+	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
 		slog.Error("GetVMConfig error getting vm", "vm", v.Value, "err", err)
 
@@ -496,11 +496,11 @@ func (s *server) GetVmName(_ context.Context, v *cirrina.VMID) (*wrapperspb.Stri
 func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMConfig, error) {
 	var pvm cirrina.VMConfig
 
-	vmUuid, err := uuid.Parse(v.Value)
+	vmUUID, err := uuid.Parse(v.Value)
 	if err != nil {
 		return &pvm, errors.New("id not specified or invalid")
 	}
-	vmInst, err := vm.GetById(vmUuid.String())
+	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
 		slog.Error("GetVMConfig error getting vm", "vm", v.Value, "err", err)
 
@@ -512,7 +512,7 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 	pvm.Id = v.Value
 	pvm.Name = &vmInst.Name
 	pvm.Description = &vmInst.Description
-	pvm.Cpu = &vmInst.Config.Cpu
+	pvm.Cpu = &vmInst.Config.CPU
 	pvm.Mem = &vmInst.Config.Mem
 	pvm.MaxWait = &vmInst.Config.MaxWait
 	pvm.Restart = &vmInst.Config.Restart
@@ -571,12 +571,12 @@ func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMCon
 
 func (s *server) GetVMs(_ *cirrina.VMsQuery, stream cirrina.VMInfo_GetVMsServer) error {
 	var allVMs []*vm.VM
-	var pvmId cirrina.VMID
+	var pvmID cirrina.VMID
 
 	allVMs = vm.GetAll()
 	for e := range allVMs {
-		pvmId.Value = allVMs[e].ID
-		err := stream.Send(&pvmId)
+		pvmID.Value = allVMs[e].ID
+		err := stream.Send(&pvmID)
 		if err != nil {
 			return err
 		}
@@ -587,11 +587,11 @@ func (s *server) GetVMs(_ *cirrina.VMsQuery, stream cirrina.VMInfo_GetVMsServer)
 
 func (s *server) GetVMState(_ context.Context, p *cirrina.VMID) (*cirrina.VMState, error) {
 	pvm := cirrina.VMState{}
-	vmUuid, err := uuid.Parse(p.Value)
+	vmUUID, err := uuid.Parse(p.Value)
 	if err != nil {
 		return &pvm, errors.New("id not specified or invalid")
 	}
-	vmInst, err := vm.GetById(vmUuid.String())
+	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
 		slog.Error("GetVMState error getting vm", "vm", p.Value, "err", err)
 
@@ -624,25 +624,25 @@ func (s *server) GetVMState(_ context.Context, p *cirrina.VMID) (*cirrina.VMStat
 }
 
 func (s *server) AddVM(_ context.Context, v *cirrina.VMConfig) (*cirrina.VMID, error) {
-	defaultVmDescription := ""
-	var defaultVmCpuCount uint32 = 1
-	var defaultVmMemCount uint32 = 128
+	defaultVMDescription := ""
+	var defaultVMCpuCount uint32 = 1
+	var defaultVMMemCount uint32 = 128
 
 	if v.Name == nil {
 		return &cirrina.VMID{}, errors.New("name not specified")
 	}
-	if !util.ValidVmName(*v.Name) {
+	if !util.ValidVMName(*v.Name) {
 		return &cirrina.VMID{}, errors.New("invalid name")
 	}
 
 	if v.Description == nil {
-		v.Description = &defaultVmDescription
+		v.Description = &defaultVMDescription
 	}
 	if v.Cpu == nil || *v.Cpu < 1 || *v.Cpu > 16 {
-		v.Cpu = &defaultVmCpuCount
+		v.Cpu = &defaultVMCpuCount
 	}
 	if v.Mem == nil || *v.Mem < 128 {
-		v.Mem = &defaultVmMemCount
+		v.Mem = &defaultVMMemCount
 	}
 	vmInst, err := vm.Create(*v.Name, *v.Description, *v.Cpu, *v.Mem)
 	if err != nil {
@@ -657,11 +657,11 @@ func (s *server) AddVM(_ context.Context, v *cirrina.VMConfig) (*cirrina.VMID, e
 }
 
 func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID, error) {
-	vmUuid, err := uuid.Parse(v.Value)
+	vmUUID, err := uuid.Parse(v.Value)
 	if err != nil {
 		return &cirrina.RequestID{}, errors.New("id not specified or invalid")
 	}
-	vmInst, err := vm.GetById(vmUuid.String())
+	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
 		slog.Error("DeleteVM error getting vm", "vm", v.Value, "err", err)
 
@@ -677,7 +677,7 @@ func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestI
 	if vmInst.Status != vm.STOPPED {
 		return &cirrina.RequestID{}, errors.New("vm must be stopped before deleting")
 	}
-	newReq, err := requests.CreateVmReq(requests.VMDELETE, v.Value)
+	newReq, err := requests.CreateVMReq(requests.VMDELETE, v.Value)
 	if err != nil {
 		return &cirrina.RequestID{}, err
 	}
@@ -685,15 +685,15 @@ func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestI
 	return &cirrina.RequestID{Value: newReq.ID}, nil
 }
 
-func (s *server) SetVmISOs(_ context.Context, sr *cirrina.SetISOReq) (*cirrina.ReqBool, error) {
+func (s *server) SetVMISOs(_ context.Context, sr *cirrina.SetISOReq) (*cirrina.ReqBool, error) {
 	re := cirrina.ReqBool{}
 	re.Success = false
 
-	vmUuid, err := uuid.Parse(sr.Id)
+	vmUUID, err := uuid.Parse(sr.Id)
 	if err != nil {
 		return &re, errors.New("id not specified or invalid")
 	}
-	vmInst, err := vm.GetById(vmUuid.String())
+	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
 		slog.Error("SetVmISOs error getting vm", "vm", sr.Id, "err", err)
 
@@ -712,16 +712,16 @@ func (s *server) SetVmISOs(_ context.Context, sr *cirrina.SetISOReq) (*cirrina.R
 	return &re, nil
 }
 
-func (s *server) SetVmNics(_ context.Context, sn *cirrina.SetNicReq) (*cirrina.ReqBool, error) {
+func (s *server) SetVMNics(_ context.Context, sn *cirrina.SetNicReq) (*cirrina.ReqBool, error) {
 	var re cirrina.ReqBool
 	re.Success = false
 	slog.Debug("SetVmNics", "vm", sn.Vmid, "vmnic", sn.Vmnicid)
 
-	vmUuid, err := uuid.Parse(sn.Vmid)
+	vmUUID, err := uuid.Parse(sn.Vmid)
 	if err != nil {
 		return &re, errors.New("id not specified or invalid")
 	}
-	vmInst, err := vm.GetById(vmUuid.String())
+	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
 		slog.Error("SetVmNics error getting vm", "vm", sn.Vmid, "err", err)
 
@@ -740,16 +740,16 @@ func (s *server) SetVmNics(_ context.Context, sn *cirrina.SetNicReq) (*cirrina.R
 	return &re, nil
 }
 
-func (s *server) SetVmDisks(_ context.Context, sr *cirrina.SetDiskReq) (*cirrina.ReqBool, error) {
+func (s *server) SetVMDisks(_ context.Context, sr *cirrina.SetDiskReq) (*cirrina.ReqBool, error) {
 	re := cirrina.ReqBool{}
 	re.Success = false
 	slog.Debug("SetVmDisks", "vm", sr.Id, "disk", sr.Diskid)
 
-	vmUuid, err := uuid.Parse(sr.Id)
+	vmUUID, err := uuid.Parse(sr.Id)
 	if err != nil {
 		return &re, errors.New("id not specified or invalid")
 	}
-	vmInst, err := vm.GetById(vmUuid.String())
+	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
 		slog.Error("SetVmDisks error getting vm", "vm", sr.Id, "err", err)
 
@@ -767,13 +767,13 @@ func (s *server) SetVmDisks(_ context.Context, sr *cirrina.SetDiskReq) (*cirrina
 	return &re, nil
 }
 
-func (s *server) GetVmISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVmISOsServer) error {
-	vmUuid, err := uuid.Parse(v.Value)
+func (s *server) GetVMISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVMISOsServer) error {
+	vmUUID, err := uuid.Parse(v.Value)
 	if err != nil {
 		return errors.New("id not specified or invalid")
 	}
 
-	vmInst, err := vm.GetById(vmUuid.String())
+	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
 		slog.Error("GetVmISOs error getting vm", "vm", v.Value, "err", err)
 
@@ -787,11 +787,11 @@ func (s *server) GetVmISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVmISOsServe
 	if err != nil {
 		return err
 	}
-	var isoId cirrina.ISOID
+	var isoID cirrina.ISOID
 
 	for _, e := range isos {
-		isoId.Value = e.ID
-		err := stream.Send(&isoId)
+		isoID.Value = e.ID
+		err := stream.Send(&isoID)
 		if err != nil {
 			return err
 		}
@@ -800,12 +800,12 @@ func (s *server) GetVmISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVmISOsServe
 	return nil
 }
 
-func (s *server) GetVmDisks(v *cirrina.VMID, stream cirrina.VMInfo_GetVmDisksServer) error {
-	vmUuid, err := uuid.Parse(v.Value)
+func (s *server) GetVMDisks(v *cirrina.VMID, stream cirrina.VMInfo_GetVMDisksServer) error {
+	vmUUID, err := uuid.Parse(v.Value)
 	if err != nil {
 		return errors.New("id not specified or invalid")
 	}
-	vmInst, err := vm.GetById(vmUuid.String())
+	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
 		slog.Error("GetVmDisks error getting vm", "vm", v.Value, "err", err)
 
@@ -819,11 +819,11 @@ func (s *server) GetVmDisks(v *cirrina.VMID, stream cirrina.VMInfo_GetVmDisksSer
 	if err != nil {
 		return err
 	}
-	var diskId cirrina.DiskId
+	var diskID cirrina.DiskId
 
 	for _, e := range disks {
-		diskId.Value = e.ID
-		err := stream.Send(&diskId)
+		diskID.Value = e.ID
+		err := stream.Send(&diskID)
 		if err != nil {
 			return err
 		}
@@ -833,11 +833,11 @@ func (s *server) GetVmDisks(v *cirrina.VMID, stream cirrina.VMInfo_GetVmDisksSer
 }
 
 func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID, error) {
-	vmUuid, err := uuid.Parse(v.Value)
+	vmUUID, err := uuid.Parse(v.Value)
 	if err != nil {
 		return &cirrina.RequestID{}, errors.New("id not specified or invalid")
 	}
-	vmInst, err := vm.GetById(vmUuid.String())
+	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
 		slog.Error("StartVM error getting vm", "vm", v.Value, "err", err)
 
@@ -853,7 +853,7 @@ func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID
 	if vmInst.Status != vm.STOPPED {
 		return &cirrina.RequestID{}, errors.New("vm must be stopped before starting")
 	}
-	newReq, err := requests.CreateVmReq(requests.VMSTART, vmUuid.String())
+	newReq, err := requests.CreateVMReq(requests.VMSTART, vmUUID.String())
 	if err != nil {
 		return &cirrina.RequestID{}, err
 	}
@@ -862,11 +862,11 @@ func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID
 }
 
 func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID, error) {
-	vmUuid, err := uuid.Parse(v.Value)
+	vmUUID, err := uuid.Parse(v.Value)
 	if err != nil {
 		return &cirrina.RequestID{}, errors.New("id not specified or invalid")
 	}
-	vmInst, err := vm.GetById(vmUuid.String())
+	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
 		slog.Error("StopVM error getting vm", "vm", v.Value, "err", err)
 
@@ -882,7 +882,7 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 	if vmInst.Status != vm.RUNNING {
 		return &cirrina.RequestID{}, errors.New("vm must be running before stopping")
 	}
-	newReq, err := requests.CreateVmReq(requests.VMSTOP, v.Value)
+	newReq, err := requests.CreateVMReq(requests.VMSTOP, v.Value)
 	if err != nil {
 		return &cirrina.RequestID{}, err
 	}
@@ -890,15 +890,15 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 	return &cirrina.RequestID{Value: newReq.ID}, nil
 }
 
-func (s *server) GetVmNics(v *cirrina.VMID, stream cirrina.VMInfo_GetVmNicsServer) error {
-	var pvmnicId cirrina.VmNicId
-	vmUuid, err := uuid.Parse(v.Value)
+func (s *server) GetVMNics(v *cirrina.VMID, stream cirrina.VMInfo_GetVMNicsServer) error {
+	var pvmnicID cirrina.VmNicId
+	vmUUID, err := uuid.Parse(v.Value)
 	if err != nil {
 		return errors.New("id not specified or invalid")
 	}
-	vmInst, err := vm.GetById(vmUuid.String())
+	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
-		slog.Error("GetVmNics error getting vm", "vm", v.Value, "err", err)
+		slog.Error("GetVMNics error getting vm", "vm", v.Value, "err", err)
 
 		return errors.New("not found")
 	}
@@ -911,8 +911,8 @@ func (s *server) GetVmNics(v *cirrina.VMID, stream cirrina.VMInfo_GetVmNicsServe
 	}
 
 	for e := range vmNics {
-		pvmnicId.Value = vmNics[e].ID
-		err := stream.Send(&pvmnicId)
+		pvmnicID.Value = vmNics[e].ID
+		err := stream.Send(&pvmnicID)
 		if err != nil {
 			return err
 		}

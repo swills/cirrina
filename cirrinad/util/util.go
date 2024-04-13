@@ -178,7 +178,7 @@ func runCommandAndCaptureOutput(cmdName string, cmdArgs []string) ([]byte, error
 	return outResult, nil
 }
 
-func getNetstatJsonOutput() ([]byte, error) {
+func getNetstatJSONOutput() ([]byte, error) {
 	return runCommandAndCaptureOutput("/usr/bin/netstat", []string{"-an", "--libxo", "json"})
 }
 
@@ -217,7 +217,7 @@ func parseNetstatSocket(socket map[string]interface{}) (int, error) {
 	return portInt, nil
 }
 
-func parseNetstatJsonOutput(netstatOutput []byte) ([]int, error) {
+func parseNetstatJSONOutput(netstatOutput []byte) ([]int, error) {
 	var result map[string]interface{}
 
 	err := json.Unmarshal(netstatOutput, &result)
@@ -253,11 +253,11 @@ func parseNetstatJsonOutput(netstatOutput []byte) ([]int, error) {
 
 func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (port int, err error) {
 	// get and parse netstat output
-	netstatJson, err := getNetstatJsonOutput()
+	netstatJSON, err := getNetstatJSONOutput()
 	if err != nil {
 		return 0, err
 	}
-	uniqueLocalListenPorts, err := parseNetstatJsonOutput(netstatJson)
+	uniqueLocalListenPorts, err := parseNetstatJSONOutput(netstatJSON)
 	if err != nil {
 		return 0, err
 	}
@@ -355,7 +355,7 @@ func GetIntGroups(interfaceName string) (intGroups []string, err error) {
 	return intGroups, nil
 }
 
-func ValidVmName(name string) bool {
+func ValidVMName(name string) bool {
 	if name == "" {
 		return false
 	}
@@ -492,12 +492,12 @@ func MacIsMulticast(macAddress string) (bool, error) {
 }
 
 func IsValidIP(ipAddress string) bool {
-	parsedIp := net.ParseIP(ipAddress)
+	parsedIP := net.ParseIP(ipAddress)
 
-	return parsedIp != nil
+	return parsedIP != nil
 }
 
-func IsValidTcpPort(tcpPort uint) bool {
+func IsValidTCPPort(tcpPort uint) bool {
 	if tcpPort < 1 || tcpPort > 65535 {
 		return false
 	}
@@ -517,26 +517,26 @@ func ModeIsExecOther(mode os.FileMode) bool {
 	return mode&0001 != 0
 }
 
-func GetMyUidGid() (uid uint32, gid uint32, err error) {
+func GetMyUIDGID() (uid uint32, gid uint32, err error) {
 	myUser, err := user.Current()
 	if err != nil {
 		return 0, 0, err
 	}
-	myUid, err := strconv.Atoi(myUser.Uid)
+	myUID, err := strconv.Atoi(myUser.Uid)
 	if err != nil {
 		return 0, 0, err
 	}
-	myGid, err := strconv.Atoi(myUser.Gid)
+	myGID, err := strconv.Atoi(myUser.Gid)
 	if err != nil {
 		return 0, 0, err
 	}
-	u := uint32(myUid)
-	g := uint32(myGid)
+	u := uint32(myUID)
+	g := uint32(myGID)
 
 	return u, g, nil
 }
 
-func ValidateDbConfig() {
+func ValidateDBConfig() {
 	dbFilePath, err := filepath.Abs(config.Config.DB.Path)
 	if err != nil {
 		slog.Error("failed to get absolute path to database")
@@ -608,7 +608,7 @@ func ParseDiskSize(size string) (sizeBytes uint64, err error) {
 	return r, nil
 }
 
-func GetHostMaxVmCpus() (uint16, error) {
+func GetHostMaxVMCpus() (uint16, error) {
 	var emptyBytes []byte
 	var outBytes bytes.Buffer
 	var errBytes bytes.Buffer
@@ -623,18 +623,18 @@ func GetHostMaxVmCpus() (uint16, error) {
 
 		return 0, err
 	}
-	maxCpuStr := strings.TrimSpace(outBytes.String())
-	maxCpu, err := strconv.Atoi(maxCpuStr)
+	maxCPUStr := strings.TrimSpace(outBytes.String())
+	maxCPU, err := strconv.Atoi(maxCPUStr)
 	if err != nil {
 		slog.Error("Failed converting max cpus to int", "err", err.Error())
 
 		return 0, err
 	}
-	if maxCpu <= 0 || maxCpu >= math.MaxUint16 {
-		slog.Error("Failed invalid max cpus", "maxCpu", maxCpu)
+	if maxCPU <= 0 || maxCPU >= math.MaxUint16 {
+		slog.Error("Failed invalid max cpus", "maxCPU", maxCPU)
 
 		return 0, err
 	}
 
-	return uint16(maxCpu), nil
+	return uint16(maxCPU), nil
 }

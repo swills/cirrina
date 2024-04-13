@@ -15,18 +15,18 @@ import (
 )
 
 type singleton struct {
-	vmDb *gorm.DB
+	vmDB *gorm.DB
 }
 
 var instance *singleton
 
 var dbInitialized bool
 
-func DbReconfig() {
+func DBReconfig() {
 	dbInitialized = false
 }
 
-func GetVmDb() *gorm.DB {
+func GetVMDB() *gorm.DB {
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "VmDb: ", log.LstdFlags),
 		logger.Config{
@@ -39,32 +39,32 @@ func GetVmDb() *gorm.DB {
 
 	if !dbInitialized {
 		instance = &singleton{}
-		vmDb, err := gorm.Open(
+		vmDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
 			&gorm.Config{
 				Logger:      noColorLogger,
 				PrepareStmt: true,
 			},
 		)
-		vmDb.Preload("Config")
+		vmDB.Preload("Config")
 		if err != nil {
 			panic("failed to connect database")
 		}
-		sqlDB, err := vmDb.DB()
+		sqlDB, err := vmDB.DB()
 		if err != nil {
 			panic("failed to create sqlDB database")
 		}
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
-		instance.vmDb = vmDb
+		instance.vmDB = vmDB
 		dbInitialized = true
 	}
 
-	return instance.vmDb
+	return instance.vmDB
 }
 
 func (vm *VM) SetRunning(pid int) {
-	db := GetVmDb()
+	db := GetVMDB()
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = RUNNING
@@ -88,7 +88,7 @@ func (vm *VM) SetRunning(pid int) {
 }
 
 func (vm *VM) SetStarting() {
-	db := GetVmDb()
+	db := GetVMDB()
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = STARTING
@@ -105,7 +105,7 @@ func (vm *VM) SetStarting() {
 
 // SetStopped this can in some cases get called on already stopped/deleted VMs and that's OK
 func (vm *VM) SetStopped() {
-	db := GetVmDb()
+	db := GetVMDB()
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = STOPPED
@@ -143,7 +143,7 @@ func (vm *VM) SetStopped() {
 }
 
 func (vm *VM) SetStopping() {
-	db := GetVmDb()
+	db := GetVMDB()
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = STOPPING
@@ -180,8 +180,8 @@ func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
 	return nil
 }
 
-func DbAutoMigrate() {
-	db := GetVmDb()
+func DBAutoMigrate() {
+	db := GetVMDB()
 	err := db.AutoMigrate(&VM{})
 	if err != nil {
 		panic("failed to auto-migrate VMs")
@@ -194,22 +194,22 @@ func DbAutoMigrate() {
 
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
-	for _, vmInst := range GetAllDb() {
-		InitOneVm(vmInst)
+	for _, vmInst := range GetAllDB() {
+		InitOneVM(vmInst)
 	}
 }
 
-func GetAllDb() []*VM {
+func GetAllDB() []*VM {
 	var result []*VM
 
-	db := GetVmDb()
+	db := GetVMDB()
 	db.Preload("Config").Find(&result)
 
 	return result
 }
 
-func DbInitialized() bool {
-	db := GetVmDb()
+func DBInitialized() bool {
+	db := GetVMDB()
 
 	return db.Migrator().HasColumn(VM{}, "id")
 }

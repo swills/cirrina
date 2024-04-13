@@ -13,18 +13,18 @@ import (
 )
 
 type singleton struct {
-	reqDb *gorm.DB
+	reqDB *gorm.DB
 }
 
 var instance *singleton
 
 var dbInitialized bool
 
-func DbReconfig() {
+func DBReconfig() {
 	dbInitialized = false
 }
 
-func GetReqDb() *gorm.DB {
+func GetReqDB() *gorm.DB {
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "ReqDb: ", log.LstdFlags),
 		logger.Config{
@@ -37,7 +37,7 @@ func GetReqDb() *gorm.DB {
 
 	if !dbInitialized {
 		instance = &singleton{}
-		reqDb, err := gorm.Open(
+		reqDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
 			&gorm.Config{
 				Logger:      noColorLogger,
@@ -47,21 +47,21 @@ func GetReqDb() *gorm.DB {
 		if err != nil {
 			panic("failed to connect database")
 		}
-		sqlDB, err := reqDb.DB()
+		sqlDB, err := reqDB.DB()
 		if err != nil {
 			panic("failed to create sqlDB database")
 		}
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
-		instance.reqDb = reqDb
+		instance.reqDB = reqDB
 		dbInitialized = true
 	}
 
-	return instance.reqDb
+	return instance.reqDB
 }
 
-func DbAutoMigrate() {
-	db := GetReqDb()
+func DBAutoMigrate() {
+	db := GetReqDB()
 	err := db.AutoMigrate(&Request{})
 	if err != nil {
 		panic("failed to auto-migrate Requests")

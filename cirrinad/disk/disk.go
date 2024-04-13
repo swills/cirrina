@@ -65,7 +65,7 @@ func Create(name string, description string, size string, diskType string, diskD
 	}
 
 	// save disk to DB
-	db := getDiskDb()
+	db := getDiskDB()
 	res := db.Create(&diskInst)
 	List.DiskList[diskInst.ID] = diskInst
 
@@ -212,15 +212,15 @@ func createDiskZvol(volName string, size string) error {
 	return err
 }
 
-func GetAllDb() []*Disk {
+func GetAllDB() []*Disk {
 	var result []*Disk
-	db := getDiskDb()
+	db := getDiskDB()
 	db.Find(&result)
 
 	return result
 }
 
-func GetById(id string) (*Disk, error) {
+func GetByID(id string) (*Disk, error) {
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
 	diskInst, valid := List.DiskList[id]
@@ -252,7 +252,7 @@ func Delete(id string) (err error) {
 	}
 	delete(List.DiskList, id)
 
-	db := getDiskDb()
+	db := getDiskDB()
 	res := db.Limit(1).Delete(&Disk{ID: id})
 	if res.RowsAffected == 1 {
 		return nil
@@ -264,7 +264,7 @@ func Delete(id string) (err error) {
 }
 
 func (d *Disk) Save() error {
-	db := getDiskDb()
+	db := getDiskDB()
 
 	res := db.Model(&d).
 		Updates(map[string]interface{}{

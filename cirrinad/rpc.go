@@ -17,7 +17,7 @@ type server struct {
 }
 
 func rpcServer() {
-	listenAddress := config.Config.Network.Grpc.Ip + ":" + strconv.Itoa(int(config.Config.Network.Grpc.Port))
+	listenAddress := config.Config.Network.Grpc.IP + ":" + strconv.Itoa(int(config.Config.Network.Grpc.Port))
 	lis, err := net.Listen("tcp", listenAddress)
 	if err != nil {
 		slog.Error("failed to listen for rpc", "listenAddress", listenAddress, "err", err)

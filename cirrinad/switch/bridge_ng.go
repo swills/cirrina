@@ -1,4 +1,4 @@
-package _switch
+package vmswitch
 
 import (
 	"bufio"
@@ -17,7 +17,7 @@ import (
 type NgNode struct {
 	NodeName  string
 	NodeType  string
-	NodeId    string
+	NodeID    string
 	NodeHooks int
 }
 
@@ -25,7 +25,7 @@ type ngPeer struct {
 	LocalHook string
 	PeerName  string
 	PeerType  string
-	PeerId    string
+	PeerID    string
 	PeerHook  string
 }
 
@@ -62,7 +62,7 @@ func ngGetNodes() (ngNodes []NgNode, err error) {
 		if !strings.HasPrefix(textFields[4], "ID:") {
 			continue
 		}
-		aNodeId := textFields[5]
+		aNodeID := textFields[5]
 		if !strings.HasPrefix(textFields[7], "hooks:") {
 			continue
 		}
@@ -70,7 +70,7 @@ func ngGetNodes() (ngNodes []NgNode, err error) {
 		ngNodes = append(ngNodes, NgNode{
 			NodeName:  aNodeName,
 			NodeType:  aNodeType,
-			NodeId:    aNodeId,
+			NodeID:    aNodeID,
 			NodeHooks: aNodeHooks,
 		})
 	}
@@ -131,7 +131,7 @@ func GetNgBridgeMembers(bridge string) (peers []ngPeer, err error) {
 			LocalHook: textFields[0],
 			PeerName:  textFields[1],
 			PeerType:  textFields[2],
-			PeerId:    textFields[3],
+			PeerID:    textFields[3],
 			PeerHook:  textFields[4],
 		}
 		peers = append(peers, aPeer)

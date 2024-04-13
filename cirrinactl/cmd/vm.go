@@ -32,8 +32,8 @@ var MaxWait uint32
 var MaxWaitChanged bool
 var Cpus uint16
 var CpusChanged bool
-var VmDescription string
-var VmDescriptionChanged bool
+var VMDescription string
+var VMDescriptionChanged bool
 var Mem uint32
 var MemChanged bool
 var Priority int32
@@ -133,19 +133,19 @@ var Com4DevChanged bool
 var Com4Speed uint32 = 115200
 var Com4SpeedChanged bool
 
-var VmCreateCmd = &cobra.Command{
+var VMCreateCmd = &cobra.Command{
 	Use:          "create",
 	Short:        "Create a VM",
 	SilenceUsage: true,
 	Args: func(cmd *cobra.Command, args []string) error {
-		VmDescriptionChanged = cmd.Flags().Changed("description")
+		VMDescriptionChanged = cmd.Flags().Changed("description")
 		CpusChanged = cmd.Flags().Changed("cpus")
 		MemChanged = cmd.Flags().Changed("mem")
 
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if VmName == "" {
+		if VMName == "" {
 			return errors.New("empty VM name")
 		}
 
@@ -153,10 +153,10 @@ var VmCreateCmd = &cobra.Command{
 		var lCpus *uint32
 		var lMem *uint32
 
-		if !VmDescriptionChanged {
+		if !VMDescriptionChanged {
 			lDesc = nil
 		} else {
-			lDesc = &VmDescription
+			lDesc = &VMDescription
 		}
 
 		if !CpusChanged {
@@ -173,7 +173,7 @@ var VmCreateCmd = &cobra.Command{
 		}
 
 		// FIXME -- check request status
-		_, err := rpc.AddVM(VmName, lDesc, lCpus, lMem)
+		_, err := rpc.AddVM(VMName, lDesc, lCpus, lMem)
 		if err != nil {
 			return err
 		}
@@ -183,13 +183,13 @@ var VmCreateCmd = &cobra.Command{
 	},
 }
 
-var VmListCmd = &cobra.Command{
+var VMListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "List VMs",
 	Long:         `List all VMs on specified server and their state`,
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ids, err := rpc.GetVmIds()
+		ids, err := rpc.GetVMIds()
 		if err != nil {
 			return err
 		}
@@ -217,7 +217,7 @@ var VmListCmd = &cobra.Command{
 			}
 			sstatus := "Unknown"
 
-			cpus := strconv.FormatUint(uint64(vmConfig.Cpu), 10)
+			cpus := strconv.FormatUint(uint64(vmConfig.CPU), 10)
 			var mems string
 			if Humanize {
 				mems = humanize.IBytes(uint64(vmConfig.Mem) * 1024 * 1024)
@@ -288,24 +288,24 @@ var VmListCmd = &cobra.Command{
 	},
 }
 
-var VmDestroyCmd = &cobra.Command{
+var VMDestroyCmd = &cobra.Command{
 	Use:          "destroy",
 	Short:        "Remove a VM",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName)
+		if VMID == "" {
+			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
 				return err
 			}
-			if VmId == "" {
+			if VMID == "" {
 				return errors.New("VM not found")
 			}
 		}
 
 		var stopped bool
-		stopped, err = rpc.VmStopped(VmId)
+		stopped, err = rpc.VMStopped(VMID)
 		if err != nil {
 			return err
 		}
@@ -314,7 +314,7 @@ var VmDestroyCmd = &cobra.Command{
 		}
 
 		// FIXME check request ID completion and status
-		_, err = rpc.DeleteVM(VmId)
+		_, err = rpc.DeleteVM(VMID)
 		if err != nil {
 			return err
 		}
@@ -324,23 +324,23 @@ var VmDestroyCmd = &cobra.Command{
 	},
 }
 
-var VmStopCmd = &cobra.Command{
+var VMStopCmd = &cobra.Command{
 	Use:          "stop",
 	Short:        "Stop a VM",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName)
+		if VMID == "" {
+			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
 				return err
 			}
-			if VmId == "" {
+			if VMID == "" {
 				return errors.New("VM not found")
 			}
 		}
 		var running bool
-		running, err = rpc.VmRunning(VmId)
+		running, err = rpc.VMRunning(VMID)
 		if err != nil {
 			return err
 		}
@@ -348,8 +348,8 @@ var VmStopCmd = &cobra.Command{
 			return errors.New("VM not running")
 		}
 
-		var vmConfig rpc.VmConfig
-		vmConfig, err = rpc.GetVMConfig(VmId)
+		var vmConfig rpc.VMConfig
+		vmConfig, err = rpc.GetVMConfig(VMID)
 		if err != nil {
 			return err
 		}
@@ -357,9 +357,9 @@ var VmStopCmd = &cobra.Command{
 		// max wait + 10 seconds just in case
 		timeout := time.Now().Add((time.Duration(int64(vmConfig.MaxWait)) * time.Second) + (time.Second * 10))
 
-		var reqId string
+		var reqID string
 		var reqStat rpc.ReqStatus
-		reqId, err = rpc.StopVM(VmId)
+		reqID, err = rpc.StopVM(VMID)
 		if err != nil {
 			return err
 		}
@@ -372,7 +372,7 @@ var VmStopCmd = &cobra.Command{
 
 		fmt.Printf("VM Stopping (timeout: %ds): ", vmConfig.MaxWait)
 		for time.Now().Before(timeout) {
-			reqStat, err = rpc.ReqStat(reqId)
+			reqStat, err = rpc.ReqStat(reqID)
 			if err != nil {
 				return err
 			}
@@ -391,25 +391,25 @@ var VmStopCmd = &cobra.Command{
 	},
 }
 
-var VmStartCmd = &cobra.Command{
+var VMStartCmd = &cobra.Command{
 	Use:          "start",
 	Short:        "Start a VM",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName)
+		if VMID == "" {
+			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
 				return err
 			}
-			if VmId == "" {
+			if VMID == "" {
 				return errors.New("VM not found")
 			}
 		}
 
 		var stopped bool
-		stopped, err = rpc.VmStopped(VmId)
+		stopped, err = rpc.VMStopped(VMID)
 		if err != nil {
 			return err
 		}
@@ -418,8 +418,8 @@ var VmStartCmd = &cobra.Command{
 		}
 
 		// borrow the max stop time as a timeout for waiting on startup
-		var vmConfig rpc.VmConfig
-		vmConfig, err = rpc.GetVMConfig(VmId)
+		var vmConfig rpc.VMConfig
+		vmConfig, err = rpc.GetVMConfig(VMID)
 		if err != nil {
 			return err
 		}
@@ -427,10 +427,10 @@ var VmStartCmd = &cobra.Command{
 		// max wait + 10 seconds just in case
 		timeout := time.Now().Add((time.Duration(int64(vmConfig.MaxWait)) * time.Second) + (time.Second * 10))
 
-		var reqId string
+		var reqID string
 		var reqStat rpc.ReqStatus
 
-		reqId, err = rpc.StartVM(VmId)
+		reqID, err = rpc.StartVM(VMID)
 		if err != nil {
 			return err
 		}
@@ -443,7 +443,7 @@ var VmStartCmd = &cobra.Command{
 
 		fmt.Printf("VM Starting (timeout: %ds): ", vmConfig.MaxWait)
 		for time.Now().Before(timeout) {
-			reqStat, err = rpc.ReqStat(reqId)
+			reqStat, err = rpc.ReqStat(reqID)
 			if err != nil {
 				return err
 			}
@@ -462,11 +462,11 @@ var VmStartCmd = &cobra.Command{
 	},
 }
 
-var VmConfigCmd = &cobra.Command{
+var VMConfigCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Reconfigure a VM",
 	Args: func(cmd *cobra.Command, args []string) error {
-		VmDescriptionChanged = cmd.Flags().Changed("description")
+		VMDescriptionChanged = cmd.Flags().Changed("description")
 		CpusChanged = cmd.Flags().Changed("cpus")
 		MemChanged = cmd.Flags().Changed("mem")
 		PriorityChanged = cmd.Flags().Changed("priority")
@@ -527,26 +527,26 @@ var VmConfigCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName)
+		if VMID == "" {
+			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
 				return err
 			}
-			if VmId == "" {
+			if VMID == "" {
 				return errors.New("VM not found")
 			}
 		}
 
 		var newConfig cirrina.VMConfig
-		newConfig.Id = VmId
+		newConfig.Id = VMID
 
-		if VmDescriptionChanged {
-			newConfig.Description = &VmDescription
+		if VMDescriptionChanged {
+			newConfig.Description = &VMDescription
 		}
 
 		if CpusChanged {
-			newCpu := uint32(Cpus)
-			newConfig.Cpu = &newCpu
+			newCPU := uint32(Cpus)
+			newConfig.Cpu = &newCPU
 		}
 
 		if MemChanged {
@@ -782,7 +782,7 @@ var VmConfigCmd = &cobra.Command{
 	},
 }
 
-var VmGetCmd = &cobra.Command{
+var VMGetCmd = &cobra.Command{
 	Use:   "get",
 	Short: "Get info on a VM",
 	Args: func(cmd *cobra.Command, args []string) error {
@@ -809,17 +809,17 @@ var VmGetCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName)
+		if VMID == "" {
+			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
 				return err
 			}
-			if VmId == "" {
+			if VMID == "" {
 				return errors.New("VM not found")
 			}
 		}
-		var vmConfig rpc.VmConfig
-		vmConfig, err = rpc.GetVMConfig(VmId)
+		var vmConfig rpc.VMConfig
+		vmConfig, err = rpc.GetVMConfig(VMID)
 		if err != nil {
 			return err
 		}
@@ -827,7 +827,7 @@ var VmGetCmd = &cobra.Command{
 		var vmState string
 		var vncPort string
 		var debugPort string
-		vmState, vncPort, debugPort, err = rpc.GetVMState(VmId)
+		vmState, vncPort, debugPort, err = rpc.GetVMState(VMID)
 		if err != nil {
 			return err
 		}
@@ -838,7 +838,7 @@ var VmGetCmd = &cobra.Command{
 			Debugport string `json:"Debugport" yaml:"Debugport"`
 		}
 		type vmOutThing struct {
-			Config rpc.VmConfig `json:"Config" yaml:"Config"`
+			Config rpc.VMConfig `json:"Config" yaml:"Config"`
 			State  vmOutStat    `json:"State"  yaml:"State"`
 		}
 		vmOutSt := vmOutStat{
@@ -853,10 +853,10 @@ var VmGetCmd = &cobra.Command{
 
 		switch outputFormat {
 		case TXT:
-			fmt.Printf("id: %v\n", VmId)
+			fmt.Printf("id: %v\n", VMID)
 			fmt.Printf("name: %v\n", vmConfig.Name)
 			fmt.Printf("desc: %v\n", vmConfig.Description)
-			fmt.Printf("cpus: %v\n", vmConfig.Cpu)
+			fmt.Printf("cpus: %v\n", vmConfig.CPU)
 			fmt.Printf("mem: %v\n", vmConfig.Mem)
 			fmt.Printf("priority: %v\n", vmConfig.Priority)
 			fmt.Printf("protect: %v\n", vmConfig.Protect)
@@ -932,24 +932,24 @@ var VmGetCmd = &cobra.Command{
 	},
 }
 
-var VmClearUefiVarsCmd = &cobra.Command{
+var VMClearUefiVarsCmd = &cobra.Command{
 	Use:          "clearuefivars",
 	Short:        "Clear UEFI variable state",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName)
+		if VMID == "" {
+			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
 				return err
 			}
-			if VmId == "" {
+			if VMID == "" {
 				return errors.New("VM not found")
 			}
 		}
 		var res bool
-		res, err = rpc.VmClearUefiVars(VmId)
+		res, err = rpc.VMClearUefiVars(VMID)
 		if err != nil {
 			return err
 		}
@@ -962,155 +962,155 @@ var VmClearUefiVarsCmd = &cobra.Command{
 	},
 }
 
-var VmCmd = &cobra.Command{
+var VMCmd = &cobra.Command{
 	Use:   "vm",
 	Short: "Create, list, modify, destroy VMs",
 }
 
 func init() {
-	disableFlagSorting(VmCmd)
+	disableFlagSorting(VMCmd)
 
-	disableFlagSorting(VmListCmd)
-	VmListCmd.Flags().BoolVarP(&Humanize,
+	disableFlagSorting(VMListCmd)
+	VMListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
 	)
-	VmListCmd.Flags().BoolVarP(&ShowUUID,
+	VMListCmd.Flags().BoolVarP(&ShowUUID,
 		"uuid", "u", ShowUUID, "Show UUIDs",
 	)
 
-	disableFlagSorting(VmCreateCmd)
-	VmCreateCmd.Flags().StringVarP(&VmName, "name", "n", VmName, "Name of VM")
-	err := VmCreateCmd.MarkFlagRequired("name")
+	disableFlagSorting(VMCreateCmd)
+	VMCreateCmd.Flags().StringVarP(&VMName, "name", "n", VMName, "Name of VM")
+	err := VMCreateCmd.MarkFlagRequired("name")
 	if err != nil {
 		panic(err)
 	}
-	VmCreateCmd.Flags().StringVarP(&VmDescription,
+	VMCreateCmd.Flags().StringVarP(&VMDescription,
 		"description", "d", SwitchDescription, "SwitchDescription of VM",
 	)
-	VmCreateCmd.Flags().Uint16VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
-	VmCreateCmd.Flags().Uint32VarP(&Mem,
+	VMCreateCmd.Flags().Uint16VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
+	VMCreateCmd.Flags().Uint32VarP(&Mem,
 		"mem", "m", Mem, "Amount of virtual memory in megabytes",
 	)
 
-	disableFlagSorting(VmDestroyCmd)
-	addNameOrIdArgs(VmDestroyCmd, &VmName, &VmId, "VM")
+	disableFlagSorting(VMDestroyCmd)
+	addNameOrIDArgs(VMDestroyCmd, &VMName, &VMID, "VM")
 
-	disableFlagSorting(VmStartCmd)
-	addNameOrIdArgs(VmStartCmd, &VmName, &VmId, "VM")
-	VmStartCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
+	disableFlagSorting(VMStartCmd)
+	addNameOrIDArgs(VMStartCmd, &VMName, &VMID, "VM")
+	VMStartCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
 
-	addNameOrIdArgs(VmStopCmd, &VmName, &VmId, "VM")
-	VmStopCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
-	disableFlagSorting(VmStopCmd)
+	addNameOrIDArgs(VMStopCmd, &VMName, &VMID, "VM")
+	VMStopCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
+	disableFlagSorting(VMStopCmd)
 
-	addNameOrIdArgs(VmConfigCmd, &VmName, &VmId, "VM")
-	disableFlagSorting(VmConfigCmd)
-	VmConfigCmd.Flags().StringVarP(&VmDescription,
-		"description", "d", VmDescription, "SwitchDescription of VM",
+	addNameOrIDArgs(VMConfigCmd, &VMName, &VMID, "VM")
+	disableFlagSorting(VMConfigCmd)
+	VMConfigCmd.Flags().StringVarP(&VMDescription,
+		"description", "d", VMDescription, "SwitchDescription of VM",
 	)
-	VmConfigCmd.Flags().Uint16VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
-	VmConfigCmd.Flags().Uint32VarP(&Mem,
+	VMConfigCmd.Flags().Uint16VarP(&Cpus, "cpus", "c", Cpus, "Number of VM virtual CPUs")
+	VMConfigCmd.Flags().Uint32VarP(&Mem,
 		"mem", "m", Mem, "Amount of virtual memory in megabytes",
 	)
-	VmConfigCmd.Flags().Int32Var(&Priority, "priority", Priority, "Priority of VM (nice)")
-	VmConfigCmd.Flags().BoolVar(&Protect,
+	VMConfigCmd.Flags().Int32Var(&Priority, "priority", Priority, "Priority of VM (nice)")
+	VMConfigCmd.Flags().BoolVar(&Protect,
 		"protect", Protect, "Protect VM from being killed when swap space is exhausted",
 	)
-	VmConfigCmd.Flags().Uint32Var(&Pcpu, "pcpu", Pcpu, "Max CPU usage in percent of a single CPU core")
-	VmConfigCmd.Flags().Uint32Var(&Rbps, "rbps", Rbps, "Limit VM filesystem reads, in bytes per second")
-	VmConfigCmd.Flags().Uint32Var(&Wbps, "wbps", Wbps, "Limit VM filesystem writes, in bytes per second")
-	VmConfigCmd.Flags().Uint32Var(&Riops,
+	VMConfigCmd.Flags().Uint32Var(&Pcpu, "pcpu", Pcpu, "Max CPU usage in percent of a single CPU core")
+	VMConfigCmd.Flags().Uint32Var(&Rbps, "rbps", Rbps, "Limit VM filesystem reads, in bytes per second")
+	VMConfigCmd.Flags().Uint32Var(&Wbps, "wbps", Wbps, "Limit VM filesystem writes, in bytes per second")
+	VMConfigCmd.Flags().Uint32Var(&Riops,
 		"riops", Riops, "Limit VM filesystem reads, in operations per second",
 	)
-	VmConfigCmd.Flags().Uint32Var(&Wiops,
+	VMConfigCmd.Flags().Uint32Var(&Wiops,
 		"wiops", Wiops, "Limit VM filesystem writes, in operations per second",
 	)
-	VmConfigCmd.Flags().BoolVar(&Com1, "com1", Com1, "Enable COM1")
-	VmConfigCmd.Flags().BoolVar(&Com1Log, "com1-log", Com1Log, "Log input and output of COM1")
-	VmConfigCmd.Flags().StringVar(&Com1Dev, "com1-dev", Com1Dev, "Device to use for COM1")
-	VmConfigCmd.Flags().Uint32Var(&Com1Speed, "com1-speed", Com1Speed, "Speed of COM1")
-	VmConfigCmd.Flags().BoolVar(&Com2, "com2", Com2, "Enable COM2")
-	VmConfigCmd.Flags().BoolVar(&Com2Log, "com2-log", Com2Log, "Log input and output of COM2")
-	VmConfigCmd.Flags().StringVar(&Com2Dev, "com2-dev", Com2Dev, "Device to use for COM2")
-	VmConfigCmd.Flags().Uint32Var(&Com2Speed, "com2-speed", Com2Speed, "Speed of COM2")
-	VmConfigCmd.Flags().BoolVar(&Com3, "com3", Com3, "Enable COM3")
-	VmConfigCmd.Flags().BoolVar(&Com3Log, "com3-log", Com3Log, "Log input and output of COM3")
-	VmConfigCmd.Flags().StringVar(&Com3Dev, "com3-dev", Com3Dev, "Device to use for COM3")
-	VmConfigCmd.Flags().Uint32Var(&Com3Speed, "com3-speed", Com3Speed, "Speed of COM3")
-	VmConfigCmd.Flags().BoolVar(&Com4, "com4", Com4, "Enable COM4")
-	VmConfigCmd.Flags().BoolVar(&Com4Log, "com4-log", Com4Log, "Log input and output of COM4")
-	VmConfigCmd.Flags().StringVar(&Com4Dev, "com4-dev", Com4Dev, "Device to use for COM4")
-	VmConfigCmd.Flags().Uint32Var(&Com4Speed, "com4-speed", Com4Speed, "Speed of COM4")
-	VmConfigCmd.Flags().BoolVar(&AutoStart, "autostart", AutoStart, "Autostart VM")
-	VmConfigCmd.Flags().Uint32Var(&AutoStartDelay,
+	VMConfigCmd.Flags().BoolVar(&Com1, "com1", Com1, "Enable COM1")
+	VMConfigCmd.Flags().BoolVar(&Com1Log, "com1-log", Com1Log, "Log input and output of COM1")
+	VMConfigCmd.Flags().StringVar(&Com1Dev, "com1-dev", Com1Dev, "Device to use for COM1")
+	VMConfigCmd.Flags().Uint32Var(&Com1Speed, "com1-speed", Com1Speed, "Speed of COM1")
+	VMConfigCmd.Flags().BoolVar(&Com2, "com2", Com2, "Enable COM2")
+	VMConfigCmd.Flags().BoolVar(&Com2Log, "com2-log", Com2Log, "Log input and output of COM2")
+	VMConfigCmd.Flags().StringVar(&Com2Dev, "com2-dev", Com2Dev, "Device to use for COM2")
+	VMConfigCmd.Flags().Uint32Var(&Com2Speed, "com2-speed", Com2Speed, "Speed of COM2")
+	VMConfigCmd.Flags().BoolVar(&Com3, "com3", Com3, "Enable COM3")
+	VMConfigCmd.Flags().BoolVar(&Com3Log, "com3-log", Com3Log, "Log input and output of COM3")
+	VMConfigCmd.Flags().StringVar(&Com3Dev, "com3-dev", Com3Dev, "Device to use for COM3")
+	VMConfigCmd.Flags().Uint32Var(&Com3Speed, "com3-speed", Com3Speed, "Speed of COM3")
+	VMConfigCmd.Flags().BoolVar(&Com4, "com4", Com4, "Enable COM4")
+	VMConfigCmd.Flags().BoolVar(&Com4Log, "com4-log", Com4Log, "Log input and output of COM4")
+	VMConfigCmd.Flags().StringVar(&Com4Dev, "com4-dev", Com4Dev, "Device to use for COM4")
+	VMConfigCmd.Flags().Uint32Var(&Com4Speed, "com4-speed", Com4Speed, "Speed of COM4")
+	VMConfigCmd.Flags().BoolVar(&AutoStart, "autostart", AutoStart, "Autostart VM")
+	VMConfigCmd.Flags().Uint32Var(&AutoStartDelay,
 		"autostart-delay", AutoStartDelay, "How long to wait before starting this VM",
 	)
-	VmConfigCmd.Flags().BoolVar(&Restart,
+	VMConfigCmd.Flags().BoolVar(&Restart,
 		"restart", Restart, "Restart this VM if it stops, crashes, shuts down, reboots, etc.",
 	)
-	VmConfigCmd.Flags().Uint32Var(&RestartDelay,
+	VMConfigCmd.Flags().Uint32Var(&RestartDelay,
 		"restart-delay", RestartDelay, "How long to wait before restarting this VM",
 	)
-	VmConfigCmd.Flags().Uint32Var(&MaxWait,
+	VMConfigCmd.Flags().Uint32Var(&MaxWait,
 		"max-wait", MaxWait, "How long to wait for this VM to shutdown before forcibly killing it",
 	)
-	VmConfigCmd.Flags().BoolVar(&Screen, "screen", Screen, "Start VNC Server for this VM")
-	VmConfigCmd.Flags().Uint32Var(&ScreenWidth, "screen-width", ScreenWidth, "Width of VNC server screen")
-	VmConfigCmd.Flags().Uint32Var(&ScreenHeight,
+	VMConfigCmd.Flags().BoolVar(&Screen, "screen", Screen, "Start VNC Server for this VM")
+	VMConfigCmd.Flags().Uint32Var(&ScreenWidth, "screen-width", ScreenWidth, "Width of VNC server screen")
+	VMConfigCmd.Flags().Uint32Var(&ScreenHeight,
 		"screen-height", ScreenHeight, "Height of VNC server screen",
 	)
-	VmConfigCmd.Flags().StringVar(&VncPort,
+	VMConfigCmd.Flags().StringVar(&VncPort,
 		"vnc-port", VncPort, "Port to run VNC server on, AUTO for automatic, or TCP port number",
 	)
-	VmConfigCmd.Flags().BoolVar(&VncWait,
+	VMConfigCmd.Flags().BoolVar(&VncWait,
 		"vnc-wait", VncWait, "Wait for VNC connection before starting VM",
 	)
-	VmConfigCmd.Flags().BoolVar(&VncTablet, "vnc-tablet", VncTablet, "VNC server in tablet mode")
-	VmConfigCmd.Flags().StringVar(&VncKeyboard,
+	VMConfigCmd.Flags().BoolVar(&VncTablet, "vnc-tablet", VncTablet, "VNC server in tablet mode")
+	VMConfigCmd.Flags().StringVar(&VncKeyboard,
 		"vnc-keyboard", VncKeyboard, "Keyboard layout used by VNC server",
 	)
-	VmConfigCmd.Flags().BoolVar(&Sound, "sound", Sound, "Enabled Sound output on this VM")
-	VmConfigCmd.Flags().StringVar(&SoundIn, "sound-in", SoundIn, "Device to use for sound input")
-	VmConfigCmd.Flags().StringVar(&SoundOut, "sound-out", SoundOut, "Device to use for sound output")
-	VmConfigCmd.Flags().BoolVar(&Wire, "wire", Wire, "Wire guest memory")
-	VmConfigCmd.Flags().BoolVar(&Uefi, "uefi", Uefi, "Store UEFI variables")
-	VmConfigCmd.Flags().BoolVar(&Utc, "utc", Utc, "Store VM time in UTC")
-	VmConfigCmd.Flags().BoolVar(&HostBridge, "host-bridge", HostBridge, "Enable host bridge")
-	VmConfigCmd.Flags().BoolVar(&Acpi, "acpi", Acpi, "Enable ACPI tables")
-	VmConfigCmd.Flags().BoolVar(&Hlt,
+	VMConfigCmd.Flags().BoolVar(&Sound, "sound", Sound, "Enabled Sound output on this VM")
+	VMConfigCmd.Flags().StringVar(&SoundIn, "sound-in", SoundIn, "Device to use for sound input")
+	VMConfigCmd.Flags().StringVar(&SoundOut, "sound-out", SoundOut, "Device to use for sound output")
+	VMConfigCmd.Flags().BoolVar(&Wire, "wire", Wire, "Wire guest memory")
+	VMConfigCmd.Flags().BoolVar(&Uefi, "uefi", Uefi, "Store UEFI variables")
+	VMConfigCmd.Flags().BoolVar(&Utc, "utc", Utc, "Store VM time in UTC")
+	VMConfigCmd.Flags().BoolVar(&HostBridge, "host-bridge", HostBridge, "Enable host bridge")
+	VMConfigCmd.Flags().BoolVar(&Acpi, "acpi", Acpi, "Enable ACPI tables")
+	VMConfigCmd.Flags().BoolVar(&Hlt,
 		"hlt", Hlt, "Yield the virtual CPU(s), when a HTL instruction is detected",
 	)
-	VmConfigCmd.Flags().BoolVar(&Eop,
+	VMConfigCmd.Flags().BoolVar(&Eop,
 		"eop", Eop, "Force the virtual CPU(s) to exit when a PAUSE instruction is detected",
 	)
-	VmConfigCmd.Flags().BoolVar(&Dpo, "dpo", Dpo, "Destroy the VM on guest initiated power off")
-	VmConfigCmd.Flags().BoolVar(&Ium, "ium", Ium, "Ignore unimplemented model specific register access")
-	VmConfigCmd.Flags().BoolVar(&Debug, "debug", Debug, "Enable Debug server")
-	VmConfigCmd.Flags().BoolVar(&DebugWait,
+	VMConfigCmd.Flags().BoolVar(&Dpo, "dpo", Dpo, "Destroy the VM on guest initiated power off")
+	VMConfigCmd.Flags().BoolVar(&Ium, "ium", Ium, "Ignore unimplemented model specific register access")
+	VMConfigCmd.Flags().BoolVar(&Debug, "debug", Debug, "Enable Debug server")
+	VMConfigCmd.Flags().BoolVar(&DebugWait,
 		"debug-wait", DebugWait, "Wait for connection to debug server before starting VM",
 	)
-	VmConfigCmd.Flags().Uint32Var(&DebugPort, "debug-port", DebugPort, "TCP port to use for debug server")
-	VmConfigCmd.Flags().StringVar(&ExtraArgs, "extra-args", ExtraArgs, "Extra args to pass to bhyve")
+	VMConfigCmd.Flags().Uint32Var(&DebugPort, "debug-port", DebugPort, "TCP port to use for debug server")
+	VMConfigCmd.Flags().StringVar(&ExtraArgs, "extra-args", ExtraArgs, "Extra args to pass to bhyve")
 
-	disableFlagSorting(VmGetCmd)
-	addNameOrIdArgs(VmGetCmd, &VmName, &VmId, "VM")
-	VmGetCmd.Flags().StringVarP(&outputFormatString, "format", "f", outputFormatString,
+	disableFlagSorting(VMGetCmd)
+	addNameOrIDArgs(VMGetCmd, &VMName, &VMID, "VM")
+	VMGetCmd.Flags().StringVarP(&outputFormatString, "format", "f", outputFormatString,
 		"Output format (txt, json, yaml",
 	)
 
-	disableFlagSorting(VmClearUefiVarsCmd)
-	addNameOrIdArgs(VmClearUefiVarsCmd, &VmName, &VmId, "VM")
+	disableFlagSorting(VMClearUefiVarsCmd)
+	addNameOrIDArgs(VMClearUefiVarsCmd, &VMName, &VMID, "VM")
 
-	VmCmd.AddCommand(VmListCmd)
-	VmCmd.AddCommand(VmCreateCmd)
-	VmCmd.AddCommand(VmDestroyCmd)
-	VmCmd.AddCommand(VmConfigCmd)
-	VmCmd.AddCommand(VmGetCmd)
-	VmCmd.AddCommand(VmStartCmd)
-	VmCmd.AddCommand(VmStopCmd)
-	VmCmd.AddCommand(VmCom1Cmd)
-	VmCmd.AddCommand(VmCom2Cmd)
-	VmCmd.AddCommand(VmCom3Cmd)
-	VmCmd.AddCommand(VmCom4Cmd)
-	VmCmd.AddCommand(VmClearUefiVarsCmd)
+	VMCmd.AddCommand(VMListCmd)
+	VMCmd.AddCommand(VMCreateCmd)
+	VMCmd.AddCommand(VMDestroyCmd)
+	VMCmd.AddCommand(VMConfigCmd)
+	VMCmd.AddCommand(VMGetCmd)
+	VMCmd.AddCommand(VMStartCmd)
+	VMCmd.AddCommand(VMStopCmd)
+	VMCmd.AddCommand(VMCom1Cmd)
+	VMCmd.AddCommand(VMCom2Cmd)
+	VMCmd.AddCommand(VMCom3Cmd)
+	VMCmd.AddCommand(VMCom4Cmd)
+	VMCmd.AddCommand(VMClearUefiVarsCmd)
 }

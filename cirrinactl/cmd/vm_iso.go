@@ -13,24 +13,24 @@ import (
 	"cirrina/cirrinactl/rpc"
 )
 
-var VmIsoListCmd = &cobra.Command{
+var VMIsoListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "Get list of ISOs connected to VM",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName)
+		if VMID == "" {
+			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
 				return err
 			}
-			if VmId == "" {
+			if VMID == "" {
 				return errors.New("VM not found")
 			}
 		}
 
 		var isoIds []string
-		isoIds, err = rpc.GetVmIsos(VmId)
+		isoIds, err = rpc.GetVMIsos(VMID)
 		if err != nil {
 			return err
 		}
@@ -93,41 +93,41 @@ var VmIsoListCmd = &cobra.Command{
 	},
 }
 
-var VmIsosAddCmd = &cobra.Command{
+var VMIsosAddCmd = &cobra.Command{
 	Use:          "add",
 	Short:        "Add ISO to VM",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName)
+		if VMID == "" {
+			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
 				return nil
 			}
-			if VmId == "" {
+			if VMID == "" {
 				return errors.New("VM not found")
 			}
 		}
-		if IsoId == "" {
-			IsoId, err = rpc.IsoNameToId(IsoName)
+		if IsoID == "" {
+			IsoID, err = rpc.IsoNameToID(IsoName)
 			if err != nil {
 				return err
 			}
-			if IsoId == "" {
+			if IsoID == "" {
 				return errors.New("ISO not found")
 			}
 		}
 
 		var isoIds []string
-		isoIds, err = rpc.GetVmIsos(VmId)
+		isoIds, err = rpc.GetVMIsos(VMID)
 		if err != nil {
 			return err
 		}
 
-		isoIds = append(isoIds, IsoId)
+		isoIds = append(isoIds, IsoID)
 		var res bool
-		res, err = rpc.VmSetIsos(VmId, isoIds)
+		res, err = rpc.VMSetIsos(VMID, isoIds)
 		if err != nil {
 			return err
 		}
@@ -140,47 +140,47 @@ var VmIsosAddCmd = &cobra.Command{
 	},
 }
 
-var VmIsosRmCmd = &cobra.Command{
+var VMIsosRmCmd = &cobra.Command{
 	Use:          "remove",
 	Short:        "Un-attach a ISO from a VM",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName)
+		if VMID == "" {
+			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
 				return err
 			}
-			if VmId == "" {
+			if VMID == "" {
 				return errors.New("VM not found")
 			}
 		}
-		if IsoId == "" {
-			IsoId, err = rpc.IsoNameToId(IsoName)
+		if IsoID == "" {
+			IsoID, err = rpc.IsoNameToID(IsoName)
 			if err != nil {
 				return err
 			}
-			if IsoId == "" {
+			if IsoID == "" {
 				return errors.New("ISO not found")
 			}
 		}
 
 		var isoIds []string
-		isoIds, err = rpc.GetVmIsos(VmId)
+		isoIds, err = rpc.GetVMIsos(VMID)
 		if err != nil {
 			return err
 		}
 
 		var newIsoIds []string
 		for _, id := range isoIds {
-			if id != IsoId {
+			if id != IsoID {
 				newIsoIds = append(newIsoIds, id)
 			}
 		}
 
 		var res bool
-		res, err = rpc.VmSetIsos(VmId, newIsoIds)
+		res, err = rpc.VMSetIsos(VMID, newIsoIds)
 		if err != nil {
 			return err
 		}
@@ -193,41 +193,41 @@ var VmIsosRmCmd = &cobra.Command{
 	},
 }
 
-var VmIsosCmd = &cobra.Command{
+var VMIsosCmd = &cobra.Command{
 	Use:   "iso",
 	Short: "ISO related operations on VMs",
 	Long:  "List ISOs attached to VMs, attach ISOs to VMs and un-attach ISOs from VMs",
 }
 
 func init() {
-	disableFlagSorting(VmIsosCmd)
+	disableFlagSorting(VMIsosCmd)
 
-	disableFlagSorting(VmIsoListCmd)
-	addNameOrIdArgs(VmIsoListCmd, &VmName, &VmId, "VM")
-	VmIsoListCmd.Flags().BoolVarP(&Humanize,
+	disableFlagSorting(VMIsoListCmd)
+	addNameOrIDArgs(VMIsoListCmd, &VMName, &VMID, "VM")
+	VMIsoListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
 	)
-	VmIsoListCmd.Flags().BoolVarP(&ShowUUID,
+	VMIsoListCmd.Flags().BoolVarP(&ShowUUID,
 		"uuid", "u", ShowUUID, "Show UUIDs",
 	)
 
-	disableFlagSorting(VmIsosAddCmd)
-	addNameOrIdArgs(VmIsosAddCmd, &VmName, &VmId, "VM")
-	VmIsosAddCmd.Flags().StringVarP(&IsoName, "iso-name", "N", IsoName, "Name of Iso")
-	VmIsosAddCmd.Flags().StringVarP(&IsoId, "iso-id", "I", IsoId, "Id of Iso")
-	VmIsosAddCmd.MarkFlagsOneRequired("iso-name", "iso-id")
-	VmIsosAddCmd.MarkFlagsMutuallyExclusive("iso-name", "iso-id")
+	disableFlagSorting(VMIsosAddCmd)
+	addNameOrIDArgs(VMIsosAddCmd, &VMName, &VMID, "VM")
+	VMIsosAddCmd.Flags().StringVarP(&IsoName, "iso-name", "N", IsoName, "Name of Iso")
+	VMIsosAddCmd.Flags().StringVarP(&IsoID, "iso-id", "I", IsoID, "ID of Iso")
+	VMIsosAddCmd.MarkFlagsOneRequired("iso-name", "iso-id")
+	VMIsosAddCmd.MarkFlagsMutuallyExclusive("iso-name", "iso-id")
 
-	disableFlagSorting(VmIsosRmCmd)
-	addNameOrIdArgs(VmIsosRmCmd, &VmName, &VmId, "VM")
-	VmIsosRmCmd.Flags().StringVarP(&IsoName, "iso-name", "N", IsoName, "Name of Iso")
-	VmIsosRmCmd.Flags().StringVarP(&IsoId, "iso-id", "I", IsoId, "Id of Iso")
-	VmIsosRmCmd.MarkFlagsOneRequired("iso-name", "iso-id")
-	VmIsosRmCmd.MarkFlagsMutuallyExclusive("iso-name", "iso-id")
+	disableFlagSorting(VMIsosRmCmd)
+	addNameOrIDArgs(VMIsosRmCmd, &VMName, &VMID, "VM")
+	VMIsosRmCmd.Flags().StringVarP(&IsoName, "iso-name", "N", IsoName, "Name of Iso")
+	VMIsosRmCmd.Flags().StringVarP(&IsoID, "iso-id", "I", IsoID, "ID of Iso")
+	VMIsosRmCmd.MarkFlagsOneRequired("iso-name", "iso-id")
+	VMIsosRmCmd.MarkFlagsMutuallyExclusive("iso-name", "iso-id")
 
-	VmIsosCmd.AddCommand(VmIsoListCmd)
-	VmIsosCmd.AddCommand(VmIsosAddCmd)
-	VmIsosCmd.AddCommand(VmIsosRmCmd)
+	VMIsosCmd.AddCommand(VMIsoListCmd)
+	VMIsosCmd.AddCommand(VMIsosAddCmd)
+	VMIsosCmd.AddCommand(VMIsosRmCmd)
 
-	VmCmd.AddCommand(VmIsosCmd)
+	VMCmd.AddCommand(VMIsosCmd)
 }

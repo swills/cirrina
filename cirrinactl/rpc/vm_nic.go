@@ -9,10 +9,10 @@ import (
 	"cirrina/cirrina"
 )
 
-func GetVmNics(id string) ([]string, error) {
+func GetVMNics(id string) ([]string, error) {
 	var err error
-	var res cirrina.VMInfo_GetVmNicsClient
-	res, err = serverClient.GetVmNics(defaultServerContext, &cirrina.VMID{Value: id})
+	var res cirrina.VMInfo_GetVMNicsClient
+	res, err = serverClient.GetVMNics(defaultServerContext, &cirrina.VMID{Value: id})
 	if err != nil {
 		return []string{}, errors.New(status.Convert(err).Message())
 	}
@@ -32,14 +32,14 @@ func GetVmNics(id string) ([]string, error) {
 	return rv, nil
 }
 
-func VmSetNics(id string, nicIds []string) (bool, error) {
+func VMSetNics(id string, nicIds []string) (bool, error) {
 	var err error
 	j := cirrina.SetNicReq{
 		Vmid:    id,
 		Vmnicid: nicIds,
 	}
 	var res *cirrina.ReqBool
-	res, err = serverClient.SetVmNics(defaultServerContext, &j)
+	res, err = serverClient.SetVMNics(defaultServerContext, &j)
 	if err != nil {
 		return false, errors.New(status.Convert(err).Message())
 	}

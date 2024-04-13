@@ -43,19 +43,19 @@ var comButton *tview.Button
 var vncButton *tview.Button
 var vmItems []vmItem
 
-func getVmItems() ([]vmItem, error) {
+func getVMItems() ([]vmItem, error) {
 	var vmIds []string
 	var vmItems []vmItem
 	var err error
 
-	vmIds, err = rpc.GetVmIds()
+	vmIds, err = rpc.GetVMIds()
 	if err != nil {
 		return []vmItem{}, err
 	}
 
-	for _, vmId := range vmIds {
-		var res rpc.VmConfig
-		res, err = rpc.GetVMConfig(vmId)
+	for _, vmID := range vmIds {
+		var res rpc.VMConfig
+		res, err = rpc.GetVMConfig(vmID)
 		if err != nil {
 			return []vmItem{}, err
 		}
@@ -131,22 +131,22 @@ func vncButtonExit(key tcell.Key) {
 }
 
 func vmStartFunc(name string) {
-	vmId, err := rpc.VmNameToId(name)
+	vmID, err := rpc.VMNameToID(name)
 	if err != nil {
 		return
 	}
-	if vmId == "" {
+	if vmID == "" {
 		return
 	}
-	_, _ = rpc.StartVM(vmId)
+	_, _ = rpc.StartVM(vmID)
 }
 
 func vmStopFunc(name string) {
-	vmId, err := rpc.VmNameToId(name)
+	vmID, err := rpc.VMNameToID(name)
 	if err != nil {
 		return
 	}
-	_, _ = rpc.StopVM(vmId)
+	_, _ = rpc.StopVM(vmID)
 }
 
 func vmChangedFunc(index int, name string, _ string, _ rune) {
@@ -200,7 +200,7 @@ func StartTui(serverAddr string) error {
 	title := fmt.Sprintf(" cirrinactl - %v ", serverAddr)
 	var err error
 	vmList = tview.NewList()
-	vmItems, err = getVmItems()
+	vmItems, err = getVMItems()
 	if err != nil {
 		return err
 	}

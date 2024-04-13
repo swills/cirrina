@@ -15,7 +15,7 @@ import (
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/vm"
-	"cirrina/cirrinad/vm_nics"
+	"cirrina/cirrinad/vmnic"
 )
 
 type meta struct {
@@ -24,14 +24,14 @@ type meta struct {
 }
 
 type singleton struct {
-	metaDb *gorm.DB
+	metaDB *gorm.DB
 }
 
 var instance *singleton
 
 var once sync.Once
 
-func getMetaDb() *gorm.DB {
+func getMetaDB() *gorm.DB {
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "MetaDb: ", log.LstdFlags),
 		logger.Config{
@@ -44,31 +44,31 @@ func getMetaDb() *gorm.DB {
 
 	once.Do(func() {
 		instance = &singleton{}
-		metaDb, err := gorm.Open(
+		metaDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
 			&gorm.Config{
 				Logger:      noColorLogger,
 				PrepareStmt: true,
 			},
 		)
-		metaDb.Preload("Config")
+		metaDB.Preload("Config")
 		if err != nil {
 			panic("failed to connect database")
 		}
-		sqlDB, err := metaDb.DB()
+		sqlDB, err := metaDB.DB()
 		if err != nil {
 			panic("failed to create sqlDB database")
 		}
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
-		instance.metaDb = metaDb
+		instance.metaDB = metaDB
 	})
 
-	return instance.metaDb
+	return instance.metaDB
 }
 
 func AutoMigrate() {
-	db := getMetaDb()
+	db := getMetaDB()
 	err := db.AutoMigrate(&meta{})
 	if err != nil {
 		panic("failed to auto-migrate meta")
@@ -76,26 +76,26 @@ func AutoMigrate() {
 }
 
 func getSchemaVersion() (schemaVersion uint32) {
-	metaDb := getMetaDb()
+	metaDB := getMetaDB()
 	var m meta
-	metaDb.Find(&m)
+	metaDB.Find(&m)
 
 	return m.SchemaVersion
 }
 
 func setSchemaVersion(schemaVersion uint32) {
-	metaDb := getMetaDb()
+	metaDB := getMetaDB()
 	var metaData meta
 	metaData.ID = 1 // always!
 
 	var res *gorm.DB
-	res = metaDb.Delete(&metaData)
+	res = metaDB.Delete(&metaData)
 	if res.Error != nil {
 		slog.Error("error saving schema_version", "err", res.Error)
 		panic(res.Error)
 	}
 	metaData.SchemaVersion = schemaVersion
-	res = metaDb.Create(&metaData)
+	res = metaDB.Create(&metaData)
 	if res.Error != nil {
 		slog.Error("error saving schema_version", "err", res.Error)
 		panic(res.Error)
@@ -104,36 +104,36 @@ func setSchemaVersion(schemaVersion uint32) {
 
 func CustomMigrate() {
 	slog.Debug("starting custom migration")
-	vmNicDb := vm_nics.GetVmNicDb()
-	vmDb := vm.GetVmDb()
-	reqDb := requests.GetReqDb()
+	vmNicDB := vmnic.GetVMNicDB()
+	vmDB := vm.GetVMDB()
+	reqDB := requests.GetReqDB()
 
 	schemaVersion := getSchemaVersion()
 	// 2024022401 - copy nics from config.nics to vm_nics.config_id
-	migration2024022401(schemaVersion, vmNicDb, vmDb)
+	migration2024022401(schemaVersion, vmNicDB, vmDB)
 
 	// 2024022402 - drop config.nics
-	migration2024022402(schemaVersion, vmDb)
+	migration2024022402(schemaVersion, vmDB)
 
 	// 2024022403 - remove vm_id from requests
-	migration2024022403(schemaVersion, reqDb)
+	migration2024022403(schemaVersion, reqDB)
 
 	// 2024022403
 
 	slog.Debug("finished custom migration")
 }
 
-func migration2024022401(schemaVersion uint32, vmNicDb *gorm.DB, vmDb *gorm.DB) {
+func migration2024022401(schemaVersion uint32, vmNicDB *gorm.DB, vmDB *gorm.DB) {
 	if schemaVersion < 2024022401 {
-		if vm_nics.DbInitialized() {
-			if !vmNicDb.Migrator().HasColumn(vm_nics.VmNic{}, "config_id") {
+		if vmnic.DBInitialized() {
+			if !vmNicDB.Migrator().HasColumn(vmnic.VMNic{}, "config_id") {
 				slog.Debug("migrating config.nics to vm_nics.config_id")
-				err := vmNicDb.Migrator().AddColumn(vm_nics.VmNic{}, "config_id")
+				err := vmNicDB.Migrator().AddColumn(vmnic.VMNic{}, "config_id")
 				if err != nil {
 					slog.Debug("error adding config_id column", "err", err)
 					panic(err)
 				}
-				allVMs := vm.GetAllDb()
+				allVMs := vm.GetAllDB()
 				for _, vmInst := range allVMs {
 					type Result struct {
 						Nics string
@@ -141,14 +141,14 @@ func migration2024022401(schemaVersion uint32, vmNicDb *gorm.DB, vmDb *gorm.DB) 
 
 					var result Result
 
-					vmDb.Raw("SELECT nics FROM configs WHERE id = ?", vmInst.Config.ID).Scan(&result)
+					vmDB.Raw("SELECT nics FROM configs WHERE id = ?", vmInst.Config.ID).Scan(&result)
 
-					var thisVmsNics []vm_nics.VmNic
+					var thisVmsNics []vmnic.VMNic
 					for _, cv := range strings.Split(result.Nics, ",") {
 						if cv == "" {
 							continue
 						}
-						aNic, err := vm_nics.GetById(cv)
+						aNic, err := vmnic.GetByID(cv)
 						if err == nil {
 							thisVmsNics = append(thisVmsNics, *aNic)
 						} else {
@@ -173,44 +173,44 @@ func migration2024022401(schemaVersion uint32, vmNicDb *gorm.DB, vmDb *gorm.DB) 
 				}
 
 				slog.Debug("migration complete", "id", "2024022401", "message", "vm_nics.config_id populated")
-				vm.DbReconfig()
+				vm.DBReconfig()
 			}
 		}
 		setSchemaVersion(2024022401)
 	}
 }
 
-func migration2024022402(schemaVersion uint32, vmDb *gorm.DB) {
+func migration2024022402(schemaVersion uint32, vmDB *gorm.DB) {
 	if schemaVersion < 2024022402 {
-		if vm.DbInitialized() {
-			if vmDb.Migrator().HasColumn(&vm.Config{}, "nics") {
+		if vm.DBInitialized() {
+			if vmDB.Migrator().HasColumn(&vm.Config{}, "nics") {
 				slog.Debug("removing config.nics")
-				err := vmDb.Migrator().DropColumn(&vm.Config{}, "nics")
+				err := vmDB.Migrator().DropColumn(&vm.Config{}, "nics")
 				if err != nil {
 					slog.Error("failure removing nics column", "err", err)
 					panic(err)
 				}
 				slog.Debug("migration complete", "id", "2024022402", "message", "config.nics dropped")
-				vm.DbReconfig()
+				vm.DBReconfig()
 			}
 		}
 		setSchemaVersion(2024022402)
 	}
 }
 
-func migration2024022403(schemaVersion uint32, reqDb *gorm.DB) {
+func migration2024022403(schemaVersion uint32, reqDB *gorm.DB) {
 	if schemaVersion < 2024022403 {
-		if requests.DbInitialized() {
+		if requests.DBInitialized() {
 			// sqlite doesn't let you remove a column, so just nuke it, the requests table isn't critical
-			if reqDb.Migrator().HasColumn(&requests.Request{}, "vm_id") {
+			if reqDB.Migrator().HasColumn(&requests.Request{}, "vm_id") {
 				slog.Debug("dropping requests table")
-				err := reqDb.Migrator().DropTable("requests")
+				err := reqDB.Migrator().DropTable("requests")
 				if err != nil {
 					slog.Error("failure dropping requests table", "err", err)
 					panic(err)
 				}
 			}
-			requests.DbReconfig()
+			requests.DBReconfig()
 		}
 		setSchemaVersion(2024022403)
 	}

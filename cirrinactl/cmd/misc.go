@@ -8,7 +8,7 @@ import (
 	"cirrina/cirrinactl/rpc"
 )
 
-var ReqId string
+var ReqID string
 
 var ReqStatCmd = &cobra.Command{
 	Use:          "reqstat",
@@ -16,7 +16,7 @@ var ReqStatCmd = &cobra.Command{
 	Long:         "Check if a server request has completed and if it was successful",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		res, err := rpc.ReqStat(ReqId)
+		res, err := rpc.ReqStat(ReqID)
 		if err != nil {
 			return err
 		}
@@ -28,7 +28,7 @@ var ReqStatCmd = &cobra.Command{
 
 func init() {
 	disableFlagSorting(ReqStatCmd)
-	ReqStatCmd.Flags().StringVarP(&ReqId, "id", "i", ReqId, "Id of request")
+	ReqStatCmd.Flags().StringVarP(&ReqID, "id", "i", ReqID, "ID of request")
 	err := ReqStatCmd.MarkFlagRequired("id")
 	if err != nil {
 		panic(err)

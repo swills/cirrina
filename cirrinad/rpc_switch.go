@@ -50,12 +50,12 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 
 func (s *server) GetSwitches(_ *cirrina.SwitchesQuery, stream cirrina.VMInfo_GetSwitchesServer) error {
 	var switches []*_switch.Switch
-	var pSwitchId cirrina.SwitchId
+	var pSwitchID cirrina.SwitchId
 
 	switches = _switch.GetAll()
 	for e := range switches {
-		pSwitchId.Value = switches[e].ID
-		err := stream.Send(&pSwitchId)
+		pSwitchID.Value = switches[e].ID
+		err := stream.Send(&pSwitchID)
 		if err != nil {
 			return err
 		}
@@ -67,12 +67,12 @@ func (s *server) GetSwitches(_ *cirrina.SwitchesQuery, stream cirrina.VMInfo_Get
 func (s *server) GetSwitchInfo(_ context.Context, v *cirrina.SwitchId) (*cirrina.SwitchInfo, error) {
 	var switchInfo cirrina.SwitchInfo
 
-	switchUuid, err := uuid.Parse(v.Value)
+	switchUUID, err := uuid.Parse(v.Value)
 	if err != nil {
 		return &cirrina.SwitchInfo{}, errors.New("id not specified or invalid")
 	}
 
-	vmSwitch, err := _switch.GetById(switchUuid.String())
+	vmSwitch, err := _switch.GetByID(switchUUID.String())
 	if err != nil {
 		slog.Error("error getting switch info", "switch", v.Value, "err", err)
 
@@ -82,7 +82,7 @@ func (s *server) GetSwitchInfo(_ context.Context, v *cirrina.SwitchId) (*cirrina
 	switchInfo.Name = &vmSwitch.Name
 	switchInfo.Description = &vmSwitch.Description
 	switchInfo.Uplink = &vmSwitch.Uplink
-	switchInfo.SwitchType, err = mapSwitchTypeDbStringToType(vmSwitch.Type)
+	switchInfo.SwitchType, err = mapSwitchTypeDBStringToType(vmSwitch.Type)
 	if err != nil {
 		return &cirrina.SwitchInfo{}, err
 	}
@@ -94,12 +94,12 @@ func (s *server) RemoveSwitch(_ context.Context, si *cirrina.SwitchId) (*cirrina
 	var re cirrina.ReqBool
 	re.Success = false
 
-	switchUuid, err := uuid.Parse(si.Value)
+	switchUUID, err := uuid.Parse(si.Value)
 	if err != nil {
 		return &re, errors.New("id not specified or invalid")
 	}
 
-	switchInst, err := _switch.GetById(switchUuid.String())
+	switchInst, err := _switch.GetByID(switchUUID.String())
 	if err != nil {
 		return &re, errors.New("not found")
 	}
@@ -148,7 +148,7 @@ func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq)
 		return &r, errors.New("id not specified or invalid")
 	}
 
-	switchUuid, err := uuid.Parse(su.Switchid.Value)
+	switchUUID, err := uuid.Parse(su.Switchid.Value)
 	if err != nil {
 		return &r, errors.New("id not specified or invalid")
 	}
@@ -159,7 +159,7 @@ func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq)
 
 	uplink := *su.Uplink
 	slog.Debug("SetSwitchUplink", "switch", su.Switchid.Value, "uplink", uplink)
-	switchInst, err := _switch.GetById(switchUuid.String())
+	switchInst, err := _switch.GetByID(switchUUID.String())
 	if err != nil {
 		return &r, err
 	}
@@ -215,12 +215,12 @@ func (s *server) SetSwitchInfo(_ context.Context, siu *cirrina.SwitchInfoUpdate)
 		return &re, errors.New("id not specified or invalid")
 	}
 
-	switchUuid, err := uuid.Parse(siu.Id)
+	switchUUID, err := uuid.Parse(siu.Id)
 	if err != nil {
 		return &re, errors.New("id not specified or invalid")
 	}
 
-	switchInst, err := _switch.GetById(switchUuid.String())
+	switchInst, err := _switch.GetByID(switchUUID.String())
 	if err != nil {
 		return &re, err
 	}
@@ -379,7 +379,7 @@ func mapSwitchTypeTypeToDBString(switchType cirrina.SwitchType) (string, error) 
 	}
 }
 
-func mapSwitchTypeDbStringToType(switchType string) (*cirrina.SwitchType, error) {
+func mapSwitchTypeDBStringToType(switchType string) (*cirrina.SwitchType, error) {
 	SwitchTypeIf := cirrina.SwitchType_IF
 	SwitchTypeNg := cirrina.SwitchType_NG
 	switch switchType {

@@ -22,7 +22,7 @@ import (
 var (
 	IsoName        string
 	IsoDescription string
-	IsoId          string
+	IsoID          string
 	IsoFilePath    string
 )
 
@@ -166,11 +166,11 @@ func trackIsoUpload(pw progress.Writer, isoSize int64, f2 *os.File) {
 	pw.AppendTracker(&uploadTracker)
 	uploadTracker.Start()
 
-	if IsoId == "" {
+	if IsoID == "" {
 		panic("empty iso id")
 	}
 	var upload <-chan rpc.UploadStat
-	upload, err = rpc.IsoUpload(IsoId, isoChecksum, uint64(isoSize), f2)
+	upload, err = rpc.IsoUpload(IsoID, isoChecksum, uint64(isoSize), f2)
 	if err != nil {
 		uploadTracker.MarkAsErrored()
 
@@ -274,13 +274,13 @@ func uploadIsoWithoutStatus() error {
 	}
 	fmt.Printf("Uploading iso. file-path=%s, id=%s, size=%d, checksum=%s\n",
 		IsoFilePath,
-		IsoId,
+		IsoID,
 		isoSize,
 		isoChecksum,
 	)
 	fmt.Printf("Streaming: ")
 	var upload <-chan rpc.UploadStat
-	upload, err = rpc.IsoUpload(IsoId, isoChecksum, uint64(isoSize), f2)
+	upload, err = rpc.IsoUpload(IsoID, isoChecksum, uint64(isoSize), f2)
 	if err != nil {
 		return err
 	}
@@ -316,12 +316,12 @@ var IsoUploadCmd = &cobra.Command{
 			return errors.New("host not available")
 		}
 
-		if IsoId == "" {
+		if IsoID == "" {
 			var aNotFoundErr *rpc.NotFoundError
-			IsoId, err = rpc.IsoNameToId(IsoName)
+			IsoID, err = rpc.IsoNameToID(IsoName)
 			if err != nil {
 				if errors.As(err, &aNotFoundErr) {
-					IsoId, err = rpc.AddIso(IsoName, IsoDescription)
+					IsoID, err = rpc.AddIso(IsoName, IsoDescription)
 					if err != nil {
 						return err
 					}
@@ -345,16 +345,16 @@ var IsoRemoveCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		if IsoId == "" {
-			IsoId, err = rpc.IsoNameToId(IsoName)
+		if IsoID == "" {
+			IsoID, err = rpc.IsoNameToID(IsoName)
 			if err != nil {
 				return err
 			}
-			if IsoId == "" {
+			if IsoID == "" {
 				return errors.New("ISO not found")
 			}
 		}
-		err = rpc.RmIso(IsoId)
+		err = rpc.RmIso(IsoID)
 		if err != nil {
 			return err
 		}
@@ -394,10 +394,10 @@ func init() {
 	)
 
 	disableFlagSorting(IsoRemoveCmd)
-	addNameOrIdArgs(IsoRemoveCmd, &IsoName, &IsoId, "ISO")
+	addNameOrIDArgs(IsoRemoveCmd, &IsoName, &IsoID, "ISO")
 
 	disableFlagSorting(IsoUploadCmd)
-	addNameOrIdArgs(IsoUploadCmd, &IsoName, &IsoId, "ISO")
+	addNameOrIDArgs(IsoUploadCmd, &IsoName, &IsoID, "ISO")
 	IsoUploadCmd.Flags().StringVarP(&IsoFilePath,
 		"path", "p", IsoFilePath, "Path to ISO File to upload",
 	)

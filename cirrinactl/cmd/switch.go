@@ -17,7 +17,7 @@ var SwitchDescription string
 var SwitchDescriptionChanged bool
 var SwitchUplinkName string
 var SwitchType = "IF"
-var SwitchId string
+var SwitchID string
 
 var SwitchCmd = &cobra.Command{
 	Use:   "switch",
@@ -37,7 +37,7 @@ var SwitchListCmd = &cobra.Command{
 
 		var names []string
 		type switchListInfo struct {
-			switchId   string
+			switchID   string
 			switchInfo rpc.SwitchInfo
 		}
 
@@ -49,7 +49,7 @@ var SwitchListCmd = &cobra.Command{
 			}
 			names = append(names, res.Name)
 			switchInfos[res.Name] = switchListInfo{
-				switchId:   id,
+				switchID:   id,
 				switchInfo: res,
 			}
 		}
@@ -67,7 +67,7 @@ var SwitchListCmd = &cobra.Command{
 			if ShowUUID {
 				t.AppendRow(table.Row{
 					name,
-					switchInfos[name].switchId,
+					switchInfos[name].switchID,
 					switchInfos[name].switchInfo.SwitchType,
 					switchInfos[name].switchInfo.Uplink,
 					switchInfos[name].switchInfo.Descr,
@@ -116,17 +116,17 @@ var SwitchDestroyCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		if SwitchId == "" {
-			SwitchId, err = rpc.SwitchNameToId(SwitchName)
+		if SwitchID == "" {
+			SwitchID, err = rpc.SwitchNameToID(SwitchName)
 			if err != nil {
 				return err
 			}
-			if SwitchId == "" {
+			if SwitchID == "" {
 				return errors.New("switch not found")
 			}
 		}
 
-		err = rpc.RemoveSwitch(SwitchId)
+		err = rpc.RemoveSwitch(SwitchID)
 		if err != nil {
 			return err
 		}
@@ -142,16 +142,16 @@ var SwitchUplinkCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		if SwitchId == "" {
-			SwitchId, err = rpc.SwitchNameToId(SwitchName)
+		if SwitchID == "" {
+			SwitchID, err = rpc.SwitchNameToID(SwitchName)
 			if err != nil {
 				return err
 			}
-			if SwitchId == "" {
+			if SwitchID == "" {
 				return errors.New("switch not found")
 			}
 		}
-		err = rpc.SetSwitchUplink(SwitchId, &SwitchUplinkName)
+		err = rpc.SetSwitchUplink(SwitchID, &SwitchUplinkName)
 		if err != nil {
 			return err
 		}
@@ -172,12 +172,12 @@ var SwitchUpdateCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		if SwitchId == "" {
-			SwitchId, err = rpc.SwitchNameToId(SwitchName)
+		if SwitchID == "" {
+			SwitchID, err = rpc.SwitchNameToID(SwitchName)
 			if err != nil {
 				return err
 			}
-			if SwitchId == "" {
+			if SwitchID == "" {
 				return errors.New("switch not found")
 			}
 		}
@@ -187,7 +187,7 @@ var SwitchUpdateCmd = &cobra.Command{
 		if SwitchDescriptionChanged {
 			newDesc = &SwitchDescription
 		}
-		err = rpc.UpdateSwitch(SwitchId, newDesc)
+		err = rpc.UpdateSwitch(SwitchID, newDesc)
 		if err != nil {
 			return err
 		}
@@ -220,10 +220,10 @@ func init() {
 	)
 
 	disableFlagSorting(SwitchDestroyCmd)
-	addNameOrIdArgs(SwitchDestroyCmd, &SwitchName, &SwitchId, "switch")
+	addNameOrIDArgs(SwitchDestroyCmd, &SwitchName, &SwitchID, "switch")
 
 	disableFlagSorting(SwitchUplinkCmd)
-	addNameOrIdArgs(SwitchUplinkCmd, &SwitchName, &SwitchId, "switch")
+	addNameOrIDArgs(SwitchUplinkCmd, &SwitchName, &SwitchID, "switch")
 	SwitchUplinkCmd.Flags().StringVarP(&SwitchUplinkName,
 		"uplink", "u", SwitchName, "uplink name",
 	)
@@ -233,7 +233,7 @@ func init() {
 	}
 
 	disableFlagSorting(SwitchUpdateCmd)
-	addNameOrIdArgs(SwitchUpdateCmd, &SwitchName, &SwitchId, "switch")
+	addNameOrIDArgs(SwitchUpdateCmd, &SwitchName, &SwitchID, "switch")
 	SwitchUpdateCmd.Flags().StringVarP(&SwitchDescription,
 		"description", "d", SwitchDescription, "description of switch",
 	)

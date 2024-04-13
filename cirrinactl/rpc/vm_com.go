@@ -38,10 +38,10 @@ func UseCom(id string, comNum int) error {
 		return errors.New(status.Convert(err).Message())
 	}
 
-	vmId := &cirrina.VMID{Value: id}
+	vmID := &cirrina.VMID{Value: id}
 	req := &cirrina.ComDataRequest{
 		Data: &cirrina.ComDataRequest_VmId{
-			VmId: vmId,
+			VmId: vmID,
 		},
 	}
 	err = stream.Send(req)

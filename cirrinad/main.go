@@ -25,7 +25,7 @@ import (
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm"
-	"cirrina/cirrinad/vm_nics"
+	"cirrina/cirrinad/vmnic"
 )
 
 var mainVersion = "unknown"
@@ -43,7 +43,7 @@ func disableFlagSorting(cmd *cobra.Command) {
 
 func handleSigInfo() {
 	var mem runtime.MemStats
-	vm.LogAllVmStatus()
+	vm.LogAllVMStatus()
 	runtime.ReadMemStats(&mem)
 	slog.Debug("MemStats",
 		"mem.Alloc", mem.Alloc,
@@ -131,8 +131,8 @@ func checkExistingPidFile(pidFilePath string) {
 	}
 }
 
-func doDbMigrations() {
-	util.ValidateDbConfig()
+func doDBMigrations() {
+	util.ValidateDBConfig()
 
 	// auto migration for meta (schema_version)
 	db.AutoMigrate()
@@ -141,14 +141,14 @@ func doDbMigrations() {
 	db.CustomMigrate()
 
 	// gorm auto migrations
-	disk.DbAutoMigrate()
-	iso.DbAutoMigrate()
-	vm_nics.DbAutoMigrate()
-	_switch.DbAutoMigrate()
+	disk.DBAutoMigrate()
+	iso.DBAutoMigrate()
+	vmnic.DBAutoMigrate()
+	_switch.DBAutoMigrate()
 
-	vm.DbAutoMigrate()
+	vm.DBAutoMigrate()
 
-	requests.DbAutoMigrate()
+	requests.DBAutoMigrate()
 }
 
 func shutdownHandler() {
@@ -280,10 +280,10 @@ var rootCmd = &cobra.Command{
 		validateSystem()
 		slog.Debug("Finished host validation")
 
-		doDbMigrations()
+		doDBMigrations()
 
 		// check db contents
-		validateDb()
+		validateDB()
 
 		// code after this uses the database
 		slog.Debug("Clean up starting")

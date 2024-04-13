@@ -1,4 +1,4 @@
-package vm_nics
+package vmnic
 
 import (
 	"log"
@@ -15,14 +15,14 @@ import (
 )
 
 type singleton struct {
-	vmNicDb *gorm.DB
+	vmNicDB *gorm.DB
 }
 
 var instance *singleton
 
 var once sync.Once
 
-func GetVmNicDb() *gorm.DB {
+func GetVMNicDB() *gorm.DB {
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "VmNicDb: ", log.LstdFlags),
 		logger.Config{
@@ -35,7 +35,7 @@ func GetVmNicDb() *gorm.DB {
 
 	once.Do(func() {
 		instance = &singleton{}
-		vmNicDb, err := gorm.Open(
+		vmNicDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
 			&gorm.Config{
 				Logger:      noColorLogger,
@@ -45,34 +45,34 @@ func GetVmNicDb() *gorm.DB {
 		if err != nil {
 			panic("failed to connect database")
 		}
-		sqlDB, err := vmNicDb.DB()
+		sqlDB, err := vmNicDB.DB()
 		if err != nil {
 			panic("failed to create sqlDB database")
 		}
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
-		instance.vmNicDb = vmNicDb
+		instance.vmNicDB = vmNicDB
 	})
 
-	return instance.vmNicDb
+	return instance.vmNicDB
 }
 
-func (d *VmNic) BeforeCreate(_ *gorm.DB) (err error) {
+func (d *VMNic) BeforeCreate(_ *gorm.DB) (err error) {
 	d.ID = uuid.NewString()
 
 	return nil
 }
 
-func DbAutoMigrate() {
-	vmNicDb := GetVmNicDb()
-	err := vmNicDb.AutoMigrate(&VmNic{})
+func DBAutoMigrate() {
+	vmNicDB := GetVMNicDB()
+	err := vmNicDB.AutoMigrate(&VMNic{})
 	if err != nil {
 		panic("failed to auto-migrate VmNics")
 	}
 }
 
-func DbInitialized() bool {
-	db := GetVmNicDb()
+func DBInitialized() bool {
+	db := GetVMNicDB()
 
-	return db.Migrator().HasColumn(VmNic{}, "id")
+	return db.Migrator().HasColumn(VMNic{}, "id")
 }

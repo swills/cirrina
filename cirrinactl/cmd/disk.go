@@ -27,7 +27,7 @@ var DiskType = "nvme"
 var DiskTypeChanged bool
 var DiskDevType = "FILE"
 var DiskSize = "1G"
-var DiskId string
+var DiskID string
 var DiskDirect = false
 var DiskDirectChanged = false
 var DiskCache = true
@@ -54,20 +54,20 @@ var DiskListCmd = &cobra.Command{
 		}
 
 		diskInfos := make(map[string]diskListInfo)
-		for _, diskId := range res {
-			diskInfo, err := rpc.GetDiskInfo(diskId)
+		for _, diskID := range res {
+			diskInfo, err := rpc.GetDiskInfo(diskID)
 			if err != nil {
 				return err
 			}
 
-			var vmId string
-			vmId, err = rpc.DiskGetVmId(diskId)
+			var vmID string
+			vmID, err = rpc.DiskGetVMID(diskID)
 			if err != nil {
 				return err
 			}
 			var vmName string
-			if vmId != "" {
-				vmName, err = rpc.VmIdToName(vmId)
+			if vmID != "" {
+				vmName, err = rpc.VMIdToName(vmID)
 				if err != nil {
 					vmName = ""
 				}
@@ -83,7 +83,7 @@ var DiskListCmd = &cobra.Command{
 				diskUsage = strconv.FormatUint(diskInfo.Usage, 10)
 			}
 			diskInfos[diskInfo.Name] = diskListInfo{
-				id:     diskId,
+				id:     diskID,
 				vmName: vmName,
 				info:   diskInfo,
 				size:   diskSize,
@@ -171,16 +171,16 @@ var DiskRemoveCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		if DiskId == "" {
-			DiskId, err = rpc.DiskNameToId(DiskName)
+		if DiskID == "" {
+			DiskID, err = rpc.DiskNameToID(DiskName)
 			if err != nil {
 				return err
 			}
-			if DiskId == "" {
+			if DiskID == "" {
 				return errors.New("disk not found")
 			}
 		}
-		err = rpc.RmDisk(DiskId)
+		err = rpc.RmDisk(DiskID)
 		if err != nil {
 			return err
 		}
@@ -209,12 +209,12 @@ var DiskUpdateCmd = &cobra.Command{
 		var newDirect *bool
 		var newCache *bool
 
-		if DiskId == "" {
-			DiskId, err = rpc.DiskNameToId(DiskName)
+		if DiskID == "" {
+			DiskID, err = rpc.DiskNameToID(DiskName)
 			if err != nil {
 				return err
 			}
-			if DiskId == "" {
+			if DiskID == "" {
 				return errors.New("disk not found")
 			}
 		}
@@ -237,7 +237,7 @@ var DiskUpdateCmd = &cobra.Command{
 
 		// TODO size
 
-		err = rpc.UpdateDisk(DiskId, newDescr, newType, newDirect, newCache)
+		err = rpc.UpdateDisk(DiskID, newDescr, newType, newDirect, newCache)
 		if err != nil {
 			return err
 		}
@@ -297,11 +297,11 @@ func trackDiskUpload(pw progress.Writer, diskSize int64, f2 *os.File) {
 	pw.AppendTracker(&uploadTracker)
 	uploadTracker.Start()
 
-	if DiskId == "" {
+	if DiskID == "" {
 		panic("empty disk id")
 	}
 	var upload <-chan rpc.UploadStat
-	upload, err = rpc.DiskUpload(DiskId, diskChecksum, uint64(diskSize), f2)
+	upload, err = rpc.DiskUpload(DiskID, diskChecksum, uint64(diskSize), f2)
 	if err != nil {
 		uploadTracker.MarkAsErrored()
 
@@ -411,14 +411,14 @@ func uploadDiskWithoutStatus() error {
 
 	fmt.Printf("Uploading disk. file-path=%s, id=%s, size=%d, checksum=%s\n",
 		DiskFilePath,
-		DiskId,
+		DiskID,
 		diskSize,
 		diskChecksum,
 	)
 
 	fmt.Printf("Streaming: ")
 	var upload <-chan rpc.UploadStat
-	upload, err = rpc.DiskUpload(DiskId, diskChecksum, uint64(diskSize), f2)
+	upload, err = rpc.DiskUpload(DiskID, diskChecksum, uint64(diskSize), f2)
 	if err != nil {
 		return err
 	}
@@ -448,20 +448,20 @@ var DiskUploadCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		var diskVmId string
-		var diskVmStatus string
+		var diskVMID string
+		var diskVMStatus string
 
 		err = hostPing()
 		if err != nil {
 			return errors.New("host not available")
 		}
 
-		if DiskId == "" {
+		if DiskID == "" {
 			var aNotFoundErr *rpc.NotFoundError
-			DiskId, err = rpc.DiskNameToId(DiskName)
+			DiskID, err = rpc.DiskNameToID(DiskName)
 			if err != nil {
 				if errors.As(err, &aNotFoundErr) {
-					DiskId, err = rpc.AddDisk(DiskName, DiskDescription, DiskSize, DiskType, DiskDevType, DiskCache, DiskDirect)
+					DiskID, err = rpc.AddDisk(DiskName, DiskDescription, DiskSize, DiskType, DiskDevType, DiskCache, DiskDirect)
 					if err != nil {
 						return err
 					}
@@ -471,16 +471,16 @@ var DiskUploadCmd = &cobra.Command{
 			}
 		}
 
-		diskVmId, err = rpc.DiskGetVmId(DiskId)
+		diskVMID, err = rpc.DiskGetVMID(DiskID)
 		if err != nil {
 			return err
 		}
-		if diskVmId != "" {
-			diskVmStatus, _, _, err = rpc.GetVMState(diskVmId)
+		if diskVMID != "" {
+			diskVMStatus, _, _, err = rpc.GetVMState(diskVMID)
 			if err != nil {
 				return err
 			}
-			if diskVmStatus != "stopped" {
+			if diskVMStatus != "stopped" {
 				return errors.New("unable to upload disk used by running VM")
 			}
 		}
@@ -535,10 +535,10 @@ func init() {
 	)
 
 	disableFlagSorting(DiskRemoveCmd)
-	addNameOrIdArgs(DiskRemoveCmd, &DiskName, &DiskId, "disk")
+	addNameOrIDArgs(DiskRemoveCmd, &DiskName, &DiskID, "disk")
 
 	disableFlagSorting(DiskUpdateCmd)
-	addNameOrIdArgs(DiskUpdateCmd, &DiskName, &DiskId, "disk")
+	addNameOrIDArgs(DiskUpdateCmd, &DiskName, &DiskID, "disk")
 	DiskUpdateCmd.Flags().StringVarP(&DiskDescription,
 		"description", "d", DiskDescription, "description of disk",
 	)
@@ -551,7 +551,7 @@ func init() {
 	)
 
 	disableFlagSorting(DiskUploadCmd)
-	addNameOrIdArgs(DiskUploadCmd, &DiskName, &DiskId, "disk")
+	addNameOrIDArgs(DiskUploadCmd, &DiskName, &DiskID, "disk")
 	DiskUploadCmd.Flags().StringVarP(&DiskFilePath,
 		"path", "p", DiskFilePath, "Path to Disk File to upload",
 	)

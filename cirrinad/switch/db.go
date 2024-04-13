@@ -1,4 +1,4 @@
-package _switch
+package vmswitch
 
 import (
 	"log"
@@ -15,14 +15,14 @@ import (
 )
 
 type singleton struct {
-	switchDb *gorm.DB
+	switchDB *gorm.DB
 }
 
 var instance *singleton
 
 var once sync.Once
 
-func getSwitchDb() *gorm.DB {
+func getSwitchDB() *gorm.DB {
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "SwitchDb: ", log.LstdFlags),
 		logger.Config{
@@ -35,7 +35,7 @@ func getSwitchDb() *gorm.DB {
 
 	once.Do(func() {
 		instance = &singleton{}
-		switchDb, err := gorm.Open(
+		switchDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
 			&gorm.Config{
 				Logger:      noColorLogger,
@@ -45,16 +45,16 @@ func getSwitchDb() *gorm.DB {
 		if err != nil {
 			panic("failed to connect database")
 		}
-		sqlDB, err := switchDb.DB()
+		sqlDB, err := switchDB.DB()
 		if err != nil {
 			panic("failed to create sqlDB database")
 		}
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
-		instance.switchDb = switchDb
+		instance.switchDB = switchDB
 	})
 
-	return instance.switchDb
+	return instance.switchDB
 }
 
 func (d *Switch) BeforeCreate(_ *gorm.DB) (err error) {
@@ -63,8 +63,8 @@ func (d *Switch) BeforeCreate(_ *gorm.DB) (err error) {
 	return nil
 }
 
-func DbAutoMigrate() {
-	db := getSwitchDb()
+func DBAutoMigrate() {
+	db := getSwitchDB()
 	err := db.AutoMigrate(&Switch{})
 	if err != nil {
 		panic("failed to auto-migrate switches")

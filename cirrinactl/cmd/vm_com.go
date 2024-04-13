@@ -10,7 +10,7 @@ import (
 	"cirrina/cirrinactl/rpc"
 )
 
-var VmCom1Cmd = &cobra.Command{
+var VMCom1Cmd = &cobra.Command{
 	Use:          "useCom1",
 	Short:        "Connect to VMs Com1",
 	SilenceUsage: true,
@@ -24,7 +24,7 @@ var VmCom1Cmd = &cobra.Command{
 	},
 }
 
-var VmCom2Cmd = &cobra.Command{
+var VMCom2Cmd = &cobra.Command{
 	Use:          "useCom2",
 	Short:        "Connect to VMs Com2",
 	SilenceUsage: true,
@@ -38,7 +38,7 @@ var VmCom2Cmd = &cobra.Command{
 	},
 }
 
-var VmCom3Cmd = &cobra.Command{
+var VMCom3Cmd = &cobra.Command{
 	Use:          "useCom3",
 	Short:        "Connect to VMs Com3",
 	SilenceUsage: true,
@@ -52,7 +52,7 @@ var VmCom3Cmd = &cobra.Command{
 	},
 }
 
-var VmCom4Cmd = &cobra.Command{
+var VMCom4Cmd = &cobra.Command{
 	Use:          "useCom4",
 	Short:        "Connect to VMs Com4",
 	SilenceUsage: true,
@@ -68,32 +68,32 @@ var VmCom4Cmd = &cobra.Command{
 
 func startCom(comNum int) error {
 	var err error
-	if VmId == "" {
-		VmId, err = rpc.VmNameToId(VmName)
+	if VMID == "" {
+		VMID, err = rpc.VMNameToID(VMName)
 		if err != nil {
 			return err
 		}
-		if VmId == "" {
+		if VMID == "" {
 			return errors.New("VM not found")
 		}
 	}
 	var running bool
-	running, err = rpc.VmRunning(VmId)
+	running, err = rpc.VMRunning(VMID)
 	if err != nil {
 		return err
 	}
 	if !running {
-		if VmName != "" {
-			return fmt.Errorf("vm %s not running", VmName)
+		if VMName != "" {
+			return fmt.Errorf("vm %s not running", VMName)
 		} else {
-			return fmt.Errorf("vm %s not running", VmId)
+			return fmt.Errorf("vm %s not running", VMID)
 		}
 	}
 
 	fmt.Print("starting terminal session, press ctrl-\\ to quit\n")
 	time.Sleep(1 * time.Second)
 
-	err = rpc.UseCom(VmId, comNum)
+	err = rpc.UseCom(VMID, comNum)
 	if err != nil {
 		return err
 	}
@@ -102,15 +102,15 @@ func startCom(comNum int) error {
 }
 
 func init() {
-	disableFlagSorting(VmCom1Cmd)
-	addNameOrIdArgs(VmCom1Cmd, &VmName, &VmId, "VM")
+	disableFlagSorting(VMCom1Cmd)
+	addNameOrIDArgs(VMCom1Cmd, &VMName, &VMID, "VM")
 
-	disableFlagSorting(VmCom2Cmd)
-	addNameOrIdArgs(VmCom2Cmd, &VmName, &VmId, "VM")
+	disableFlagSorting(VMCom2Cmd)
+	addNameOrIDArgs(VMCom2Cmd, &VMName, &VMID, "VM")
 
-	disableFlagSorting(VmCom3Cmd)
-	addNameOrIdArgs(VmCom3Cmd, &VmName, &VmId, "VM")
+	disableFlagSorting(VMCom3Cmd)
+	addNameOrIDArgs(VMCom3Cmd, &VMName, &VMID, "VM")
 
-	disableFlagSorting(VmCom4Cmd)
-	addNameOrIdArgs(VmCom4Cmd, &VmName, &VmId, "VM")
+	disableFlagSorting(VMCom4Cmd)
+	addNameOrIDArgs(VMCom4Cmd, &VMName, &VMID, "VM")
 }

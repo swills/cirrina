@@ -29,25 +29,25 @@ type Request struct {
 	Data       string
 }
 
-type VmReqData struct {
-	VmId string `json:"vm_id"`
+type VMReqData struct {
+	VMID string `json:"vm_id"`
 }
 
 type NicCloneReqData struct {
-	NicId      string `json:"nic_id"`
+	NicID      string `json:"nic_id"`
 	NewNicName string `json:"new_nic_name"`
 	NewNicMac  string `json:"new_nic_mac,omitempty"`
 	NewNicDesc string `json:"new_nic_desc,omitempty"`
 }
 
 type DiskCloneReqData struct {
-	DiskId      string `json:"disk_id"`
+	DiskID      string `json:"disk_id"`
 	NewDiskName string `json:"new_disk_name"`
 }
 
-type VmCloneReqData struct {
-	VmId      string `json:"vm_id"`
-	NewVmName string `json:"new_vm_name"`
+type VMCloneReqData struct {
+	VMID      string `json:"vm_id"`
+	NewVMName string `json:"new_vm_name"`
 }
 
 func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {
@@ -56,14 +56,14 @@ func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {
 	return nil
 }
 
-func CreateNicCloneReq(nicId string, newName string) (req Request, err error) {
+func CreateNicCloneReq(nicID string, newName string) (req Request, err error) {
 	reqType := NICCLONE
 	var reqData []byte
-	reqData, err = json.Marshal(NicCloneReqData{NicId: nicId, NewNicName: newName})
+	reqData, err = json.Marshal(NicCloneReqData{NicID: nicID, NewNicName: newName})
 	if err != nil {
 		return Request{}, err
 	}
-	db := GetReqDb()
+	db := GetReqDB()
 	newReq := Request{
 		Data: string(reqData),
 		Type: reqType,
@@ -76,13 +76,13 @@ func CreateNicCloneReq(nicId string, newName string) (req Request, err error) {
 	return newReq, nil
 }
 
-func CreateVmReq(r reqType, vmId string) (req Request, err error) {
+func CreateVMReq(r reqType, vmID string) (req Request, err error) {
 	var reqData []byte
-	reqData, err = json.Marshal(VmReqData{VmId: vmId})
+	reqData, err = json.Marshal(VMReqData{VMID: vmID})
 	if err != nil {
 		return Request{}, err
 	}
-	db := GetReqDb()
+	db := GetReqDB()
 	newReq := Request{
 		Data: string(reqData),
 		Type: r,
@@ -96,14 +96,14 @@ func CreateVmReq(r reqType, vmId string) (req Request, err error) {
 }
 
 func GetByID(id string) (rs Request, err error) {
-	db := GetReqDb()
+	db := GetReqDB()
 	db.Model(&Request{}).Limit(1).Find(&rs, &Request{ID: id})
 
 	return rs, nil
 }
 
 func GetUnStarted() Request {
-	db := GetReqDb()
+	db := GetReqDB()
 	rs := Request{}
 	db.Limit(1).Where("started_at IS NULL").Find(&rs)
 
@@ -111,14 +111,14 @@ func GetUnStarted() Request {
 }
 
 func (req *Request) Start() {
-	db := GetReqDb()
+	db := GetReqDB()
 	req.StartedAt.Time = time.Now()
 	req.StartedAt.Valid = true
 	db.Model(&req).Limit(1).Updates(req)
 }
 
 func (req *Request) Succeeded() {
-	db := GetReqDb()
+	db := GetReqDB()
 	db.Model(&req).Limit(1).Updates(
 		Request{
 			Successful: true,
@@ -128,7 +128,7 @@ func (req *Request) Succeeded() {
 }
 
 func (req *Request) Failed() {
-	db := GetReqDb()
+	db := GetReqDB()
 	db.Model(&req).Limit(1).Updates(
 		Request{
 			Successful: false,
@@ -138,8 +138,8 @@ func (req *Request) Failed() {
 }
 
 // PendingReqExists return pending request IDs for given object ID
-func PendingReqExists(objId string) (reqIds []string) {
-	db := GetReqDb()
+func PendingReqExists(objID string) (reqIds []string) {
+	db := GetReqDB()
 	var err error
 	var incompleteRequests []Request
 	db.Where(map[string]interface{}{"complete": false}).Find(&incompleteRequests)
@@ -151,21 +151,21 @@ func PendingReqExists(objId string) (reqIds []string) {
 		case VMSTART:
 			fallthrough
 		case VMDELETE:
-			var reqData VmReqData
+			var reqData VMReqData
 			err = json.Unmarshal([]byte(incompleteRequest.Data), &reqData)
 			if err != nil {
 				continue
 			}
-			if reqData.VmId == objId {
+			if reqData.VMID == objID {
 				reqIds = append(reqIds, incompleteRequest.ID)
 			}
 		case NICCLONE:
-			var reqData VmCloneReqData
+			var reqData VMCloneReqData
 			err = json.Unmarshal([]byte(incompleteRequest.Data), &reqData)
 			if err != nil {
 				continue
 			}
-			if reqData.VmId == objId {
+			if reqData.VMID == objID {
 				reqIds = append(reqIds, incompleteRequest.ID)
 			}
 		}
@@ -175,7 +175,7 @@ func PendingReqExists(objId string) (reqIds []string) {
 }
 
 func FailAllPending() (cleared int64) {
-	db := GetReqDb()
+	db := GetReqDB()
 	res := db.Where(map[string]interface{}{"complete": false}).Updates(
 		Request{
 			Complete: true,
@@ -185,8 +185,8 @@ func FailAllPending() (cleared int64) {
 	return res.RowsAffected
 }
 
-func DbInitialized() bool {
-	db := GetReqDb()
+func DBInitialized() bool {
+	db := GetReqDB()
 
 	return db.Migrator().HasColumn(Request{}, "id")
 }

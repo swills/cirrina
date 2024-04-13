@@ -16,6 +16,7 @@
 * Auto decompress isos/disk images
 * Update max vnc screen size, see src fb51ddb20d57a43d666508e600af1bc7ac85c4e8
   * use kern.osreldate: 1500017 and earlier, 1920x1200 is the max, for 15 or later, 3840x2160
+* Cope with changes to ng_bridge in src 86a6393a7d6766875a9e03daa0273a2e55faacdd
 
 * Basics
     * Ensuring no crashes

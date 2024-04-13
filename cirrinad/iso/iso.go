@@ -49,7 +49,7 @@ func Create(name string, description string) (iso *ISO, err error) {
 		Description: description,
 		Path:        path,
 	}
-	db := getIsoDb()
+	db := getIsoDB()
 	res := db.Create(&isoInst)
 
 	return isoInst, res.Error
@@ -57,28 +57,28 @@ func Create(name string, description string) (iso *ISO, err error) {
 
 func GetAll() []*ISO {
 	var result []*ISO
-	db := getIsoDb()
+	db := getIsoDB()
 	db.Find(&result)
 
 	return result
 }
 
-func GetById(id string) (result *ISO, err error) {
-	db := getIsoDb()
+func GetByID(id string) (result *ISO, err error) {
+	db := getIsoDB()
 	db.Limit(1).Find(&result, "id = ?", id)
 
 	return result, nil
 }
 
 func GetByName(name string) (result *ISO, err error) {
-	db := getIsoDb()
+	db := getIsoDB()
 	db.Limit(1).Find(&result, "name = ?", name)
 
 	return result, nil
 }
 
 func (iso *ISO) Save() error {
-	db := getIsoDb()
+	db := getIsoDB()
 
 	res := db.Model(&iso).
 		Updates(map[string]interface{}{
@@ -101,8 +101,8 @@ func Delete(id string) (err error) {
 	if id == "" {
 		return errors.New("unable to delete, iso id empty")
 	}
-	db := getIsoDb()
-	dDisk, err := GetById(id)
+	db := getIsoDB()
+	dDisk, err := GetByID(id)
 	if err != nil {
 		errorText := fmt.Sprintf("iso %v not found", id)
 

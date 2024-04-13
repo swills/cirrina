@@ -16,13 +16,13 @@ import (
 	"cirrina/cirrinad/iso"
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
-	"cirrina/cirrinad/vm_nics"
+	"cirrina/cirrinad/vmnic"
 )
 
 type MacHashData struct {
-	VmId    string
-	VmName  string
-	NicId   string
+	VMID    string
+	VMName  string
+	NicID   string
 	NicName string
 }
 
@@ -53,7 +53,7 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 		if isoItem == "" {
 			continue
 		}
-		thisIso, err := iso.GetById(isoItem)
+		thisIso, err := iso.GetByID(isoItem)
 		if err != nil {
 			slog.Error("error getting ISO", "isoItem", isoItem, "err", err)
 
@@ -75,16 +75,16 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 	return cdString, slot
 }
 
-func (vm *VM) getCpuArg() []string {
+func (vm *VM) getCPUArg() []string {
 	var vmCpus uint16
-	hostCpus, err := util.GetHostMaxVmCpus()
+	hostCpus, err := util.GetHostMaxVMCpus()
 	if err != nil {
 		return []string{}
 	}
-	if vm.Config.Cpu > uint32(hostCpus) || vm.Config.Cpu > math.MaxUint16 {
+	if vm.Config.CPU > uint32(hostCpus) || vm.Config.CPU > math.MaxUint16 {
 		vmCpus = hostCpus
 	} else {
-		vmCpus = uint16(vm.Config.Cpu)
+		vmCpus = uint16(vm.Config.CPU)
 	}
 
 	return []string{"-c", strconv.Itoa(int(vmCpus))}
@@ -142,13 +142,13 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 	var diskString []string
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	diskIds := strings.Split(vm.Config.Disks, ",")
-	for _, diskId := range diskIds {
-		if diskId == "" {
+	for _, diskID := range diskIds {
+		if diskID == "" {
 			continue
 		}
-		thisDisk, err := disk.GetById(diskId)
+		thisDisk, err := disk.GetByID(diskID)
 		if err != nil {
-			slog.Error("error getting disk, skipping", "diskId", diskId, "err", err)
+			slog.Error("error getting disk, skipping", "diskID", diskID, "err", err)
 
 			continue
 		}
@@ -156,14 +156,14 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 			sataDevCount++
 		}
 		if sataDevCount > maxSataDevs {
-			slog.Error("sata dev count exceeded, skipping disk", "diskId", diskId)
+			slog.Error("sata dev count exceeded, skipping disk", "diskID", diskID)
 
 			continue
 		}
 
 		oneHdString, err := vm.getOneDiskArg(thisDisk)
 		if err != nil || oneHdString == "" {
-			slog.Error("error adding disk, skipping", "diskId", diskId, "err", err)
+			slog.Error("error adding disk, skipping", "diskID", diskID, "err", err)
 
 			continue
 		}
@@ -248,7 +248,7 @@ func (vm *VM) getDebugArg() []string {
 	var debugArg []string
 
 	firstDebugPort := config.Config.Debug.Port
-	debugListenIP := config.Config.Debug.Ip
+	debugListenIP := config.Config.Debug.IP
 	var debugListenPortInt int
 	var debugListenPort string
 	var debugWaitStr string
@@ -355,7 +355,7 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 	}
 
 	firstVncPort := config.Config.Vnc.Port
-	vncListenIP := config.Config.Vnc.Ip
+	vncListenIP := config.Config.Vnc.IP
 	var vncListenPortInt int
 	var vncListenPort string
 	var err error
@@ -396,7 +396,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	var netArgs []string
 
 	originalSlot := slot
-	nicList := vm_nics.GetNics(vm.Config.ID)
+	nicList := vmnic.GetNics(vm.Config.ID)
 
 	for _, nicItem := range nicList {
 		slog.Debug("adding nic", "nic", nicItem)
@@ -434,7 +434,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 			}
 			netDevArg = nicItem.NetDev
 		case "NETGRAPH":
-			ngNetDev, ngPeerHook, err := _switch.GetNgDev(nicItem.SwitchId)
+			ngNetDev, ngPeerHook, err := _switch.GetNgDev(nicItem.SwitchID)
 			if err != nil {
 				slog.Error("GetNgDev error", "err", err)
 
@@ -467,7 +467,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	return netArgs, slot
 }
 
-func GetMac(thisNic vm_nics.VmNic, vm *VM) string {
+func GetMac(thisNic vmnic.VMNic, vm *VM) string {
 	var macAddress string
 	if thisNic.Mac == "AUTO" {
 		// if MAC is AUTO, we still generate our own here rather than letting bhyve generate it, because:
@@ -572,7 +572,7 @@ func (vm *VM) generateCommandLine() (name string, args []string) {
 	com2Dev := ""
 	com3Dev := ""
 	com4Dev := ""
-	cpuArg := vm.getCpuArg()
+	cpuArg := vm.getCPUArg()
 	memArg := vm.getMemArg()
 	acpiArg := vm.getACPIArg()
 	haltArg := vm.getHLTArg()

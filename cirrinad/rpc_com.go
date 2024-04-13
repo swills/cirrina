@@ -31,7 +31,7 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 
 		return errors.New(errorMessage)
 	}
-	vmInst, err := vm.GetById(vmuuid.String())
+	vmInst, err := vm.GetByID(vmuuid.String())
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) er
 
 		return errors.New(errorMessage)
 	}
-	vmInst, err := vm.GetById(vmuuid.String())
+	vmInst, err := vm.GetByID(vmuuid.String())
 	if err != nil {
 		return err
 	}
@@ -85,7 +85,7 @@ func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) er
 
 		return errors.New(errorMessage)
 	}
-	vmInst, err := vm.GetById(vmuuid.String())
+	vmInst, err := vm.GetByID(vmuuid.String())
 	if err != nil {
 		return err
 	}
@@ -112,7 +112,7 @@ func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) er
 
 		return errors.New(errorMessage)
 	}
-	vmInst, err := vm.GetById(vmuuid.String())
+	vmInst, err := vm.GetByID(vmuuid.String())
 	if err != nil {
 		return err
 	}
@@ -197,7 +197,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 	if thisComLog {
 		comLogPath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name + "/"
 		comLogFile := comLogPath + "com" + strconv.Itoa(comNum) + "_in.log"
-		err := vm.GetVmLogPath(comLogPath)
+		err := vm.GetVMLogPath(comLogPath)
 		if err != nil {
 			slog.Error("ComInteractive", "err", err)
 

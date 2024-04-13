@@ -9,10 +9,10 @@ import (
 	"cirrina/cirrina"
 )
 
-func GetVmDisks(id string) ([]string, error) {
+func GetVMDisks(id string) ([]string, error) {
 	var err error
-	var res cirrina.VMInfo_GetVmDisksClient
-	res, err = serverClient.GetVmDisks(defaultServerContext, &cirrina.VMID{Value: id})
+	var res cirrina.VMInfo_GetVMDisksClient
+	res, err = serverClient.GetVMDisks(defaultServerContext, &cirrina.VMID{Value: id})
 	if err != nil {
 		return []string{}, errors.New(status.Convert(err).Message())
 	}
@@ -33,7 +33,7 @@ func GetVmDisks(id string) ([]string, error) {
 	return rv, nil
 }
 
-func VmSetDisks(id string, diskIds []string) (bool, error) {
+func VMSetDisks(id string, diskIds []string) (bool, error) {
 	var err error
 	j := cirrina.SetDiskReq{
 		Id:     id,
@@ -41,7 +41,7 @@ func VmSetDisks(id string, diskIds []string) (bool, error) {
 	}
 
 	var res *cirrina.ReqBool
-	res, err = serverClient.SetVmDisks(defaultServerContext, &j)
+	res, err = serverClient.SetVMDisks(defaultServerContext, &j)
 	if err != nil {
 		return false, errors.New(status.Convert(err).Message())
 	}

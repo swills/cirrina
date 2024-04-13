@@ -9,10 +9,10 @@ import (
 	"cirrina/cirrina"
 )
 
-func GetVmIsos(id string) ([]string, error) {
+func GetVMIsos(id string) ([]string, error) {
 	var err error
-	var res cirrina.VMInfo_GetVmISOsClient
-	res, err = serverClient.GetVmISOs(defaultServerContext, &cirrina.VMID{Value: id})
+	var res cirrina.VMInfo_GetVMISOsClient
+	res, err = serverClient.GetVMISOs(defaultServerContext, &cirrina.VMID{Value: id})
 	if err != nil {
 		return []string{}, errors.New(status.Convert(err).Message())
 	}
@@ -32,14 +32,14 @@ func GetVmIsos(id string) ([]string, error) {
 	return rv, nil
 }
 
-func VmSetIsos(id string, isoIds []string) (bool, error) {
+func VMSetIsos(id string, isoIds []string) (bool, error) {
 	var err error
 	j := cirrina.SetISOReq{
 		Id:    id,
 		Isoid: isoIds,
 	}
 	var res *cirrina.ReqBool
-	res, err = serverClient.SetVmISOs(defaultServerContext, &j)
+	res, err = serverClient.SetVMISOs(defaultServerContext, &j)
 	if err != nil {
 		return false, errors.New(status.Convert(err).Message())
 	}

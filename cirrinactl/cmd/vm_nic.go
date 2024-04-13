@@ -15,25 +15,25 @@ import (
 	"cirrina/cirrinactl/rpc"
 )
 
-var VmNicsListCmd = &cobra.Command{
+var VMNicsListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "Get list of NICs connected to VM",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName)
+		if VMID == "" {
+			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
 				return err
 			}
-			if VmId == "" {
+			if VMID == "" {
 				return errors.New("VM not found")
 			}
 		}
 
 		var names []string
 		type nicListInfo struct {
-			nicId       string
+			nicID       string
 			info        rpc.NicInfo
 			rateLimited string
 			rateIn      string
@@ -42,12 +42,12 @@ var VmNicsListCmd = &cobra.Command{
 		nicInfos := make(map[string]nicListInfo)
 
 		var nicIds []string
-		nicIds, err = rpc.GetVmNics(VmId)
+		nicIds, err = rpc.GetVMNics(VMID)
 		if err != nil {
 			return err
 		}
 		for _, id := range nicIds {
-			nicInfo, err := rpc.GetVmNicInfo(id)
+			nicInfo, err := rpc.GetVMNicInfo(id)
 			if err != nil {
 				return err
 			}
@@ -71,7 +71,7 @@ var VmNicsListCmd = &cobra.Command{
 				rateLimited = "no"
 			}
 			nicInfos[nicInfo.Name] = nicListInfo{
-				nicId:       id,
+				nicID:       id,
 				info:        nicInfo,
 				rateLimited: rateLimited,
 				rateIn:      rateIn,
@@ -99,7 +99,7 @@ var VmNicsListCmd = &cobra.Command{
 			if ShowUUID {
 				t.AppendRow(table.Row{
 					name,
-					nicInfos[name].nicId,
+					nicInfos[name].nicID,
 					nicInfos[name].info.Mac,
 					nicInfos[name].info.NetType,
 					nicInfos[name].info.NetDevType,
@@ -129,40 +129,40 @@ var VmNicsListCmd = &cobra.Command{
 	},
 }
 
-var VmNicsAddCmd = &cobra.Command{
+var VMNicsAddCmd = &cobra.Command{
 	Use:          "add",
 	Short:        "Add NIC to VM",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName)
+		if VMID == "" {
+			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
 				return err
 			}
-			if VmId == "" {
+			if VMID == "" {
 				return errors.New("VM not found")
 			}
 		}
-		if NicId == "" {
-			NicId, err = rpc.NicNameToId(NicName)
+		if NicID == "" {
+			NicID, err = rpc.NicNameToID(NicName)
 			if err != nil {
 				return err
 			}
-			if NicId == "" {
+			if NicID == "" {
 				return errors.New("NIC not found")
 			}
 		}
 		var nicIds []string
-		nicIds, err = rpc.GetVmNics(VmId)
+		nicIds, err = rpc.GetVMNics(VMID)
 		if err != nil {
 			return err
 		}
 
-		nicIds = append(nicIds, NicId)
+		nicIds = append(nicIds, NicID)
 		var res bool
-		res, err = rpc.VmSetNics(VmId, nicIds)
+		res, err = rpc.VMSetNics(VMID, nicIds)
 		if err != nil {
 			return err
 		}
@@ -175,47 +175,47 @@ var VmNicsAddCmd = &cobra.Command{
 	},
 }
 
-var VmNicsRmCmd = &cobra.Command{
+var VMNicsRmCmd = &cobra.Command{
 	Use:          "remove",
 	Short:        "Un-attach a NIC from a VM",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName)
+		if VMID == "" {
+			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
 				return err
 			}
-			if VmId == "" {
+			if VMID == "" {
 				return errors.New("VM not found")
 			}
 		}
-		if NicId == "" {
-			NicId, err = rpc.NicNameToId(NicName)
+		if NicID == "" {
+			NicID, err = rpc.NicNameToID(NicName)
 			if err != nil {
 				return err
 			}
-			if NicId == "" {
+			if NicID == "" {
 				return errors.New("NIC not found")
 			}
 		}
 
 		var nicIds []string
-		nicIds, err = rpc.GetVmNics(VmId)
+		nicIds, err = rpc.GetVMNics(VMID)
 		if err != nil {
 			return err
 		}
 
 		var newNicIds []string
 		for _, id := range nicIds {
-			if id != NicId {
+			if id != NicID {
 				newNicIds = append(newNicIds, id)
 			}
 		}
 
 		var res bool
-		res, err = rpc.VmSetNics(VmId, newNicIds)
+		res, err = rpc.VMSetNics(VMID, newNicIds)
 		if err != nil {
 			return err
 		}
@@ -228,41 +228,41 @@ var VmNicsRmCmd = &cobra.Command{
 	},
 }
 
-var VmNicsCmd = &cobra.Command{
+var VMNicsCmd = &cobra.Command{
 	Use:   "nic",
 	Short: "NIC related operations on VMs",
 	Long:  "List NICs attached to VMs, attach NICs to VMs and un-attach NICs from VMs",
 }
 
 func init() {
-	disableFlagSorting(VmNicsCmd)
+	disableFlagSorting(VMNicsCmd)
 
-	disableFlagSorting(VmNicsListCmd)
-	addNameOrIdArgs(VmNicsListCmd, &VmName, &VmId, "VM")
-	VmNicsListCmd.Flags().BoolVarP(&Humanize,
+	disableFlagSorting(VMNicsListCmd)
+	addNameOrIDArgs(VMNicsListCmd, &VMName, &VMID, "VM")
+	VMNicsListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
 	)
-	VmNicsListCmd.Flags().BoolVarP(&ShowUUID,
+	VMNicsListCmd.Flags().BoolVarP(&ShowUUID,
 		"uuid", "u", ShowUUID, "Show UUIDs",
 	)
 
-	disableFlagSorting(VmNicsAddCmd)
-	addNameOrIdArgs(VmNicsAddCmd, &VmName, &VmId, "VM")
-	VmNicsAddCmd.Flags().StringVarP(&NicName, "nic-name", "N", NicName, "Name of Nic")
-	VmNicsAddCmd.Flags().StringVarP(&NicId, "nic-id", "I", NicId, "Id of Nic")
-	VmNicsAddCmd.MarkFlagsOneRequired("nic-name", "nic-id")
-	VmNicsAddCmd.MarkFlagsMutuallyExclusive("nic-name", "nic-id")
+	disableFlagSorting(VMNicsAddCmd)
+	addNameOrIDArgs(VMNicsAddCmd, &VMName, &VMID, "VM")
+	VMNicsAddCmd.Flags().StringVarP(&NicName, "nic-name", "N", NicName, "Name of Nic")
+	VMNicsAddCmd.Flags().StringVarP(&NicID, "nic-id", "I", NicID, "ID of Nic")
+	VMNicsAddCmd.MarkFlagsOneRequired("nic-name", "nic-id")
+	VMNicsAddCmd.MarkFlagsMutuallyExclusive("nic-name", "nic-id")
 
-	disableFlagSorting(VmNicsRmCmd)
-	addNameOrIdArgs(VmNicsRmCmd, &VmName, &VmId, "VM")
-	VmNicsRmCmd.Flags().StringVarP(&NicName, "nic-name", "N", NicName, "Name of Nic")
-	VmNicsRmCmd.Flags().StringVarP(&NicId, "nic-id", "I", NicId, "Id of Nic")
-	VmNicsRmCmd.MarkFlagsOneRequired("nic-name", "nic-id")
-	VmNicsRmCmd.MarkFlagsMutuallyExclusive("nic-name", "nic-id")
+	disableFlagSorting(VMNicsRmCmd)
+	addNameOrIDArgs(VMNicsRmCmd, &VMName, &VMID, "VM")
+	VMNicsRmCmd.Flags().StringVarP(&NicName, "nic-name", "N", NicName, "Name of Nic")
+	VMNicsRmCmd.Flags().StringVarP(&NicID, "nic-id", "I", NicID, "ID of Nic")
+	VMNicsRmCmd.MarkFlagsOneRequired("nic-name", "nic-id")
+	VMNicsRmCmd.MarkFlagsMutuallyExclusive("nic-name", "nic-id")
 
-	VmNicsCmd.AddCommand(VmNicsListCmd)
-	VmNicsCmd.AddCommand(VmNicsAddCmd)
-	VmNicsCmd.AddCommand(VmNicsRmCmd)
+	VMNicsCmd.AddCommand(VMNicsListCmd)
+	VMNicsCmd.AddCommand(VMNicsAddCmd)
+	VMNicsCmd.AddCommand(VMNicsRmCmd)
 
-	VmCmd.AddCommand(VmNicsCmd)
+	VMCmd.AddCommand(VMNicsCmd)
 }

@@ -16,11 +16,11 @@ import (
 )
 
 func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrina.ReqStatus, error) {
-	reqUuid, err := uuid.Parse(r.Value)
+	reqUUID, err := uuid.Parse(r.Value)
 	if err != nil {
 		return &cirrina.ReqStatus{}, errors.New("invalid id")
 	}
-	rs, err := requests.GetByID(reqUuid.String())
+	rs, err := requests.GetByID(reqUUID.String())
 	if err != nil {
 		slog.Error("ReqStatus error getting req", "vm", r.Value, "err", err)
 
@@ -41,11 +41,11 @@ func (s *server) ClearUEFIState(_ context.Context, v *cirrina.VMID) (*cirrina.Re
 	re := cirrina.ReqBool{}
 	re.Success = false
 
-	vmUuid, err := uuid.Parse(v.Value)
+	vmUUID, err := uuid.Parse(v.Value)
 	if err != nil {
 		return &re, errors.New("invalid id")
 	}
-	vmInst, err := vm.GetById(vmUuid.String())
+	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
 		slog.Error("ClearUEFIState error getting vm", "vm", v.Value, "err", err)
 

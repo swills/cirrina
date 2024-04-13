@@ -37,13 +37,13 @@ func (s *server) GetISOs(_ *cirrina.ISOsQuery, stream cirrina.VMInfo_GetISOsServ
 
 func (s *server) GetISOInfo(_ context.Context, i *cirrina.ISOID) (*cirrina.ISOInfo, error) {
 	var ic cirrina.ISOInfo
-	isoUuid, err := uuid.Parse(i.Value)
+	isoUUID, err := uuid.Parse(i.Value)
 	if err != nil {
 		return &ic, errors.New("id not specified or invalid")
 	}
-	isoInst, err := iso.GetById(isoUuid.String())
+	isoInst, err := iso.GetByID(isoUUID.String())
 	if err != nil {
-		slog.Error("error getting iso", "id", isoUuid.String(), "err", err)
+		slog.Error("error getting iso", "id", isoUUID.String(), "err", err)
 
 		return &ic, errors.New("not found")
 	}
@@ -89,15 +89,15 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 
 		return errors.New("nil isoUploadReq or iso id")
 	}
-	isoUuid, err := uuid.Parse(isoUploadReq.Isoid.Value)
+	isoUUID, err := uuid.Parse(isoUploadReq.Isoid.Value)
 	if err != nil {
 		slog.Error("iso id not specified or invalid on upload")
 
 		return errors.New("id not specified or invalid")
 	}
-	isoInst, err := iso.GetById(isoUuid.String())
+	isoInst, err := iso.GetByID(isoUUID.String())
 	if err != nil {
-		slog.Error("error getting iso", "id", isoUuid.String(), "err", err)
+		slog.Error("error getting iso", "id", isoUUID.String(), "err", err)
 
 		return errors.New("not found")
 	}
@@ -228,13 +228,13 @@ func (s *server) RemoveISO(_ context.Context, i *cirrina.ISOID) (*cirrina.ReqBoo
 	re := cirrina.ReqBool{}
 	re.Success = false
 
-	isoUuid, err := uuid.Parse(i.Value)
+	isoUUID, err := uuid.Parse(i.Value)
 	if err != nil {
 		return &re, errors.New("id not specified or invalid")
 	}
-	isoInst, err := iso.GetById(isoUuid.String())
+	isoInst, err := iso.GetByID(isoUUID.String())
 	if err != nil {
-		slog.Error("error getting iso", "id", isoUuid.String(), "err", err)
+		slog.Error("error getting iso", "id", isoUUID.String(), "err", err)
 
 		return &re, errors.New("not found")
 	}
@@ -246,28 +246,28 @@ func (s *server) RemoveISO(_ context.Context, i *cirrina.ISOID) (*cirrina.ReqBoo
 
 	// check that iso is not in use by a VM
 	allVMs := vm.GetAll()
-	for _, thisVm := range allVMs {
-		slog.Debug("vm checks", "vm", thisVm)
-		thisVmISOs, err := thisVm.GetISOs()
+	for _, thisVM := range allVMs {
+		slog.Debug("vm checks", "vm", thisVM)
+		thisVMISOs, err := thisVM.GetISOs()
 		if err != nil {
 			return &re, err
 		}
-		for _, vmISO := range thisVmISOs {
-			if vmISO.ID == isoUuid.String() {
+		for _, vmISO := range thisVMISOs {
+			if vmISO.ID == isoUUID.String() {
 				slog.Error("RemoveISO",
 					"msg", "tried to remove ISO in use by VM",
-					"isoid", isoUuid.String(),
-					"vm", thisVm.ID,
-					"vmname", thisVm.Name,
+					"isoid", isoUUID.String(),
+					"vm", thisVM.ID,
+					"vmname", thisVM.Name,
 				)
-				errorText := fmt.Sprintf("ISO in use by VM %v (%v)", thisVm.ID, thisVm.Name)
+				errorText := fmt.Sprintf("ISO in use by VM %v (%v)", thisVM.ID, thisVM.Name)
 
 				return &re, errors.New(errorText)
 			}
 		}
 	}
 
-	res := iso.Delete(isoUuid.String())
+	res := iso.Delete(isoUUID.String())
 	if res != nil {
 		slog.Error("error deleting iso", "res", res)
 		errorText := fmt.Sprintf("error deleting iso: %v", err)

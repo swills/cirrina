@@ -24,7 +24,7 @@ import (
 	"cirrina/cirrinad/config"
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
-	"cirrina/cirrinad/vm_nics"
+	"cirrina/cirrinad/vmnic"
 )
 
 func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string, cmdArgs ...string) (err error) {
@@ -429,19 +429,19 @@ func validateZpoolConf() {
 }
 
 func validateNetworkConf() {
-	if !util.IsValidIP(config.Config.Network.Grpc.Ip) {
+	if !util.IsValidIP(config.Config.Network.Grpc.IP) {
 		slog.Error("Invalid listen IP in config, please reconfigure")
 		os.Exit(1)
 	}
 
-	if !util.IsValidTcpPort(config.Config.Network.Grpc.Port) {
+	if !util.IsValidTCPPort(config.Config.Network.Grpc.Port) {
 		slog.Error("Invalid listen port in config, please reconfigure")
 		os.Exit(1)
 	}
 
 	// is MAC parseable?
 	macTest := config.Config.Network.Mac.Oui + ":ff:ff:ff"
-	_, err := vm_nics.ParseMac(macTest)
+	_, err := vmnic.ParseMac(macTest)
 	if err != nil {
 		slog.Error("Invalid NIC MAC OUI in config, please reconfigure")
 		os.Exit(1)
@@ -449,24 +449,24 @@ func validateNetworkConf() {
 }
 
 func validateVncConfig() {
-	if !util.IsValidIP(config.Config.Vnc.Ip) {
+	if !util.IsValidIP(config.Config.Vnc.IP) {
 		slog.Error("Invalid VNC IP in config, please reconfigure")
 		os.Exit(1)
 	}
 
-	if !util.IsValidTcpPort(config.Config.Vnc.Port) {
+	if !util.IsValidTCPPort(config.Config.Vnc.Port) {
 		slog.Error("Invalid VNC port in config, please reconfigure")
 		os.Exit(1)
 	}
 }
 
 func validateDebugConfig() {
-	if !util.IsValidIP(config.Config.Debug.Ip) {
+	if !util.IsValidIP(config.Config.Debug.IP) {
 		slog.Error("Invalid debug IP in config, please reconfigure")
 		os.Exit(1)
 	}
 
-	if !util.IsValidTcpPort(config.Config.Debug.Port) {
+	if !util.IsValidTCPPort(config.Config.Debug.Port) {
 		slog.Error("Invalid debug port in config, please reconfigure")
 		os.Exit(1)
 	}
@@ -627,7 +627,7 @@ func validateDiskConfig() {
 }
 
 func validateConfig() {
-	// main.doDbMigrations func validates db config via util.ValidateDbConfig()
+	// main.doDBMigrations func validates db config via util.ValidateDBConfig()
 	validateSudoConfig()
 	validateVncConfig()
 	validateDebugConfig()
@@ -703,21 +703,21 @@ func validateSysctls() {
 	}
 }
 
-func validateMyId() {
-	myUid, myGid, err := util.GetMyUidGid()
+func validateMyID() {
+	myUID, myGID, err := util.GetMyUIDGID()
 	if err != nil {
 		slog.Error("failed getting my uid/gid")
 		os.Exit(1)
 	}
-	if myUid == 0 || myGid == 0 {
+	if myUID == 0 || myGID == 0 {
 		slog.Error("refusing to run as root/wheel user/group")
 		os.Exit(1)
 	}
 }
 
-// validateDb validate db contents are sane: assume DB is correct, but maybe system state has changed
+// validateDB validate db contents are sane: assume DB is correct, but maybe system state has changed
 // called after migrations
-func validateDb() {
+func validateDB() {
 	// TODO -- validate the backing (file, zvol, volpath) of every disk/iso exists
 
 	var ifUplinks []string
@@ -762,7 +762,7 @@ func validateSystem() {
 	validateKmods()
 	validateVirt()
 	validateJailed()
-	validateMyId()
+	validateMyID()
 	validateSudoCommands()
 	validateSysctls()
 	validateConfig()

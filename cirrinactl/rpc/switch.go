@@ -19,21 +19,21 @@ func getSwitchIds() ([]string, error) {
 	}
 
 	for {
-		var VmSwitch *cirrina.SwitchId
-		VmSwitch, err = res.Recv()
+		var VMSwitch *cirrina.SwitchId
+		VMSwitch, err = res.Recv()
 		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
 			return []string{}, errors.New(status.Convert(err).Message())
 		}
-		rv = append(rv, VmSwitch.Value)
+		rv = append(rv, VMSwitch.Value)
 	}
 
 	return rv, nil
 }
 
-func SwitchNameToId(s string) (string, error) {
+func SwitchNameToID(s string) (string, error) {
 	var err error
 
 	rv := ""
@@ -45,9 +45,9 @@ func SwitchNameToId(s string) (string, error) {
 	}
 	found := false
 
-	for _, switchId := range switchIds {
+	for _, switchID := range switchIds {
 		var switchInfo *cirrina.SwitchInfo
-		switchInfo, err = serverClient.GetSwitchInfo(defaultServerContext, &cirrina.SwitchId{Value: switchId})
+		switchInfo, err = serverClient.GetSwitchInfo(defaultServerContext, &cirrina.SwitchId{Value: switchID})
 		if err != nil {
 			return "", errors.New(status.Convert(err).Message())
 		}
@@ -56,7 +56,7 @@ func SwitchNameToId(s string) (string, error) {
 				return "", errors.New("duplicate switch found")
 			} else {
 				found = true
-				rv = switchId
+				rv = switchID
 			}
 		}
 	}
@@ -64,7 +64,7 @@ func SwitchNameToId(s string) (string, error) {
 	return rv, nil
 }
 
-func SwitchIdToName(s string) (string, error) {
+func SwitchIDToName(s string) (string, error) {
 	var err error
 
 	var res *cirrina.SwitchInfo
@@ -90,15 +90,15 @@ func GetSwitches() ([]string, error) {
 
 	var rv []string
 	for {
-		var SwitchId *cirrina.SwitchId
-		SwitchId, err = res.Recv()
+		var SwitchID *cirrina.SwitchId
+		SwitchID, err = res.Recv()
 		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
 			return []string{}, errors.New(status.Convert(err).Message())
 		}
-		rv = append(rv, SwitchId.Value)
+		rv = append(rv, SwitchID.Value)
 	}
 
 	return rv, nil
@@ -136,16 +136,16 @@ func AddSwitch(name string, descrPtr *string, switchTypePtr *string, switchUplin
 	return res.Value, nil
 }
 
-func SetSwitchUplink(switchId string, uplinkNamePtr *string) error {
+func SetSwitchUplink(switchID string, uplinkNamePtr *string) error {
 	var err error
 
-	if switchId == "" {
+	if switchID == "" {
 		return errors.New("switch id not specified")
 	}
 
 	req := &cirrina.SwitchUplinkReq{}
 	si := &cirrina.SwitchId{}
-	si.Value = switchId
+	si.Value = switchID
 	req.Switchid = si
 	req.Uplink = uplinkNamePtr
 
@@ -163,12 +163,12 @@ func RemoveSwitch(id string) error {
 	if id == "" {
 		return errors.New("id not specified")
 	}
-	var reqId *cirrina.ReqBool
-	reqId, err = serverClient.RemoveSwitch(defaultServerContext, &cirrina.SwitchId{Value: id})
+	var reqID *cirrina.ReqBool
+	reqID, err = serverClient.RemoveSwitch(defaultServerContext, &cirrina.SwitchId{Value: id})
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
 	}
-	if !reqId.Success {
+	if !reqID.Success {
 		return errors.New("failed to delete switch")
 	}
 
@@ -228,23 +228,23 @@ func GetSwitch(id string) (SwitchInfo, error) {
 	}, nil
 }
 
-func SetVmNicSwitch(vmNicIdStr string, switchId string) error {
-	if vmNicIdStr == "" {
+func SetVMNicSwitch(vmNicIDStr string, switchID string) error {
+	if vmNicIDStr == "" {
 		return errors.New("nic id not specified")
 	}
 	var err error
 
-	var vmNicId cirrina.VmNicId
-	vmNicId.Value = vmNicIdStr
-	var vmSwitchId cirrina.SwitchId
-	vmSwitchId.Value = switchId
+	var vmNicID cirrina.VmNicId
+	vmNicID.Value = vmNicIDStr
+	var vmSwitchID cirrina.SwitchId
+	vmSwitchID.Value = switchID
 
 	nicSwitchSettings := cirrina.SetVmNicSwitchReq{
-		Vmnicid:  &vmNicId,
-		Switchid: &vmSwitchId,
+		Vmnicid:  &vmNicID,
+		Switchid: &vmSwitchID,
 	}
 	var r *cirrina.ReqBool
-	r, err = serverClient.SetVmNicSwitch(defaultServerContext, &nicSwitchSettings)
+	r, err = serverClient.SetVMNicSwitch(defaultServerContext, &nicSwitchSettings)
 	if err != nil {
 		return errors.New(status.Convert(err).Message())
 	}

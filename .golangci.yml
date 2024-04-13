@@ -78,6 +78,7 @@ linters:
     - whitespace
     - testableexamples
     - nlreturn
+    - stylecheck
 
 issues:
   exclude-rules:

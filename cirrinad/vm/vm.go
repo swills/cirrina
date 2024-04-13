@@ -24,7 +24,7 @@ import (
 	"cirrina/cirrinad/iso"
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
-	"cirrina/cirrinad/vm_nics"
+	"cirrina/cirrinad/vmnic"
 )
 
 type StatusType string
@@ -38,8 +38,8 @@ const (
 
 type Config struct {
 	gorm.Model
-	VmId             string
-	Cpu              uint32 `gorm:"default:1;check:cpu>=1"`
+	VMID             string
+	CPU              uint32 `gorm:"default:1;check:cpu>=1"`
 	Mem              uint32 `gorm:"default:128;check:mem>=128"`
 	MaxWait          uint32 `gorm:"default:120;check:max_wait>=0"`
 	Restart          bool   `gorm:"default:True;check:restart IN (0,1)"`
@@ -133,17 +133,17 @@ type VM struct {
 
 type ListType struct {
 	Mu     sync.RWMutex
-	VmList map[string]*VM
+	VMList map[string]*VM
 }
 
 var vmStartLock sync.Mutex
 var List = &ListType{
-	VmList: make(map[string]*VM),
+	VMList: make(map[string]*VM),
 }
 
 func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, err error) {
 	var vmInst *VM
-	if !util.ValidVmName(name) {
+	if !util.ValidVMName(name) {
 		return vmInst, errors.New("invalid name")
 	}
 	if _, err := GetByName(name); err == nil {
@@ -154,22 +154,22 @@ func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, er
 		Status:      STOPPED,
 		Description: description,
 		Config: Config{
-			Cpu: cpu,
+			CPU: cpu,
 			Mem: mem,
 		},
 	}
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
-	db := GetVmDb()
+	db := GetVMDB()
 	slog.Debug("Creating VM", "vm", name)
 	res := db.Create(&vmInst)
-	InitOneVm(vmInst)
+	InitOneVM(vmInst)
 
 	return vmInst, res.Error
 }
 
 func (vm *VM) Delete() (err error) {
-	db := GetVmDb()
+	db := GetVMDB()
 	db.Model(&VM{}).Preload("Config").Limit(1).Find(&vm, &VM{ID: vm.ID})
 	if vm.ID == "" {
 		return errors.New("not found")
@@ -278,11 +278,11 @@ func (vm *VM) Stop() (err error) {
 }
 
 func (vm *VM) Save() error {
-	db := GetVmDb()
+	db := GetVMDB()
 
 	res := db.Model(&vm.Config).
 		Updates(map[string]interface{}{
-			"cpu":                &vm.Config.Cpu,
+			"cpu":                &vm.Config.CPU,
 			"mem":                &vm.Config.Mem,
 			"max_wait":           &vm.Config.MaxWait,
 			"restart":            &vm.Config.Restart,
@@ -416,7 +416,7 @@ func (vm *VM) createUefiVarsFile() {
 	}
 }
 
-func netStartupIf(vmNic vm_nics.VmNic) error {
+func netStartupIf(vmNic vmnic.VMNic) error {
 	// Create interface
 	args := []string{"/sbin/ifconfig", vmNic.NetDev, "create", "group", "cirrinad"}
 	cmd := exec.Command(config.Config.Sys.Sudo, args...)
@@ -427,14 +427,14 @@ func netStartupIf(vmNic vm_nics.VmNic) error {
 		return err
 	}
 
-	if vmNic.SwitchId == "" {
+	if vmNic.SwitchID == "" {
 		return nil
 	}
 	// Add interface to bridge
-	thisSwitch, err := _switch.GetById(vmNic.SwitchId)
+	thisSwitch, err := _switch.GetByID(vmNic.SwitchID)
 	if err != nil {
 		slog.Error("bad switch id",
-			"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchId)
+			"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchID)
 
 		return err
 	}
@@ -442,13 +442,13 @@ func netStartupIf(vmNic vm_nics.VmNic) error {
 		slog.Error("bridge/interface type mismatch",
 			"nicname", vmNic.Name,
 			"nicid", vmNic.ID,
-			"switchid", vmNic.SwitchId,
+			"switchid", vmNic.SwitchID,
 		)
 
 		return errors.New("bridge/interface type mismatch")
 	}
 	if vmNic.RateLimit {
-		thisEpair, err := setupVmNicRateLimit(vmNic)
+		thisEpair, err := setupVMNicRateLimit(vmNic)
 		if err != nil {
 			return err
 		}
@@ -457,7 +457,7 @@ func netStartupIf(vmNic vm_nics.VmNic) error {
 			slog.Error("failed to add nic to switch",
 				"nicname", vmNic.Name,
 				"nicid", vmNic.ID,
-				"switchid", vmNic.SwitchId,
+				"switchid", vmNic.SwitchID,
 				"netdev", vmNic.NetDev,
 				"err", err,
 			)
@@ -471,7 +471,7 @@ func netStartupIf(vmNic vm_nics.VmNic) error {
 			slog.Error("failed to add nic to switch",
 				"nicname", vmNic.Name,
 				"nicid", vmNic.ID,
-				"switchid", vmNic.SwitchId,
+				"switchid", vmNic.SwitchID,
 				"netdev", vmNic.NetDev,
 				"err", err,
 			)
@@ -483,7 +483,7 @@ func netStartupIf(vmNic vm_nics.VmNic) error {
 	return nil
 }
 
-func setupVmNicRateLimit(vmNic vm_nics.VmNic) (string, error) {
+func setupVMNicRateLimit(vmNic vmnic.VMNic) (string, error) {
 	var err error
 	thisEpair := epair.GetDummyEpairName()
 	slog.Debug("netStartup rate limiting", "thisEpair", thisEpair)
@@ -531,11 +531,11 @@ func setupVmNicRateLimit(vmNic vm_nics.VmNic) (string, error) {
 	return thisEpair, nil
 }
 
-func netStartupNg(vmNic vm_nics.VmNic) error {
-	thisSwitch, err := _switch.GetById(vmNic.SwitchId)
+func netStartupNg(vmNic vmnic.VMNic) error {
+	thisSwitch, err := _switch.GetByID(vmNic.SwitchID)
 	if err != nil {
 		slog.Error("bad switch id",
-			"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchId)
+			"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchID)
 
 		return err
 	}
@@ -543,7 +543,7 @@ func netStartupNg(vmNic vm_nics.VmNic) error {
 		slog.Error("bridge/interface type mismatch",
 			"nicname", vmNic.Name,
 			"nicid", vmNic.ID,
-			"switchid", vmNic.SwitchId,
+			"switchid", vmNic.SwitchID,
 		)
 
 		return errors.New("bridge/interface type mismatch")
@@ -754,7 +754,7 @@ func (vm *VM) GetISOs() ([]iso.ISO, error) {
 		if cv == "" {
 			continue
 		}
-		aISO, err := iso.GetById(cv)
+		aISO, err := iso.GetByID(cv)
 		if err == nil {
 			isos = append(isos, *aISO)
 		} else {
@@ -765,8 +765,8 @@ func (vm *VM) GetISOs() ([]iso.ISO, error) {
 	return isos, nil
 }
 
-func (vm *VM) GetNics() ([]vm_nics.VmNic, error) {
-	nics := vm_nics.GetNics(vm.Config.ID)
+func (vm *VM) GetNics() ([]vmnic.VMNic, error) {
+	nics := vmnic.GetNics(vm.Config.ID)
 
 	return nics, nil
 }
@@ -778,7 +778,7 @@ func (vm *VM) GetDisks() ([]*disk.Disk, error) {
 		if cv == "" {
 			continue
 		}
-		aDisk, err := disk.GetById(cv)
+		aDisk, err := disk.GetByID(cv)
 		if err == nil {
 			disks = append(disks, aDisk)
 		} else {
@@ -816,12 +816,12 @@ func (vm *VM) AttachIsos(isoIds []string) error {
 	for _, aIso := range isoIds {
 		slog.Debug("checking iso exists", "iso", aIso)
 
-		isoUuid, err := uuid.Parse(aIso)
+		isoUUID, err := uuid.Parse(aIso)
 		if err != nil {
 			return errors.New("iso id not specified or invalid")
 		}
 
-		thisIso, err := iso.GetById(isoUuid.String())
+		thisIso, err := iso.GetByID(isoUUID.String())
 		if err != nil {
 			slog.Error("error getting disk", "disk", aIso, "err", err)
 
@@ -835,11 +835,11 @@ func (vm *VM) AttachIsos(isoIds []string) error {
 	var isoConfigVal string
 	count := 0
 
-	for _, isoId := range isoIds {
+	for _, isoID := range isoIds {
 		if count > 0 {
 			isoConfigVal += ","
 		}
-		isoConfigVal += isoId
+		isoConfigVal += isoID
 		count += 1
 	}
 	vm.Config.ISOs = isoConfigVal
@@ -862,7 +862,7 @@ func (vm *VM) SetNics(nicIds []string) error {
 	}
 
 	// remove all nics from VM
-	err := removeAllNicsFromVm(vm)
+	err := removeAllNicsFromVM(vm)
 	if err != nil {
 		return err
 	}
@@ -874,8 +874,8 @@ func (vm *VM) SetNics(nicIds []string) error {
 	}
 
 	// add the nics
-	for _, nicId := range nicIds {
-		vmNic, err := vm_nics.GetById(nicId)
+	for _, nicID := range nicIds {
+		vmNic, err := vmnic.GetByID(nicID)
 		if err != nil {
 			slog.Error("error looking up nic", "err", err)
 
@@ -909,11 +909,11 @@ func (vm *VM) AttachDisks(diskids []string) error {
 	// build disk list string to put into DB
 	var disksConfigVal string
 	count := 0
-	for _, diskId := range diskids {
+	for _, diskID := range diskids {
 		if count > 0 {
 			disksConfigVal += ","
 		}
-		disksConfigVal += diskId
+		disksConfigVal += diskID
 		count += 1
 	}
 	vm.Config.Disks = disksConfigVal
@@ -992,7 +992,7 @@ func comLogger(vm *VM, comNum int) {
 
 	comLogPath := config.Config.Disk.VM.Path.State + "/" + vm.Name + "/"
 	comLogFile := comLogPath + "com" + strconv.Itoa(comNum) + "_out.log"
-	err := GetVmLogPath(comLogPath)
+	err := GetVMLogPath(comLogPath)
 	if err != nil {
 		slog.Error("setupComLoggers", "err", err)
 
@@ -1241,12 +1241,12 @@ func validateDisks(diskids []string, vm *VM) error {
 	for _, aDisk := range diskids {
 		slog.Debug("checking disk exists", "disk", aDisk)
 
-		diskUuid, err := uuid.Parse(aDisk)
+		diskUUID, err := uuid.Parse(aDisk)
 		if err != nil {
 			return errors.New("disk id not specified or invalid")
 		}
 
-		thisDisk, err := disk.GetById(diskUuid.String())
+		thisDisk, err := disk.GetByID(diskUUID.String())
 		if err != nil {
 			return err
 		}
@@ -1283,13 +1283,13 @@ func validateDisks(diskids []string, vm *VM) error {
 // diskAttached check if disk is attached to another VM besides this one
 func diskAttached(aDisk string, vm *VM) (bool, error) {
 	allVms := GetAll()
-	for _, aVm := range allVms {
-		vmDisks, err := aVm.GetDisks()
+	for _, aVM := range allVms {
+		vmDisks, err := aVM.GetDisks()
 		if err != nil {
 			return true, err
 		}
-		for _, aVmDisk := range vmDisks {
-			if aDisk == aVmDisk.ID && aVm.ID != vm.ID {
+		for _, aVMDisk := range vmDisks {
+			if aDisk == aVMDisk.ID && aVM.ID != vm.ID {
 				return true, nil
 			}
 		}
@@ -1304,12 +1304,12 @@ func validateNics(nicIds []string, vm *VM) error {
 	for _, aNic := range nicIds {
 		slog.Debug("checking vm nic exists", "vmnic", aNic)
 
-		nicUuid, err := uuid.Parse(aNic)
+		nicUUID, err := uuid.Parse(aNic)
 		if err != nil {
 			return errors.New("nic id not specified or invalid")
 		}
 
-		thisNic, err := vm_nics.GetById(nicUuid.String())
+		thisNic, err := vmnic.GetByID(nicUUID.String())
 		if err != nil {
 			slog.Error("error getting nic", "nic", aNic, "err", err)
 
@@ -1340,14 +1340,14 @@ func validateNics(nicIds []string, vm *VM) error {
 // nicAttached check if nic is attached to another VM besides this one
 func nicAttached(aNic string, vm *VM) error {
 	allVms := GetAll()
-	for _, aVm := range allVms {
-		vmNics, err := aVm.GetNics()
+	for _, aVM := range allVms {
+		vmNics, err := aVM.GetNics()
 		if err != nil {
 			return err
 		}
-		for _, aVmNic := range vmNics {
-			if aNic == aVmNic.ID && aVm.ID != vm.ID {
-				slog.Error("nic is already attached to VM", "disk", aNic, "vm", aVm.ID)
+		for _, aVMNic := range vmNics {
+			if aNic == aVMNic.ID && aVM.ID != vm.ID {
+				slog.Error("nic is already attached to VM", "disk", aNic, "vm", aVM.ID)
 
 				return errors.New("nic already attached")
 			}
@@ -1357,15 +1357,15 @@ func nicAttached(aNic string, vm *VM) error {
 	return nil
 }
 
-// removeAllNicsFromVm does what it says on the tin, mate
-func removeAllNicsFromVm(vm *VM) error {
-	thisVmNics, err := vm.GetNics()
+// removeAllNicsFromVM does what it says on the tin, mate
+func removeAllNicsFromVM(vm *VM) error {
+	thisVMNics, err := vm.GetNics()
 	if err != nil {
 		slog.Error("error looking up vm nics", "err", err)
 
 		return err
 	}
-	for _, aNic := range thisVmNics {
+	for _, aNic := range thisVMNics {
 		aNic.ConfigID = 0
 		err := aNic.Save()
 		if err != nil {
@@ -1379,7 +1379,7 @@ func removeAllNicsFromVm(vm *VM) error {
 }
 
 // cleanup tap/vmnet type nic
-func cleanupIfNic(vmNic vm_nics.VmNic) error {
+func cleanupIfNic(vmNic vmnic.VMNic) error {
 	var err error
 	if vmNic.NetDev != "" {
 		args := []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"}

@@ -13,18 +13,18 @@ import (
 	"cirrina/cirrinactl/rpc"
 )
 
-var VmDisksListCmd = &cobra.Command{
+var VMDisksListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "Get list of disks connected to VM",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName)
+		if VMID == "" {
+			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
 				return err
 			}
-			if VmId == "" {
+			if VMID == "" {
 				return errors.New("VM not found")
 			}
 		}
@@ -39,7 +39,7 @@ var VmDisksListCmd = &cobra.Command{
 
 		diskInfos := make(map[string]diskListInfo)
 		var diskIds []string
-		diskIds, err = rpc.GetVmDisks(VmId)
+		diskIds, err = rpc.GetVMDisks(VMID)
 		if err != nil {
 			return err
 		}
@@ -112,41 +112,41 @@ var VmDisksListCmd = &cobra.Command{
 	},
 }
 
-var VmDiskAddCmd = &cobra.Command{
+var VMDiskAddCmd = &cobra.Command{
 	Use:          "add",
 	Short:        "Add disk to VM",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName)
+		if VMID == "" {
+			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
 				return err
 			}
-			if VmId == "" {
+			if VMID == "" {
 				return errors.New("VM not found")
 			}
 		}
-		if DiskId == "" {
-			DiskId, err = rpc.DiskNameToId(DiskName)
+		if DiskID == "" {
+			DiskID, err = rpc.DiskNameToID(DiskName)
 			if err != nil {
 				return err
 			}
-			if DiskId == "" {
+			if DiskID == "" {
 				return errors.New("disk not found")
 			}
 		}
 
 		var diskIds []string
-		diskIds, err = rpc.GetVmDisks(VmId)
+		diskIds, err = rpc.GetVMDisks(VMID)
 		if err != nil {
 			return err
 		}
-		diskIds = append(diskIds, DiskId)
+		diskIds = append(diskIds, DiskID)
 
 		var res bool
-		res, err = rpc.VmSetDisks(VmId, diskIds)
+		res, err = rpc.VMSetDisks(VMID, diskIds)
 		if err != nil {
 			return err
 		}
@@ -159,46 +159,46 @@ var VmDiskAddCmd = &cobra.Command{
 	},
 }
 
-var VmDiskRmCmd = &cobra.Command{
+var VMDiskRmCmd = &cobra.Command{
 	Use:          "remove",
 	Short:        "Detach a disk from a VM",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
-		if VmId == "" {
-			VmId, err = rpc.VmNameToId(VmName)
+		if VMID == "" {
+			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
 				return err
 			}
-			if VmId == "" {
+			if VMID == "" {
 				return errors.New("VM not found")
 			}
 		}
-		if DiskId == "" {
-			DiskId, err = rpc.DiskNameToId(DiskName)
+		if DiskID == "" {
+			DiskID, err = rpc.DiskNameToID(DiskName)
 			if err != nil {
 				return err
 			}
-			if DiskId == "" {
+			if DiskID == "" {
 				return errors.New("disk not found")
 			}
 		}
 		var diskIds []string
-		diskIds, err = rpc.GetVmDisks(VmId)
+		diskIds, err = rpc.GetVMDisks(VMID)
 		if err != nil {
 			return err
 		}
 
 		var newDiskIds []string
 		for _, id := range diskIds {
-			if id != DiskId {
+			if id != DiskID {
 				newDiskIds = append(newDiskIds, id)
 			}
 		}
 
 		var res bool
-		res, err = rpc.VmSetDisks(VmId, newDiskIds)
+		res, err = rpc.VMSetDisks(VMID, newDiskIds)
 		if err != nil {
 			return err
 		}
@@ -211,41 +211,41 @@ var VmDiskRmCmd = &cobra.Command{
 	},
 }
 
-var VmDisksCmd = &cobra.Command{
+var VMDisksCmd = &cobra.Command{
 	Use:   "disk",
 	Short: "Disk related operations on VMs",
 	Long:  "List disks attached to VMs, attach disks to VMs and un-attach disks from VMs",
 }
 
 func init() {
-	disableFlagSorting(VmDisksCmd)
+	disableFlagSorting(VMDisksCmd)
 
-	disableFlagSorting(VmDisksListCmd)
-	addNameOrIdArgs(VmDisksListCmd, &VmName, &VmId, "VM")
-	VmDisksListCmd.Flags().BoolVarP(&Humanize,
+	disableFlagSorting(VMDisksListCmd)
+	addNameOrIDArgs(VMDisksListCmd, &VMName, &VMID, "VM")
+	VMDisksListCmd.Flags().BoolVarP(&Humanize,
 		"human", "H", Humanize, "Print sizes in human readable form",
 	)
-	VmDisksListCmd.Flags().BoolVarP(&ShowUUID,
+	VMDisksListCmd.Flags().BoolVarP(&ShowUUID,
 		"uuid", "u", ShowUUID, "Show UUIDs",
 	)
 
-	disableFlagSorting(VmDiskAddCmd)
-	addNameOrIdArgs(VmDiskAddCmd, &VmName, &VmId, "VM")
-	VmDiskAddCmd.Flags().StringVarP(&DiskName, "disk-name", "N", DiskName, "Name of Disk")
-	VmDiskAddCmd.Flags().StringVarP(&DiskId, "disk-id", "I", DiskId, "Id of Disk")
-	VmDiskAddCmd.MarkFlagsOneRequired("disk-name", "disk-id")
-	VmDiskAddCmd.MarkFlagsMutuallyExclusive("disk-name", "disk-id")
+	disableFlagSorting(VMDiskAddCmd)
+	addNameOrIDArgs(VMDiskAddCmd, &VMName, &VMID, "VM")
+	VMDiskAddCmd.Flags().StringVarP(&DiskName, "disk-name", "N", DiskName, "Name of Disk")
+	VMDiskAddCmd.Flags().StringVarP(&DiskID, "disk-id", "I", DiskID, "ID of Disk")
+	VMDiskAddCmd.MarkFlagsOneRequired("disk-name", "disk-id")
+	VMDiskAddCmd.MarkFlagsMutuallyExclusive("disk-name", "disk-id")
 
-	disableFlagSorting(VmDiskRmCmd)
-	addNameOrIdArgs(VmDiskRmCmd, &VmName, &VmId, "VM")
-	VmDiskRmCmd.Flags().StringVarP(&DiskName, "disk-name", "N", DiskName, "Name of Disk")
-	VmDiskRmCmd.Flags().StringVarP(&DiskId, "disk-id", "I", DiskId, "Id of Disk")
-	VmDiskRmCmd.MarkFlagsOneRequired("disk-name", "disk-id")
-	VmDiskRmCmd.MarkFlagsMutuallyExclusive("disk-name", "disk-id")
+	disableFlagSorting(VMDiskRmCmd)
+	addNameOrIDArgs(VMDiskRmCmd, &VMName, &VMID, "VM")
+	VMDiskRmCmd.Flags().StringVarP(&DiskName, "disk-name", "N", DiskName, "Name of Disk")
+	VMDiskRmCmd.Flags().StringVarP(&DiskID, "disk-id", "I", DiskID, "ID of Disk")
+	VMDiskRmCmd.MarkFlagsOneRequired("disk-name", "disk-id")
+	VMDiskRmCmd.MarkFlagsMutuallyExclusive("disk-name", "disk-id")
 
-	VmDisksCmd.AddCommand(VmDisksListCmd)
-	VmDisksCmd.AddCommand(VmDiskAddCmd)
-	VmDisksCmd.AddCommand(VmDiskRmCmd)
+	VMDisksCmd.AddCommand(VMDisksListCmd)
+	VMDisksCmd.AddCommand(VMDiskAddCmd)
+	VMDisksCmd.AddCommand(VMDiskRmCmd)
 
-	VmCmd.AddCommand(VmDisksCmd)
+	VMCmd.AddCommand(VMDisksCmd)
 }

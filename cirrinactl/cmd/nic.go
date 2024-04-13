@@ -24,11 +24,11 @@ var NicDevType = "tap"
 var NicDevTypeChanged bool
 var NicMac = "AUTO"
 var NicMacChanged bool
-var NicSwitchId string
-var NicSwitchIdChanged bool
+var NicSwitchID string
+var NicSwitchIDChanged bool
 var NicSwitchName string
 var NicSwitchNameChanged bool
-var NicId string
+var NicID string
 var NicRateLimited bool
 var NicRateLimitedChanged bool
 var NicRateIn uint64
@@ -43,13 +43,13 @@ var NicListCmd = &cobra.Command{
 	Short:        "list virtual NICs",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		res, err := rpc.GetVmNicsAll()
+		res, err := rpc.GetVMNicsAll()
 		if err != nil {
 			return err
 		}
 		var names []string
 		type nicListInfo struct {
-			nicId       string
+			nicID       string
 			info        rpc.NicInfo
 			vmName      string
 			rateLimited string
@@ -59,7 +59,7 @@ var NicListCmd = &cobra.Command{
 		nicInfos := make(map[string]nicListInfo)
 
 		for _, id := range res {
-			nicInfo, err := rpc.GetVmNicInfo(id)
+			nicInfo, err := rpc.GetVMNicInfo(id)
 			if err != nil {
 				return err
 			}
@@ -83,10 +83,10 @@ var NicListCmd = &cobra.Command{
 				rateLimited = "no"
 			}
 			nicInfos[nicInfo.Name] = nicListInfo{
-				nicId:       id,
+				nicID:       id,
 				info:        nicInfo,
 				rateLimited: rateLimited,
-				vmName:      nicInfo.VmName,
+				vmName:      nicInfo.VMName,
 				rateIn:      rateIn,
 				rateOut:     rateOut,
 			}
@@ -112,7 +112,7 @@ var NicListCmd = &cobra.Command{
 			if ShowUUID {
 				t.AppendRow(table.Row{
 					name,
-					nicInfos[name].nicId,
+					nicInfos[name].nicID,
 					nicInfos[name].info.Mac,
 					nicInfos[name].info.NetType,
 					nicInfos[name].info.NetDevType,
@@ -153,13 +153,13 @@ var NicCreateCmd = &cobra.Command{
 		if NicName == "" {
 			return errors.New("empty NIC name")
 		}
-		if NicSwitchId == "" {
+		if NicSwitchID == "" {
 			if NicSwitchName != "" {
-				NicSwitchId, err = rpc.SwitchNameToId(NicSwitchName)
+				NicSwitchID, err = rpc.SwitchNameToID(NicSwitchName)
 				if err != nil {
 					return err
 				}
-				if NicSwitchId == "" {
+				if NicSwitchID == "" {
 					return errors.New("switch not found")
 				}
 			}
@@ -167,7 +167,7 @@ var NicCreateCmd = &cobra.Command{
 
 		res, err := rpc.AddNic(
 			NicName, NicDescription, NicMac, NicType, NicDevType,
-			NicRateLimited, NicRateIn, NicRateOut, NicSwitchId,
+			NicRateLimited, NicRateIn, NicRateOut, NicSwitchID,
 		)
 		if err != nil {
 			return err
@@ -184,16 +184,16 @@ var NicRemoveCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		if NicId == "" {
-			NicId, err = rpc.NicNameToId(NicName)
+		if NicID == "" {
+			NicID, err = rpc.NicNameToID(NicName)
 			if err != nil {
 				return err
 			}
-			if NicId == "" {
+			if NicID == "" {
 				return errors.New("NIC not found")
 			}
 		}
-		err = rpc.RmNic(NicId)
+		err = rpc.RmNic(NicID)
 		if err != nil {
 			return err
 		}
@@ -209,33 +209,33 @@ var NicSetSwitchCmd = &cobra.Command{
 	Long:         "Connect a NIC to a switch, or set switch to empty to remove",
 	SilenceUsage: true,
 	Args: func(cmd *cobra.Command, args []string) error {
-		NicSwitchIdChanged = cmd.Flags().Changed("switch-id")
+		NicSwitchIDChanged = cmd.Flags().Changed("switch-id")
 
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		if NicId == "" {
-			NicId, err = rpc.NicNameToId(NicName)
+		if NicID == "" {
+			NicID, err = rpc.NicNameToID(NicName)
 			if err != nil {
 				return err
 			}
-			if NicId == "" {
+			if NicID == "" {
 				return errors.New("NIC not found")
 			}
 		}
 
-		if NicSwitchId == "" && !NicSwitchIdChanged && SwitchName != "" {
-			NicSwitchId, err = rpc.SwitchNameToId(NicSwitchName)
+		if NicSwitchID == "" && !NicSwitchIDChanged && SwitchName != "" {
+			NicSwitchID, err = rpc.SwitchNameToID(NicSwitchName)
 			if err != nil {
 				return err
 			}
-			if NicSwitchId == "" {
+			if NicSwitchID == "" {
 				return errors.New("switch not found")
 			}
 		}
 
-		err = rpc.SetVmNicSwitch(NicId, NicSwitchId)
+		err = rpc.SetVMNicSwitch(NicID, NicSwitchID)
 		if err != nil {
 			return err
 		}
@@ -251,12 +251,12 @@ var NicCloneCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		if NicId == "" {
-			NicId, err = rpc.NicNameToId(NicName)
+		if NicID == "" {
+			NicID, err = rpc.NicNameToID(NicName)
 			if err != nil {
 				return err
 			}
-			if NicId == "" {
+			if NicID == "" {
 				return errors.New("NIC not found")
 			}
 		}
@@ -268,7 +268,7 @@ var NicCloneCmd = &cobra.Command{
 		if CheckReqStat {
 			fmt.Print("Cloning NIC (timeout: 10s): ")
 		}
-		reqId, err := rpc.CloneNic(NicId, NicCloneName)
+		reqID, err := rpc.CloneNic(NicID, NicCloneName)
 		if err != nil {
 			return err
 		}
@@ -283,7 +283,7 @@ var NicCloneCmd = &cobra.Command{
 
 		var reqStat rpc.ReqStatus
 		for time.Now().Before(timeout) {
-			reqStat, err = rpc.ReqStat(reqId)
+			reqStat, err = rpc.ReqStat(reqID)
 			if err != nil {
 				return err
 			}
@@ -316,19 +316,19 @@ var NicUpdateCmd = &cobra.Command{
 		NicRateLimitedChanged = cmd.Flags().Changed("rate-limit")
 		NicRateInChanged = cmd.Flags().Changed("rate-in")
 		NicRateOutChanged = cmd.Flags().Changed("rate-out")
-		NicSwitchIdChanged = cmd.Flags().Changed("switch-id")
+		NicSwitchIDChanged = cmd.Flags().Changed("switch-id")
 		NicSwitchNameChanged = cmd.Flags().Changed("switch-name")
 
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
-		if NicId == "" {
-			NicId, err = rpc.NicNameToId(NicName)
+		if NicID == "" {
+			NicID, err = rpc.NicNameToID(NicName)
 			if err != nil {
 				return err
 			}
-			if NicId == "" {
+			if NicID == "" {
 				return errors.New("nic not found")
 			}
 		}
@@ -340,7 +340,7 @@ var NicUpdateCmd = &cobra.Command{
 		var newRateLimit *bool
 		var newRateIn *uint64
 		var newRateOut *uint64
-		var newSwitchId *string
+		var newSwitchID *string
 
 		if NicDescriptionChanged {
 			newDesc = &NicDescription
@@ -364,19 +364,19 @@ var NicUpdateCmd = &cobra.Command{
 			newRateOut = &NicRateOut
 		}
 		if NicSwitchNameChanged {
-			NewNicSwitchId, err := rpc.SwitchNameToId(NicSwitchName)
+			NewNicSwitchID, err := rpc.SwitchNameToID(NicSwitchName)
 			if err != nil {
 				return err
 			}
-			if NewNicSwitchId == "" {
+			if NewNicSwitchID == "" {
 				return errors.New("switch not found")
 			}
-			newSwitchId = &NewNicSwitchId
+			newSwitchID = &NewNicSwitchID
 		}
-		if NicSwitchIdChanged {
-			newSwitchId = &NicSwitchId
+		if NicSwitchIDChanged {
+			newSwitchID = &NicSwitchID
 		}
-		err = rpc.UpdateNic(NicId, newDesc, newMac, newNicType, newNicDevType, newRateLimit, newRateIn, newRateOut, newSwitchId)
+		err = rpc.UpdateNic(NicID, newDesc, newMac, newNicType, newNicDevType, newRateLimit, newRateIn, newRateOut, newSwitchID)
 		if err != nil {
 			return err
 		}
@@ -414,8 +414,8 @@ func init() {
 	NicCreateCmd.Flags().StringVarP(&NicType, "type", "t", NicType, "type of NIC")
 	NicCreateCmd.Flags().StringVarP(&NicDevType, "devtype", "v", NicDevType, "NIC dev type")
 	NicCreateCmd.Flags().StringVarP(&NicMac, "mac", "m", NicMac, "MAC address of NIC")
-	NicCreateCmd.Flags().StringVar(&NicSwitchId,
-		"switch-id", NicSwitchId, "NIC uplink switch ID",
+	NicCreateCmd.Flags().StringVar(&NicSwitchID,
+		"switch-id", NicSwitchID, "NIC uplink switch ID",
 	)
 	NicCreateCmd.Flags().StringVar(&NicSwitchName,
 		"switch-name", NicSwitchName, "NIC uplink switch name",
@@ -425,19 +425,19 @@ func init() {
 	NicCreateCmd.Flags().Uint64Var(&NicRateOut, "rate-out", NicRateOut, "Outbound rate limit of NIC")
 
 	disableFlagSorting(NicRemoveCmd)
-	addNameOrIdArgs(NicRemoveCmd, &NicName, &NicId, "NIC")
+	addNameOrIDArgs(NicRemoveCmd, &NicName, &NicID, "NIC")
 
 	disableFlagSorting(NicSetSwitchCmd)
-	addNameOrIdArgs(NicSetSwitchCmd, &NicName, &NicId, "NIC")
+	addNameOrIDArgs(NicSetSwitchCmd, &NicName, &NicID, "NIC")
 	NicSetSwitchCmd.Flags().StringVarP(&NicSwitchName,
 		"switch-name", "N", SwitchName, "Switch Name",
 	)
-	NicSetSwitchCmd.Flags().StringVarP(&NicSwitchId, "switch-id", "I", SwitchId, "Id of Switch")
+	NicSetSwitchCmd.Flags().StringVarP(&NicSwitchID, "switch-id", "I", SwitchID, "ID of Switch")
 	NicSetSwitchCmd.MarkFlagsOneRequired("switch-name", "switch-id")
 	NicSetSwitchCmd.MarkFlagsMutuallyExclusive("switch-name", "switch-id")
 
 	disableFlagSorting(NicCloneCmd)
-	addNameOrIdArgs(NicCloneCmd, &NicName, &NicId, "NIC")
+	addNameOrIDArgs(NicCloneCmd, &NicName, &NicID, "NIC")
 
 	NicCloneCmd.Flags().StringVar(&NicCloneName,
 		"new-name", NicCloneName, "Name of Cloned NIC",
@@ -445,15 +445,15 @@ func init() {
 	NicCloneCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
 
 	disableFlagSorting(NicUpdateCmd)
-	addNameOrIdArgs(NicUpdateCmd, &NicName, &NicId, "NIC")
+	addNameOrIDArgs(NicUpdateCmd, &NicName, &NicID, "NIC")
 	NicUpdateCmd.Flags().StringVarP(&NicDescription,
 		"description", "d", NicDescription, "description of NIC",
 	)
 	NicUpdateCmd.Flags().StringVarP(&NicType, "type", "t", NicType, "type of NIC")
 	NicUpdateCmd.Flags().StringVarP(&NicDevType, "devtype", "v", NicDevType, "NIC dev type")
 	NicUpdateCmd.Flags().StringVarP(&NicMac, "mac", "m", NicMac, "MAC address of NIC")
-	NicUpdateCmd.Flags().StringVarP(&NicSwitchId,
-		"switch-id", "I", NicSwitchId, "NIC uplink switch ID",
+	NicUpdateCmd.Flags().StringVarP(&NicSwitchID,
+		"switch-id", "I", NicSwitchID, "NIC uplink switch ID",
 	)
 	NicUpdateCmd.Flags().StringVarP(&NicSwitchName,
 		"switch-name", "N", NicSwitchName, "NIC uplink switch name",

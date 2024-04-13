@@ -20,10 +20,10 @@ import (
 
 func cleanupVms() {
 	// deal with any leftover running VMs
-	vmList := vm.GetAllDb()
-	for _, aVm := range vmList {
-		vmmPath := "/dev/vmm/" + aVm.Name
-		slog.Debug("checking VM", "name", aVm.Name, "path", vmmPath)
+	vmList := vm.GetAllDB()
+	for _, aVM := range vmList {
+		vmmPath := "/dev/vmm/" + aVM.Name
+		slog.Debug("checking VM", "name", aVM.Name, "path", vmmPath)
 		exists, err := util.PathExists(vmmPath)
 		if err != nil {
 			slog.Error("error checking VM", "err", err)
@@ -33,31 +33,31 @@ func cleanupVms() {
 		if !exists {
 			continue
 		}
-		slog.Debug("leftover VM exists, checking pid", "name", aVm.Name, "pid", aVm.BhyvePid)
+		slog.Debug("leftover VM exists, checking pid", "name", aVM.Name, "pid", aVM.BhyvePid)
 		var pidStat bool
 		// check pid
-		if aVm.BhyvePid > 0 {
-			pidStat, err = util.PidExists(int(aVm.BhyvePid))
+		if aVM.BhyvePid > 0 {
+			pidStat, err = util.PidExists(int(aVM.BhyvePid))
 			if err != nil {
 				slog.Error("error checking VM", "err", err)
 			}
 		}
 		if pidStat {
-			slog.Debug("leftover VM exists", "name", aVm.Name, "pid", aVm.BhyvePid, "maxWait", aVm.Config.MaxWait)
-			killLeftoverVM(aVm)
+			slog.Debug("leftover VM exists", "name", aVM.Name, "pid", aVM.BhyvePid, "maxWait", aVM.Config.MaxWait)
+			killLeftoverVM(aVM)
 		}
-		slog.Debug("destroying VM", "name", aVm.Name)
-		aVm.MaybeForceKillVM()
+		slog.Debug("destroying VM", "name", aVM.Name)
+		aVM.MaybeForceKillVM()
 	}
 }
 
-func killLeftoverVM(aVm *vm.VM) {
+func killLeftoverVM(aVM *vm.VM) {
 	var err error
 	var pidStat bool
 	var sleptTime time.Duration
-	_ = syscall.Kill(int(aVm.BhyvePid), syscall.SIGTERM)
+	_ = syscall.Kill(int(aVM.BhyvePid), syscall.SIGTERM)
 	for {
-		pidStat, err = util.PidExists(int(aVm.BhyvePid))
+		pidStat, err = util.PidExists(int(aVM.BhyvePid))
 		if err != nil {
 			slog.Error("error checking VM", "err", err)
 
@@ -68,11 +68,11 @@ func killLeftoverVM(aVm *vm.VM) {
 		}
 		time.Sleep(10 * time.Millisecond)
 		sleptTime += 10 * time.Millisecond
-		if sleptTime > (time.Duration(aVm.Config.MaxWait) * time.Second) {
+		if sleptTime > (time.Duration(aVM.Config.MaxWait) * time.Second) {
 			break
 		}
 	}
-	pidStillExists, err := util.PidExists(int(aVm.BhyvePid))
+	pidStillExists, err := util.PidExists(int(aVM.BhyvePid))
 	if err != nil {
 		slog.Error("error checking VM", "err", err)
 	} else if pidStillExists {
@@ -82,12 +82,12 @@ func killLeftoverVM(aVm *vm.VM) {
 
 func cleanupNet() {
 	// clean up leftover VM nets and mark everything stopped
-	vmList := vm.GetAllDb()
-	for _, aVm := range vmList {
-		slog.Debug("cleaning up VM net(s)", "name", aVm.Name)
-		aVm.NetCleanup()
-		slog.Debug("marking VM stopped", "name", aVm.Name)
-		aVm.SetStopped()
+	vmList := vm.GetAllDB()
+	for _, aVM := range vmList {
+		slog.Debug("cleaning up VM net(s)", "name", aVM.Name)
+		aVM.NetCleanup()
+		slog.Debug("marking VM stopped", "name", aVM.Name)
+		aVM.SetStopped()
 	}
 
 	// destroy all the bridges we know about
@@ -121,10 +121,10 @@ func cleanupNet() {
 	}
 }
 
-func cleanupDb() {
+func cleanupDB() {
 	rowsCleared := requests.FailAllPending()
 	slog.Debug("cleared failed requests", "rowsCleared", rowsCleared)
-	allDisks := disk.GetAllDb()
+	allDisks := disk.GetAllDB()
 	for _, diskInst := range allDisks {
 		if strings.HasSuffix(diskInst.Name, ".img") {
 			newName := strings.TrimSuffix(diskInst.Name, ".img")
@@ -132,7 +132,7 @@ func cleanupDb() {
 			diskInst.Name = newName
 			err := diskInst.Save()
 			if err != nil {
-				slog.Error("cleanupDb failed saving new disk name", "err", err)
+				slog.Error("cleanupDB failed saving new disk name", "err", err)
 			}
 		}
 	}
@@ -141,5 +141,5 @@ func cleanupDb() {
 func cleanupSystem() {
 	cleanupVms()
 	cleanupNet()
-	cleanupDb()
+	cleanupDB()
 }

@@ -32,8 +32,8 @@ var myTableStyle = table.Style{
 }
 
 var cfgFile string
-var VmName string
-var VmId string
+var VMName string
+var VMID string
 var Humanize = true
 var ShowUUID = false
 var CheckReqStat = true
@@ -76,9 +76,9 @@ func disableFlagSorting(cmd *cobra.Command) {
 	cmd.InheritedFlags().SortFlags = false
 }
 
-func addNameOrIdArgs(cmd *cobra.Command, nameArg *string, idArg *string, objTypeName string) {
+func addNameOrIDArgs(cmd *cobra.Command, nameArg *string, idArg *string, objTypeName string) {
 	cmd.Flags().StringVarP(nameArg, "name", "n", *nameArg, "Name of "+objTypeName)
-	cmd.Flags().StringVarP(idArg, "id", "i", *idArg, "Id of "+objTypeName)
+	cmd.Flags().StringVarP(idArg, "id", "i", *idArg, "ID of "+objTypeName)
 	cmd.MarkFlagsOneRequired("name", "id")
 	cmd.MarkFlagsMutuallyExclusive("name", "id")
 }
@@ -109,7 +109,7 @@ func init() {
 		panic(err)
 	}
 
-	rootCmd.AddCommand(VmCmd)
+	rootCmd.AddCommand(VMCmd)
 	rootCmd.AddCommand(DiskCmd)
 	rootCmd.AddCommand(IsoCmd)
 	rootCmd.AddCommand(NicCmd)

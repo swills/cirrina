@@ -84,7 +84,7 @@ func GetIsoInfo(id string) (IsoInfo, error) {
 	}, nil
 }
 
-func IsoNameToId(name string) (string, error) {
+func IsoNameToID(name string) (string, error) {
 	if name == "" {
 		return "", errors.New("iso name not specified")
 	}
@@ -94,10 +94,10 @@ func IsoNameToId(name string) (string, error) {
 	}
 
 	found := false
-	var isoId string
-	for _, aIsoId := range isoIds {
+	var isoID string
+	for _, aIsoID := range isoIds {
 		var isoInfo IsoInfo
-		isoInfo, err = GetIsoInfo(aIsoId)
+		isoInfo, err = GetIsoInfo(aIsoID)
 		if err != nil {
 			return "", err
 		}
@@ -109,14 +109,14 @@ func IsoNameToId(name string) (string, error) {
 				return "", errors.New("duplicate iso found")
 			}
 			found = true
-			isoId = aIsoId
+			isoID = aIsoID
 		}
 	}
 	if !found {
 		return "", &NotFoundError{}
 	}
 
-	return isoId, nil
+	return isoID, nil
 }
 
 // func IsoIdToName(s string) (string, error) {
@@ -129,11 +129,11 @@ func IsoNameToId(name string) (string, error) {
 // 	return *res.Name, nil
 // }
 
-func IsoUpload(isoId string, isoChecksum string,
+func IsoUpload(isoID string, isoChecksum string,
 	isoSize uint64, isoFile *os.File) (<-chan UploadStat, error) {
 	uploadStatChan := make(chan UploadStat, 1)
 
-	if isoId == "" {
+	if isoID == "" {
 		return uploadStatChan, errors.New("empty iso id")
 	}
 
@@ -147,12 +147,12 @@ func IsoUpload(isoId string, isoChecksum string,
 		// prevent timeouts
 		defaultServerContext = context.Background()
 
-		thisIsoId := cirrina.ISOID{Value: isoId}
+		thisIsoID := cirrina.ISOID{Value: isoID}
 
 		setupReq := &cirrina.ISOImageRequest{
 			Data: &cirrina.ISOImageRequest_Isouploadinfo{
 				Isouploadinfo: &cirrina.ISOUploadInfo{
-					Isoid:     &thisIsoId,
+					Isoid:     &thisIsoID,
 					Size:      isoSize,
 					Sha512Sum: isoChecksum,
 				},

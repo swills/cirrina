@@ -28,7 +28,7 @@ type ConfigType struct {
 	Network struct {
 		Grpc struct {
 			// TODO separate settings for IPv4 and IPv6 IP
-			Ip   string
+			IP   string
 			Port uint
 		}
 		Mac struct {
@@ -43,12 +43,12 @@ type ConfigType struct {
 	}
 	Vnc struct {
 		// TODO separate settings for IPv4 and IPv6 IP
-		Ip   string `default:"0.0.0.0"`
+		IP   string `default:"0.0.0.0"`
 		Port uint   `default:"5900"`
 	}
 	Debug struct {
 		// TODO separate settings for IPv4 and IPv6 IP
-		Ip   string `default:"0.0.0.0"`
+		IP   string `default:"0.0.0.0"`
 		Port uint   `default:"2828"`
 	}
 }

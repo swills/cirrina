@@ -1,4 +1,4 @@
-package vm_nics
+package vmnic
 
 import (
 	"errors"
@@ -12,36 +12,36 @@ import (
 	"cirrina/cirrinad/util"
 )
 
-func GetByName(name string) (s *VmNic, err error) {
-	db := GetVmNicDb()
+func GetByName(name string) (s *VMNic, err error) {
+	db := GetVMNicDB()
 	db.Limit(1).Find(&s, "name = ?", name)
 
 	return s, nil
 }
 
-func GetById(id string) (v *VmNic, err error) {
-	db := GetVmNicDb()
+func GetByID(id string) (v *VMNic, err error) {
+	db := GetVMNicDB()
 	db.Limit(1).Find(&v, "id = ?", id)
 
 	return v, nil
 }
 
-func GetNics(vmConfigId uint) (vms []VmNic) {
-	db := GetVmNicDb()
-	db.Where("config_id = ?", vmConfigId).Find(&vms)
+func GetNics(vmConfigID uint) (vms []VMNic) {
+	db := GetVMNicDB()
+	db.Where("config_id = ?", vmConfigID).Find(&vms)
 
 	return vms
 }
 
-func GetAll() []*VmNic {
-	var result []*VmNic
-	db := GetVmNicDb()
+func GetAll() []*VMNic {
+	var result []*VMNic
+	db := GetVMNicDB()
 	db.Find(&result)
 
 	return result
 }
 
-func Create(vmNicInst *VmNic) (newNicId string, err error) {
+func Create(vmNicInst *VMNic) (newNicID string, err error) {
 	if vmNicInst.Mac == "" {
 		vmNicInst.Mac = "AUTO"
 	}
@@ -54,27 +54,27 @@ func Create(vmNicInst *VmNic) (newNicId string, err error) {
 
 	valid, err := validateNewNic(vmNicInst)
 	if err != nil {
-		slog.Error("error validating nic", "VmNic", vmNicInst, "err", err)
+		slog.Error("error validating nic", "VMNic", vmNicInst, "err", err)
 
-		return newNicId, err
+		return newNicID, err
 	}
 	if !valid {
-		slog.Error("VmNic exists or not valid", "VmNic", vmNicInst.Name)
+		slog.Error("VMNic exists or not valid", "VMNic", vmNicInst.Name)
 
-		return newNicId, errors.New("VmNic exists or not valid")
+		return newNicID, errors.New("VMNic exists or not valid")
 	}
 
-	db := GetVmNicDb()
+	db := GetVMNicDB()
 	res := db.Create(&vmNicInst)
 	if res.RowsAffected != 1 {
-		return newNicId, res.Error
+		return newNicID, res.Error
 	}
 
 	return vmNicInst.ID, res.Error
 }
 
-func (d *VmNic) Delete() (err error) {
-	db := GetVmNicDb()
+func (d *VMNic) Delete() (err error) {
+	db := GetVMNicDB()
 	res := db.Limit(1).Unscoped().Delete(&d)
 	if res.RowsAffected != 1 {
 		errText := fmt.Sprintf("vmnic delete error, rows affected %v", res.RowsAffected)
@@ -85,8 +85,8 @@ func (d *VmNic) Delete() (err error) {
 	return nil
 }
 
-func (d *VmNic) SetSwitch(switchid string) error {
-	d.SwitchId = switchid
+func (d *VMNic) SetSwitch(switchid string) error {
+	d.SwitchID = switchid
 	err := d.Save()
 	if err != nil {
 		slog.Error("error saving VM nic", "err", err)
@@ -97,8 +97,8 @@ func (d *VmNic) SetSwitch(switchid string) error {
 	return nil
 }
 
-func (d *VmNic) Save() error {
-	db := GetVmNicDb()
+func (d *VMNic) Save() error {
+	db := GetVMNicDB()
 
 	res := db.Model(&d).
 		Updates(map[string]interface{}{
@@ -108,7 +108,7 @@ func (d *VmNic) Save() error {
 			"net_dev":      &d.NetDev,
 			"net_type":     &d.NetType,
 			"net_dev_type": &d.NetDevType,
-			"switch_id":    &d.SwitchId,
+			"switch_id":    &d.SwitchID,
 			"rate_limit":   &d.RateLimit,
 			"rate_in":      &d.RateIn,
 			"rate_out":     &d.RateOut,
@@ -125,7 +125,7 @@ func (d *VmNic) Save() error {
 	return nil
 }
 
-type VmNic struct {
+type VMNic struct {
 	gorm.Model
 	ID          string `gorm:"uniqueIndex;not null;default:null"`
 	Name        string `gorm:"uniqueIndex;not null;default:null"`
@@ -134,7 +134,7 @@ type VmNic struct {
 	NetDev      string
 	NetType     string `gorm:"default:VIRTIONET;check:net_type IN ('VIRTIONET','E1000')"`
 	NetDevType  string `gorm:"default:TAP;check:net_dev_type IN ('TAP','VMNET','NETGRAPH')"`
-	SwitchId    string
+	SwitchID    string
 	RateLimit   bool `gorm:"default:False;check:rate_limit IN(0,1)"`
 	RateIn      uint64
 	RateOut     uint64
@@ -202,15 +202,15 @@ func ParseNetType(netType cirrina.NetType) (res string, err error) {
 }
 
 // validateNewNic validate and normalize new nic
-func validateNewNic(vmNicInst *VmNic) (bool, error) {
+func validateNewNic(vmNicInst *VMNic) (bool, error) {
 	if !util.ValidNicName(vmNicInst.Name) {
 		return false, errors.New("invalid name")
 	}
-	existingVmNic, err := GetByName(vmNicInst.Name)
+	existingVMNic, err := GetByName(vmNicInst.Name)
 	if err != nil {
 		return false, err
 	}
-	if existingVmNic.Name != "" {
+	if existingVMNic.Name != "" {
 		return true, nil
 	}
 

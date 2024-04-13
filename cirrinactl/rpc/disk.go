@@ -40,21 +40,21 @@ func AddDisk(diskName string, diskDescription string, diskSize string,
 		Direct:      &diskDirect,
 	}
 
-	var diskId *cirrina.DiskId
-	diskId, err = serverClient.AddDisk(defaultServerContext, newDiskInfo)
+	var diskID *cirrina.DiskId
+	diskID, err = serverClient.AddDisk(defaultServerContext, newDiskInfo)
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
 
-	return diskId.Value, nil
+	return diskID.Value, nil
 }
 
-func GetDiskInfo(diskId string) (DiskInfo, error) {
+func GetDiskInfo(diskID string) (DiskInfo, error) {
 	var err error
 	var info DiskInfo
 	var k *cirrina.DiskInfo
 
-	k, err = serverClient.GetDiskInfo(defaultServerContext, &cirrina.DiskId{Value: diskId})
+	k, err = serverClient.GetDiskInfo(defaultServerContext, &cirrina.DiskId{Value: diskID})
 	if err != nil {
 		return DiskInfo{}, errors.New(status.Convert(err).Message())
 	}
@@ -109,11 +109,11 @@ func GetDisks() ([]string, error) {
 	}
 
 	for {
-		VmDisk, err := res.Recv()
+		VMDisk, err := res.Recv()
 		if errors.Is(err, io.EOF) {
 			break
 		}
-		rv = append(rv, VmDisk.Value)
+		rv = append(rv, VMDisk.Value)
 	}
 
 	return rv, nil
@@ -134,8 +134,8 @@ func RmDisk(idPtr string) error {
 	return nil
 }
 
-func DiskNameToId(name string) (string, error) {
-	var diskId string
+func DiskNameToID(name string) (string, error) {
+	var diskID string
 	var err error
 	if name == "" {
 		return "", errors.New("disk name not specified")
@@ -149,8 +149,8 @@ func DiskNameToId(name string) (string, error) {
 
 	found := false
 	var res DiskInfo
-	for _, aDiskId := range diskIds {
-		res, err = GetDiskInfo(aDiskId)
+	for _, aDiskID := range diskIds {
+		res, err = GetDiskInfo(aDiskID)
 		if err != nil {
 			return "", err
 		}
@@ -159,14 +159,14 @@ func DiskNameToId(name string) (string, error) {
 				return "", errors.New("duplicate disk found")
 			}
 			found = true
-			diskId = aDiskId
+			diskID = aDiskID
 		}
 	}
 	if !found {
 		return "", &NotFoundError{}
 	}
 
-	return diskId, nil
+	return diskID, nil
 }
 
 // func DiskIdToName(id string) (string, error) {
@@ -180,19 +180,19 @@ func DiskNameToId(name string) (string, error) {
 // 	return *res.Name, nil
 // }
 
-func DiskGetVmId(id string) (string, error) {
+func DiskGetVMID(id string) (string, error) {
 	var err error
 	if id == "" {
 		return "", errors.New("disk id not specified")
 	}
 
-	var vmId *cirrina.VMID
-	vmId, err = serverClient.GetDiskVm(defaultServerContext, &cirrina.DiskId{Value: id})
+	var vmID *cirrina.VMID
+	vmID, err = serverClient.GetDiskVM(defaultServerContext, &cirrina.DiskId{Value: id})
 	if err != nil {
 		return "", errors.New(status.Convert(err).Message())
 	}
 
-	return vmId.Value, nil
+	return vmID.Value, nil
 }
 
 func UpdateDisk(id string, newDesc *string, newType *string, direct *bool, cache *bool) error {
@@ -237,11 +237,11 @@ func UpdateDisk(id string, newDesc *string, newType *string, direct *bool, cache
 	return nil
 }
 
-func DiskUpload(diskId string, diskChecksum string,
+func DiskUpload(diskID string, diskChecksum string,
 	diskSize uint64, diskFile *os.File) (<-chan UploadStat, error) {
 	uploadStatChan := make(chan UploadStat, 1)
 
-	if diskId == "" {
+	if diskID == "" {
 		return uploadStatChan, errors.New("empty disk id")
 	}
 
@@ -255,12 +255,12 @@ func DiskUpload(diskId string, diskChecksum string,
 		// prevent timeouts
 		defaultServerContext = context.Background()
 
-		thisDiskId := cirrina.DiskId{Value: diskId}
+		thisDiskID := cirrina.DiskId{Value: diskID}
 
 		setupReq := &cirrina.DiskImageRequest{
 			Data: &cirrina.DiskImageRequest_Diskuploadinfo{
 				Diskuploadinfo: &cirrina.DiskUploadInfo{
-					Diskid:    &thisDiskId,
+					Diskid:    &thisDiskID,
 					Size:      diskSize,
 					Sha512Sum: diskChecksum,
 				},

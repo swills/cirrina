@@ -1,4 +1,4 @@
-package _switch
+package vmswitch
 
 import (
 	"bufio"
