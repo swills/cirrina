@@ -2,6 +2,12 @@
 # TODO
 
 * Fix zvol ownership!
+* Add a force kill function for OSs that won't shut down properly and when you don't want to wait
+* have all cirrinactl commands which use server make a call to hostPing() before doing anything with the server
+* Use consistent terminology:
+  * destroy, remove -> always use remove?
+  * error, failed -> always use error?
+  * etc
 * Allow `.` in disk file name, if it's not at the start of the file name and if it's not followed by another `.`
 * Disk resize -- include force flag to allow reducing disk size which includes data loss
 * Convert all UUIDs from strings to UUID type
