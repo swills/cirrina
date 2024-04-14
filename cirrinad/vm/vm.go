@@ -424,7 +424,7 @@ func netStartupIf(vmNic vmnic.VMNic) error {
 	if err != nil {
 		slog.Error("failed to create tap", "err", err)
 
-		return err
+		return fmt.Errorf("error running ifconfig command: %w", err)
 	}
 
 	if vmNic.SwitchID == "" {
@@ -436,7 +436,7 @@ func netStartupIf(vmNic vmnic.VMNic) error {
 		slog.Error("bad switch id",
 			"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchID)
 
-		return err
+		return fmt.Errorf("error getting switch id: %w", err)
 	}
 	if thisSwitch.Type != "IF" {
 		slog.Error("bridge/interface type mismatch",
@@ -462,7 +462,7 @@ func netStartupIf(vmNic vmnic.VMNic) error {
 				"err", err,
 			)
 
-			return err
+			return fmt.Errorf("error adding member to bridge: %w", err)
 		}
 	} else {
 		// mac := GetMac(vmNic, vm)
@@ -476,7 +476,7 @@ func netStartupIf(vmNic vmnic.VMNic) error {
 				"err", err,
 			)
 
-			return err
+			return fmt.Errorf("error adding member to bridge: %w", err)
 		}
 	}
 
@@ -491,20 +491,20 @@ func setupVMNicRateLimit(vmNic vmnic.VMNic) (string, error) {
 	if err != nil {
 		slog.Error("error creating epair", err)
 
-		return "", err
+		return "", fmt.Errorf("error creating epair: %w", err)
 	}
 	vmNic.InstEpair = thisEpair
 	err = vmNic.Save()
 	if err != nil {
 		slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
 
-		return "", err
+		return "", fmt.Errorf("error saving NIC: %w", err)
 	}
 	err = epair.SetRateLimit(thisEpair, vmNic.RateIn, vmNic.RateOut)
 	if err != nil {
 		slog.Error("failed to set epair rate limit", "epair", thisEpair)
 
-		return "", err
+		return "", fmt.Errorf("error setting rate limit: %w", err)
 	}
 	thisInstSwitch := _switch.GetDummyBridgeName()
 	var bridgeMembers []string
@@ -518,14 +518,14 @@ func setupVMNicRateLimit(vmNic vmnic.VMNic) (string, error) {
 			"err", err,
 		)
 
-		return "", err
+		return "", fmt.Errorf("error creating bridge: %w", err)
 	}
 	vmNic.InstBridge = thisInstSwitch
 	err = vmNic.Save()
 	if err != nil {
 		slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
 
-		return "", err
+		return "", fmt.Errorf("error saving NIC: %w", err)
 	}
 
 	return thisEpair, nil
@@ -537,7 +537,7 @@ func netStartupNg(vmNic vmnic.VMNic) error {
 		slog.Error("bad switch id",
 			"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchID)
 
-		return err
+		return fmt.Errorf("error getting switch ID: %w", err)
 	}
 	if thisSwitch.Type != "NG" {
 		slog.Error("bridge/interface type mismatch",
@@ -794,11 +794,11 @@ func (vm *VM) DeleteUEFIState() error {
 	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
 	uvFileExists, err := util.PathExists(uefiVarsFile)
 	if err != nil {
-		return err
+		return fmt.Errorf("error checking if UEFI state file exists: %w", err)
 	}
 	if uvFileExists {
 		if err := os.Remove(uefiVarsFile); err != nil {
-			return err
+			return fmt.Errorf("error removing UEFI state file: %w", err)
 		}
 	}
 
@@ -879,7 +879,7 @@ func (vm *VM) SetNics(nicIds []string) error {
 		if err != nil {
 			slog.Error("error looking up nic", "err", err)
 
-			return err
+			return fmt.Errorf("error getting NIC: %w", err)
 		}
 
 		vmNic.ConfigID = vm.Config.ID
@@ -887,7 +887,7 @@ func (vm *VM) SetNics(nicIds []string) error {
 		if err != nil {
 			slog.Error("error saving NIC", "err", err)
 
-			return err
+			return fmt.Errorf("error saving NIC: %w", err)
 		}
 	}
 
@@ -1248,7 +1248,7 @@ func validateDisks(diskids []string, vm *VM) error {
 
 		thisDisk, err := disk.GetByID(diskUUID.String())
 		if err != nil {
-			return err
+			return fmt.Errorf("error getting disk: %w", err)
 		}
 		if err != nil {
 			slog.Error("error getting disk", "disk", aDisk, "err", err)
@@ -1371,7 +1371,7 @@ func removeAllNicsFromVM(vm *VM) error {
 		if err != nil {
 			slog.Error("error saving NIC", "err", err)
 
-			return err
+			return fmt.Errorf("error saving NIC: %w", err)
 		}
 	}
 
@@ -1414,5 +1414,9 @@ func cleanupIfNic(vmNic vmnic.VMNic) error {
 		}
 	}
 
-	return err
+	if err != nil {
+		return fmt.Errorf("error cleaning up NIC: %w", err)
+	}
+
+	return nil
 }

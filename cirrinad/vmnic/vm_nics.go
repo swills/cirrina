@@ -167,7 +167,7 @@ func ParseMac(macAddress string) (res string, err error) {
 	var newMac net.HardwareAddr
 	newMac, err = net.ParseMAC(macAddress)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed parsing mac: %w", err)
 	}
 
 	return newMac.String(), nil

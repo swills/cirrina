@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
@@ -58,20 +59,20 @@ func (s *server) ClearUEFIState(_ context.Context, v *cirrina.VMID) (*cirrina.Re
 	}
 	err = vmInst.DeleteUEFIState()
 	if err != nil {
-		return &re, err
+		return &re, fmt.Errorf("error deleting UEFI state: %w", err)
 	}
 	re.Success = true
 
 	return &re, nil
 }
 
-func (s *server) GetNetInterfaces(_ *cirrina.NetInterfacesReq, st cirrina.VMInfo_GetNetInterfacesServer) error {
+func (s *server) GetNetInterfaces(_ *cirrina.NetInterfacesReq, stream cirrina.VMInfo_GetNetInterfacesServer) error {
 	netDevs := util.GetHostInterfaces()
 
 	for _, nic := range netDevs {
-		err := st.Send(&cirrina.NetIf{InterfaceName: nic})
+		err := stream.Send(&cirrina.NetIf{InterfaceName: nic})
 		if err != nil {
-			return err
+			return fmt.Errorf("error sending to stream: %w", err)
 		}
 	}
 

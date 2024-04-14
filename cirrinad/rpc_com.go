@@ -22,7 +22,7 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 		return nil
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("error receiving from com stream: %w", err)
 	}
 	vmid := in.GetVmId()
 	vmuuid, err := uuid.Parse(vmid.Value)
@@ -33,7 +33,7 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 	}
 	vmInst, err := vm.GetByID(vmuuid.String())
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting VM ID: %w", err)
 	}
 
 	if vmInst.Status != "RUNNING" {
@@ -49,7 +49,7 @@ func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) er
 		return nil
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("error receiving from com stream: %w", err)
 	}
 	vmid := in.GetVmId()
 	vmuuid, err := uuid.Parse(vmid.Value)
@@ -60,7 +60,7 @@ func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) er
 	}
 	vmInst, err := vm.GetByID(vmuuid.String())
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting VM ID: %w", err)
 	}
 
 	if vmInst.Status != "RUNNING" {
@@ -76,7 +76,7 @@ func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) er
 		return nil
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("error receiving from com stream: %w", err)
 	}
 	vmid := in.GetVmId()
 	vmuuid, err := uuid.Parse(vmid.Value)
@@ -87,7 +87,7 @@ func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) er
 	}
 	vmInst, err := vm.GetByID(vmuuid.String())
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting VM ID: %w", err)
 	}
 
 	if vmInst.Status != "RUNNING" {
@@ -103,7 +103,7 @@ func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) er
 		return nil
 	}
 	if err != nil {
-		return err
+		return fmt.Errorf("error receiving from com stream: %w", err)
 	}
 	vmid := in.GetVmId()
 	vmuuid, err := uuid.Parse(vmid.Value)
@@ -114,7 +114,7 @@ func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) er
 	}
 	vmInst, err := vm.GetByID(vmuuid.String())
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting VM ID: %w", err)
 	}
 
 	if vmInst.Status != "RUNNING" {
@@ -201,7 +201,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 		if err != nil {
 			slog.Error("ComInteractive", "err", err)
 
-			return err
+			return fmt.Errorf("error getting com log file path: %w", err)
 		}
 		vl, err = os.OpenFile(comLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
@@ -238,7 +238,7 @@ func comInteractiveSetup(thisCom *serial.Port) error {
 		if err != nil {
 			slog.Error("error setting up com interactive", "err", err)
 
-			return err
+			return fmt.Errorf("error reading com: %w", err)
 		}
 	}
 
@@ -255,17 +255,17 @@ func comInteractiveStreamReceive(stream cirrina.VMInfo_Com1InteractiveServer, vm
 		return nil, true
 	}
 	if err != nil {
-		return err, true
+		return fmt.Errorf("error receiving from com stream: %w", err), true
 	}
 	inBytes := in.GetComInBytes()
 	_, err = thisCom.Write(inBytes)
 	if err != nil {
-		return err, true
+		return fmt.Errorf("error writing to com: %w", err), true
 	}
 	if thisComLog {
 		_, err = vl.Write(inBytes)
 		if err != nil {
-			return err, true
+			return fmt.Errorf("error writing to com log: %w", err), true
 		}
 	}
 

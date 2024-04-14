@@ -11,22 +11,22 @@ import (
 
 func GetVMIsos(id string) ([]string, error) {
 	var err error
-	var res cirrina.VMInfo_GetVMISOsClient
-	res, err = serverClient.GetVMISOs(defaultServerContext, &cirrina.VMID{Value: id})
+	var rv []string
+	var getVMISOsClient cirrina.VMInfo_GetVMISOsClient
+	getVMISOsClient, err = serverClient.GetVMISOs(defaultServerContext, &cirrina.VMID{Value: id})
 	if err != nil {
 		return []string{}, errors.New(status.Convert(err).Message())
 	}
-	var rv []string
 	for {
-		var r2 *cirrina.ISOID
-		r2, err = res.Recv()
+		var isoid *cirrina.ISOID
+		isoid, err = getVMISOsClient.Recv()
 		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
 			return []string{}, errors.New(status.Convert(err).Message())
 		}
-		rv = append(rv, r2.Value)
+		rv = append(rv, isoid.Value)
 	}
 
 	return rv, nil
@@ -34,12 +34,12 @@ func GetVMIsos(id string) ([]string, error) {
 
 func VMSetIsos(id string, isoIds []string) (bool, error) {
 	var err error
-	j := cirrina.SetISOReq{
+	setISOReq := cirrina.SetISOReq{
 		Id:    id,
 		Isoid: isoIds,
 	}
 	var res *cirrina.ReqBool
-	res, err = serverClient.SetVMISOs(defaultServerContext, &j)
+	res, err = serverClient.SetVMISOs(defaultServerContext, &setISOReq)
 	if err != nil {
 		return false, errors.New(status.Convert(err).Message())
 	}

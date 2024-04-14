@@ -23,7 +23,7 @@ func GetHostNics() (rv []*cirrina.NetIf, err error) {
 			break
 		}
 		if err != nil {
-			return []*cirrina.NetIf{}, err
+			return []*cirrina.NetIf{}, errors.New(status.Convert(err).Message())
 		}
 		rv = append(rv, hostNic)
 	}

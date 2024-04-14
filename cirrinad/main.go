@@ -216,7 +216,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			slog.Error("failed getting config file absolute path", "err", err)
 
-			return err
+			return fmt.Errorf("error reading config file: %w", err)
 		}
 
 		var configPathExists bool
@@ -224,7 +224,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			slog.Error("error getting configAbsPath", "err", err)
 
-			return err
+			return fmt.Errorf("error checking config exists: %w", err)
 		}
 		if !configPathExists {
 			return fmt.Errorf("config file %s not found", cfgFile)
@@ -234,7 +234,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			slog.Error("config reading failed", "err", err)
 
-			return err
+			return fmt.Errorf("error reading config: %w", err)
 		}
 
 		err = viper.UnmarshalExact(&config.Config, func(config *mapstructure.DecoderConfig) {
@@ -244,7 +244,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			slog.Error("config loading failed", "err", err)
 
-			return err
+			return fmt.Errorf("error loading config: %w", err)
 		}
 
 		validateLogConfig()
@@ -253,7 +253,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			slog.Error("failed to open log file", err)
 
-			return err
+			return fmt.Errorf("error opening log file: %w", err)
 		}
 		programLevel := new(slog.LevelVar) // Info by default
 		logger := slog.New(slog.NewTextHandler(logFile, &slog.HandlerOptions{Level: programLevel}))

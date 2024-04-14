@@ -2,6 +2,7 @@ package vm
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"math"
 	"net"
@@ -99,18 +100,18 @@ func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (hdArg string, err error) {
 	if err != nil {
 		slog.Error("error getting disk path", "diskId", thisDisk.ID, "diskName", thisDisk.Name, "diskPath", diskPath, "err", err)
 
-		return "", err
+		return "", fmt.Errorf("error getting disk path: %w", err)
 	}
 	diskExists, err := thisDisk.VerifyExists()
 	if err != nil {
 		slog.Error("error checking disk path exists", "diskId", thisDisk.ID, "diskName", thisDisk.Name, "diskPath", diskPath)
 
-		return "", err
+		return "", fmt.Errorf("error checking disk path exists: %w", err)
 	}
 	if !diskExists {
 		slog.Error("disk path does not exist", "diskId", thisDisk.ID, "diskName", thisDisk.Name, "diskPath", diskPath)
 
-		return "", err
+		return "", fmt.Errorf("disk path does not exist: %w", err)
 	}
 	switch thisDisk.Type {
 	case "NVME":

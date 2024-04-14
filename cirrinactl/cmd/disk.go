@@ -41,7 +41,7 @@ var DiskListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		res, err := rpc.GetDisks()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed getting disk list: %w", err)
 		}
 
 		var names []string
@@ -57,13 +57,13 @@ var DiskListCmd = &cobra.Command{
 		for _, diskID := range res {
 			diskInfo, err := rpc.GetDiskInfo(diskID)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting disk info for disk %s: %w", diskID, err)
 			}
 
 			var vmID string
 			vmID, err = rpc.DiskGetVMID(diskID)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting vm info for disk %s: %w", diskID, err)
 			}
 			var vmName string
 			if vmID != "" {
@@ -157,9 +157,9 @@ var DiskCreateCmd = &cobra.Command{
 		}
 		res, err := rpc.AddDisk(DiskName, DiskDescription, DiskSize, DiskType, DiskDevType, DiskCache, DiskDirect)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed adding disk %s: %w", DiskName, err)
 		}
-		fmt.Printf("Disk created. id: %s\n", res)
+		fmt.Printf("Disk created. ID: %s\n", res)
 
 		return nil
 	},
@@ -174,7 +174,7 @@ var DiskRemoveCmd = &cobra.Command{
 		if DiskID == "" {
 			DiskID, err = rpc.DiskNameToID(DiskName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting disk ID: %w", err)
 			}
 			if DiskID == "" {
 				return errors.New("disk not found")
@@ -182,7 +182,7 @@ var DiskRemoveCmd = &cobra.Command{
 		}
 		err = rpc.RmDisk(DiskID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed removing disk: %w", err)
 		}
 		fmt.Printf("Disk deleted\n")
 
@@ -212,7 +212,7 @@ var DiskUpdateCmd = &cobra.Command{
 		if DiskID == "" {
 			DiskID, err = rpc.DiskNameToID(DiskName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting disk ID: %w", err)
 			}
 			if DiskID == "" {
 				return errors.New("disk not found")
@@ -239,7 +239,7 @@ var DiskUpdateCmd = &cobra.Command{
 
 		err = rpc.UpdateDisk(DiskID, newDescr, newType, newDirect, newCache)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed updating disk: %w", err)
 		}
 		fmt.Printf("Updated disk\n")
 
@@ -334,14 +334,14 @@ func uploadDiskWithStatus() error {
 	var fi os.FileInfo
 	fi, err = os.Stat(DiskFilePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed stating disk: %w", err)
 	}
 	diskSize := fi.Size()
 
 	var f2 *os.File
 	f2, err = os.Open(DiskFilePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed opening disk: %w", err)
 	}
 
 	pw := progress.NewWriter()
@@ -381,32 +381,32 @@ func uploadDiskWithoutStatus() error {
 	var fi os.FileInfo
 	fi, err = os.Stat(DiskFilePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed stating disk: %w", err)
 	}
 	diskSize := fi.Size()
 
 	var f *os.File
 	f, err = os.Open(DiskFilePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed opening disk: %w", err)
 	}
 
 	hasher := sha512.New()
 
 	fmt.Printf("Calculating disk checksum\n")
 	if _, err = io.Copy(hasher, f); err != nil {
-		return err
+		return fmt.Errorf("failed copying data from disk: %w", err)
 	}
 
 	diskChecksum := hex.EncodeToString(hasher.Sum(nil))
 	err = f.Close()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed closing disk: %w", err)
 	}
 	var f2 *os.File
 	f2, err = os.Open(DiskFilePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed opening disk: %w", err)
 	}
 
 	fmt.Printf("Uploading disk. file-path=%s, id=%s, size=%d, checksum=%s\n",
@@ -420,7 +420,7 @@ func uploadDiskWithoutStatus() error {
 	var upload <-chan rpc.UploadStat
 	upload, err = rpc.DiskUpload(DiskID, diskChecksum, uint64(diskSize), f2)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed uploading disk: %w", err)
 	}
 UploadLoop:
 	for {
@@ -453,7 +453,7 @@ var DiskUploadCmd = &cobra.Command{
 
 		err = hostPing()
 		if err != nil {
-			return errors.New("host not available")
+			return fmt.Errorf("failed uploading disk: %w", err)
 		}
 
 		if DiskID == "" {
@@ -463,22 +463,22 @@ var DiskUploadCmd = &cobra.Command{
 				if errors.As(err, &aNotFoundErr) {
 					DiskID, err = rpc.AddDisk(DiskName, DiskDescription, DiskSize, DiskType, DiskDevType, DiskCache, DiskDirect)
 					if err != nil {
-						return err
+						return fmt.Errorf("failed creating disk: %w", err)
 					}
 				} else {
-					return err
+					return fmt.Errorf("failed getting disk ID: %w", err)
 				}
 			}
 		}
 
 		diskVMID, err = rpc.DiskGetVMID(DiskID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed checking disk status: %w", err)
 		}
 		if diskVMID != "" {
 			diskVMStatus, _, _, err = rpc.GetVMState(diskVMID)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed checking status of VM which uses disk: %w", err)
 			}
 			if diskVMStatus != "stopped" {
 				return errors.New("unable to upload disk used by running VM")

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/google/uuid"
@@ -61,7 +63,9 @@ func CreateNicCloneReq(nicID string, newName string) (req Request, err error) {
 	var reqData []byte
 	reqData, err = json.Marshal(NicCloneReqData{NicID: nicID, NewNicName: newName})
 	if err != nil {
-		return Request{}, err
+		slog.Error("failed parsing NicCloneReqData: %w", err)
+
+		return Request{}, fmt.Errorf("internal error parsing NicClone request: %w", err)
 	}
 	db := GetReqDB()
 	newReq := Request{
@@ -80,7 +84,9 @@ func CreateVMReq(r reqType, vmID string) (req Request, err error) {
 	var reqData []byte
 	reqData, err = json.Marshal(VMReqData{VMID: vmID})
 	if err != nil {
-		return Request{}, err
+		slog.Error("failed parsing CreateVMReq: %w", err)
+
+		return Request{}, fmt.Errorf("internal error parsing CreateVM request: %w", err)
 	}
 	db := GetReqDB()
 	newReq := Request{

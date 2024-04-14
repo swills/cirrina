@@ -230,7 +230,7 @@ func BridgeIfAddMember(bridgeName string, memberName string, learn bool) error {
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	if err := cmd.Start(); err != nil {
-		return err
+		return fmt.Errorf("error running ifconfig command: %w", err)
 	}
 	if err := cmd.Wait(); err != nil {
 		slog.Error("failed running ifconfig", "err", err, "out", out)
@@ -574,7 +574,7 @@ func BridgeNgAddMember(bridgeName string, memberName string) error {
 	if err != nil {
 		slog.Error("ngctl connect error", "err", err)
 
-		return err
+		return fmt.Errorf("error running ngctl command: %w", err)
 	}
 
 	link, err = ngGetBridgeNextLink(bridgeName)
@@ -587,7 +587,7 @@ func BridgeNgAddMember(bridgeName string, memberName string) error {
 	if err != nil {
 		slog.Error("ngctl connect error", "err", err)
 
-		return err
+		return fmt.Errorf("error running ngctl command: %w", err)
 	}
 
 	return nil
@@ -610,12 +610,12 @@ func DestroyIfBridge(name string, cleanup bool) error {
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	if err := cmd.Start(); err != nil {
-		return err
+		return fmt.Errorf("error running ifconfig command: %w", err)
 	}
 	if err := cmd.Wait(); err != nil {
 		slog.Error("failed running ifconfig", "err", err, "out", out)
 
-		return err
+		return fmt.Errorf("error running ifconfig command: %w", err)
 	}
 
 	return nil
@@ -631,7 +631,7 @@ func DestroyNgBridge(netDev string) (err error) {
 	if err != nil {
 		slog.Error("ngctl msg shutdown error", "err", err)
 
-		return err
+		return fmt.Errorf("error running ngctl command: %w", err)
 	}
 
 	return nil

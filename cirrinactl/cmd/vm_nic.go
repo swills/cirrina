@@ -24,7 +24,7 @@ var VMNicsListCmd = &cobra.Command{
 		if VMID == "" {
 			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
 				return errors.New("VM not found")
@@ -44,12 +44,12 @@ var VMNicsListCmd = &cobra.Command{
 		var nicIds []string
 		nicIds, err = rpc.GetVMNics(VMID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed getting VM NICs: %w", err)
 		}
 		for _, id := range nicIds {
 			nicInfo, err := rpc.GetVMNicInfo(id)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting NIC info: %w", err)
 			}
 
 			var rateLimited string
@@ -139,7 +139,7 @@ var VMNicsAddCmd = &cobra.Command{
 		if VMID == "" {
 			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
 				return errors.New("VM not found")
@@ -148,7 +148,7 @@ var VMNicsAddCmd = &cobra.Command{
 		if NicID == "" {
 			NicID, err = rpc.NicNameToID(NicName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting NIC ID: %w", err)
 			}
 			if NicID == "" {
 				return errors.New("NIC not found")
@@ -157,14 +157,14 @@ var VMNicsAddCmd = &cobra.Command{
 		var nicIds []string
 		nicIds, err = rpc.GetVMNics(VMID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed getting VM NICs: %w", err)
 		}
 
 		nicIds = append(nicIds, NicID)
 		var res bool
 		res, err = rpc.VMSetNics(VMID, nicIds)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed setting VM NICs: %w", err)
 		}
 		if !res {
 			return errors.New("failed")
@@ -185,7 +185,7 @@ var VMNicsRmCmd = &cobra.Command{
 		if VMID == "" {
 			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
 				return errors.New("VM not found")
@@ -194,7 +194,7 @@ var VMNicsRmCmd = &cobra.Command{
 		if NicID == "" {
 			NicID, err = rpc.NicNameToID(NicName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting NIC ID: %w", err)
 			}
 			if NicID == "" {
 				return errors.New("NIC not found")
@@ -204,7 +204,7 @@ var VMNicsRmCmd = &cobra.Command{
 		var nicIds []string
 		nicIds, err = rpc.GetVMNics(VMID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed getting VM NICs: %w", err)
 		}
 
 		var newNicIds []string
@@ -217,7 +217,7 @@ var VMNicsRmCmd = &cobra.Command{
 		var res bool
 		res, err = rpc.VMSetNics(VMID, newNicIds)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed setting VM NICs: %w", err)
 		}
 		if !res {
 			return errors.New("failed")

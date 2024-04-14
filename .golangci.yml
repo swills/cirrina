@@ -79,6 +79,7 @@ linters:
     - testableexamples
     - nlreturn
     - stylecheck
+    - wrapcheck
 
 issues:
   exclude-rules:

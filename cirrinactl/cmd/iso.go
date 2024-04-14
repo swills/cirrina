@@ -33,7 +33,7 @@ var IsoListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ids, err := rpc.GetIsoIds()
 		if err != nil {
-			return err
+			return fmt.Errorf("error getting ISO IDs: %w", err)
 		}
 
 		var names []string
@@ -48,7 +48,7 @@ var IsoListCmd = &cobra.Command{
 		for _, id := range ids {
 			isoInfo, err := rpc.GetIsoInfo(id)
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting iso info: %w", err)
 			}
 			var isoSize string
 
@@ -108,7 +108,7 @@ var IsoCreateCmd = &cobra.Command{
 		}
 		res, err := rpc.AddIso(IsoName, IsoDescription)
 		if err != nil {
-			return err
+			return fmt.Errorf("error adding iso: %w", err)
 		}
 		fmt.Printf("ISO created. id: %s\n", res)
 
@@ -203,14 +203,14 @@ func uploadIsoWithStatus() error {
 	var fi os.FileInfo
 	fi, err = os.Stat(IsoFilePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("error stating iso: %w", err)
 	}
 	isoSize := fi.Size()
 
 	var f2 *os.File
 	f2, err = os.Open(IsoFilePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("error opening iso: %w", err)
 	}
 
 	pw := progress.NewWriter()
@@ -249,28 +249,28 @@ func uploadIsoWithoutStatus() error {
 	var fi os.FileInfo
 	fi, err = os.Stat(IsoFilePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("error stating iso: %w", err)
 	}
 	isoSize := fi.Size()
 	var f *os.File
 	f, err = os.Open(IsoFilePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("error opening iso: %w", err)
 	}
 	hasher := sha512.New()
 	fmt.Printf("Calculating iso checksum\n")
 	if _, err = io.Copy(hasher, f); err != nil {
-		return err
+		return fmt.Errorf("error copying iso data: %w", err)
 	}
 	isoChecksum := hex.EncodeToString(hasher.Sum(nil))
 	err = f.Close()
 	if err != nil {
-		return err
+		return fmt.Errorf("error closing iso: %w", err)
 	}
 	var f2 *os.File
 	f2, err = os.Open(IsoFilePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("error opening iso: %w", err)
 	}
 	fmt.Printf("Uploading iso. file-path=%s, id=%s, size=%d, checksum=%s\n",
 		IsoFilePath,
@@ -282,7 +282,7 @@ func uploadIsoWithoutStatus() error {
 	var upload <-chan rpc.UploadStat
 	upload, err = rpc.IsoUpload(IsoID, isoChecksum, uint64(isoSize), f2)
 	if err != nil {
-		return err
+		return fmt.Errorf("error uploading iso: %w", err)
 	}
 UploadLoop:
 	for {
@@ -323,10 +323,10 @@ var IsoUploadCmd = &cobra.Command{
 				if errors.As(err, &aNotFoundErr) {
 					IsoID, err = rpc.AddIso(IsoName, IsoDescription)
 					if err != nil {
-						return err
+						return fmt.Errorf("error adding iso: %w", err)
 					}
 				} else {
-					return err
+					return fmt.Errorf("error getting iso id: %w", err)
 				}
 			}
 		}
@@ -348,7 +348,7 @@ var IsoRemoveCmd = &cobra.Command{
 		if IsoID == "" {
 			IsoID, err = rpc.IsoNameToID(IsoName)
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting iso id: %w", err)
 			}
 			if IsoID == "" {
 				return errors.New("ISO not found")
@@ -356,7 +356,7 @@ var IsoRemoveCmd = &cobra.Command{
 		}
 		err = rpc.RmIso(IsoID)
 		if err != nil {
-			return err
+			return fmt.Errorf("error removing iso: %w", err)
 		}
 
 		fmt.Printf("ISO deleted\n")

@@ -22,7 +22,7 @@ var VMDisksListCmd = &cobra.Command{
 		if VMID == "" {
 			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
 				return errors.New("VM not found")
@@ -41,12 +41,12 @@ var VMDisksListCmd = &cobra.Command{
 		var diskIds []string
 		diskIds, err = rpc.GetVMDisks(VMID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed getting disks: %w", err)
 		}
 		for _, id := range diskIds {
 			diskInfo, err := rpc.GetDiskInfo(id)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting disk info: %w", err)
 			}
 			var diskSize string
 			var diskUsage string
@@ -122,7 +122,7 @@ var VMDiskAddCmd = &cobra.Command{
 		if VMID == "" {
 			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
 				return errors.New("VM not found")
@@ -131,7 +131,7 @@ var VMDiskAddCmd = &cobra.Command{
 		if DiskID == "" {
 			DiskID, err = rpc.DiskNameToID(DiskName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting disk ID: %w", err)
 			}
 			if DiskID == "" {
 				return errors.New("disk not found")
@@ -141,14 +141,16 @@ var VMDiskAddCmd = &cobra.Command{
 		var diskIds []string
 		diskIds, err = rpc.GetVMDisks(VMID)
 		if err != nil {
-			return err
+			if err != nil {
+				return fmt.Errorf("failed getting disks: %w", err)
+			}
 		}
 		diskIds = append(diskIds, DiskID)
 
 		var res bool
 		res, err = rpc.VMSetDisks(VMID, diskIds)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed setting disks: %w", err)
 		}
 		if !res {
 			return errors.New("failed")
@@ -169,7 +171,7 @@ var VMDiskRmCmd = &cobra.Command{
 		if VMID == "" {
 			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
 				return errors.New("VM not found")
@@ -178,7 +180,7 @@ var VMDiskRmCmd = &cobra.Command{
 		if DiskID == "" {
 			DiskID, err = rpc.DiskNameToID(DiskName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting disk ID: %w", err)
 			}
 			if DiskID == "" {
 				return errors.New("disk not found")
@@ -187,7 +189,7 @@ var VMDiskRmCmd = &cobra.Command{
 		var diskIds []string
 		diskIds, err = rpc.GetVMDisks(VMID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed getting VM disks: %w", err)
 		}
 
 		var newDiskIds []string
@@ -200,7 +202,7 @@ var VMDiskRmCmd = &cobra.Command{
 		var res bool
 		res, err = rpc.VMSetDisks(VMID, newDiskIds)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed setting VM disks: %w", err)
 		}
 		if !res {
 			return errors.New("failed")

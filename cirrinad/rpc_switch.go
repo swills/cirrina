@@ -42,7 +42,7 @@ func (s *server) AddSwitch(_ context.Context, i *cirrina.SwitchInfo) (*cirrina.S
 
 	switchInst, err := _switch.Create(*i.Name, *i.Description, switchType, *i.Uplink)
 	if err != nil {
-		return &cirrina.SwitchId{}, err
+		return &cirrina.SwitchId{}, fmt.Errorf("error creating switch: %w", err)
 	}
 
 	return bringUpNewSwitch(switchInst)
@@ -57,7 +57,7 @@ func (s *server) GetSwitches(_ *cirrina.SwitchesQuery, stream cirrina.VMInfo_Get
 		pSwitchID.Value = switches[e].ID
 		err := stream.Send(&pSwitchID)
 		if err != nil {
-			return err
+			return fmt.Errorf("error sending to stream: %w", err)
 		}
 	}
 
@@ -76,7 +76,7 @@ func (s *server) GetSwitchInfo(_ context.Context, v *cirrina.SwitchId) (*cirrina
 	if err != nil {
 		slog.Error("error getting switch info", "switch", v.Value, "err", err)
 
-		return &cirrina.SwitchInfo{}, err
+		return &cirrina.SwitchInfo{}, fmt.Errorf("error getting switch info: %w", err)
 	}
 
 	switchInfo.Name = &vmSwitch.Name
@@ -118,14 +118,14 @@ func (s *server) RemoveSwitch(_ context.Context, si *cirrina.SwitchId) (*cirrina
 	case "IF":
 		err := _switch.DestroyIfBridge(switchInst.Name, true)
 		if err != nil {
-			return &re, err
+			return &re, fmt.Errorf("error destroying bridge: %w", err)
 		}
 	case "NG":
 		err := _switch.DestroyNgBridge(switchInst.Name)
 		if err != nil {
 			slog.Error("switch removal failure")
 
-			return &re, err
+			return &re, fmt.Errorf("error destroying bridge: %w", err)
 		}
 	default:
 		return &re, errors.New("invalid switch type")
@@ -133,7 +133,7 @@ func (s *server) RemoveSwitch(_ context.Context, si *cirrina.SwitchId) (*cirrina
 	slog.Debug("RemoveSwitch", "switchid", si.Value)
 	err = _switch.Delete(si.Value)
 	if err != nil {
-		return &re, err
+		return &re, fmt.Errorf("error deleting bridge: %w", err)
 	}
 	re.Success = true
 
@@ -161,14 +161,14 @@ func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq)
 	slog.Debug("SetSwitchUplink", "switch", su.Switchid.Value, "uplink", uplink)
 	switchInst, err := _switch.GetByID(switchUUID.String())
 	if err != nil {
-		return &r, err
+		return &r, fmt.Errorf("error getting switch: %w", err)
 	}
 
 	if uplink == "" {
 		if switchInst.Uplink != "" {
 			slog.Debug("SetSwitchUplink", "msg", "unsetting switch uplink", "switchInst", switchInst)
 			if err = switchInst.UnsetUplink(); err != nil {
-				return &r, err
+				return &r, fmt.Errorf("error unsetting swtich uplink: %w", err)
 			}
 		}
 		r.Success = true
@@ -191,15 +191,15 @@ func (s *server) SetSwitchUplink(_ context.Context, su *cirrina.SwitchUplinkReq)
 		_ = switchInst.UnsetUplink()
 		slog.Debug("SetSwitchUplink", "msg", "setting switch uplink", "switchInst", switchInst)
 		if err = switchInst.SetUplink(uplink); err != nil {
-			return &r, err
+			return &r, fmt.Errorf("error setting switch uplink: %w", err)
 		}
 	} else {
 		slog.Debug("SetSwitchUplink", "msg", "re-setting switch uplink", "switchInst", switchInst)
 		if err = switchInst.UnsetUplink(); err != nil {
-			return &r, err
+			return &r, fmt.Errorf("error unsetting switch uplink: %w", err)
 		}
 		if err = switchInst.SetUplink(uplink); err != nil {
-			return &r, err
+			return &r, fmt.Errorf("error setting switch uplink: %w", err)
 		}
 	}
 	r.Success = true
@@ -222,7 +222,7 @@ func (s *server) SetSwitchInfo(_ context.Context, siu *cirrina.SwitchInfoUpdate)
 
 	switchInst, err := _switch.GetByID(switchUUID.String())
 	if err != nil {
-		return &re, err
+		return &re, fmt.Errorf("error getting switch ID: %w", err)
 	}
 
 	if siu.Description != nil {

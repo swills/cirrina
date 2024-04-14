@@ -3,6 +3,7 @@ package epair
 import (
 	"bufio"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -24,10 +25,10 @@ func getAllEpair() (epairs []string, err error) {
 	}(cmd)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, err
+		return []string{}, fmt.Errorf("error running ifconfig: %w", err)
 	}
 	if err := cmd.Start(); err != nil {
-		return nil, err
+		return []string{}, fmt.Errorf("error running ifconfig: %w", err)
 	}
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
@@ -45,7 +46,7 @@ func getAllEpair() (epairs []string, err error) {
 	if err := scanner.Err(); err != nil {
 		slog.Error("error scanning ifconfig output", "err", err)
 
-		return []string{}, err
+		return []string{}, fmt.Errorf("error parsing ifconfig output: %w", err)
 	}
 
 	return r, nil
@@ -82,7 +83,7 @@ func CreateEpair(name string) (err error) {
 	if err != nil {
 		slog.Error("failed to create epair", "name", name, "err", err)
 
-		return err
+		return fmt.Errorf("failed running ifconfig: %w", err)
 	}
 	args = []string{"/sbin/ifconfig", name + "a", "up", "group", "cirrinad"}
 	cmd = exec.Command(config.Config.Sys.Sudo, args...)
@@ -90,7 +91,7 @@ func CreateEpair(name string) (err error) {
 	if err != nil {
 		slog.Error("failed to up epair", "name", name+"a", "err", err)
 
-		return err
+		return fmt.Errorf("failed running ifconfig: %w", err)
 	}
 	args = []string{"/sbin/ifconfig", name + "b", "up", "group", "cirrinad"}
 	cmd = exec.Command(config.Config.Sys.Sudo, args...)
@@ -98,7 +99,7 @@ func CreateEpair(name string) (err error) {
 	if err != nil {
 		slog.Error("failed to up epair", "name", name+"b", "err", err)
 
-		return err
+		return fmt.Errorf("failed running ifconfig: %w", err)
 	}
 
 	return nil
@@ -114,7 +115,7 @@ func DestroyEpair(name string) (err error) {
 	if err != nil {
 		slog.Error("failed to destroy epair", "name", name+"a", "err", err)
 
-		return err
+		return fmt.Errorf("failed running ifconfig: %w", err)
 	}
 
 	return nil
@@ -133,7 +134,7 @@ func SetRateLimit(name string, rateIn uint64, rateOut uint64) (err error) {
 			"rate", rateIn,
 		)
 
-		return err
+		return fmt.Errorf("failed setting rate limit: %w", err)
 	}
 	err = NgCreatePipeWithRateLimit(name+"b", rateOut)
 	if err != nil {
@@ -142,7 +143,7 @@ func SetRateLimit(name string, rateIn uint64, rateOut uint64) (err error) {
 			"rate", rateIn,
 		)
 
-		return err
+		return fmt.Errorf("failed setting rate limit: %w", err)
 	}
 
 	return nil
@@ -163,7 +164,7 @@ func NgCreatePipeWithRateLimit(name string, rate uint64) (err error) {
 			"err", err,
 		)
 
-		return err
+		return fmt.Errorf("failed running ngctl: %w", err)
 	}
 
 	cmd = exec.Command(config.Config.Sys.Sudo,
@@ -175,7 +176,7 @@ func NgCreatePipeWithRateLimit(name string, rate uint64) (err error) {
 			"err", err,
 		)
 
-		return err
+		return fmt.Errorf("failed running ngctl: %w", err)
 	}
 
 	cmd = exec.Command(config.Config.Sys.Sudo,
@@ -187,7 +188,7 @@ func NgCreatePipeWithRateLimit(name string, rate uint64) (err error) {
 			"err", err,
 		)
 
-		return err
+		return fmt.Errorf("failed running ngctl: %w", err)
 	}
 
 	if rate != 0 {
@@ -204,7 +205,7 @@ func NgCreatePipeWithRateLimit(name string, rate uint64) (err error) {
 				"err", err,
 			)
 
-			return err
+			return fmt.Errorf("failed running ngctl: %w", err)
 		}
 	}
 
@@ -221,7 +222,7 @@ func NgDestroyPipe(name string) (err error) {
 			"err", err,
 		)
 
-		return err
+		return fmt.Errorf("failed running ngctl: %w", err)
 	}
 
 	return nil

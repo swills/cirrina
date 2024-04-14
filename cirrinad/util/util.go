@@ -34,10 +34,8 @@ func PathExists(path string) (bool, error) {
 			return false, nil
 		}
 
-		return false, err
+		return false, fmt.Errorf("failed checking path exists: %w", err)
 	}
-
-	slog.Debug("PathExists", "path", path, "statInfo", statInfo)
 
 	return true, nil
 }
@@ -48,7 +46,7 @@ func PidExists(pid int) (bool, error) {
 	}
 	proc, err := os.FindProcess(pid)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed checking pid exists: %w", err)
 	}
 	err = proc.Signal(syscall.Signal(0))
 	if err == nil {
@@ -60,7 +58,7 @@ func PidExists(pid int) (bool, error) {
 	var errno syscall.Errno
 	ok := errors.As(err, &errno)
 	if !ok {
-		return false, err
+		return false, fmt.Errorf("failed checking pid exists: %w", err)
 	}
 	if errors.Is(errno, syscall.ESRCH) {
 		return false, nil
@@ -69,21 +67,24 @@ func PidExists(pid int) (bool, error) {
 		return true, nil
 	}
 
-	return false, err
+	if err != nil {
+		return false, fmt.Errorf("failed checking pid exists: %w", err)
+	}
+
+	return false, nil
 }
 
 func OSReadDir(root string) ([]string, error) {
 	var files []string
 	f, err := os.Open(root)
 	if err != nil {
-		return files, err
+		return []string{}, fmt.Errorf("failed reading OS dir: %w", err)
 	}
 	fileInfo, err := f.Readdir(-1)
 	_ = f.Close()
 	if err != nil {
-		return files, err
+		return []string{}, fmt.Errorf("failed reading OS dir: %w", err)
 	}
-
 	for _, file := range fileInfo {
 		files = append(files, file.Name())
 	}
@@ -141,14 +142,14 @@ func runCommandAndCaptureOutput(cmdName string, cmdArgs []string) ([]byte, error
 	cmd := exec.Command(cmdName, cmdArgs...)
 	stdoutIn, err := cmd.StdoutPipe()
 	if err != nil {
-		return []byte{}, err
+		return []byte{}, fmt.Errorf("error running command: %w", err)
 	}
 	stderrIn, err := cmd.StderrPipe()
 	if err != nil {
-		return []byte{}, err
+		return []byte{}, fmt.Errorf("error running command: %w", err)
 	}
 	if err := cmd.Start(); err != nil {
-		return []byte{}, err
+		return []byte{}, fmt.Errorf("error running command: %w", err)
 	}
 
 	var wg sync.WaitGroup
@@ -172,7 +173,7 @@ func runCommandAndCaptureOutput(cmdName string, cmdArgs []string) ([]byte, error
 		return []byte{}, errors.New(string(errResult))
 	}
 	if err := cmd.Wait(); err != nil {
-		return []byte{}, err
+		return []byte{}, fmt.Errorf("error running command: %w", err)
 	}
 
 	return outResult, nil
@@ -222,7 +223,7 @@ func parseNetstatJSONOutput(netstatOutput []byte) ([]int, error) {
 
 	err := json.Unmarshal(netstatOutput, &result)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed parsing netstat json output: %w", err)
 	}
 	statistics, valid := result["statistics"].(map[string]interface{})
 	if !valid {
@@ -303,22 +304,28 @@ func GetHostInterfaces() []string {
 }
 
 func CopyFile(in, out string) (int64, error) {
-	i, e := os.Open(in)
-	if e != nil {
-		return 0, e
+	i, err := os.Open(in)
+	if err != nil {
+		return 0, fmt.Errorf("error opening file: %w", err)
 	}
 	defer func(i *os.File) {
 		_ = i.Close()
 	}(i)
-	o, e := os.Create(out)
-	if e != nil {
-		return 0, e
+	o, err := os.Create(out)
+	if err != nil {
+		return 0, fmt.Errorf("error creating file: %w", err)
 	}
 	defer func(o *os.File) {
 		_ = o.Close()
 	}(o)
 
-	return o.ReadFrom(i)
+	n, err := o.ReadFrom(i)
+
+	if err != nil {
+		return n, fmt.Errorf("error copying file: %w", err)
+	}
+
+	return n, nil
 }
 
 func GetIntGroups(interfaceName string) (intGroups []string, err error) {
@@ -331,10 +338,10 @@ func GetIntGroups(interfaceName string) (intGroups []string, err error) {
 	}(cmd)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return []string{}, err
+		return []string{}, fmt.Errorf("error running ifconfig: %w", err)
 	}
 	if err := cmd.Start(); err != nil {
-		return []string{}, err
+		return []string{}, fmt.Errorf("error running ifconfig: %w", err)
 	}
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
@@ -349,7 +356,7 @@ func GetIntGroups(interfaceName string) (intGroups []string, err error) {
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return []string{}, err
+		return []string{}, fmt.Errorf("error parsing ifconfig output: %w", err)
 	}
 
 	return intGroups, nil
@@ -520,15 +527,15 @@ func ModeIsExecOther(mode os.FileMode) bool {
 func GetMyUIDGID() (uid uint32, gid uint32, err error) {
 	myUser, err := user.Current()
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, fmt.Errorf("error getting current user: %w", err)
 	}
 	myUID, err := strconv.Atoi(myUser.Uid)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, fmt.Errorf("error parsing UID: %w", err)
 	}
 	myGID, err := strconv.Atoi(myUser.Gid)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, fmt.Errorf("error parsing GID: %w", err)
 	}
 	u := uint32(myUID)
 	g := uint32(myGID)
@@ -597,7 +604,7 @@ func ParseDiskSize(size string) (sizeBytes uint64, err error) {
 	}
 	nu, err := strconv.Atoi(t)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed parsing disk size: %w", err)
 	}
 	if nu < 1 {
 		return 0, fmt.Errorf("invalid disk size %s", size)
@@ -621,19 +628,19 @@ func GetHostMaxVMCpus() (uint16, error) {
 	if err != nil {
 		slog.Error("Failed getting max vm cpus", "command", checkCmd.String(), "err", err.Error())
 
-		return 0, err
+		return 0, fmt.Errorf("error running sysctl: %w", err)
 	}
 	maxCPUStr := strings.TrimSpace(outBytes.String())
 	maxCPU, err := strconv.Atoi(maxCPUStr)
 	if err != nil {
 		slog.Error("Failed converting max cpus to int", "err", err.Error())
 
-		return 0, err
+		return 0, fmt.Errorf("error parsing cpu count: %w", err)
 	}
 	if maxCPU <= 0 || maxCPU >= math.MaxUint16 {
 		slog.Error("Failed invalid max cpus", "maxCPU", maxCPU)
 
-		return 0, err
+		return 0, errors.New("invalid max number of CPUs")
 	}
 
 	return uint16(maxCPU), nil

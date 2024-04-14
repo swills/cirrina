@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -25,10 +26,10 @@ func GetAllIfBridges() (bridges []string, err error) {
 	}(cmd)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed running ifconfig command: %w", err)
 	}
 	if err := cmd.Start(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed running ifconfig command: %w", err)
 	}
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
@@ -43,7 +44,7 @@ func GetAllIfBridges() (bridges []string, err error) {
 	if err := scanner.Err(); err != nil {
 		slog.Error("error scanning ifconfig output", "err", err)
 
-		return []string{}, err
+		return []string{}, fmt.Errorf("failed parsing ifconfig output: %w", err)
 	}
 
 	return r, nil
@@ -60,10 +61,10 @@ func GetIfBridgeMembers(name string) (members []string, err error) {
 	}(cmd)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed running ifconfig command: %w", err)
 	}
 	if err := cmd.Start(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed running ifconfig command: %w", err)
 	}
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
@@ -81,7 +82,7 @@ func GetIfBridgeMembers(name string) (members []string, err error) {
 	if err := scanner.Err(); err != nil {
 		slog.Error("error scanning ifconfig output", "err", err)
 
-		return []string{}, err
+		return []string{}, fmt.Errorf("failed parsing ifconfig output: %w", err)
 	}
 
 	return members, nil
@@ -123,12 +124,12 @@ func actualIfBridgeCreate(name string) error {
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	if err := cmd.Start(); err != nil {
-		return err
+		return fmt.Errorf("failed running ifconfig: %w", err)
 	}
 	if err := cmd.Wait(); err != nil {
 		slog.Error("failed running ifconfig", "err", err, "out", out)
 
-		return err
+		return fmt.Errorf("failed running ifconfig: %w", err)
 	}
 
 	return nil
@@ -155,12 +156,12 @@ func bridgeIfDeleteMember(bridgeName string, memberName string) error {
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	if err := cmd.Start(); err != nil {
-		return err
+		return fmt.Errorf("failed running ifconfig: %w", err)
 	}
 	if err := cmd.Wait(); err != nil {
 		slog.Error("failed running ifconfig", "err", err, "out", out)
 
-		return err
+		return fmt.Errorf("failed running ifconfig: %w", err)
 	}
 
 	return nil

@@ -32,7 +32,7 @@ var SwitchListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		res, err := rpc.GetSwitches()
 		if err != nil {
-			return err
+			return fmt.Errorf("error getting switches: %w", err)
 		}
 
 		var names []string
@@ -45,7 +45,7 @@ var SwitchListCmd = &cobra.Command{
 		for _, id := range res {
 			res, err := rpc.GetSwitch(id)
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting switch: %w", err)
 			}
 			names = append(names, res.Name)
 			switchInfos[res.Name] = switchListInfo{
@@ -102,7 +102,7 @@ var SwitchCreateCmd = &cobra.Command{
 		}
 		res, err := rpc.AddSwitch(SwitchName, &SwitchDescription, &SwitchType, &SwitchUplinkName)
 		if err != nil {
-			return err
+			return fmt.Errorf("error adding switch: %w", err)
 		}
 		fmt.Printf("Switch created. id: %s\n", res)
 
@@ -119,7 +119,7 @@ var SwitchDestroyCmd = &cobra.Command{
 		if SwitchID == "" {
 			SwitchID, err = rpc.SwitchNameToID(SwitchName)
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting switch ID: %w", err)
 			}
 			if SwitchID == "" {
 				return errors.New("switch not found")
@@ -128,7 +128,7 @@ var SwitchDestroyCmd = &cobra.Command{
 
 		err = rpc.RemoveSwitch(SwitchID)
 		if err != nil {
-			return err
+			return fmt.Errorf("error removing switch: %w", err)
 		}
 		fmt.Printf("Switch deleted\n")
 
@@ -145,7 +145,7 @@ var SwitchUplinkCmd = &cobra.Command{
 		if SwitchID == "" {
 			SwitchID, err = rpc.SwitchNameToID(SwitchName)
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting switch id: %w", err)
 			}
 			if SwitchID == "" {
 				return errors.New("switch not found")
@@ -153,7 +153,7 @@ var SwitchUplinkCmd = &cobra.Command{
 		}
 		err = rpc.SetSwitchUplink(SwitchID, &SwitchUplinkName)
 		if err != nil {
-			return err
+			return fmt.Errorf("error setting switch uplink: %w", err)
 		}
 		fmt.Printf("Switch uplink set\n")
 
@@ -175,7 +175,7 @@ var SwitchUpdateCmd = &cobra.Command{
 		if SwitchID == "" {
 			SwitchID, err = rpc.SwitchNameToID(SwitchName)
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting switch id: %w", err)
 			}
 			if SwitchID == "" {
 				return errors.New("switch not found")
@@ -189,7 +189,7 @@ var SwitchUpdateCmd = &cobra.Command{
 		}
 		err = rpc.UpdateSwitch(SwitchID, newDesc)
 		if err != nil {
-			return err
+			return fmt.Errorf("error updating switch: %w", err)
 		}
 		fmt.Printf("Switch updated\n")
 

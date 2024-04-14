@@ -82,7 +82,7 @@ func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.Req
 
 	err = vmInst.Save()
 	if err != nil {
-		return &re, err
+		return &re, fmt.Errorf("error saving VM: %w", err)
 	}
 	re.Success = true
 
@@ -578,7 +578,7 @@ func (s *server) GetVMs(_ *cirrina.VMsQuery, stream cirrina.VMInfo_GetVMsServer)
 		pvmID.Value = allVMs[e].ID
 		err := stream.Send(&pvmID)
 		if err != nil {
-			return err
+			return fmt.Errorf("error sending to stream: %w", err)
 		}
 	}
 
@@ -646,12 +646,9 @@ func (s *server) AddVM(_ context.Context, v *cirrina.VMConfig) (*cirrina.VMID, e
 	}
 	vmInst, err := vm.Create(*v.Name, *v.Description, *v.Cpu, *v.Mem)
 	if err != nil {
-		return &cirrina.VMID{}, err
+		return &cirrina.VMID{}, fmt.Errorf("error creating VM: %w", err)
 	}
 	slog.Debug("Created VM", "vm", vmInst.ID)
-	if err != nil {
-		return &cirrina.VMID{}, err
-	}
 
 	return &cirrina.VMID{Value: vmInst.ID}, nil
 }
@@ -679,7 +676,7 @@ func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestI
 	}
 	newReq, err := requests.CreateVMReq(requests.VMDELETE, v.Value)
 	if err != nil {
-		return &cirrina.RequestID{}, err
+		return &cirrina.RequestID{}, fmt.Errorf("error creating request: %w", err)
 	}
 
 	return &cirrina.RequestID{Value: newReq.ID}, nil
@@ -705,7 +702,7 @@ func (s *server) SetVMISOs(_ context.Context, sr *cirrina.SetISOReq) (*cirrina.R
 
 	err = vmInst.AttachIsos(sr.Isoid)
 	if err != nil {
-		return &re, err
+		return &re, fmt.Errorf("error attaching ISO: %w", err)
 	}
 	re.Success = true
 
@@ -733,7 +730,7 @@ func (s *server) SetVMNics(_ context.Context, sn *cirrina.SetNicReq) (*cirrina.R
 
 	err = vmInst.SetNics(sn.Vmnicid)
 	if err != nil {
-		return &re, err
+		return &re, fmt.Errorf("error setting NICs: %w", err)
 	}
 	re.Success = true
 
@@ -760,7 +757,7 @@ func (s *server) SetVMDisks(_ context.Context, sr *cirrina.SetDiskReq) (*cirrina
 	}
 	err = vmInst.AttachDisks(sr.Diskid)
 	if err != nil {
-		return &re, err
+		return &re, fmt.Errorf("error attaching disk: %w", err)
 	}
 	re.Success = true
 
@@ -785,7 +782,7 @@ func (s *server) GetVMISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVMISOsServe
 
 	isos, err := vmInst.GetISOs()
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting ISOs: %w", err)
 	}
 	var isoID cirrina.ISOID
 
@@ -793,7 +790,7 @@ func (s *server) GetVMISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVMISOsServe
 		isoID.Value = e.ID
 		err := stream.Send(&isoID)
 		if err != nil {
-			return err
+			return fmt.Errorf("error sending to stream: %w", err)
 		}
 	}
 
@@ -817,7 +814,7 @@ func (s *server) GetVMDisks(v *cirrina.VMID, stream cirrina.VMInfo_GetVMDisksSer
 
 	disks, err := vmInst.GetDisks()
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting disks: %w", err)
 	}
 	var diskID cirrina.DiskId
 
@@ -825,7 +822,7 @@ func (s *server) GetVMDisks(v *cirrina.VMID, stream cirrina.VMInfo_GetVMDisksSer
 		diskID.Value = e.ID
 		err := stream.Send(&diskID)
 		if err != nil {
-			return err
+			return fmt.Errorf("error sending to stream: %w", err)
 		}
 	}
 
@@ -855,7 +852,7 @@ func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID
 	}
 	newReq, err := requests.CreateVMReq(requests.VMSTART, vmUUID.String())
 	if err != nil {
-		return &cirrina.RequestID{}, err
+		return &cirrina.RequestID{}, fmt.Errorf("error creating request: %w", err)
 	}
 
 	return &cirrina.RequestID{Value: newReq.ID}, nil
@@ -884,7 +881,7 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 	}
 	newReq, err := requests.CreateVMReq(requests.VMSTOP, v.Value)
 	if err != nil {
-		return &cirrina.RequestID{}, err
+		return &cirrina.RequestID{}, fmt.Errorf("error creating request: %w", err)
 	}
 
 	return &cirrina.RequestID{Value: newReq.ID}, nil
@@ -907,14 +904,14 @@ func (s *server) GetVMNics(v *cirrina.VMID, stream cirrina.VMInfo_GetVMNicsServe
 	}
 	vmNics, err := vmInst.GetNics()
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting NICs: %w", err)
 	}
 
 	for e := range vmNics {
 		pvmnicID.Value = vmNics[e].ID
 		err := stream.Send(&pvmnicID)
 		if err != nil {
-			return err
+			return fmt.Errorf("error sending to stream: %w", err)
 		}
 	}
 

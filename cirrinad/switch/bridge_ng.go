@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"errors"
+	"fmt"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -39,10 +40,10 @@ func ngGetNodes() (ngNodes []NgNode, err error) {
 	}(cmd)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed running ngctl: %w", err)
 	}
 	if err := cmd.Start(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed running ngctl: %w", err)
 	}
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
@@ -78,7 +79,7 @@ func ngGetNodes() (ngNodes []NgNode, err error) {
 	if err := scanner.Err(); err != nil {
 		slog.Error("error scanning ngctl output", "err", err)
 
-		return []NgNode{}, err
+		return []NgNode{}, fmt.Errorf("error parsing ngctl output: %w", err)
 	}
 
 	return ngNodes, nil
@@ -110,10 +111,10 @@ func GetNgBridgeMembers(bridge string) (peers []ngPeer, err error) {
 	}(cmd)
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error running ngctl command: %w", err)
 	}
 	if err := cmd.Start(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error running ngctl command: %w", err)
 	}
 	scanner := bufio.NewScanner(stdout)
 	lineNo := 0
@@ -213,7 +214,7 @@ func actualNgBridgeCreate(netDev string) error {
 	if err != nil {
 		slog.Error("ngctl mkpeer error", "err", err)
 
-		return err
+		return fmt.Errorf("error running ngctl command: %w", err)
 	}
 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "name",
 		dummyIfBridgeName+":lower", netDev)
@@ -221,7 +222,7 @@ func actualNgBridgeCreate(netDev string) error {
 	if err != nil {
 		slog.Error("ngctl name err", "err", err)
 
-		return err
+		return fmt.Errorf("error running ngctl command: %w", err)
 	}
 	// useUplink := true
 	// var upper string
@@ -237,7 +238,7 @@ func actualNgBridgeCreate(netDev string) error {
 	if err != nil {
 		slog.Error("ngctl connect error", "err", err)
 
-		return err
+		return fmt.Errorf("failed running ngctl command: %w", err)
 	}
 	// cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
 	// 	dummyIfBridgeName+":", "setpromisc", "1")
@@ -259,7 +260,7 @@ func actualNgBridgeCreate(netDev string) error {
 	if err != nil {
 		slog.Error("ngctl msg setpersistent error", "err", err)
 
-		return err
+		return fmt.Errorf("failed running ngctl command: %w", err)
 	}
 
 	// and delete our dummy if_bridge
@@ -337,12 +338,12 @@ func bridgeNgDeletePeer(bridgeName string, hook string) error {
 	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "rmhook", bridgeName+":", hook)
 	cmd.Stdout = &out
 	if err := cmd.Start(); err != nil {
-		return err
+		return fmt.Errorf("error running ngctl: %w", err)
 	}
 	if err := cmd.Wait(); err != nil {
 		slog.Error("failed running ngctl", "err", err, "out", out)
 
-		return err
+		return fmt.Errorf("error running ngctl: %w", err)
 	}
 
 	return nil

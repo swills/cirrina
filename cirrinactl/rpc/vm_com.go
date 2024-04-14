@@ -48,7 +48,7 @@ func UseCom(id string, comNum int) error {
 	if err != nil {
 		cancel()
 
-		return err
+		return errors.New(status.Convert(err).Message())
 	}
 
 	// save term state and set up restore when done
@@ -57,7 +57,7 @@ func UseCom(id string, comNum int) error {
 	if err != nil {
 		cancel()
 
-		return err
+		return errors.New(status.Convert(err).Message())
 	}
 	defer func(fd int, oldState *term.State) {
 		_ = stream.CloseSend()
@@ -85,7 +85,7 @@ func UseCom(id string, comNum int) error {
 			if err != nil {
 				cancel()
 
-				return err
+				return errors.New(status.Convert(err).Message())
 			}
 
 			if res != "running" && res != "stopping" {

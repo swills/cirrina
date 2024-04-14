@@ -26,12 +26,12 @@ func Create(name string, description string, size string, diskType string, diskD
 
 	err = validateDisk(name, diskDevType, diskType, filePath, volName)
 	if err != nil {
-		return &Disk{}, err
+		return &Disk{}, fmt.Errorf("error creating disk: %w", err)
 	}
 
 	diskSize, err = util.ParseDiskSize(size)
 	if err != nil {
-		return &Disk{}, err
+		return &Disk{}, fmt.Errorf("error creating disk: %w", err)
 	}
 
 	// limit disks to min 512 bytes, max 128TB
@@ -133,7 +133,7 @@ func checkDiskExistsZvolType(name string, volName string, existingDisk *Disk, vo
 	if err != nil {
 		slog.Error("error checking if disk exists", "volName", volName, "err", err)
 
-		return err
+		return fmt.Errorf("error checking if disk exists: %w", err)
 	}
 	if util.ContainsStr(allVolumes, volName) {
 		slog.Error("disk volume exists", "disk", name, "id", existingDisk.ID, "type", existingDisk.Type, "volName", volName)
@@ -145,7 +145,7 @@ func checkDiskExistsZvolType(name string, volName string, existingDisk *Disk, vo
 	if err != nil {
 		slog.Error("error checking if disk exists", "volPath", volPath, "err", err)
 
-		return err
+		return fmt.Errorf("error checking if disk exists: %w", err)
 	}
 	if diskExists {
 		slog.Error("disk vol path exists", "disk", name, "id", existingDisk.ID, "type", existingDisk.Type, "volPath", volPath)
@@ -162,7 +162,7 @@ func checkDiskExistsFileType(name string, filePath string, existingDisk *Disk) e
 	if err != nil {
 		slog.Error("error checking if disk exists", "filePath", filePath, "err", err)
 
-		return err
+		return fmt.Errorf("error checking if disk exists: %w", err)
 	}
 	if diskExists {
 		slog.Error("disk file exists", "disk", name, "id", existingDisk.ID, "type", existingDisk.Type, "filePath", filePath)
@@ -178,14 +178,14 @@ func createDiskFile(diskSize uint64, filePath string) error {
 	slog.Debug("creating disk", "filePath", filePath, "size", diskSize, "args", args)
 	myUser, err := user.Current()
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating disk: %w", err)
 	}
 	cmd := exec.Command(config.Config.Sys.Sudo, args...)
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("failed to create disk", "err", err)
 
-		return err
+		return fmt.Errorf("error creating disk: %w", err)
 	}
 	args = []string{"/usr/sbin/chown", myUser.Username, filePath}
 	cmd = exec.Command(config.Config.Sys.Sudo, args...)
@@ -206,10 +206,10 @@ func createDiskZvol(volName string, size string) error {
 	if err != nil {
 		slog.Error("failed to create disk", "err", err)
 
-		return err
+		return fmt.Errorf("error creating disk: %w", err)
 	}
 
-	return err
+	return nil
 }
 
 func GetAllDB() []*Disk {
@@ -304,7 +304,11 @@ func (d *Disk) VerifyExists() (exists bool, err error) {
 	// perhaps it's not necessary to check the volume -- as long as there's a /dev/zvol entry, we're fine, right?
 	exists, err = util.PathExists(diskPath)
 
-	return exists, err
+	if err != nil {
+		return exists, fmt.Errorf("failed checking disk exists: %w", err)
+	}
+
+	return exists, nil
 }
 
 func (d *Disk) Lock() {

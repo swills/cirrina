@@ -32,34 +32,34 @@ func (s *server) AddVMNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 	if v.Mac != nil {
 		vmNicInst.Mac, err = vmnic.ParseMac(*v.Mac)
 		if err != nil {
-			return vmNicID, err
+			return vmNicID, fmt.Errorf("error parsing MAC: %w", err)
 		}
 	}
 	if v.Netdevtype != nil {
 		newNetDevType, err := vmnic.ParseNetDevType(*v.Netdevtype)
 		if err != nil {
-			return vmNicID, err
+			return vmNicID, fmt.Errorf("error parsing net dev type: %w", err)
 		}
 		vmNicInst.NetDevType = newNetDevType
 	}
 	if v.Nettype != nil {
 		newNetType, err := vmnic.ParseNetType(*v.Nettype)
 		if err != nil {
-			return vmNicID, err
+			return vmNicID, fmt.Errorf("error parsing net type: %w", err)
 		}
 		vmNicInst.NetType = newNetType
 	}
 	if v.Switchid != nil {
 		newSwitchID, err := _switch.ParseSwitchID(*v.Switchid, vmNicInst.NetType)
 		if err != nil {
-			return vmNicID, err
+			return vmNicID, fmt.Errorf("error parsing switch id: %w", err)
 		}
 		vmNicInst.SwitchID = newSwitchID
 	}
 	vmNicParseRateLimit(&vmNicInst, v.Ratelimit, v.Ratein, v.Rateout)
 	newVMNicID, err := vmnic.Create(&vmNicInst)
 	if err != nil {
-		return &cirrina.VmNicId{}, err
+		return &cirrina.VmNicId{}, fmt.Errorf("error creating VM: %w", err)
 	}
 	if newVMNicID != "" {
 		return &cirrina.VmNicId{Value: newVMNicID}, nil
@@ -77,7 +77,7 @@ func (s *server) GetVMNicsAll(_ *cirrina.VmNicsQuery, stream cirrina.VMInfo_GetV
 		pvmnicID.Value = nics[e].ID
 		err := stream.Send(&pvmnicID)
 		if err != nil {
-			return err
+			return fmt.Errorf("error sending to stream: %w", err)
 		}
 	}
 
@@ -187,7 +187,7 @@ func (s *server) SetVMNicSwitch(_ context.Context, v *cirrina.SetVmNicSwitchReq)
 
 	err = vmNic.SetSwitch(switchID)
 	if err != nil {
-		return &r, err
+		return &r, fmt.Errorf("error setting switch: %w", err)
 	}
 	r.Success = true
 
@@ -217,7 +217,7 @@ func (s *server) RemoveVMNic(_ context.Context, vn *cirrina.VmNicId) (*cirrina.R
 	for _, aVM := range allVms {
 		nics, err := aVM.GetNics()
 		if err != nil {
-			return &re, err
+			return &re, fmt.Errorf("error getting NICs: %w", err)
 		}
 		for _, aNic := range nics {
 			if aNic.ID == nicUUID.String() {
@@ -228,7 +228,7 @@ func (s *server) RemoveVMNic(_ context.Context, vn *cirrina.VmNicId) (*cirrina.R
 
 	err = vmNic.Delete()
 	if err != nil {
-		return &re, err
+		return &re, fmt.Errorf("error deleting NIC: %w", err)
 	}
 	re.Success = true
 
@@ -314,28 +314,28 @@ func (s *server) UpdateVMNic(_ context.Context, v *cirrina.VmNicInfoUpdate) (*ci
 		var newMac string
 		newMac, err = vmnic.ParseMac(*v.Mac)
 		if err != nil {
-			return &re, err
+			return &re, fmt.Errorf("error parsing MAC: %w", err)
 		}
 		vmNicInst.Mac = newMac
 	}
 	if v.Netdevtype != nil {
 		newNetDevType, err := vmnic.ParseNetDevType(*v.Netdevtype)
 		if err != nil {
-			return &re, err
+			return &re, fmt.Errorf("error parsing net dev type: %w", err)
 		}
 		vmNicInst.NetDevType = newNetDevType
 	}
 	if v.Nettype != nil {
 		newNetType, err := vmnic.ParseNetType(*v.Nettype)
 		if err != nil {
-			return &re, err
+			return &re, fmt.Errorf("error parsing net type: %w", err)
 		}
 		vmNicInst.NetType = newNetType
 	}
 	if v.Switchid != nil {
 		newSwitchID, err := _switch.ParseSwitchID(*v.Switchid, vmNicInst.NetType)
 		if err != nil {
-			return &re, err
+			return &re, fmt.Errorf("error parsing switch ID: %w", err)
 		}
 		vmNicInst.SwitchID = newSwitchID
 	}
@@ -343,7 +343,7 @@ func (s *server) UpdateVMNic(_ context.Context, v *cirrina.VmNicInfoUpdate) (*ci
 
 	err = vmNicInst.Save()
 	if err != nil {
-		return &re, err
+		return &re, fmt.Errorf("error saving NIC: %w", err)
 	}
 
 	re.Success = true
@@ -379,7 +379,7 @@ func (s *server) CloneVMNic(_ context.Context, cloneReq *cirrina.VmNicCloneReq) 
 		nicUUID.String(), cloneReq.NewVmNicName.Value,
 	)
 	if err != nil {
-		return &cirrina.RequestID{}, err
+		return &cirrina.RequestID{}, fmt.Errorf("error creating request: %w", err)
 	}
 
 	return &cirrina.RequestID{Value: newReq.ID}, nil

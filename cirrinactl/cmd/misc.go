@@ -18,7 +18,7 @@ var ReqStatCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		res, err := rpc.ReqStat(ReqID)
 		if err != nil {
-			return err
+			return fmt.Errorf("error checking request status: %w", err)
 		}
 		fmt.Printf("req status: complete=%v, success=%v\n", res.Complete, res.Success)
 

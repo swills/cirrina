@@ -29,7 +29,7 @@ func (s *server) GetDisks(_ *cirrina.DisksQuery, stream cirrina.VMInfo_GetDisksS
 		diskID.Value = diskInst.ID
 		err := stream.Send(&diskID)
 		if err != nil {
-			return err
+			return fmt.Errorf("error writing to stream: %w", err)
 		}
 	}
 
@@ -88,7 +88,7 @@ func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskI
 
 	diskInst, err := disk.Create(*i.Name, *i.Description, *i.Size, diskType, diskDevType, *i.Cache, *i.Direct)
 	if err != nil {
-		return &cirrina.DiskId{}, err
+		return &cirrina.DiskId{}, fmt.Errorf("error creating disk: %w", err)
 	}
 	if diskInst != nil && diskInst.ID != "" {
 		return &cirrina.DiskId{Value: diskInst.ID}, nil
@@ -255,7 +255,7 @@ func getDiskVM(diskUUID uuid.UUID) (*vm.VM, error) {
 	for _, thisVM := range allVMs {
 		thisVMDisks, err := thisVM.GetDisks()
 		if err != nil {
-			return &vm.VM{}, err
+			return &vm.VM{}, fmt.Errorf("error getting disk: %w", err)
 		}
 		for _, vmDisk := range thisVMDisks {
 			if vmDisk.ID == diskUUID.String() {
@@ -291,7 +291,7 @@ func (s *server) SetDiskInfo(_ context.Context, diu *cirrina.DiskInfoUpdate) (*c
 
 	diskInst, err := disk.GetByID(diskUUID.String())
 	if err != nil {
-		return &re, err
+		return &re, fmt.Errorf("error getting disk: %w", err)
 	}
 
 	if diu.Description != nil {
@@ -349,7 +349,7 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 	if err != nil {
 		slog.Error("error getting path", "err", err)
 
-		return err
+		return fmt.Errorf("failed getting disk path: %w", err)
 	}
 
 	defer diskInst.Unlock()
@@ -431,7 +431,7 @@ func validateDiskReq(diskUploadReq *cirrina.DiskUploadInfo) (*disk.Disk, error) 
 		if err != nil {
 			slog.Error("UploadDisk", "msg", "failed setting new volume size", "err", err)
 
-			return &disk.Disk{}, err
+			return &disk.Disk{}, fmt.Errorf("error setting vol size: %w", err)
 		}
 	}
 
@@ -443,7 +443,7 @@ func receiveDiskFile(stream cirrina.VMInfo_UploadDiskServer, diskPath string, im
 	if err != nil {
 		slog.Error("Failed to open disk file", "err", err.Error())
 
-		return err
+		return fmt.Errorf("failed creating disk file: %w", err)
 	}
 	diskFileBuffer := bufio.NewWriter(diskFile)
 
@@ -457,7 +457,7 @@ func receiveDiskFile(stream cirrina.VMInfo_UploadDiskServer, diskPath string, im
 		if err != nil {
 			slog.Error("UploadDisk failed receiving", "err", err)
 
-			return err
+			return fmt.Errorf("failed receiving from stream: %w", err)
 		}
 
 		chunk := req.GetImage()
@@ -468,7 +468,7 @@ func receiveDiskFile(stream cirrina.VMInfo_UploadDiskServer, diskPath string, im
 		if err != nil {
 			slog.Error("UploadDisk failed writing", "err", err)
 
-			return err
+			return fmt.Errorf("failed writing to disk: %w", err)
 		}
 		hasher.Write(chunk)
 	}
@@ -479,7 +479,7 @@ func receiveDiskFile(stream cirrina.VMInfo_UploadDiskServer, diskPath string, im
 	if err != nil {
 		slog.Error("UploadDisk cannot send response", "err", err)
 
-		return err
+		return fmt.Errorf("failed flushing disk: %w", err)
 	}
 
 	// verify size
@@ -507,10 +507,10 @@ func receiveDiskFile(stream cirrina.VMInfo_UploadDiskServer, diskPath string, im
 	if err != nil {
 		slog.Error("error closing disk file", "err", err)
 
-		return err
+		return fmt.Errorf("failed closing disk: %w", err)
 	}
 
-	return err
+	return nil
 }
 
 func mapDiskDevTypeTypeToDBString(diskDevType cirrina.DiskDevType) (string, error) {
@@ -573,7 +573,7 @@ func getDiskInfoZVOL(diskInst *disk.Disk) (string, string, uint64, uint64, error
 	if err != nil {
 		slog.Error("getDiskInfoZVOL GetZfsVolumeSize error", "err", err)
 
-		return "", "", 0, 0, err
+		return "", "", 0, 0, fmt.Errorf("failed getting vol size: %w", err)
 	}
 
 	diskUsageNum, err := disk.GetZfsVolumeUsage(config.Config.Disk.VM.Path.Zpool + "/" + diskInst.Name)
@@ -595,21 +595,21 @@ func getDiskInfoFile(diskInst *disk.Disk) (string, string, uint64, uint64, error
 	if err != nil {
 		slog.Error("getDiskInfoFile error getting disk size", "err", err)
 
-		return "", "", 0, 0, err
+		return "", "", 0, 0, fmt.Errorf("failed getting disk path: %w", err)
 	}
 
 	diskFileStat, err := os.Stat(diskPath)
 	if err != nil {
 		slog.Error("getDiskInfoFile error getting disk size", "err", err)
 
-		return "", "", 0, 0, err
+		return "", "", 0, 0, fmt.Errorf("error stating disk path: %w", err)
 	}
 
 	err = syscall.Stat(diskPath, &stat)
 	if err != nil {
 		slog.Error("getDiskInfoFile unable to stat diskPath", "diskPath", diskPath)
 
-		return "", "", 0, 0, err
+		return "", "", 0, 0, fmt.Errorf("error stating disk file: %w", err)
 	}
 
 	diskSize := strconv.FormatInt(diskFileStat.Size(), 10)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"log/slog"
 	"os"
 	"strings"
@@ -29,7 +30,7 @@ func (s *server) GetKeyboardLayouts(_ *cirrina.KbdQuery, stream cirrina.VMInfo_G
 		}
 		err = stream.Send(&layout)
 		if err != nil {
-			return err
+			return fmt.Errorf("error sending to stream: %w", err)
 		}
 	}
 
@@ -48,7 +49,7 @@ func GetKbdDescription(path string) (description string, err error) {
 	if err != nil {
 		slog.Error("error opening keyboard description dir", "err", err)
 
-		return "", err
+		return "", fmt.Errorf("error opening keyboard file: %w", err)
 	}
 	defer func(file *os.File) {
 		_ = file.Close()
@@ -74,7 +75,7 @@ func GetKbdDescription(path string) (description string, err error) {
 	if err := scanner.Err(); err != nil {
 		slog.Error("error scanning keyboard description dir", "err", err)
 
-		return "", err
+		return "", fmt.Errorf("error parsing keyboard description: %w", err)
 	}
 
 	return description, nil

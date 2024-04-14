@@ -15,7 +15,7 @@ var HostNicsCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		res, err := rpc.GetHostNics()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed getting host nics: %w", err)
 		}
 		for _, nic := range res {
 			fmt.Printf("nic: %s\n", nic.InterfaceName)
@@ -30,9 +30,16 @@ var HostVersionCmd = &cobra.Command{
 	Short:        "Get host daemon version",
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		res, err := rpc.GetHostVersion()
+		var err error
+		var res string
+		err = hostPing()
 		if err != nil {
-			return err
+			return fmt.Errorf("failed getting host version: %w", err)
+		}
+
+		res, err = rpc.GetHostVersion()
+		if err != nil {
+			return fmt.Errorf("failed getting host version: %w", err)
 		}
 		fmt.Printf("version: %s\n", res)
 
@@ -47,8 +54,11 @@ var HostCmd = &cobra.Command{
 
 func hostPing() error {
 	_, err := rpc.GetHostVersion()
+	if err != nil {
+		return fmt.Errorf("host not available: %w", err)
+	}
 
-	return err
+	return nil
 }
 
 func init() {

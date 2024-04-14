@@ -45,7 +45,7 @@ var NicListCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		res, err := rpc.GetVMNicsAll()
 		if err != nil {
-			return err
+			return fmt.Errorf("error getting all vm nics: %w", err)
 		}
 		var names []string
 		type nicListInfo struct {
@@ -61,7 +61,7 @@ var NicListCmd = &cobra.Command{
 		for _, id := range res {
 			nicInfo, err := rpc.GetVMNicInfo(id)
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting nic info: %w", err)
 			}
 
 			var rateLimited string
@@ -157,7 +157,7 @@ var NicCreateCmd = &cobra.Command{
 			if NicSwitchName != "" {
 				NicSwitchID, err = rpc.SwitchNameToID(NicSwitchName)
 				if err != nil {
-					return err
+					return fmt.Errorf("error getting switch id: %w", err)
 				}
 				if NicSwitchID == "" {
 					return errors.New("switch not found")
@@ -170,7 +170,7 @@ var NicCreateCmd = &cobra.Command{
 			NicRateLimited, NicRateIn, NicRateOut, NicSwitchID,
 		)
 		if err != nil {
-			return err
+			return fmt.Errorf("error adding nic: %w", err)
 		}
 		fmt.Printf("NIC created. id: %s\n", res)
 
@@ -187,7 +187,7 @@ var NicRemoveCmd = &cobra.Command{
 		if NicID == "" {
 			NicID, err = rpc.NicNameToID(NicName)
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting nic id: %w", err)
 			}
 			if NicID == "" {
 				return errors.New("NIC not found")
@@ -195,7 +195,7 @@ var NicRemoveCmd = &cobra.Command{
 		}
 		err = rpc.RmNic(NicID)
 		if err != nil {
-			return err
+			return fmt.Errorf("error removing nic: %w", err)
 		}
 		fmt.Printf("NIC deleted\n")
 
@@ -218,7 +218,7 @@ var NicSetSwitchCmd = &cobra.Command{
 		if NicID == "" {
 			NicID, err = rpc.NicNameToID(NicName)
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting nic id: %w", err)
 			}
 			if NicID == "" {
 				return errors.New("NIC not found")
@@ -228,7 +228,7 @@ var NicSetSwitchCmd = &cobra.Command{
 		if NicSwitchID == "" && !NicSwitchIDChanged && SwitchName != "" {
 			NicSwitchID, err = rpc.SwitchNameToID(NicSwitchName)
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting switch id: %w", err)
 			}
 			if NicSwitchID == "" {
 				return errors.New("switch not found")
@@ -237,7 +237,7 @@ var NicSetSwitchCmd = &cobra.Command{
 
 		err = rpc.SetVMNicSwitch(NicID, NicSwitchID)
 		if err != nil {
-			return err
+			return fmt.Errorf("error setting nic uplink: %w", err)
 		}
 		fmt.Printf("Added NIC to switch\n")
 
@@ -254,7 +254,7 @@ var NicCloneCmd = &cobra.Command{
 		if NicID == "" {
 			NicID, err = rpc.NicNameToID(NicName)
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting nic ID: %w", err)
 			}
 			if NicID == "" {
 				return errors.New("NIC not found")
@@ -270,7 +270,7 @@ var NicCloneCmd = &cobra.Command{
 		}
 		reqID, err := rpc.CloneNic(NicID, NicCloneName)
 		if err != nil {
-			return err
+			return fmt.Errorf("error cloning nic: %w", err)
 		}
 
 		if !CheckReqStat {
@@ -285,7 +285,7 @@ var NicCloneCmd = &cobra.Command{
 		for time.Now().Before(timeout) {
 			reqStat, err = rpc.ReqStat(reqID)
 			if err != nil {
-				return err
+				return fmt.Errorf("error checking request status: %w", err)
 			}
 			if reqStat.Complete {
 				break
@@ -326,7 +326,7 @@ var NicUpdateCmd = &cobra.Command{
 		if NicID == "" {
 			NicID, err = rpc.NicNameToID(NicName)
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting nic id: %w", err)
 			}
 			if NicID == "" {
 				return errors.New("nic not found")
@@ -366,7 +366,7 @@ var NicUpdateCmd = &cobra.Command{
 		if NicSwitchNameChanged {
 			NewNicSwitchID, err := rpc.SwitchNameToID(NicSwitchName)
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting switch id: %w", err)
 			}
 			if NewNicSwitchID == "" {
 				return errors.New("switch not found")
@@ -378,7 +378,7 @@ var NicUpdateCmd = &cobra.Command{
 		}
 		err = rpc.UpdateNic(NicID, newDesc, newMac, newNicType, newNicDevType, newRateLimit, newRateIn, newRateOut, newSwitchID)
 		if err != nil {
-			return err
+			return fmt.Errorf("error updating nic: %w", err)
 		}
 		fmt.Printf("Nic updated\n")
 

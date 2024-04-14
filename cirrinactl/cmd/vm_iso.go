@@ -22,7 +22,7 @@ var VMIsoListCmd = &cobra.Command{
 		if VMID == "" {
 			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
 				return errors.New("VM not found")
@@ -32,7 +32,7 @@ var VMIsoListCmd = &cobra.Command{
 		var isoIds []string
 		isoIds, err = rpc.GetVMIsos(VMID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed getting VM ISOs: %w", err)
 		}
 
 		var names []string
@@ -46,7 +46,7 @@ var VMIsoListCmd = &cobra.Command{
 			var isoInfo rpc.IsoInfo
 			isoInfo, err = rpc.GetIsoInfo(id)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed setting iso info: %w", err)
 			}
 
 			var isoSize string
@@ -112,7 +112,7 @@ var VMIsosAddCmd = &cobra.Command{
 		if IsoID == "" {
 			IsoID, err = rpc.IsoNameToID(IsoName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed setting ISO ID: %w", err)
 			}
 			if IsoID == "" {
 				return errors.New("ISO not found")
@@ -122,14 +122,14 @@ var VMIsosAddCmd = &cobra.Command{
 		var isoIds []string
 		isoIds, err = rpc.GetVMIsos(VMID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed setting VM ISOs: %w", err)
 		}
 
 		isoIds = append(isoIds, IsoID)
 		var res bool
 		res, err = rpc.VMSetIsos(VMID, isoIds)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed setting VM ISOs: %w", err)
 		}
 		if !res {
 			return errors.New("failed")
@@ -150,7 +150,7 @@ var VMIsosRmCmd = &cobra.Command{
 		if VMID == "" {
 			VMID, err = rpc.VMNameToID(VMName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed setting VM ID: %w", err)
 			}
 			if VMID == "" {
 				return errors.New("VM not found")
@@ -159,7 +159,7 @@ var VMIsosRmCmd = &cobra.Command{
 		if IsoID == "" {
 			IsoID, err = rpc.IsoNameToID(IsoName)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed getting ISO ID: %w", err)
 			}
 			if IsoID == "" {
 				return errors.New("ISO not found")
@@ -169,7 +169,7 @@ var VMIsosRmCmd = &cobra.Command{
 		var isoIds []string
 		isoIds, err = rpc.GetVMIsos(VMID)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed getting VM ISOs: %w", err)
 		}
 
 		var newIsoIds []string
@@ -182,7 +182,7 @@ var VMIsosRmCmd = &cobra.Command{
 		var res bool
 		res, err = rpc.VMSetIsos(VMID, newIsoIds)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed setting VM ISOs: %w", err)
 		}
 		if !res {
 			return errors.New("failed")

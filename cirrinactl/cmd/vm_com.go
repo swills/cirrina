@@ -17,7 +17,7 @@ var VMCom1Cmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := startCom(1)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed starting com: %w", err)
 		}
 
 		return nil
@@ -31,7 +31,7 @@ var VMCom2Cmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := startCom(2)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed starting com: %w", err)
 		}
 
 		return nil
@@ -45,7 +45,7 @@ var VMCom3Cmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := startCom(3)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed starting com: %w", err)
 		}
 
 		return nil
@@ -59,7 +59,7 @@ var VMCom4Cmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		err := startCom(4)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed starting com: %w", err)
 		}
 
 		return nil
@@ -71,7 +71,7 @@ func startCom(comNum int) error {
 	if VMID == "" {
 		VMID, err = rpc.VMNameToID(VMName)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed getting VM ID: %w", err)
 		}
 		if VMID == "" {
 			return errors.New("VM not found")
@@ -80,7 +80,7 @@ func startCom(comNum int) error {
 	var running bool
 	running, err = rpc.VMRunning(VMID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed checking VM status: %w", err)
 	}
 	if !running {
 		if VMName != "" {
@@ -95,7 +95,7 @@ func startCom(comNum int) error {
 
 	err = rpc.UseCom(VMID, comNum)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed starting com: %w", err)
 	}
 
 	return nil

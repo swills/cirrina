@@ -22,12 +22,12 @@ import (
 func GetVMLogPath(logpath string) error {
 	ex, err := util.PathExists(logpath)
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting VM log path: %w", err)
 	}
 	if !ex {
 		err := os.MkdirAll(logpath, 0755)
 		if err != nil {
-			return err
+			return fmt.Errorf("error getting VM log path: %w", err)
 		}
 	}
 
@@ -254,14 +254,14 @@ func ensureComDevReadable(comDev string) error {
 	slog.Debug("Checking com dev readable", "comDev", comDev, "comReadDev", comReadDev)
 	exists, err := util.PathExists(comReadDev)
 	if err != nil {
-		return err
+		return fmt.Errorf("error checking vm com deve: %w", err)
 	}
 	if !exists {
 		return errors.New("comDev does not exists)")
 	}
 	comReadFileInfo, err := os.Stat(comReadDev)
 	if err != nil {
-		return err
+		return fmt.Errorf("error checking vm com dev: %w", err)
 	}
 	if comReadFileInfo.IsDir() {
 		return errors.New("error checking com dev readable: comReadDev is directory")
@@ -286,7 +286,7 @@ func ensureComDevReadable(comDev string) error {
 	slog.Debug("ensureComDevReadable uid mismatch, fixing", "uid", comReadStat.Uid, "myUID", myUID)
 	myUser, err := user.Current()
 	if err != nil {
-		return err
+		return fmt.Errorf("error checking vm com dev: %w", err)
 	}
 	args := []string{"/usr/sbin/chown", myUser.Username, comReadDev}
 	cmd := execabs.Command(config.Config.Sys.Sudo, args...)
@@ -370,7 +370,7 @@ func startSerialPort(comDev string, comSpeed uint) (*serial.Port, error) {
 		if err != nil {
 			slog.Error("startSerialPort error opening comReadDev", "error", err)
 
-			return nil, err
+			return nil, fmt.Errorf("error starting com port: %w", err)
 		}
 		slog.Debug("startSerialLogger", "opened", comReadDev)
 

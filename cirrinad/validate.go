@@ -48,7 +48,7 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 		if !errors.As(err, &exitErr) {
 			slog.Debug("checkSudoCmd failed starting command", "command", checkCmd.String(), "err", err.Error())
 
-			return err
+			return fmt.Errorf("failed running command: %w", err)
 		}
 	}
 	exitCode = checkCmd.ProcessState.ExitCode()
@@ -97,7 +97,7 @@ nameLoop:
 		case errors.Is(err, fs.ErrNotExist):
 			break nameLoop
 		default:
-			return "", err
+			return "", fmt.Errorf("couldn't find a tmp file %w", err)
 		}
 	}
 

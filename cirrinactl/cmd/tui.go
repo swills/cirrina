@@ -20,7 +20,7 @@ var TuiCmd = &cobra.Command{
 		serverAddr := rpc.ServerName + ":" + strconv.FormatInt(int64(rpc.ServerPort), 10)
 		err := StartTui(serverAddr)
 		if err != nil {
-			return err
+			return fmt.Errorf("error starting: %w", err)
 		}
 
 		return nil
@@ -50,14 +50,14 @@ func getVMItems() ([]vmItem, error) {
 
 	vmIds, err = rpc.GetVMIds()
 	if err != nil {
-		return []vmItem{}, err
+		return []vmItem{}, fmt.Errorf("error getting vm list: %w", err)
 	}
 
 	for _, vmID := range vmIds {
 		var res rpc.VMConfig
 		res, err = rpc.GetVMConfig(vmID)
 		if err != nil {
-			return []vmItem{}, err
+			return []vmItem{}, fmt.Errorf("error getting vm config: %w", err)
 		}
 		var aItem vmItem
 		aItem.name = res.Name
@@ -202,7 +202,7 @@ func StartTui(serverAddr string) error {
 	vmList = tview.NewList()
 	vmItems, err = getVMItems()
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting VMs: %w", err)
 	}
 	mainFlex = tview.NewFlex()
 	mainFlex.SetBorder(true)

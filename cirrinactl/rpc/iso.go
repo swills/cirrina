@@ -42,7 +42,7 @@ func GetIsoIds() ([]string, error) {
 			break
 		}
 		if err != nil {
-			return []string{}, err
+			return []string{}, errors.New(status.Convert(err).Message())
 		}
 		ids = append(ids, VM.Value)
 	}
