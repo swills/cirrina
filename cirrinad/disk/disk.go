@@ -15,7 +15,8 @@ import (
 	"cirrina/cirrinad/util"
 )
 
-func Create(name string, description string, size string, diskType string, diskDevType string, diskCache bool, diskDirect bool) (disk *Disk, err error) {
+func Create(name string, description string, size string, diskType string, diskDevType string,
+	diskCache bool, diskDirect bool) (disk *Disk, err error) {
 	var diskInst *Disk
 	var diskSize uint64
 

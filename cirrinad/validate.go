@@ -53,17 +53,21 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 	}
 	exitCode = checkCmd.ProcessState.ExitCode()
 	if exitCode != expectedExit {
-		slog.Debug("exitCode mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
+		slog.Debug("exitCode mismatch running command",
+			"command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
 
 		return errExitCodeMismatch
 	}
 	if !strings.HasPrefix(outBytes.String(), expectedStdOut) {
-		slog.Debug("stdout prefix mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
+		slog.Debug("stdout prefix mismatch running command",
+			"command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
 
 		return errSTDOUTMismatch
 	}
 	if !strings.HasPrefix(errBytes.String(), expectedStdErr) {
-		slog.Debug("stderr prefix mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
+		slog.Debug("stderr prefix mismatch running command",
+			"command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(),
+			"exitCode", exitCode)
 
 		return errSTDERRMismatch
 	}
@@ -496,7 +500,8 @@ func validateRomConfig() {
 	}
 	varTemplateFileInfo, err := os.Stat(varTemplatePath)
 	if err != nil {
-		slog.Error("rom vars template not installed or path invalid, please install edk2-bhyve (sysutils/edk2) or reconfigure")
+		slog.Error("rom vars template not installed or path invalid, " +
+			"please install edk2-bhyve (sysutils/edk2) or reconfigure")
 		os.Exit(1)
 	}
 	varTemplateFileIsDir := varTemplateFileInfo.IsDir()

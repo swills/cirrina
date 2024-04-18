@@ -238,7 +238,8 @@ func comInteractiveSetup(thisCom *serial.Port) error {
 }
 
 // comInteractiveStreamReceive user -> com and/or log
-func comInteractiveStreamReceive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, thisCom *serial.Port, thisComLog bool, vl *os.File) (error, bool) {
+func comInteractiveStreamReceive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM,
+	thisCom *serial.Port, thisComLog bool, vl *os.File) (error, bool) {
 	if !vmInst.Running() {
 		return nil, true
 	}
@@ -265,7 +266,8 @@ func comInteractiveStreamReceive(stream cirrina.VMInfo_Com1InteractiveServer, vm
 }
 
 // comInteractiveStreamSend com -> user and/or log
-func comInteractiveStreamSend(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, thisCom *serial.Port, thisComLog bool, thisRChan chan byte) {
+func comInteractiveStreamSend(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, thisCom *serial.Port,
+	thisComLog bool, thisRChan chan byte) {
 	b := make([]byte, 1)
 	for {
 		if thisCom == nil || !vmInst.Running() {
@@ -285,7 +287,8 @@ func comInteractiveStreamSend(stream cirrina.VMInfo_Com1InteractiveServer, vmIns
 	}
 }
 
-func comIntStreamSendFromDev(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, thisCom *serial.Port, b []byte) bool {
+func comIntStreamSendFromDev(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, thisCom *serial.Port,
+	b []byte) bool {
 	nb, err := thisCom.Read(b)
 	if nb > 1 {
 		slog.Error("ComInteractive read more than 1 byte", "nb", nb)

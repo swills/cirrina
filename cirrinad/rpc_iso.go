@@ -143,7 +143,8 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 	return nil
 }
 
-func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina.ISOUploadInfo, isoInst *iso.ISO) error {
+func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina.ISOUploadInfo,
+	isoInst *iso.ISO) error {
 	isoFile, err := os.Create(isoInst.Path)
 	if err != nil {
 		slog.Error("Failed to open iso file", "err", err.Error())

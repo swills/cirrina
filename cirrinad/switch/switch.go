@@ -264,7 +264,8 @@ func BridgeIfAddMember(bridgeName string, memberName string, learn bool) error {
 	// if mac != "" {
 	// 	// https://cgit.freebsd.org/src/tree/sbin/ifconfig/ifbridge.c?id=eba230afba4932f02a1ca44efc797cf7499a5cb0#n405
 	// 	// patched this to 0
-	// 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/obj/usr/src/amd64.amd64/sbin/ifconfig/ifconfig", bridgeName, "static", memberName, mac)
+	// 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/obj/usr/src/amd64.amd64/sbin/ifconfig/ifconfig",
+	//	bridgeName, "static", memberName, mac)
 	// 	cmd.Stdout = &out
 	// 	if err := cmd.Start(); err != nil {
 	// 		return err

@@ -375,7 +375,8 @@ var NicUpdateCmd = &cobra.Command{
 		if NicSwitchIDChanged {
 			newSwitchID = &NicSwitchID
 		}
-		err = rpc.UpdateNic(NicID, newDesc, newMac, newNicType, newNicDevType, newRateLimit, newRateIn, newRateOut, newSwitchID)
+		err = rpc.UpdateNic(NicID, newDesc, newMac, newNicType, newNicDevType,
+			newRateLimit, newRateIn, newRateOut, newSwitchID)
 		if err != nil {
 			return fmt.Errorf("error updating nic: %w", err)
 		}

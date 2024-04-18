@@ -436,7 +436,8 @@ func validateDiskReq(diskUploadReq *cirrina.DiskUploadInfo) (*disk.Disk, error) 
 	return diskInst, nil
 }
 
-func receiveDiskFile(stream cirrina.VMInfo_UploadDiskServer, diskPath string, imageSize uint64, diskUploadReq *cirrina.DiskUploadInfo) error {
+func receiveDiskFile(stream cirrina.VMInfo_UploadDiskServer, diskPath string, imageSize uint64,
+	diskUploadReq *cirrina.DiskUploadInfo) error {
 	diskFile, err := os.Create(diskPath)
 	if err != nil {
 		slog.Error("Failed to open disk file", "err", err.Error())

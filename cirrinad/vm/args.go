@@ -97,7 +97,8 @@ func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (hdArg string, err error) {
 
 	diskPath, err := thisDisk.GetPath()
 	if err != nil {
-		slog.Error("error getting disk path", "diskId", thisDisk.ID, "diskName", thisDisk.Name, "diskPath", diskPath, "err", err)
+		slog.Error("error getting disk path", "diskId", thisDisk.ID, "diskName", thisDisk.Name,
+			"diskPath", diskPath, "err", err)
 
 		return "", fmt.Errorf("error getting disk path: %w", err)
 	}
@@ -136,7 +137,8 @@ func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (hdArg string, err error) {
 
 func (vm *VM) getDiskArg(slot int) ([]string, int) {
 	// TODO don't use one PCI slot per ahci (SATA) disk device, attach multiple disks to each controller
-	maxSataDevs := 32 - slot - 1 // FIXME -- this is awful but needed until we attach multiple sata disks to each controller
+	// FIXME -- this is awful but needed until we attach multiple sata disks to each controller
+	maxSataDevs := 32 - slot - 1
 	sataDevCount := 0
 
 	var diskString []string
