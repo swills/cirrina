@@ -478,6 +478,9 @@ func MacIsBroadcast(macAddress string) (bool, error) {
 	if err != nil {
 		return false, errInvalidMac
 	}
+	if len(newMac.String()) != 17 {
+		return false, errInvalidMac
+	}
 	if bytes.Equal(newMac, []byte{255, 255, 255, 255, 255, 255}) {
 		return true, nil
 	}
@@ -488,6 +491,9 @@ func MacIsBroadcast(macAddress string) (bool, error) {
 func MacIsMulticast(macAddress string) (bool, error) {
 	newMac, err := net.ParseMAC(macAddress)
 	if err != nil {
+		return false, errInvalidMac
+	}
+	if len(newMac.String()) != 17 {
 		return false, errInvalidMac
 	}
 	// https://cgit.freebsd.org/src/tree/usr.sbin/bhyve/net_utils.c?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n56

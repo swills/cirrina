@@ -11,7 +11,6 @@
   * switch, bridge -> always use switch?
   * nic, vmnic -> always use nic?
   * iso, ISO -> always use ISO in messages? something else?
-* Add check that MAC addresses are MAC-48 or EUI-48, not EUI-64 or 20-octet IP over Infiniband addresses
 * Allow `.` in disk file name, if it's not at the start of the file name and if it's not followed by another `.`
 * Disk resize -- include force flag to allow reducing disk size which includes data loss
 * Convert all UUIDs from strings to UUID type

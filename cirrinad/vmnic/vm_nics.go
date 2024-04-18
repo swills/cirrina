@@ -169,6 +169,9 @@ func ParseMac(macAddress string) (res string, err error) {
 	if err != nil {
 		return "", errInvalidMac
 	}
+	if len(newMac.String()) != 17 {
+		return "", errInvalidMac
+	}
 
 	return newMac.String(), nil
 }
@@ -230,6 +233,9 @@ func validateNewNic(vmNicInst *VMNic) (bool, error) {
 	if vmNicInst.Mac != "AUTO" {
 		newMac, err := net.ParseMAC(vmNicInst.Mac)
 		if err != nil {
+			return false, errInvalidMac
+		}
+		if len(newMac.String()) != 17 {
 			return false, errInvalidMac
 		}
 		// normalize MAC
