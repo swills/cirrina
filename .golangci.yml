@@ -112,3 +112,38 @@ linters-settings:
   govet:
     enable:
       - shadow
+      - slog
+      - lostcancel
+      - copylocks
+      - appends
+      - asmdecl
+      - assign
+      - atomic
+      - bools
+      - buildtag
+      - cgocall
+      - composites
+      - copylocks
+      - defers
+      - directive
+      - errorsas
+      - framepointer
+      - httpresponse
+      - ifaceassert
+      - loopclosure
+      - lostcancel
+      - nilfunc
+      - printf
+      - shift
+      - sigchanyzer
+      - slog
+      - stdmethods
+      - stringintconv
+      - structtag
+      - testinggoroutine
+      - tests
+      - timeformat
+      - unmarshal
+      - unreachable
+      - unsafeptr
+      - unusedresult
