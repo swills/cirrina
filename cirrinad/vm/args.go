@@ -143,8 +143,8 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 
 	var diskString []string
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
-	diskIds := strings.Split(vm.Config.Disks, ",")
-	for _, diskID := range diskIds {
+	diskIDs := strings.Split(vm.Config.Disks, ",")
+	for _, diskID := range diskIDs {
 		if diskID == "" {
 			continue
 		}

@@ -121,13 +121,12 @@ func checkExistingPidFile(pidFilePath string) {
 	if procExists {
 		slog.Error("duplicate processes not allowed, please kill existing pid", "existingPid", existingPid)
 		os.Exit(1)
-	} else {
-		slog.Warn("left over pid file detected, but process seems not to exist, deleting pid file")
-		err := os.Remove(pidFilePath)
-		if err != nil {
-			slog.Error("failed removing leftover pid file, please fix")
-			os.Exit(1)
-		}
+	}
+	slog.Warn("left over pid file detected, but process seems not to exist, deleting pid file")
+	err = os.Remove(pidFilePath)
+	if err != nil {
+		slog.Error("failed removing leftover pid file, please fix")
+		os.Exit(1)
 	}
 }
 
@@ -196,7 +195,7 @@ var rootCmd = &cobra.Command{
 	Use:          "cirrinad",
 	Version:      mainVersion,
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
 		signals := make(chan os.Signal, 1)

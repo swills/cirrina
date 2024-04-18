@@ -18,7 +18,7 @@ var VMNicsListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "Get list of NICs connected to VM",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		if VMID == "" {
 			VMID, err = rpc.VMNameToID(VMName)
@@ -40,12 +40,12 @@ var VMNicsListCmd = &cobra.Command{
 		}
 		nicInfos := make(map[string]nicListInfo)
 
-		var nicIds []string
-		nicIds, err = rpc.GetVMNics(VMID)
+		var nicIDs []string
+		nicIDs, err = rpc.GetVMNics(VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting VM NICs: %w", err)
 		}
-		for _, id := range nicIds {
+		for _, id := range nicIDs {
 			nicInfo, err := rpc.GetVMNicInfo(id)
 			if err != nil {
 				return fmt.Errorf("failed getting NIC info: %w", err)
@@ -132,7 +132,7 @@ var VMNicsAddCmd = &cobra.Command{
 	Use:          "add",
 	Short:        "Add NIC to VM",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
 		if VMID == "" {
@@ -153,15 +153,15 @@ var VMNicsAddCmd = &cobra.Command{
 				return errNicNotFound
 			}
 		}
-		var nicIds []string
-		nicIds, err = rpc.GetVMNics(VMID)
+		var nicIDs []string
+		nicIDs, err = rpc.GetVMNics(VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting VM NICs: %w", err)
 		}
 
-		nicIds = append(nicIds, NicID)
+		nicIDs = append(nicIDs, NicID)
 		var res bool
-		res, err = rpc.VMSetNics(VMID, nicIds)
+		res, err = rpc.VMSetNics(VMID, nicIDs)
 		if err != nil {
 			return fmt.Errorf("failed setting VM NICs: %w", err)
 		}
@@ -178,7 +178,7 @@ var VMNicsRmCmd = &cobra.Command{
 	Use:          "remove",
 	Short:        "Un-attach a NIC from a VM",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
 		if VMID == "" {
@@ -200,21 +200,21 @@ var VMNicsRmCmd = &cobra.Command{
 			}
 		}
 
-		var nicIds []string
-		nicIds, err = rpc.GetVMNics(VMID)
+		var nicIDs []string
+		nicIDs, err = rpc.GetVMNics(VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting VM NICs: %w", err)
 		}
 
-		var newNicIds []string
-		for _, id := range nicIds {
+		var newNicIDs []string
+		for _, id := range nicIDs {
 			if id != NicID {
-				newNicIds = append(newNicIds, id)
+				newNicIDs = append(newNicIDs, id)
 			}
 		}
 
 		var res bool
-		res, err = rpc.VMSetNics(VMID, newNicIds)
+		res, err = rpc.VMSetNics(VMID, newNicIDs)
 		if err != nil {
 			return fmt.Errorf("failed setting VM NICs: %w", err)
 		}

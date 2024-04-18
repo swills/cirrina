@@ -31,11 +31,11 @@ func GetVMIsos(id string) ([]string, error) {
 	return rv, nil
 }
 
-func VMSetIsos(id string, isoIds []string) (bool, error) {
+func VMSetIsos(id string, isoIDs []string) (bool, error) {
 	var err error
 	setISOReq := cirrina.SetISOReq{
 		Id:    id,
-		Isoid: isoIds,
+		Isoid: isoIDs,
 	}
 	var res *cirrina.ReqBool
 	res, err = serverClient.SetVMISOs(defaultServerContext, &setISOReq)

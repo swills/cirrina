@@ -205,7 +205,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 	}
 
 	for {
-		err2, done := comInteractiveStreamReceive(stream, vmInst, thisCom, thisComLog, vl)
+		done, err2 := comInteractiveStreamReceive(stream, vmInst, thisCom, thisComLog, vl)
 		if done {
 			return err2
 		}
@@ -239,30 +239,30 @@ func comInteractiveSetup(thisCom *serial.Port) error {
 
 // comInteractiveStreamReceive user -> com and/or log
 func comInteractiveStreamReceive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM,
-	thisCom *serial.Port, thisComLog bool, vl *os.File) (error, bool) {
+	thisCom *serial.Port, thisComLog bool, vl *os.File) (bool, error) {
 	if !vmInst.Running() {
-		return nil, true
+		return true, nil
 	}
 	in, err := stream.Recv()
 	if errors.Is(err, io.EOF) {
-		return nil, true
+		return true, nil
 	}
 	if err != nil {
-		return fmt.Errorf("error receiving from com stream: %w", err), true
+		return true, fmt.Errorf("error receiving from com stream: %w", err)
 	}
 	inBytes := in.GetComInBytes()
 	_, err = thisCom.Write(inBytes)
 	if err != nil {
-		return fmt.Errorf("error writing to com: %w", err), true
+		return true, fmt.Errorf("error writing to com: %w", err)
 	}
 	if thisComLog {
 		_, err = vl.Write(inBytes)
 		if err != nil {
-			return fmt.Errorf("error writing to com log: %w", err), true
+			return true, fmt.Errorf("error writing to com log: %w", err)
 		}
 	}
 
-	return nil, false
+	return false, nil
 }
 
 // comInteractiveStreamSend com -> user and/or log

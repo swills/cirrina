@@ -143,7 +143,7 @@ func (req *Request) Failed() {
 }
 
 // PendingReqExists return pending request IDs for given object ID
-func PendingReqExists(objID string) (reqIds []string) {
+func PendingReqExists(objID string) (reqIDs []string) {
 	db := GetReqDB()
 	var err error
 	var incompleteRequests []Request
@@ -162,7 +162,7 @@ func PendingReqExists(objID string) (reqIds []string) {
 				continue
 			}
 			if reqData.VMID == objID {
-				reqIds = append(reqIds, incompleteRequest.ID)
+				reqIDs = append(reqIDs, incompleteRequest.ID)
 			}
 		case NICCLONE:
 			var reqData VMCloneReqData
@@ -171,12 +171,12 @@ func PendingReqExists(objID string) (reqIds []string) {
 				continue
 			}
 			if reqData.VMID == objID {
-				reqIds = append(reqIds, incompleteRequest.ID)
+				reqIDs = append(reqIDs, incompleteRequest.ID)
 			}
 		}
 	}
 
-	return reqIds
+	return reqIDs
 }
 
 func FailAllPending() (cleared int64) {

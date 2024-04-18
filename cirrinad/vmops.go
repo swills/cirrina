@@ -25,8 +25,8 @@ func startVM(rs *requests.Request) {
 
 		return
 	}
-	pendingReqIds := requests.PendingReqExists(reqData.VMID)
-	for _, pendingReqID := range pendingReqIds {
+	pendingReqIDs := requests.PendingReqExists(reqData.VMID)
+	for _, pendingReqID := range pendingReqIDs {
 		if pendingReqID != rs.ID {
 			slog.Error("failing request to start VM which has pending request", "vm", vmInst.ID)
 			rs.Failed()
@@ -61,8 +61,8 @@ func stopVM(rs *requests.Request) {
 		return
 	}
 	slog.Debug("stopping VM", "vm", reqData.VMID)
-	pendingReqIds := requests.PendingReqExists(reqData.VMID)
-	for _, pendingReqID := range pendingReqIds {
+	pendingReqIDs := requests.PendingReqExists(reqData.VMID)
+	for _, pendingReqID := range pendingReqIDs {
 		if pendingReqID != rs.ID {
 			slog.Error("failing request to stop VM which has pending request", "vm", vmInst.ID)
 			rs.Failed()
@@ -96,8 +96,8 @@ func deleteVM(rs *requests.Request) {
 
 		return
 	}
-	pendingReqIds := requests.PendingReqExists(reqData.VMID)
-	for _, pendingReqID := range pendingReqIds {
+	pendingReqIDs := requests.PendingReqExists(reqData.VMID)
+	for _, pendingReqID := range pendingReqIDs {
 		if pendingReqID != rs.ID {
 			slog.Error("failing request to delete VM which has pending request", "vm", vmInst.ID)
 			rs.Failed()

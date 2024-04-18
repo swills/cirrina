@@ -27,7 +27,7 @@ func AddIso(name string, descr string) (string, error) {
 	return res.Value, nil
 }
 
-func GetIsoIds() ([]string, error) {
+func GetIsoIDs() ([]string, error) {
 	var err error
 	var ids []string
 	var res cirrina.VMInfo_GetISOsClient
@@ -87,14 +87,14 @@ func IsoNameToID(name string) (string, error) {
 	if name == "" {
 		return "", errIsoEmptyName
 	}
-	isoIds, err := GetIsoIds()
+	isoIDs, err := GetIsoIDs()
 	if err != nil {
 		return "", err
 	}
 
 	found := false
 	var isoID string
-	for _, aIsoID := range isoIds {
+	for _, aIsoID := range isoIDs {
 		var isoInfo IsoInfo
 		isoInfo, err = GetIsoInfo(aIsoID)
 		if err != nil {

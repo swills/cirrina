@@ -127,14 +127,14 @@ func NicNameToID(name string) (nicID string, err error) {
 	if name == "" {
 		return "", errNicEmptyName
 	}
-	var nicIds []string
-	nicIds, err = GetVMNicsAll()
+	var nicIDs []string
+	nicIDs, err = GetVMNicsAll()
 	if err != nil {
 		return "", err
 	}
 
 	found := false
-	for _, aNicID := range nicIds {
+	for _, aNicID := range nicIDs {
 		res, err := GetVMNicInfo(aNicID)
 		if err != nil {
 			return "", err

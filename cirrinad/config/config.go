@@ -1,6 +1,6 @@
 package config
 
-type ConfigType struct {
+type Info struct {
 	Sys struct {
 		Sudo        string
 		PidFilePath string
@@ -53,4 +53,4 @@ type ConfigType struct {
 	}
 }
 
-var Config ConfigType
+var Config Info

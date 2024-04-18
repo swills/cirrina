@@ -82,6 +82,7 @@ linters:
     - wrapcheck
     - goerr113
     - lll
+    - revive
 
 issues:
   exclude-rules:

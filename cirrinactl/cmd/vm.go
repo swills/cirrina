@@ -136,14 +136,14 @@ var VMCreateCmd = &cobra.Command{
 	Use:          "create",
 	Short:        "Create a VM",
 	SilenceUsage: true,
-	Args: func(cmd *cobra.Command, args []string) error {
+	Args: func(cmd *cobra.Command, _ []string) error {
 		VMDescriptionChanged = cmd.Flags().Changed("description")
 		CpusChanged = cmd.Flags().Changed("cpus")
 		MemChanged = cmd.Flags().Changed("mem")
 
 		return nil
 	},
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		if VMName == "" {
 			return errVMEmptyName
 		}
@@ -187,7 +187,7 @@ var VMListCmd = &cobra.Command{
 	Short:        "List VMs",
 	Long:         `List all VMs on specified server and their state`,
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		ids, err := rpc.GetVMIds()
 		if err != nil {
 			return fmt.Errorf("error getting VM IDs: %w", err)
@@ -291,7 +291,7 @@ var VMDestroyCmd = &cobra.Command{
 	Use:          "destroy",
 	Short:        "Remove a VM",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		if VMID == "" {
 			VMID, err = rpc.VMNameToID(VMName)
@@ -327,7 +327,7 @@ var VMStopCmd = &cobra.Command{
 	Use:          "stop",
 	Short:        "Stop a VM",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		if VMID == "" {
 			VMID, err = rpc.VMNameToID(VMName)
@@ -394,7 +394,7 @@ var VMStartCmd = &cobra.Command{
 	Use:          "start",
 	Short:        "Start a VM",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
 		if VMID == "" {
@@ -464,7 +464,7 @@ var VMStartCmd = &cobra.Command{
 var VMConfigCmd = &cobra.Command{
 	Use:   "config",
 	Short: "Reconfigure a VM",
-	Args: func(cmd *cobra.Command, args []string) error {
+	Args: func(cmd *cobra.Command, _ []string) error {
 		VMDescriptionChanged = cmd.Flags().Changed("description")
 		CpusChanged = cmd.Flags().Changed("cpus")
 		MemChanged = cmd.Flags().Changed("mem")
@@ -523,7 +523,7 @@ var VMConfigCmd = &cobra.Command{
 		return nil
 	},
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
 		if VMID == "" {
@@ -784,7 +784,7 @@ var VMConfigCmd = &cobra.Command{
 var VMGetCmd = &cobra.Command{
 	Use:   "get",
 	Short: "Get info on a VM",
-	Args: func(cmd *cobra.Command, args []string) error {
+	Args: func(_ *cobra.Command, _ []string) error {
 		switch outputFormatString {
 		case "TXT":
 			outputFormat = TXT
@@ -805,7 +805,7 @@ var VMGetCmd = &cobra.Command{
 		return nil
 	},
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
 		if VMID == "" {
@@ -935,7 +935,7 @@ var VMClearUefiVarsCmd = &cobra.Command{
 	Use:          "clearuefivars",
 	Short:        "Clear UEFI variable state",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
 		if VMID == "" {

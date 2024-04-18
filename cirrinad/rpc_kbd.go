@@ -57,7 +57,7 @@ func GetKbdDescription(path string) (description string, err error) {
 	lineNo := 0
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		lineNo += 1
+		lineNo++
 		if lineNo > 2 {
 			continue
 		}

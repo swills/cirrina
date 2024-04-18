@@ -12,7 +12,7 @@ var HostNicsCmd = &cobra.Command{
 	Use:          "getnics",
 	Short:        "Get list of host nics",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		res, err := rpc.GetHostNics()
 		if err != nil {
 			return fmt.Errorf("failed getting host nics: %w", err)
@@ -29,7 +29,7 @@ var HostVersionCmd = &cobra.Command{
 	Use:          "version",
 	Short:        "Get host daemon version",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		var res string
 		err = hostPing()

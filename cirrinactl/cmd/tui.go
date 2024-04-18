@@ -16,7 +16,7 @@ var TuiCmd = &cobra.Command{
 	Use:          "tui",
 	Short:        "Start terminal UI",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		serverAddr := rpc.ServerName + ":" + strconv.FormatInt(int64(rpc.ServerPort), 10)
 		err := StartTui(serverAddr)
 		if err != nil {
@@ -44,16 +44,16 @@ var vncButton *tview.Button
 var vmItems []vmItem
 
 func getVMItems() ([]vmItem, error) {
-	var vmIds []string
+	var vmIDs []string
 	var vmItems []vmItem
 	var err error
 
-	vmIds, err = rpc.GetVMIds()
+	vmIDs, err = rpc.GetVMIds()
 	if err != nil {
 		return []vmItem{}, fmt.Errorf("error getting vm list: %w", err)
 	}
 
-	for _, vmID := range vmIds {
+	for _, vmID := range vmIDs {
 		var res rpc.VMConfig
 		res, err = rpc.GetVMConfig(vmID)
 		if err != nil {

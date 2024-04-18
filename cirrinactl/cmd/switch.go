@@ -28,7 +28,7 @@ var SwitchListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "list virtual switches",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		res, err := rpc.GetSwitches()
 		if err != nil {
 			return fmt.Errorf("error getting switches: %w", err)
@@ -95,7 +95,7 @@ var SwitchCreateCmd = &cobra.Command{
 		"of type if_bridge must be named starting with \"bridge\" followed " +
 		"by a number, for example \"bridge0\".\nSwitches of type netgraph " +
 		"must be named starting with \"bnet\" followed by a number, for example \"bnet0\".",
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		if SwitchName == "" {
 			return errSwitchEmptyName
 		}
@@ -113,7 +113,7 @@ var SwitchDestroyCmd = &cobra.Command{
 	Use:          "destroy",
 	Short:        "destroy virtual switch",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		if SwitchID == "" {
 			SwitchID, err = rpc.SwitchNameToID(SwitchName)
@@ -139,7 +139,7 @@ var SwitchUplinkCmd = &cobra.Command{
 	Use:          "set-uplink",
 	Short:        "set switch uplink",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		if SwitchID == "" {
 			SwitchID, err = rpc.SwitchNameToID(SwitchName)
@@ -164,12 +164,12 @@ var SwitchUpdateCmd = &cobra.Command{
 	Use:          "update",
 	Short:        "update switch",
 	SilenceUsage: true,
-	Args: func(cmd *cobra.Command, args []string) error {
+	Args: func(cmd *cobra.Command, _ []string) error {
 		SwitchDescriptionChanged = cmd.Flags().Changed("description")
 
 		return nil
 	},
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		if SwitchID == "" {
 			SwitchID, err = rpc.SwitchNameToID(SwitchName)

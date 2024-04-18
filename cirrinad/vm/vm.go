@@ -809,7 +809,7 @@ func (vm *VM) DeleteUEFIState() error {
 	return nil
 }
 
-func (vm *VM) AttachIsos(isoIds []string) error {
+func (vm *VM) AttachIsos(isoIDs []string) error {
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 
@@ -817,7 +817,7 @@ func (vm *VM) AttachIsos(isoIds []string) error {
 		return errVMNotStopped
 	}
 
-	for _, aIso := range isoIds {
+	for _, aIso := range isoIDs {
 		slog.Debug("checking iso exists", "iso", aIso)
 
 		isoUUID, err := uuid.Parse(aIso)
@@ -839,12 +839,12 @@ func (vm *VM) AttachIsos(isoIds []string) error {
 	var isoConfigVal string
 	count := 0
 
-	for _, isoID := range isoIds {
+	for _, isoID := range isoIDs {
 		if count > 0 {
 			isoConfigVal += ","
 		}
 		isoConfigVal += isoID
-		count += 1
+		count++
 	}
 	vm.Config.ISOs = isoConfigVal
 	err := vm.Save()
@@ -858,7 +858,7 @@ func (vm *VM) AttachIsos(isoIds []string) error {
 }
 
 // SetNics sets the list of nics attached to a VM to the list passed in
-func (vm *VM) SetNics(nicIds []string) error {
+func (vm *VM) SetNics(nicIDs []string) error {
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	if vm.Status != STOPPED {
@@ -872,13 +872,13 @@ func (vm *VM) SetNics(nicIds []string) error {
 	}
 
 	// check that these nics can be attached to this VM
-	err = validateNics(nicIds, vm)
+	err = validateNics(nicIDs, vm)
 	if err != nil {
 		return err
 	}
 
 	// add the nics
-	for _, nicID := range nicIds {
+	for _, nicID := range nicIDs {
 		vmNic, err := vmnic.GetByID(nicID)
 		if err != nil {
 			slog.Error("error looking up nic", "err", err)
@@ -918,7 +918,7 @@ func (vm *VM) AttachDisks(diskids []string) error {
 			disksConfigVal += ","
 		}
 		disksConfigVal += diskID
-		count += 1
+		count++
 	}
 	vm.Config.Disks = disksConfigVal
 	err = vm.Save()
@@ -1300,9 +1300,9 @@ func diskAttached(aDisk string, vm *VM) (bool, error) {
 }
 
 // validateNics check if nics can be attached to a VM
-func validateNics(nicIds []string, vm *VM) error {
+func validateNics(nicIDs []string, vm *VM) error {
 	occurred := map[string]bool{}
-	for _, aNic := range nicIds {
+	for _, aNic := range nicIDs {
 		slog.Debug("checking vm nic exists", "vmnic", aNic)
 
 		nicUUID, err := uuid.Parse(aNic)

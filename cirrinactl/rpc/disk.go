@@ -139,15 +139,15 @@ func DiskNameToID(name string) (string, error) {
 		return "", errDiskEmptyName
 	}
 
-	var diskIds []string
-	diskIds, err = GetDisks()
+	var diskIDs []string
+	diskIDs, err = GetDisks()
 	if err != nil {
 		return "", err
 	}
 
 	found := false
 	var res DiskInfo
-	for _, aDiskID := range diskIds {
+	for _, aDiskID := range diskIDs {
 		res, err = GetDiskInfo(aDiskID)
 		if err != nil {
 			return "", err

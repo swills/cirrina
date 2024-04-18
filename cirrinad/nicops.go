@@ -102,8 +102,8 @@ func nicClone(rs *requests.Request) {
 
 // nicHasPendingReq check if the nic has pending requests other than this one
 func nicHasPendingReq(thisReqID string, nicID string) bool {
-	pendingReqIds := requests.PendingReqExists(nicID)
-	for _, pendingReqID := range pendingReqIds {
+	pendingReqIDs := requests.PendingReqExists(nicID)
+	for _, pendingReqID := range pendingReqIDs {
 		if pendingReqID != thisReqID {
 			return true
 		}

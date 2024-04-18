@@ -15,7 +15,7 @@ var ReqStatCmd = &cobra.Command{
 	Short:        "Get status of request",
 	Long:         "Check if a server request has completed and if it was successful",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		res, err := rpc.ReqStat(ReqID)
 		if err != nil {
 			return fmt.Errorf("error checking request status: %w", err)

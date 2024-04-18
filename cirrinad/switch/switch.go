@@ -293,7 +293,7 @@ func MemberUsedByNgBridge(member string) (bool, error) {
 		var existingMembers []string
 
 		// extra work here since this returns a ngPeer
-		allNgBridgeMembers, err = GetNgBridgeMembers(aBridge)
+		allNgBridgeMembers, err = getNgBridgeMembers(aBridge)
 		if err != nil {
 			slog.Error("error getting ng bridge members", "bridge", aBridge)
 
@@ -358,7 +358,7 @@ func MemberUsedByIfBridge(member string) (bool, error) {
 		slog.Error("error getting all if bridges", "err", err)
 	}
 	for _, aBridge := range allBridges {
-		existingMembers, err := GetIfBridgeMembers(aBridge)
+		existingMembers, err := getIfBridgeMembers(aBridge)
 		if err != nil {
 			slog.Error("error getting if bridge members", "bridge", aBridge)
 
@@ -414,7 +414,7 @@ func BuildIfBridge(switchInst *Switch) error {
 }
 
 func ngGetBridgeNextLink(bridge string) (nextLink string, err error) {
-	bridgePeers, err := GetNgBridgeMembers(bridge)
+	bridgePeers, err := getNgBridgeMembers(bridge)
 	if err != nil {
 		return nextLink, err
 	}
@@ -430,7 +430,7 @@ func GetNgDev(switchID string) (bridge string, peer string, err error) {
 		slog.Error("switch lookup error", "switchid", switchID)
 	}
 
-	bridgePeers, err := GetNgBridgeMembers(thisSwitch.Name)
+	bridgePeers, err := getNgBridgeMembers(thisSwitch.Name)
 	if err != nil {
 		return "", "", err
 	}

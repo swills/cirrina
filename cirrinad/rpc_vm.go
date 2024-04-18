@@ -666,8 +666,8 @@ func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestI
 	if vmInst.Name == "" {
 		return &cirrina.RequestID{}, errNotFound
 	}
-	pendingReqIds := requests.PendingReqExists(v.Value)
-	if len(pendingReqIds) > 0 {
+	pendingReqIDs := requests.PendingReqExists(v.Value)
+	if len(pendingReqIDs) > 0 {
 		return &cirrina.RequestID{}, errReqExists
 	}
 	if vmInst.Status != vm.STOPPED {
@@ -842,8 +842,8 @@ func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID
 	if vmInst.Name == "" {
 		return &cirrina.RequestID{}, errNotFound
 	}
-	pendingReqIds := requests.PendingReqExists(v.Value)
-	if len(pendingReqIds) > 0 {
+	pendingReqIDs := requests.PendingReqExists(v.Value)
+	if len(pendingReqIDs) > 0 {
 		return &cirrina.RequestID{}, errReqExists
 	}
 	if vmInst.Status != vm.STOPPED {
@@ -871,8 +871,8 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 	if vmInst.Name == "" {
 		return &cirrina.RequestID{}, errNotFound
 	}
-	pendingReqIds := requests.PendingReqExists(v.Value)
-	if len(pendingReqIds) > 0 {
+	pendingReqIDs := requests.PendingReqExists(v.Value)
+	if len(pendingReqIDs) > 0 {
 		return &cirrina.RequestID{}, errReqExists
 	}
 	if vmInst.Status != vm.RUNNING {

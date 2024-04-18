@@ -16,7 +16,7 @@ var VMIsoListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "Get list of ISOs connected to VM",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		if VMID == "" {
 			VMID, err = rpc.VMNameToID(VMName)
@@ -28,8 +28,8 @@ var VMIsoListCmd = &cobra.Command{
 			}
 		}
 
-		var isoIds []string
-		isoIds, err = rpc.GetVMIsos(VMID)
+		var isoIDs []string
+		isoIDs, err = rpc.GetVMIsos(VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting VM ISOs: %w", err)
 		}
@@ -41,7 +41,7 @@ var VMIsoListCmd = &cobra.Command{
 			size string
 		}
 		isoInfos := make(map[string]isoListInfo)
-		for _, id := range isoIds {
+		for _, id := range isoIDs {
 			var isoInfo rpc.IsoInfo
 			isoInfo, err = rpc.GetIsoInfo(id)
 			if err != nil {
@@ -96,7 +96,7 @@ var VMIsosAddCmd = &cobra.Command{
 	Use:          "add",
 	Short:        "Add ISO to VM",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
 		if VMID == "" {
@@ -118,15 +118,15 @@ var VMIsosAddCmd = &cobra.Command{
 			}
 		}
 
-		var isoIds []string
-		isoIds, err = rpc.GetVMIsos(VMID)
+		var isoIDs []string
+		isoIDs, err = rpc.GetVMIsos(VMID)
 		if err != nil {
 			return fmt.Errorf("failed setting VM ISOs: %w", err)
 		}
 
-		isoIds = append(isoIds, IsoID)
+		isoIDs = append(isoIDs, IsoID)
 		var res bool
-		res, err = rpc.VMSetIsos(VMID, isoIds)
+		res, err = rpc.VMSetIsos(VMID, isoIDs)
 		if err != nil {
 			return fmt.Errorf("failed setting VM ISOs: %w", err)
 		}
@@ -143,7 +143,7 @@ var VMIsosRmCmd = &cobra.Command{
 	Use:          "remove",
 	Short:        "Un-attach a ISO from a VM",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
 		if VMID == "" {
@@ -165,21 +165,21 @@ var VMIsosRmCmd = &cobra.Command{
 			}
 		}
 
-		var isoIds []string
-		isoIds, err = rpc.GetVMIsos(VMID)
+		var isoIDs []string
+		isoIDs, err = rpc.GetVMIsos(VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting VM ISOs: %w", err)
 		}
 
-		var newIsoIds []string
-		for _, id := range isoIds {
+		var newIsoIDs []string
+		for _, id := range isoIDs {
 			if id != IsoID {
-				newIsoIds = append(newIsoIds, id)
+				newIsoIDs = append(newIsoIDs, id)
 			}
 		}
 
 		var res bool
-		res, err = rpc.VMSetIsos(VMID, newIsoIds)
+		res, err = rpc.VMSetIsos(VMID, newIsoIDs)
 		if err != nil {
 			return fmt.Errorf("failed setting VM ISOs: %w", err)
 		}

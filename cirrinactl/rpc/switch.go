@@ -8,7 +8,7 @@ import (
 	"cirrina/cirrina"
 )
 
-func getSwitchIds() ([]string, error) {
+func getSwitchIDs() ([]string, error) {
 	var err error
 	var rv []string
 	var res cirrina.VMInfo_GetSwitchesClient
@@ -37,14 +37,14 @@ func SwitchNameToID(s string) (string, error) {
 
 	rv := ""
 
-	var switchIds []string
-	switchIds, err = getSwitchIds()
+	var switchIDs []string
+	switchIDs, err = getSwitchIDs()
 	if err != nil {
 		return "", err
 	}
 	found := false
 
-	for _, switchID := range switchIds {
+	for _, switchID := range switchIDs {
 		var switchInfo *cirrina.SwitchInfo
 		switchInfo, err = serverClient.GetSwitchInfo(defaultServerContext, &cirrina.SwitchId{Value: switchID})
 		if err != nil {
@@ -53,10 +53,9 @@ func SwitchNameToID(s string) (string, error) {
 		if *switchInfo.Name == s {
 			if found {
 				return "", errSwitchDuplicate
-			} else {
-				found = true
-				rv = switchID
 			}
+			found = true
+			rv = switchID
 		}
 	}
 
@@ -73,9 +72,9 @@ func SwitchIDToName(s string) (string, error) {
 	}
 	if res.Name != nil {
 		return *res.Name, nil
-	} else {
-		return "", nil
 	}
+
+	return "", nil
 }
 
 func GetSwitches() ([]string, error) {

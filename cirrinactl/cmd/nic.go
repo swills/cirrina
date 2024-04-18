@@ -41,7 +41,7 @@ var NicListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "list virtual NICs",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		res, err := rpc.GetVMNicsAll()
 		if err != nil {
 			return fmt.Errorf("error getting all vm nics: %w", err)
@@ -147,7 +147,7 @@ var NicCreateCmd = &cobra.Command{
 	Use:          "create",
 	Short:        "create virtual NIC",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		if NicName == "" {
 			return errNicEmptyName
@@ -181,7 +181,7 @@ var NicRemoveCmd = &cobra.Command{
 	Use:          "destroy",
 	Short:        "remove virtual nic",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		if NicID == "" {
 			NicID, err = rpc.NicNameToID(NicName)
@@ -207,12 +207,12 @@ var NicSetSwitchCmd = &cobra.Command{
 	Short:        "Connect NIC to switch",
 	Long:         "Connect a NIC to a switch, or set switch to empty to remove",
 	SilenceUsage: true,
-	Args: func(cmd *cobra.Command, args []string) error {
+	Args: func(cmd *cobra.Command, _ []string) error {
 		NicSwitchIDChanged = cmd.Flags().Changed("switch-id")
 
 		return nil
 	},
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		if NicID == "" {
 			NicID, err = rpc.NicNameToID(NicName)
@@ -248,7 +248,7 @@ var NicCloneCmd = &cobra.Command{
 	Use:          "clone",
 	Short:        "Clone a NIC",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		if NicID == "" {
 			NicID, err = rpc.NicNameToID(NicName)
@@ -307,7 +307,7 @@ var NicUpdateCmd = &cobra.Command{
 	Use:          "update",
 	Short:        "update NIC",
 	SilenceUsage: true,
-	Args: func(cmd *cobra.Command, args []string) error {
+	Args: func(cmd *cobra.Command, _ []string) error {
 		NicDescriptionChanged = cmd.Flags().Changed("description")
 		NicMacChanged = cmd.Flags().Changed("mac")
 		NicDevTypeChanged = cmd.Flags().Changed("devtype")
@@ -320,7 +320,7 @@ var NicUpdateCmd = &cobra.Command{
 
 		return nil
 	},
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		if NicID == "" {
 			NicID, err = rpc.NicNameToID(NicName)

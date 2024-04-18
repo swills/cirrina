@@ -16,7 +16,7 @@ var VMDisksListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "Get list of disks connected to VM",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		if VMID == "" {
 			VMID, err = rpc.VMNameToID(VMName)
@@ -37,12 +37,12 @@ var VMDisksListCmd = &cobra.Command{
 		}
 
 		diskInfos := make(map[string]diskListInfo)
-		var diskIds []string
-		diskIds, err = rpc.GetVMDisks(VMID)
+		var diskIDs []string
+		diskIDs, err = rpc.GetVMDisks(VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting disks: %w", err)
 		}
-		for _, id := range diskIds {
+		for _, id := range diskIDs {
 			diskInfo, err := rpc.GetDiskInfo(id)
 			if err != nil {
 				return fmt.Errorf("failed getting disk info: %w", err)
@@ -115,7 +115,7 @@ var VMDiskAddCmd = &cobra.Command{
 	Use:          "add",
 	Short:        "Add disk to VM",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
 		if VMID == "" {
@@ -137,17 +137,17 @@ var VMDiskAddCmd = &cobra.Command{
 			}
 		}
 
-		var diskIds []string
-		diskIds, err = rpc.GetVMDisks(VMID)
+		var diskIDs []string
+		diskIDs, err = rpc.GetVMDisks(VMID)
 		if err != nil {
 			if err != nil {
 				return fmt.Errorf("failed getting disks: %w", err)
 			}
 		}
-		diskIds = append(diskIds, DiskID)
+		diskIDs = append(diskIDs, DiskID)
 
 		var res bool
-		res, err = rpc.VMSetDisks(VMID, diskIds)
+		res, err = rpc.VMSetDisks(VMID, diskIDs)
 		if err != nil {
 			return fmt.Errorf("failed setting disks: %w", err)
 		}
@@ -164,7 +164,7 @@ var VMDiskRmCmd = &cobra.Command{
 	Use:          "remove",
 	Short:        "Detach a disk from a VM",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
 		if VMID == "" {
@@ -185,21 +185,21 @@ var VMDiskRmCmd = &cobra.Command{
 				return errDiskNotFound
 			}
 		}
-		var diskIds []string
-		diskIds, err = rpc.GetVMDisks(VMID)
+		var diskIDs []string
+		diskIDs, err = rpc.GetVMDisks(VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting VM disks: %w", err)
 		}
 
-		var newDiskIds []string
-		for _, id := range diskIds {
+		var newDiskIDs []string
+		for _, id := range diskIDs {
 			if id != DiskID {
-				newDiskIds = append(newDiskIds, id)
+				newDiskIDs = append(newDiskIDs, id)
 			}
 		}
 
 		var res bool
-		res, err = rpc.VMSetDisks(VMID, newDiskIds)
+		res, err = rpc.VMSetDisks(VMID, newDiskIDs)
 		if err != nil {
 			return fmt.Errorf("failed setting VM disks: %w", err)
 		}

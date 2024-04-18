@@ -99,7 +99,7 @@ func GetAllNgBridges() (bridges []string, err error) {
 	return bridges, nil
 }
 
-func GetNgBridgeMembers(bridge string) (peers []ngPeer, err error) {
+func getNgBridgeMembers(bridge string) (peers []ngPeer, err error) {
 	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "show",
 		bridge+":")
 	defer func(cmd *exec.Cmd) {
@@ -119,7 +119,7 @@ func GetNgBridgeMembers(bridge string) (peers []ngPeer, err error) {
 	lineNo := 0
 	for scanner.Scan() {
 		text := scanner.Text()
-		lineNo += 1
+		lineNo++
 		if lineNo < 4 {
 			continue
 		}
@@ -153,7 +153,7 @@ func ngBridgeNextLink(peers []ngPeer) (link string) {
 	for !found {
 		linkName = "link" + strconv.Itoa(linkNum)
 		if util.ContainsStr(hooks, linkName) {
-			linkNum += 1
+			linkNum++
 		} else {
 			found = true
 		}
@@ -317,7 +317,7 @@ func createNgBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 }
 
 func bridgeNgDeleteAllPeers(name string) error {
-	bridgePeers, err := GetNgBridgeMembers(name)
+	bridgePeers, err := getNgBridgeMembers(name)
 	slog.Debug("deleting all ng bridge members", "bridge", name, "members", bridgePeers)
 	if err != nil {
 		return err
@@ -350,7 +350,7 @@ func bridgeNgDeletePeer(bridgeName string, hook string) error {
 
 func bridgeNgRemoveUplink(bridgeName string, peerName string) error {
 	var thisPeer ngPeer
-	bridgePeers, err := GetNgBridgeMembers(bridgeName)
+	bridgePeers, err := getNgBridgeMembers(bridgeName)
 	if err != nil {
 		return err
 	}

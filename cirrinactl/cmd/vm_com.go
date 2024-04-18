@@ -13,7 +13,7 @@ var VMCom1Cmd = &cobra.Command{
 	Use:          "useCom1",
 	Short:        "Connect to VMs Com1",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		err := startCom(1)
 		if err != nil {
 			return fmt.Errorf("failed starting com: %w", err)
@@ -27,7 +27,7 @@ var VMCom2Cmd = &cobra.Command{
 	Use:          "useCom2",
 	Short:        "Connect to VMs Com2",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		err := startCom(2)
 		if err != nil {
 			return fmt.Errorf("failed starting com: %w", err)
@@ -41,7 +41,7 @@ var VMCom3Cmd = &cobra.Command{
 	Use:          "useCom3",
 	Short:        "Connect to VMs Com3",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		err := startCom(3)
 		if err != nil {
 			return fmt.Errorf("failed starting com: %w", err)
@@ -55,7 +55,7 @@ var VMCom4Cmd = &cobra.Command{
 	Use:          "useCom4",
 	Short:        "Connect to VMs Com4",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		err := startCom(4)
 		if err != nil {
 			return fmt.Errorf("failed starting com: %w", err)

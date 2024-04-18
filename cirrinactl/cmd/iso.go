@@ -30,8 +30,8 @@ var IsoListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "List ISOs",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
-		ids, err := rpc.GetIsoIds()
+	RunE: func(_ *cobra.Command, _ []string) error {
+		ids, err := rpc.GetIsoIDs()
 		if err != nil {
 			return fmt.Errorf("error getting ISO IDs: %w", err)
 		}
@@ -102,7 +102,7 @@ var IsoCreateCmd = &cobra.Command{
 	Short:        "Create an ISO",
 	Long:         "Create a name entry for an ISO with no content -- see upload to add content",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		if IsoName == "" {
 			return errIsoEmptyName
 		}
@@ -309,7 +309,7 @@ var IsoUploadCmd = &cobra.Command{
 	Short:        "Upload an ISO",
 	Long:         "Upload an ISO image from local storage",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		err = hostPing()
 		if err != nil {
@@ -330,11 +330,11 @@ var IsoUploadCmd = &cobra.Command{
 			}
 		}
 
-		if CheckReqStat {
-			return uploadIsoWithStatus()
-		} else {
+		if !CheckReqStat {
 			return uploadIsoWithoutStatus()
 		}
+
+		return uploadIsoWithStatus()
 	},
 }
 
@@ -342,7 +342,7 @@ var IsoRemoveCmd = &cobra.Command{
 	Use:          "remove",
 	Short:        "Remove an ISO",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		if IsoID == "" {
 			IsoID, err = rpc.IsoNameToID(IsoName)

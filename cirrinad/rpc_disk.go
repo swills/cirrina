@@ -92,9 +92,9 @@ func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskI
 	}
 	if diskInst != nil && diskInst.ID != "" {
 		return &cirrina.DiskId{Value: diskInst.ID}, nil
-	} else {
-		return &cirrina.DiskId{}, errDiskCreateGeneric
 	}
+
+	return &cirrina.DiskId{}, errDiskCreateGeneric
 }
 
 func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.DiskInfo, error) {

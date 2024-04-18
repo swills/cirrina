@@ -31,11 +31,11 @@ func GetVMNics(id string) ([]string, error) {
 	return rv, nil
 }
 
-func VMSetNics(id string, nicIds []string) (bool, error) {
+func VMSetNics(id string, nicIDs []string) (bool, error) {
 	var err error
 	j := cirrina.SetNicReq{
 		Vmid:    id,
-		Vmnicid: nicIds,
+		Vmnicid: nicIDs,
 	}
 	var res *cirrina.ReqBool
 	res, err = serverClient.SetVMNics(defaultServerContext, &j)

@@ -31,11 +31,11 @@ func GetVMDisks(id string) ([]string, error) {
 	return rv, nil
 }
 
-func VMSetDisks(id string, diskIds []string) (bool, error) {
+func VMSetDisks(id string, diskIDs []string) (bool, error) {
 	var err error
 	setDiskReq := cirrina.SetDiskReq{
 		Id:     id,
-		Diskid: diskIds,
+		Diskid: diskIDs,
 	}
 	var res *cirrina.ReqBool
 	res, err = serverClient.SetVMDisks(defaultServerContext, &setDiskReq)

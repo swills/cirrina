@@ -370,8 +370,8 @@ func (s *server) CloneVMNic(_ context.Context, cloneReq *cirrina.VmNicCloneReq) 
 	if vmNicInst.Name == "" {
 		return &cirrina.RequestID{}, errNotFound
 	}
-	pendingReqIds := requests.PendingReqExists(nicUUID.String())
-	if len(pendingReqIds) > 0 {
+	pendingReqIDs := requests.PendingReqExists(nicUUID.String())
+	if len(pendingReqIDs) > 0 {
 		return &cirrina.RequestID{}, errPendingReqExists
 	}
 	newReq, err := requests.CreateNicCloneReq(

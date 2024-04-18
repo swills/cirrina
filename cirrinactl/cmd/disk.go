@@ -38,7 +38,7 @@ var DiskListCmd = &cobra.Command{
 	Use:          "list",
 	Short:        "list disks",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		res, err := rpc.GetDisks()
 		if err != nil {
 			return fmt.Errorf("failed getting disk list: %w", err)
@@ -151,7 +151,7 @@ var DiskCreateCmd = &cobra.Command{
 	Use:          "create",
 	Short:        "create virtual disk",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		if DiskName == "" {
 			return errDiskEmptyName
 		}
@@ -169,7 +169,7 @@ var DiskRemoveCmd = &cobra.Command{
 	Use:          "destroy",
 	Short:        "remove virtual disk",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		if DiskID == "" {
 			DiskID, err = rpc.DiskNameToID(DiskName)
@@ -194,7 +194,7 @@ var DiskUpdateCmd = &cobra.Command{
 	Use:          "modify",
 	Short:        "modify virtual disk",
 	SilenceUsage: true,
-	Args: func(cmd *cobra.Command, args []string) error {
+	Args: func(cmd *cobra.Command, _ []string) error {
 		DiskDescriptionChanged = cmd.Flags().Changed("description")
 		DiskTypeChanged = cmd.Flags().Changed("type")
 		DiskDirectChanged = cmd.Flags().Changed("direct")
@@ -202,7 +202,7 @@ var DiskUpdateCmd = &cobra.Command{
 
 		return nil
 	},
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		var newDescr *string
 		var newType *string
@@ -446,7 +446,7 @@ var DiskUploadCmd = &cobra.Command{
 	Short:        "Upload a disk image",
 	Long:         "Upload a disk image from local storage",
 	SilenceUsage: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		var diskVMID string
 		var diskVMStatus string
@@ -484,11 +484,11 @@ var DiskUploadCmd = &cobra.Command{
 			}
 		}
 
-		if CheckReqStat {
-			return uploadDiskWithStatus()
-		} else {
+		if !CheckReqStat {
 			return uploadDiskWithoutStatus()
 		}
+
+		return uploadDiskWithStatus()
 	},
 }
 
