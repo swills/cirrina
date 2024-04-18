@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 
@@ -19,16 +18,16 @@ import (
 func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrina.ReqStatus, error) {
 	reqUUID, err := uuid.Parse(r.Value)
 	if err != nil {
-		return &cirrina.ReqStatus{}, errors.New("invalid id")
+		return &cirrina.ReqStatus{}, errInvalidID
 	}
 	rs, err := requests.GetByID(reqUUID.String())
 	if err != nil {
 		slog.Error("ReqStatus error getting req", "vm", r.Value, "err", err)
 
-		return &cirrina.ReqStatus{}, errors.New("not found")
+		return &cirrina.ReqStatus{}, errNotFound
 	}
 	if rs.ID == "" {
-		return &cirrina.ReqStatus{}, errors.New("not found")
+		return &cirrina.ReqStatus{}, errNotFound
 	}
 	res := &cirrina.ReqStatus{
 		Complete: rs.Complete,
@@ -44,18 +43,18 @@ func (s *server) ClearUEFIState(_ context.Context, v *cirrina.VMID) (*cirrina.Re
 
 	vmUUID, err := uuid.Parse(v.Value)
 	if err != nil {
-		return &re, errors.New("invalid id")
+		return &re, errInvalidID
 	}
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
 		slog.Error("ClearUEFIState error getting vm", "vm", v.Value, "err", err)
 
-		return &re, errors.New("not found")
+		return &re, errNotFound
 	}
 	if vmInst.Name == "" {
 		slog.Debug("vm not found")
 
-		return &re, errors.New("not found")
+		return &re, errNotFound
 	}
 	err = vmInst.DeleteUEFIState()
 	if err != nil {

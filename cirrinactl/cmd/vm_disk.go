@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -25,7 +24,7 @@ var VMDisksListCmd = &cobra.Command{
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
-				return errors.New("VM not found")
+				return errVMNotFound
 			}
 		}
 
@@ -125,7 +124,7 @@ var VMDiskAddCmd = &cobra.Command{
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
-				return errors.New("VM not found")
+				return errVMNotFound
 			}
 		}
 		if DiskID == "" {
@@ -134,7 +133,7 @@ var VMDiskAddCmd = &cobra.Command{
 				return fmt.Errorf("failed getting disk ID: %w", err)
 			}
 			if DiskID == "" {
-				return errors.New("disk not found")
+				return errDiskNotFound
 			}
 		}
 
@@ -153,7 +152,7 @@ var VMDiskAddCmd = &cobra.Command{
 			return fmt.Errorf("failed setting disks: %w", err)
 		}
 		if !res {
-			return errors.New("failed")
+			return errReqFailed
 		}
 		fmt.Printf("Added\n")
 
@@ -174,7 +173,7 @@ var VMDiskRmCmd = &cobra.Command{
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
-				return errors.New("VM not found")
+				return errVMNotFound
 			}
 		}
 		if DiskID == "" {
@@ -183,7 +182,7 @@ var VMDiskRmCmd = &cobra.Command{
 				return fmt.Errorf("failed getting disk ID: %w", err)
 			}
 			if DiskID == "" {
-				return errors.New("disk not found")
+				return errDiskNotFound
 			}
 		}
 		var diskIds []string
@@ -205,7 +204,7 @@ var VMDiskRmCmd = &cobra.Command{
 			return fmt.Errorf("failed setting VM disks: %w", err)
 		}
 		if !res {
-			return errors.New("failed")
+			return errReqFailed
 		}
 		fmt.Printf("Disk removed from VM\n")
 

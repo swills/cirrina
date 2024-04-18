@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 
@@ -22,7 +21,7 @@ func (s *server) AddVMNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 	var err error
 
 	if v.Name == nil || !util.ValidNicName(*v.Name) {
-		return vmNicID, errors.New("invalid name")
+		return vmNicID, errInvalidName
 	}
 	vmNicInst.Name = *v.Name
 
@@ -61,11 +60,11 @@ func (s *server) AddVMNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 	if err != nil {
 		return &cirrina.VmNicId{}, fmt.Errorf("error creating VM: %w", err)
 	}
-	if newVMNicID != "" {
-		return &cirrina.VmNicId{Value: newVMNicID}, nil
-	} else {
-		return &cirrina.VmNicId{}, errors.New("unknown error creating VMNic")
+	if newVMNicID == "" {
+		return &cirrina.VmNicId{}, errNicUnknown
 	}
+
+	return &cirrina.VmNicId{Value: newVMNicID}, nil
 }
 
 func (s *server) GetVMNicsAll(_ *cirrina.VmNicsQuery, stream cirrina.VMInfo_GetVMNicsAllServer) error {
@@ -89,16 +88,16 @@ func (s *server) GetVMNicInfo(_ context.Context, v *cirrina.VmNicId) (*cirrina.V
 
 	nicUUID, err := uuid.Parse(v.Value)
 	if err != nil {
-		return &pvmnicinfo, errors.New("id not specified or invalid")
+		return &pvmnicinfo, errInvalidID
 	}
 	vmNic, err := vmnic.GetByID(nicUUID.String())
 	if err != nil {
 		slog.Error("error getting nic", "vm", v.Value, "err", err)
 
-		return &pvmnicinfo, errors.New("not found")
+		return &pvmnicinfo, fmt.Errorf("error getting nic: %w", err)
 	}
 	if vmNic.Name == "" {
-		return &pvmnicinfo, errors.New("not found")
+		return &pvmnicinfo, errNotFound
 	}
 
 	NetTypeVIRTIONET := cirrina.NetType_VIRTIONET
@@ -145,24 +144,24 @@ func (s *server) SetVMNicSwitch(_ context.Context, v *cirrina.SetVmNicSwitchReq)
 	r.Success = false
 
 	if v.Vmnicid == nil || v.Vmnicid.Value == "" {
-		return &r, errors.New("nic id not specified or invalid")
+		return &r, errInvalidNicID
 	}
 	nicUUID, err := uuid.Parse(v.Vmnicid.Value)
 	if err != nil {
-		return &r, errors.New("nic id not specified or invalid")
+		return &r, fmt.Errorf("error parsing NIC ID: %w", err)
 	}
 	vmNic, err := vmnic.GetByID(nicUUID.String())
 	if err != nil {
 		slog.Error("error getting nic", "vm", v.Vmnicid.Value, "err", err)
 
-		return &r, errors.New("nic not found")
+		return &r, errNotFound
 	}
 	if vmNic.Name == "" {
-		return &r, errors.New("nic not found")
+		return &r, errNotFound
 	}
 
 	if v.Switchid == nil {
-		return &r, errors.New("switch id not specified or invalid")
+		return &r, errSwitchNotFound
 	}
 
 	var switchID string
@@ -171,16 +170,16 @@ func (s *server) SetVMNicSwitch(_ context.Context, v *cirrina.SetVmNicSwitchReq)
 	} else {
 		switchUUID, err := uuid.Parse(v.Switchid.Value)
 		if err != nil {
-			return &r, errors.New("id not specified or invalid")
+			return &r, fmt.Errorf("error parsing switch ID: %w", err)
 		}
 		vmSwitch, err := _switch.GetByID(switchUUID.String())
 		if err != nil {
 			slog.Error("error getting switch info", "switch", v.Switchid.Value, "err", err)
 
-			return &r, errors.New("switch not found")
+			return &r, fmt.Errorf("error getting switch: %w", err)
 		}
 		if vmSwitch.Name == "" {
-			return &r, errors.New("switch not found")
+			return &r, errSwitchNotFound
 		}
 		switchID = vmSwitch.ID
 	}
@@ -201,16 +200,16 @@ func (s *server) RemoveVMNic(_ context.Context, vn *cirrina.VmNicId) (*cirrina.R
 
 	nicUUID, err := uuid.Parse(vn.Value)
 	if err != nil {
-		return &re, errors.New("id not specified or invalid")
+		return &re, fmt.Errorf("error parsing NIC ID: %w", err)
 	}
 	vmNic, err := vmnic.GetByID(nicUUID.String())
 	if err != nil {
 		slog.Error("error getting nic", "vm", vn.Value, "err", err)
 
-		return &re, errors.New("not found")
+		return &re, fmt.Errorf("error getting NIC: %w", err)
 	}
 	if vmNic.Name == "" {
-		return &re, errors.New("not found")
+		return &re, errNotFound
 	}
 
 	allVms := vm.GetAll()
@@ -221,7 +220,7 @@ func (s *server) RemoveVMNic(_ context.Context, vn *cirrina.VmNicId) (*cirrina.R
 		}
 		for _, aNic := range nics {
 			if aNic.ID == nicUUID.String() {
-				return &re, errors.New("nic in use")
+				return &re, errNicInUse
 			}
 		}
 	}
@@ -240,16 +239,16 @@ func (s *server) GetVMNicVM(_ context.Context, i *cirrina.VmNicId) (v *cirrina.V
 
 	nicUUID, err := uuid.Parse(i.Value)
 	if err != nil {
-		return &pvmID, errors.New("id not specified or invalid")
+		return &pvmID, fmt.Errorf("error parsing id: %w", err)
 	}
 	vmNic, err := vmnic.GetByID(nicUUID.String())
 	if err != nil {
 		slog.Error("error getting nic", "vm", i.Value, "err", err)
 
-		return &pvmID, errors.New("not found")
+		return &pvmID, fmt.Errorf("error looking up NIC: %w", err)
 	}
 	if vmNic.Name == "" {
-		return &pvmID, errors.New("not found")
+		return &pvmID, errNotFound
 	}
 
 	allVMs := vm.GetAll()
@@ -262,7 +261,7 @@ func (s *server) GetVMNicVM(_ context.Context, i *cirrina.VmNicId) (v *cirrina.V
 					"vmid", thisVM.ID,
 				)
 
-				return nil, errors.New("nic in use by more than one VM")
+				return nil, errNicInUseByMultipleVMs
 			}
 			found = true
 			pvmID.Value = thisVM.ID
@@ -298,12 +297,12 @@ func (s *server) UpdateVMNic(_ context.Context, v *cirrina.VmNicInfoUpdate) (*ci
 	vmNicInst, isValid := updateReqIsValid(v)
 
 	if !isValid {
-		return &re, errors.New("request error")
+		return &re, errInvalidRequest
 	}
 
 	if v.Name != nil {
 		if !util.ValidNicName(*v.Name) {
-			return &re, errors.New("invalid name")
+			return &re, errInvalidName
 		}
 		vmNicInst.Name = *v.Name
 	}
@@ -354,26 +353,26 @@ func (s *server) UpdateVMNic(_ context.Context, v *cirrina.VmNicInfoUpdate) (*ci
 func (s *server) CloneVMNic(_ context.Context, cloneReq *cirrina.VmNicCloneReq) (*cirrina.RequestID, error) {
 	if cloneReq == nil || cloneReq.Vmnicid == nil || cloneReq.Vmnicid.Value == "" ||
 		cloneReq.NewVmNicName == nil || cloneReq.NewVmNicName.String() == "" {
-		return &cirrina.RequestID{}, errors.New("request error")
+		return &cirrina.RequestID{}, errInvalidRequest
 	}
 
 	nicUUID, err := uuid.Parse(cloneReq.Vmnicid.Value)
 	if err != nil {
-		return &cirrina.RequestID{}, errors.New("request error")
+		return &cirrina.RequestID{}, errInvalidRequest
 	}
 
 	vmNicInst, err := vmnic.GetByID(nicUUID.String())
 	if err != nil {
 		slog.Error("error finding clone nic", "vm", cloneReq.Vmnicid.Value, "err", err)
 
-		return &cirrina.RequestID{}, errors.New("not found")
+		return &cirrina.RequestID{}, fmt.Errorf("error finding clone nic: %w", err)
 	}
 	if vmNicInst.Name == "" {
-		return &cirrina.RequestID{}, errors.New("not found")
+		return &cirrina.RequestID{}, errNotFound
 	}
 	pendingReqIds := requests.PendingReqExists(nicUUID.String())
 	if len(pendingReqIds) > 0 {
-		return &cirrina.RequestID{}, fmt.Errorf("pending request for %v already exists", cloneReq.Vmnicid.Value)
+		return &cirrina.RequestID{}, errPendingReqExists
 	}
 	newReq, err := requests.CreateNicCloneReq(
 		nicUUID.String(), cloneReq.NewVmNicName.Value,

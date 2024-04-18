@@ -2,22 +2,15 @@ package rpc
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/status"
 
 	"cirrina/cirrina"
 )
-
-type NotFoundError struct{}
-
-func (m NotFoundError) Error() string {
-	return "not found"
-}
 
 type DiskInfo struct {
 	Name        string
@@ -149,7 +142,7 @@ func GetConn() error {
 	// build server connection and client
 	serverConn, err = grpc.Dial(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return errors.New(status.Convert(err).Message())
+		return fmt.Errorf("unable to connect: %w", err)
 	}
 
 	serverClient = cirrina.NewVMInfoClient(serverConn)

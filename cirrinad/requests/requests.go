@@ -3,7 +3,6 @@ package requests
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -74,7 +73,7 @@ func CreateNicCloneReq(nicID string, newName string) (req Request, err error) {
 	}
 	res := db.Create(&newReq)
 	if res.RowsAffected != 1 {
-		return Request{}, errors.New("failed to create request")
+		return Request{}, errRequestCreateFailure
 	}
 
 	return newReq, nil
@@ -95,7 +94,7 @@ func CreateVMReq(r reqType, vmID string) (req Request, err error) {
 	}
 	res := db.Create(&newReq)
 	if res.RowsAffected != 1 {
-		return Request{}, errors.New("failed to create request")
+		return Request{}, errRequestCreateFailure
 	}
 
 	return newReq, nil

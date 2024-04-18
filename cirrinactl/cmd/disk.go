@@ -153,7 +153,7 @@ var DiskCreateCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if DiskName == "" {
-			return errors.New("empty disk name")
+			return errDiskEmptyName
 		}
 		res, err := rpc.AddDisk(DiskName, DiskDescription, DiskSize, DiskType, DiskDevType, DiskCache, DiskDirect)
 		if err != nil {
@@ -177,7 +177,7 @@ var DiskRemoveCmd = &cobra.Command{
 				return fmt.Errorf("failed getting disk ID: %w", err)
 			}
 			if DiskID == "" {
-				return errors.New("disk not found")
+				return errDiskNotFound
 			}
 		}
 		err = rpc.RmDisk(DiskID)
@@ -215,7 +215,7 @@ var DiskUpdateCmd = &cobra.Command{
 				return fmt.Errorf("failed getting disk ID: %w", err)
 			}
 			if DiskID == "" {
-				return errors.New("disk not found")
+				return errDiskNotFound
 			}
 		}
 
@@ -457,10 +457,9 @@ var DiskUploadCmd = &cobra.Command{
 		}
 
 		if DiskID == "" {
-			var aNotFoundErr *rpc.NotFoundError
 			DiskID, err = rpc.DiskNameToID(DiskName)
 			if err != nil {
-				if errors.As(err, &aNotFoundErr) {
+				if errors.Is(err, errDiskNotFound) {
 					DiskID, err = rpc.AddDisk(DiskName, DiskDescription, DiskSize, DiskType, DiskDevType, DiskCache, DiskDirect)
 					if err != nil {
 						return fmt.Errorf("failed creating disk: %w", err)
@@ -481,7 +480,7 @@ var DiskUploadCmd = &cobra.Command{
 				return fmt.Errorf("failed checking status of VM which uses disk: %w", err)
 			}
 			if diskVMStatus != "stopped" {
-				return errors.New("unable to upload disk used by running VM")
+				return errDiskInUse
 			}
 		}
 

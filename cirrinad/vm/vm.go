@@ -144,10 +144,10 @@ var List = &ListType{
 func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, err error) {
 	var vmInst *VM
 	if !util.ValidVMName(name) {
-		return vmInst, errors.New("invalid name")
+		return vmInst, errVMInvalidName
 	}
 	if _, err := GetByName(name); err == nil {
-		return vmInst, fmt.Errorf("%v already exists", name)
+		return vmInst, errVMDupe
 	}
 	vmInst = &VM{
 		Name:        name,
@@ -172,7 +172,7 @@ func (vm *VM) Delete() (err error) {
 	db := GetVMDB()
 	db.Model(&VM{}).Preload("Config").Limit(1).Find(&vm, &VM{ID: vm.ID})
 	if vm.ID == "" {
-		return errors.New("not found")
+		return errVMNotFound
 	}
 	res := db.Limit(1).Delete(&vm.Config)
 	if res.RowsAffected != 1 {
@@ -181,7 +181,9 @@ func (vm *VM) Delete() (err error) {
 	}
 	res = db.Limit(1).Delete(&vm)
 	if res.RowsAffected != 1 {
-		return errors.New("failed to delete VM")
+		slog.Error("error deleting VM", "res", res)
+
+		return errVMInternalDB
 	}
 
 	return nil
@@ -191,7 +193,7 @@ func (vm *VM) Start() (err error) {
 	defer vmStartLock.Unlock()
 	vmStartLock.Lock()
 	if vm.Status != STOPPED {
-		return errors.New("must be stopped first")
+		return errVMNotStopped
 	}
 	vm.SetStarting()
 	events := make(chan supervisor.Event)
@@ -259,7 +261,7 @@ func (vm *VM) Stop() (err error) {
 	if vm.Status == STOPPED {
 		slog.Error("tried to stop VM already stopped", "vm", vm.Name)
 
-		return errors.New("VM already stopped")
+		return errVMAlreadyStopped
 	}
 	vm.SetStopping()
 	if vm.proc == nil {
@@ -269,9 +271,9 @@ func (vm *VM) Stop() (err error) {
 	}
 	err = vm.proc.Stop()
 	if err != nil {
-		slog.Error("Failed to stop VM", "vm", vm.Name, "pid", vm.proc.Pid())
+		slog.Error("Failed to stop VM", "vm", vm.Name, "pid", vm.proc.Pid(), "err", err)
 
-		return errors.New("stop failed")
+		return errVMStopFail
 	}
 
 	return nil
@@ -341,7 +343,9 @@ func (vm *VM) Save() error {
 		)
 
 	if res.Error != nil {
-		return errors.New("error updating VM")
+		slog.Error("error updating VM", "res", res)
+
+		return fmt.Errorf("error updating VM: %w", res.Error)
 	}
 
 	res = db.Select([]string{
@@ -367,9 +371,9 @@ func (vm *VM) Save() error {
 		})
 
 	if res.Error != nil {
-		slog.Error("db update error", "err", res.Error)
+		slog.Error("error updating VM", "res", res)
 
-		return errors.New("error updating VM")
+		return fmt.Errorf("error updating VM: %w", res.Error)
 	}
 
 	return nil
@@ -445,7 +449,7 @@ func netStartupIf(vmNic vmnic.VMNic) error {
 			"switchid", vmNic.SwitchID,
 		)
 
-		return errors.New("bridge/interface type mismatch")
+		return errVMSwitchNICMismatch
 	}
 	if vmNic.RateLimit {
 		thisEpair, err := setupVMNicRateLimit(vmNic)
@@ -546,7 +550,7 @@ func netStartupNg(vmNic vmnic.VMNic) error {
 			"switchid", vmNic.SwitchID,
 		)
 
-		return errors.New("bridge/interface type mismatch")
+		return errVMSwitchNICMismatch
 	}
 
 	return nil
@@ -810,7 +814,7 @@ func (vm *VM) AttachIsos(isoIds []string) error {
 	vm.mu.Lock()
 
 	if vm.Status != STOPPED {
-		return errors.New("VM must be stopped before adding isos(s)")
+		return errVMNotStopped
 	}
 
 	for _, aIso := range isoIds {
@@ -818,17 +822,17 @@ func (vm *VM) AttachIsos(isoIds []string) error {
 
 		isoUUID, err := uuid.Parse(aIso)
 		if err != nil {
-			return errors.New("iso id not specified or invalid")
+			return errVMIsoInvalid
 		}
 
 		thisIso, err := iso.GetByID(isoUUID.String())
 		if err != nil {
 			slog.Error("error getting disk", "disk", aIso, "err", err)
 
-			return errors.New("iso not found")
+			return errVMIsoNotFound
 		}
 		if thisIso.Name == "" {
-			return errors.New("iso not found")
+			return errVMIsoNotFound
 		}
 	}
 
@@ -858,7 +862,7 @@ func (vm *VM) SetNics(nicIds []string) error {
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	if vm.Status != STOPPED {
-		return errors.New("VM must be stopped before adding NIC(s)")
+		return errVMNotStopped
 	}
 
 	// remove all nics from VM
@@ -898,7 +902,7 @@ func (vm *VM) AttachDisks(diskids []string) error {
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	if vm.Status != STOPPED {
-		return errors.New("VM must be stopped before adding disk(s)")
+		return errVMNotStopped
 	}
 
 	err := validateDisks(diskids, vm)
@@ -1142,7 +1146,7 @@ func (vm *VM) killCom(comNum int) error {
 	default:
 		slog.Error("invalid com port number", "comNum", comNum)
 
-		return errors.New("invalid com port number")
+		return errVMComInvalid
 	}
 
 	return nil
@@ -1178,7 +1182,7 @@ func (vm *VM) setupCom(comNum int) error {
 	default:
 		slog.Error("invalid com port number", "comNum", comNum)
 
-		return errors.New("invalid com port number")
+		return errVMComInvalid
 	}
 	if !comConfig {
 		slog.Debug("vm com not enabled, skipping setup", "comNum", comNum, "comConfig", comConfig)
@@ -1188,7 +1192,7 @@ func (vm *VM) setupCom(comNum int) error {
 	if comDev == "" {
 		slog.Error("com port enabled but com dev not set", "comNum", comNum, "comConfig", comConfig)
 
-		return errors.New("com port enabled but comDev not set")
+		return errVMComDevNotSet
 	}
 	// if com != nil {
 	// 	slog.Error("com port already set, cannot setup com port", "comNum", comNum, "com", com)
@@ -1228,7 +1232,7 @@ func (vm *VM) setupCom(comNum int) error {
 	default:
 		slog.Error("invalid com port number", "comNum", comNum)
 
-		return errors.New("invalid com port number")
+		return errVMComInvalid
 	}
 
 	return nil
@@ -1243,20 +1247,17 @@ func validateDisks(diskids []string, vm *VM) error {
 
 		diskUUID, err := uuid.Parse(aDisk)
 		if err != nil {
-			return errors.New("disk id not specified or invalid")
+			return errVMDiskInvalid
 		}
 
 		thisDisk, err := disk.GetByID(diskUUID.String())
 		if err != nil {
-			return fmt.Errorf("error getting disk: %w", err)
-		}
-		if err != nil {
 			slog.Error("error getting disk", "disk", aDisk, "err", err)
 
-			return errors.New("disk not found")
+			return fmt.Errorf("error getting disk: %w", err)
 		}
 		if thisDisk.Name == "" {
-			return errors.New("disk not found")
+			return errVMDiskNotFound
 		}
 
 		if !occurred[aDisk] {
@@ -1264,7 +1265,7 @@ func validateDisks(diskids []string, vm *VM) error {
 		} else {
 			slog.Error("duplicate disk id", "disk", aDisk)
 
-			return errors.New("disk may only be added once")
+			return errVMDiskDupe
 		}
 
 		slog.Debug("checking if disk is attached to another VM", "disk", aDisk)
@@ -1273,7 +1274,7 @@ func validateDisks(diskids []string, vm *VM) error {
 			return err
 		}
 		if diskIsAttached {
-			return errors.New("disk already attached")
+			return errVMDiskAttached
 		}
 	}
 
@@ -1306,17 +1307,17 @@ func validateNics(nicIds []string, vm *VM) error {
 
 		nicUUID, err := uuid.Parse(aNic)
 		if err != nil {
-			return errors.New("nic id not specified or invalid")
+			return errVMNICInvalid
 		}
 
 		thisNic, err := vmnic.GetByID(nicUUID.String())
 		if err != nil {
 			slog.Error("error getting nic", "nic", aNic, "err", err)
 
-			return errors.New("nic not found")
+			return fmt.Errorf("nic not found: %w", err)
 		}
 		if thisNic.Name == "" {
-			return errors.New("nic not found")
+			return errVMNICNotFound
 		}
 
 		if !occurred[aNic] {
@@ -1324,7 +1325,7 @@ func validateNics(nicIds []string, vm *VM) error {
 		} else {
 			slog.Error("duplicate nic id", "nic", aNic)
 
-			return errors.New("nic may only be added once")
+			return errVMNicDupe
 		}
 
 		slog.Debug("checking if nic is attached to another VM", "nic", aNic)
@@ -1349,7 +1350,7 @@ func nicAttached(aNic string, vm *VM) error {
 			if aNic == aVMNic.ID && aVM.ID != vm.ID {
 				slog.Error("nic is already attached to VM", "disk", aNic, "vm", aVM.ID)
 
-				return errors.New("nic already attached")
+				return errVMNicAttached
 			}
 		}
 	}

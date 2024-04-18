@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -27,7 +26,7 @@ var VMNicsListCmd = &cobra.Command{
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
-				return errors.New("VM not found")
+				return errVMNotFound
 			}
 		}
 
@@ -142,7 +141,7 @@ var VMNicsAddCmd = &cobra.Command{
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
-				return errors.New("VM not found")
+				return errVMNotFound
 			}
 		}
 		if NicID == "" {
@@ -151,7 +150,7 @@ var VMNicsAddCmd = &cobra.Command{
 				return fmt.Errorf("failed getting NIC ID: %w", err)
 			}
 			if NicID == "" {
-				return errors.New("NIC not found")
+				return errNicNotFound
 			}
 		}
 		var nicIds []string
@@ -167,7 +166,7 @@ var VMNicsAddCmd = &cobra.Command{
 			return fmt.Errorf("failed setting VM NICs: %w", err)
 		}
 		if !res {
-			return errors.New("failed")
+			return errReqFailed
 		}
 		fmt.Printf("Added\n")
 
@@ -188,7 +187,7 @@ var VMNicsRmCmd = &cobra.Command{
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
-				return errors.New("VM not found")
+				return errVMNotFound
 			}
 		}
 		if NicID == "" {
@@ -197,7 +196,7 @@ var VMNicsRmCmd = &cobra.Command{
 				return fmt.Errorf("failed getting NIC ID: %w", err)
 			}
 			if NicID == "" {
-				return errors.New("NIC not found")
+				return errNicNotFound
 			}
 		}
 
@@ -220,7 +219,7 @@ var VMNicsRmCmd = &cobra.Command{
 			return fmt.Errorf("failed setting VM NICs: %w", err)
 		}
 		if !res {
-			return errors.New("failed")
+			return errReqFailed
 		}
 		fmt.Printf("Removed\n")
 

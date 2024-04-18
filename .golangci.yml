@@ -80,6 +80,7 @@ linters:
     - nlreturn
     - stylecheck
     - wrapcheck
+    - goerr113
 
 issues:
   exclude-rules:

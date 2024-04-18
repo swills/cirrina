@@ -2,9 +2,8 @@ package rpc
 
 import (
 	"errors"
+	"fmt"
 	"io"
-
-	"google.golang.org/grpc/status"
 
 	"cirrina/cirrina"
 )
@@ -15,7 +14,7 @@ func GetVMDisks(id string) ([]string, error) {
 	var getVMDisksClient cirrina.VMInfo_GetVMDisksClient
 	getVMDisksClient, err = serverClient.GetVMDisks(defaultServerContext, &cirrina.VMID{Value: id})
 	if err != nil {
-		return []string{}, errors.New(status.Convert(err).Message())
+		return []string{}, fmt.Errorf("unable to get VM disks: %w", err)
 	}
 	for {
 		var diskID *cirrina.DiskId
@@ -24,7 +23,7 @@ func GetVMDisks(id string) ([]string, error) {
 			break
 		}
 		if err != nil {
-			return []string{}, errors.New(status.Convert(err).Message())
+			return []string{}, fmt.Errorf("unable to get VM disks: %w", err)
 		}
 		rv = append(rv, diskID.Value)
 	}
@@ -41,7 +40,7 @@ func VMSetDisks(id string, diskIds []string) (bool, error) {
 	var res *cirrina.ReqBool
 	res, err = serverClient.SetVMDisks(defaultServerContext, &setDiskReq)
 	if err != nil {
-		return false, errors.New(status.Convert(err).Message())
+		return false, fmt.Errorf("unable to set VM disks: %w", err)
 	}
 
 	return res.Success, nil

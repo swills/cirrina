@@ -41,8 +41,9 @@ func PathExists(path string) (bool, error) {
 }
 
 func PidExists(pid int) (bool, error) {
+	// TODO get sysctl kern.pid_max_limit and/or kern.pid_max and compare
 	if pid <= 0 {
-		return false, fmt.Errorf("invalid pid %v", pid)
+		return false, errInvalidPid
 	}
 	proc, err := os.FindProcess(pid)
 	if err != nil {
@@ -170,7 +171,7 @@ func runCommandAndCaptureOutput(cmdName string, cmdArgs []string) ([]byte, error
 		return []byte{}, errStderr
 	}
 	if len(errResult) > 0 {
-		return []byte{}, errors.New(string(errResult))
+		return []byte{}, errSTDERRNotEmpty
 	}
 	if err := cmd.Wait(); err != nil {
 		return []byte{}, fmt.Errorf("error running command: %w", err)
@@ -188,31 +189,31 @@ func parseNetstatSocket(socket map[string]interface{}) (int, error) {
 	var err error
 
 	if socket["protocol"] != "tcp4" && socket["protocol"] != "tcp46" && socket["protocol"] != "tcp6" {
-		return 0, errors.New("not a tcp socket")
+		return 0, errNoTCPSocket
 	}
 	state, valid := socket["tcp-state"].(string)
 	if !valid {
-		return 0, errors.New("missing tcp-stat")
+		return 0, errMissingTCPStat
 	}
 	realState := strings.TrimSpace(state)
 	if realState != "LISTEN" {
-		return 0, errors.New("port is not a listen port")
+		return 0, errNoListenPort
 	}
 	local, valid := socket["local"].(map[string]interface{})
 	if !valid {
-		return 0, errors.New("not a listen socket")
+		return 0, errNoListenSocket
 	}
 	port, valid := local["port"]
 	if !valid {
-		return 0, errors.New("tcp port not found")
+		return 0, errPortNotFound
 	}
 	p, valid := port.(string)
 	if !valid {
-		return 0, errors.New("tcp port not parsable")
+		return 0, errPortNotParsable
 	}
 	portInt, err = strconv.Atoi(p)
 	if err != nil {
-		return 0, errors.New("tcp port failed to convert to int")
+		return 0, errInvalidPort
 	}
 
 	return portInt, nil
@@ -227,11 +228,11 @@ func parseNetstatJSONOutput(netstatOutput []byte) ([]int, error) {
 	}
 	statistics, valid := result["statistics"].(map[string]interface{})
 	if !valid {
-		return nil, errors.New("failed parsing output, statistics not found")
+		return nil, errFailedParsing
 	}
 	sockets, valid := statistics["socket"].([]interface{})
 	if !valid {
-		return nil, errors.New("failed parsing output, socket not found")
+		return nil, errSocketNotFound
 	}
 
 	var localPortList []int
@@ -475,7 +476,7 @@ func checkInRange(name string, myRT *unicode.RangeTable) bool {
 func MacIsBroadcast(macAddress string) (bool, error) {
 	newMac, err := net.ParseMAC(macAddress)
 	if err != nil {
-		return false, errors.New("invalid MAC address")
+		return false, errInvalidMac
 	}
 	if bytes.Equal(newMac, []byte{255, 255, 255, 255, 255, 255}) {
 		return true, nil
@@ -487,7 +488,7 @@ func MacIsBroadcast(macAddress string) (bool, error) {
 func MacIsMulticast(macAddress string) (bool, error) {
 	newMac, err := net.ParseMAC(macAddress)
 	if err != nil {
-		return false, errors.New("invalid MAC address")
+		return false, errInvalidMac
 	}
 	// https://cgit.freebsd.org/src/tree/usr.sbin/bhyve/net_utils.c?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n56
 	// https://cgit.freebsd.org/src/tree/sys/net/ethernet.h?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n74
@@ -607,7 +608,7 @@ func ParseDiskSize(size string) (sizeBytes uint64, err error) {
 		return 0, fmt.Errorf("failed parsing disk size: %w", err)
 	}
 	if nu < 1 {
-		return 0, fmt.Errorf("invalid disk size %s", size)
+		return 0, errInvalidDiskSize
 	}
 	n = uint(nu)
 	r := uint64(n) * m
@@ -640,7 +641,7 @@ func GetHostMaxVMCpus() (uint16, error) {
 	if maxCPU <= 0 || maxCPU >= math.MaxUint16 {
 		slog.Error("Failed invalid max cpus", "maxCPU", maxCPU)
 
-		return 0, errors.New("invalid max number of CPUs")
+		return 0, errInvalidNumCPUs
 	}
 
 	return uint16(maxCPU), nil

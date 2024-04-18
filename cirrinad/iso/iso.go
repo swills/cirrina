@@ -1,7 +1,6 @@
 package iso
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
 
@@ -15,33 +14,34 @@ func Create(name string, description string) (iso *ISO, err error) {
 	var isoInst *ISO
 
 	if !util.ValidIsoName(name) {
-		return isoInst, errors.New("invalid name")
+		return isoInst, errIsoInvalidName
 	}
 
+	// check if it exists on disk
 	path := config.Config.Disk.VM.Path.Iso + "/" + name
 	isoExists, err := util.PathExists(path)
 	if err != nil {
 		slog.Error("error checking if iso exists", "path", path, "err", err)
-		message := fmt.Sprintf("error checking if iso exists: %s", err)
 
-		return isoInst, errors.New(message)
+		return isoInst, fmt.Errorf("error checking if iso exists: %w", err)
 	}
 	if isoExists {
 		slog.Error("iso exists", "iso", name)
 
-		return isoInst, errors.New("iso exists")
+		return isoInst, errIsoExists
 	}
+
+	// check if it exists in DB
 	existingISO, err := GetByName(name)
 	if err != nil {
 		slog.Error("error checking db for iso", "name", name, "err", err)
-		message := fmt.Sprintf("error checking if iso exists: %s", err)
 
-		return isoInst, errors.New(message)
+		return isoInst, fmt.Errorf("error checking if iso exists: %w", err)
 	}
 	if existingISO.Name != "" {
 		slog.Error("iso exists", "iso", name)
 
-		return isoInst, errors.New("iso exists")
+		return isoInst, errIsoExists
 	}
 
 	isoInst = &ISO{
@@ -91,7 +91,7 @@ func (iso *ISO) Save() error {
 		)
 
 	if res.Error != nil {
-		return errors.New("error updating iso")
+		return errIsoInternalDB
 	}
 
 	return nil
@@ -99,20 +99,18 @@ func (iso *ISO) Save() error {
 
 func Delete(id string) (err error) {
 	if id == "" {
-		return errors.New("unable to delete, iso id empty")
+		return errIsoIDEmptyOrInvalid
 	}
 	db := getIsoDB()
 	dDisk, err := GetByID(id)
 	if err != nil {
-		errorText := fmt.Sprintf("iso %v not found", id)
-
-		return errors.New(errorText)
+		return errIsoNotFound
 	}
 	res := db.Limit(1).Unscoped().Delete(&dDisk)
 	if res.RowsAffected != 1 {
-		errText := fmt.Sprintf("iso delete error, rows affected %v", res.RowsAffected)
+		slog.Error("iso delete error", "RowsAffected", res.RowsAffected)
 
-		return errors.New(errText)
+		return errIsoInternalDB
 	}
 
 	return nil

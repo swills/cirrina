@@ -2,7 +2,6 @@ package vm
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -104,7 +103,7 @@ func GetByName(name string) (v *VM, err error) {
 		}
 	}
 
-	return &VM{}, errors.New("not found")
+	return &VM{}, errVMNotFound
 }
 
 func GetByID(id string) (v *VM, err error) {
@@ -115,7 +114,7 @@ func GetByID(id string) (v *VM, err error) {
 		return vmInst, nil
 	}
 
-	return nil, errors.New("not found")
+	return nil, errVMNotFound
 }
 
 func LogAllVMStatus() {
@@ -247,37 +246,37 @@ func ensureComDevReadable(comDev string) error {
 	if !strings.HasSuffix(comDev, "A") {
 		slog.Error("error checking com dev readable: invalid com dev", "comDev", comDev)
 
-		return errors.New("invalid com dev")
+		return errVMInvalidComDev
 	}
 	comBaseDev := comDev[:len(comDev)-1]
 	comReadDev := comBaseDev + "B"
 	slog.Debug("Checking com dev readable", "comDev", comDev, "comReadDev", comReadDev)
 	exists, err := util.PathExists(comReadDev)
 	if err != nil {
-		return fmt.Errorf("error checking vm com deve: %w", err)
+		return fmt.Errorf("error checking vm com dev: %w", err)
 	}
 	if !exists {
-		return errors.New("comDev does not exists)")
+		return errVMComDevNonexistent
 	}
 	comReadFileInfo, err := os.Stat(comReadDev)
 	if err != nil {
 		return fmt.Errorf("error checking vm com dev: %w", err)
 	}
 	if comReadFileInfo.IsDir() {
-		return errors.New("error checking com dev readable: comReadDev is directory")
+		return errVMComDevIsDir
 	}
 	comReadStat, ok := comReadFileInfo.Sys().(*syscall.Stat_t)
 	if !ok {
 		slog.Error("type failure", "comReadFileInfo", comReadFileInfo, "comReadDev", comReadDev)
 
-		return errors.New("type failure")
+		return errVMTypeFailure
 	}
 	if comReadStat == nil {
-		return errors.New("failed converting comReadFileInfo to Stat_t")
+		return errVMTypeConversionFailure
 	}
 	myUID, _, err := util.GetMyUIDGID()
 	if err != nil {
-		return errors.New("failed getting my uid")
+		return fmt.Errorf("failure getting my UID/GID: %w", err)
 	}
 	if comReadStat.Uid == myUID {
 		// everything is good, nothing to do
@@ -377,5 +376,5 @@ func startSerialPort(comDev string, comSpeed uint) (*serial.Port, error) {
 		return comReader, nil
 	}
 
-	return nil, errors.New("invalid com dev")
+	return nil, errVMInvalidComDev
 }

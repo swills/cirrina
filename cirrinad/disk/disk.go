@@ -2,7 +2,6 @@ package disk
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os/user"
@@ -36,7 +35,7 @@ func Create(name string, description string, size string, diskType string, diskD
 
 	// limit disks to min 512 bytes, max 128TB
 	if diskSize < 512 || diskSize > 1024*1024*1024*1024*128 {
-		return &Disk{}, errors.New("invalid disk size")
+		return &Disk{}, errDiskInvalidSize
 	}
 
 	// actually create disk!
@@ -52,7 +51,7 @@ func Create(name string, description string, size string, diskType string, diskD
 			return &Disk{}, err
 		}
 	default:
-		return &Disk{}, errors.New("invalid disk type")
+		return &Disk{}, errDiskInvalidDevType
 	}
 
 	diskInst = &Disk{
@@ -74,14 +73,14 @@ func Create(name string, description string, size string, diskType string, diskD
 
 func validateDisk(name string, diskDevType string, diskType string, filePath string, volName string) error {
 	if diskDevType == "ZVOL" && config.Config.Disk.VM.Path.Zpool == "" {
-		return errors.New("zfs pool not configured, cannot create zvol disks")
+		return errDiskZPoolNotConfigured
 	}
 
 	volPath := "/dev/zvol/" + volName
 
 	// check disk name
 	if !util.ValidDiskName(name) {
-		return errors.New("invalid disk name")
+		return errDiskInvalidName
 	}
 
 	// check db for existing disk
@@ -94,21 +93,21 @@ func validateDisk(name string, diskDevType string, diskType string, filePath str
 	if existingDisk.Name != "" {
 		slog.Error("disk exists in DB", "disk", name, "id", existingDisk.ID, "type", existingDisk.Type)
 
-		return fmt.Errorf("disk %s exists in db", name)
+		return errDiskExists
 	}
 
 	// check disk type
 	if diskType != "NVME" && diskType != "AHCI-HD" && diskType != "VIRTIO-BLK" {
 		slog.Error("disk create", "msg", "invalid disk type", "diskType", diskType)
 
-		return errors.New("invalid disk type")
+		return errDiskInvalidType
 	}
 
 	// check disk dev type
 	if diskDevType != "FILE" && diskDevType != "ZVOL" {
 		slog.Error("disk create", "msg", "invalid disk dev type", "diskDevType", diskDevType)
 
-		return errors.New("invalid disk dev type")
+		return errDiskInvalidDevType
 	}
 
 	// check system for existing disk
@@ -138,7 +137,7 @@ func checkDiskExistsZvolType(name string, volName string, existingDisk *Disk, vo
 	if util.ContainsStr(allVolumes, volName) {
 		slog.Error("disk volume exists", "disk", name, "id", existingDisk.ID, "type", existingDisk.Type, "volName", volName)
 
-		return errors.New("disk exists")
+		return errDiskExists
 	}
 
 	diskExists, err := util.PathExists(volPath)
@@ -150,7 +149,7 @@ func checkDiskExistsZvolType(name string, volName string, existingDisk *Disk, vo
 	if diskExists {
 		slog.Error("disk vol path exists", "disk", name, "id", existingDisk.ID, "type", existingDisk.Type, "volPath", volPath)
 
-		return errors.New("disk exists")
+		return errDiskExists
 	}
 
 	return nil
@@ -167,7 +166,7 @@ func checkDiskExistsFileType(name string, filePath string, existingDisk *Disk) e
 	if diskExists {
 		slog.Error("disk file exists", "disk", name, "id", existingDisk.ID, "type", existingDisk.Type, "filePath", filePath)
 
-		return errors.New("disk exists")
+		return errDiskExists
 	}
 
 	return nil
@@ -221,6 +220,9 @@ func GetAllDB() []*Disk {
 }
 
 func GetByID(id string) (*Disk, error) {
+	if id == "" {
+		return nil, errDiskIDEmptyOrInvalid
+	}
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
 	diskInst, valid := List.DiskList[id]
@@ -228,7 +230,7 @@ func GetByID(id string) (*Disk, error) {
 		return diskInst, nil
 	}
 
-	return nil, errors.New("not found")
+	return nil, errDiskNotFound
 }
 
 func GetByName(name string) (*Disk, error) {
@@ -243,24 +245,24 @@ func GetByName(name string) (*Disk, error) {
 
 func Delete(id string) (err error) {
 	if id == "" {
-		return errors.New("unable to delete, disk id empty")
+		return errDiskIDEmptyOrInvalid
 	}
 
 	_, valid := List.DiskList[id]
 	if !valid {
-		return errors.New("invalid disk id")
+		return errDiskIDEmptyOrInvalid
 	}
 	delete(List.DiskList, id)
 
 	db := getDiskDB()
 	res := db.Limit(1).Delete(&Disk{ID: id})
-	if res.RowsAffected == 1 {
-		return nil
-	} else {
-		errText := fmt.Sprintf("disk delete error, rows affected %v", res.RowsAffected)
+	if res.RowsAffected != 1 {
+		slog.Error("error saving disk", "res", res)
 
-		return errors.New(errText)
+		return errDiskInternalDB
 	}
+
+	return nil
 }
 
 func (d *Disk) Save() error {
@@ -275,7 +277,9 @@ func (d *Disk) Save() error {
 		)
 
 	if res.Error != nil {
-		return errors.New("error updating disk")
+		slog.Error("error saving disk", "res", res)
+
+		return errDiskInternalDB
 	}
 
 	return nil
@@ -288,7 +292,7 @@ func (d *Disk) GetPath() (diskPath string, err error) {
 	case "FILE":
 		diskPath = config.Config.Disk.VM.Path.Image + "/" + d.Name + ".img"
 	default:
-		return "", errors.New("unknown disk dev type")
+		return "", errDiskInvalidDevType
 	}
 
 	return diskPath, nil

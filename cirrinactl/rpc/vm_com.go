@@ -2,13 +2,11 @@ package rpc
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"time"
 
 	"golang.org/x/term"
-	"google.golang.org/grpc/status"
 
 	"cirrina/cirrina"
 )
@@ -17,7 +15,7 @@ func UseCom(id string, comNum int) error {
 	var err error
 
 	if id == "" {
-		return errors.New("id not specified")
+		return errVMEmptyID
 	}
 	bgCtx, cancel := context.WithCancel(context.Background())
 	var stream cirrina.VMInfo_Com1InteractiveClient
@@ -35,7 +33,7 @@ func UseCom(id string, comNum int) error {
 	if err != nil {
 		cancel()
 
-		return errors.New(status.Convert(err).Message())
+		return fmt.Errorf("unable to use com: %w", err)
 	}
 
 	vmID := &cirrina.VMID{Value: id}
@@ -48,7 +46,7 @@ func UseCom(id string, comNum int) error {
 	if err != nil {
 		cancel()
 
-		return errors.New(status.Convert(err).Message())
+		return fmt.Errorf("unable to use com: %w", err)
 	}
 
 	// save term state and set up restore when done
@@ -57,7 +55,7 @@ func UseCom(id string, comNum int) error {
 	if err != nil {
 		cancel()
 
-		return errors.New(status.Convert(err).Message())
+		return fmt.Errorf("unable to use com: %w", err)
 	}
 	defer func(fd int, oldState *term.State) {
 		_ = stream.CloseSend()
@@ -85,7 +83,7 @@ func UseCom(id string, comNum int) error {
 			if err != nil {
 				cancel()
 
-				return errors.New(status.Convert(err).Message())
+				return fmt.Errorf("unable to use com: %w", err)
 			}
 
 			if res != "running" && res != "stopping" {

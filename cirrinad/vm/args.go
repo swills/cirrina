@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
 	"math"
@@ -123,7 +122,7 @@ func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (hdArg string, err error) {
 	default:
 		slog.Error("unknown disk type", "type", thisDisk.Type)
 
-		return "", errors.New("unknown disk type")
+		return "", errVMUnknownDiskType
 	}
 	if thisDisk.DiskCache.Valid && !thisDisk.DiskCache.Bool {
 		nocache = ",nocache"

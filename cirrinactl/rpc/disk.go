@@ -8,8 +8,6 @@ import (
 	"io"
 	"os"
 
-	"google.golang.org/grpc/status"
-
 	"cirrina/cirrina"
 )
 
@@ -43,7 +41,7 @@ func AddDisk(diskName string, diskDescription string, diskSize string,
 	var diskID *cirrina.DiskId
 	diskID, err = serverClient.AddDisk(defaultServerContext, newDiskInfo)
 	if err != nil {
-		return "", errors.New(status.Convert(err).Message())
+		return "", fmt.Errorf("unable to add disk: %w", err)
 	}
 
 	return diskID.Value, nil
@@ -56,10 +54,10 @@ func GetDiskInfo(diskID string) (DiskInfo, error) {
 
 	k, err = serverClient.GetDiskInfo(defaultServerContext, &cirrina.DiskId{Value: diskID})
 	if err != nil {
-		return DiskInfo{}, errors.New(status.Convert(err).Message())
+		return DiskInfo{}, fmt.Errorf("unable to get disk info: %w", err)
 	}
 	if k == nil {
-		return DiskInfo{}, errors.New("invalid server response")
+		return DiskInfo{}, errInvalidServerResponse
 	}
 
 	if k.Name != nil {
@@ -105,7 +103,7 @@ func GetDisks() ([]string, error) {
 	var res cirrina.VMInfo_GetDisksClient
 	res, err = serverClient.GetDisks(defaultServerContext, &cirrina.DisksQuery{})
 	if err != nil {
-		return []string{}, errors.New(status.Convert(err).Message())
+		return []string{}, fmt.Errorf("unable to get disks: %w", err)
 	}
 
 	for {
@@ -125,10 +123,10 @@ func RmDisk(idPtr string) error {
 	var res *cirrina.ReqBool
 	res, err = serverClient.RemoveDisk(defaultServerContext, &cirrina.DiskId{Value: idPtr})
 	if err != nil {
-		return errors.New(status.Convert(err).Message())
+		return fmt.Errorf("unable to remove disk: %w", err)
 	}
 	if !res.Success {
-		return errors.New("disk delete failure")
+		return errReqFailed
 	}
 
 	return nil
@@ -138,7 +136,7 @@ func DiskNameToID(name string) (string, error) {
 	var diskID string
 	var err error
 	if name == "" {
-		return "", errors.New("disk name not specified")
+		return "", errDiskEmptyName
 	}
 
 	var diskIds []string
@@ -156,14 +154,14 @@ func DiskNameToID(name string) (string, error) {
 		}
 		if res.Name == name {
 			if found {
-				return "", errors.New("duplicate disk found")
+				return "", errDiskDuplicate
 			}
 			found = true
 			diskID = aDiskID
 		}
 	}
 	if !found {
-		return "", &NotFoundError{}
+		return "", errNotFound
 	}
 
 	return diskID, nil
@@ -183,13 +181,13 @@ func DiskNameToID(name string) (string, error) {
 func DiskGetVMID(id string) (string, error) {
 	var err error
 	if id == "" {
-		return "", errors.New("disk id not specified")
+		return "", errDiskEmptyName
 	}
 
 	var vmID *cirrina.VMID
 	vmID, err = serverClient.GetDiskVM(defaultServerContext, &cirrina.DiskId{Value: id})
 	if err != nil {
-		return "", errors.New(status.Convert(err).Message())
+		return "", fmt.Errorf("unable to get disk VM: %w", err)
 	}
 
 	return vmID.Value, nil
@@ -199,7 +197,7 @@ func UpdateDisk(id string, newDesc *string, newType *string, direct *bool, cache
 	var err error
 
 	if id == "" {
-		return errors.New("id not specified")
+		return errDiskEmptyID
 	}
 
 	diu := cirrina.DiskInfoUpdate{
@@ -228,10 +226,10 @@ func UpdateDisk(id string, newDesc *string, newType *string, direct *bool, cache
 	var res *cirrina.ReqBool
 	res, err = serverClient.SetDiskInfo(defaultServerContext, &diu)
 	if err != nil {
-		return errors.New(status.Convert(err).Message())
+		return fmt.Errorf("unable to set disk info: %w", err)
 	}
 	if !res.Success {
-		return errors.New("failed to update disk")
+		return errReqFailed
 	}
 
 	return nil
@@ -242,7 +240,7 @@ func DiskUpload(diskID string, diskChecksum string,
 	uploadStatChan := make(chan UploadStat, 1)
 
 	if diskID == "" {
-		return uploadStatChan, errors.New("empty disk id")
+		return uploadStatChan, errDiskEmptyID
 	}
 
 	// actually send file, sending status to status channel
@@ -273,14 +271,14 @@ func DiskUpload(diskID string, diskChecksum string,
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,
 				Complete:      false,
-				Err:           errors.New(status.Convert(err).Message()),
+				Err:           fmt.Errorf("unable to upload disk: %w", err),
 			}
 		}
 		if stream == nil {
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,
 				Complete:      false,
-				Err:           errors.New("nil stream"),
+				Err:           errInternalError,
 			}
 
 			return
@@ -291,7 +289,7 @@ func DiskUpload(diskID string, diskChecksum string,
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,
 				Complete:      false,
-				Err:           errors.New(status.Convert(err).Message()),
+				Err:           fmt.Errorf("unable to upload disk: %w", err),
 			}
 		}
 
@@ -322,7 +320,7 @@ func DiskUpload(diskID string, diskChecksum string,
 				uploadStatChan <- UploadStat{
 					UploadedChunk: false,
 					Complete:      false,
-					Err:           errors.New(status.Convert(err).Message()),
+					Err:           fmt.Errorf("unable to upload disk: %w", err),
 				}
 			}
 			uploadStatChan <- UploadStat{
@@ -339,14 +337,14 @@ func DiskUpload(diskID string, diskChecksum string,
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,
 				Complete:      false,
-				Err:           errors.New(status.Convert(err).Message()),
+				Err:           fmt.Errorf("unable to upload disk: %w", err),
 			}
 		}
 		if !reply.Success {
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,
 				Complete:      false,
-				Err:           errors.New("failed"),
+				Err:           errReqFailed,
 			}
 		}
 
@@ -374,7 +372,7 @@ func mapDiskTypeStringToType(diskType string) (*cirrina.DiskType, error) {
 	case diskType == "VIRTIO-BLK" || diskType == "virtio-blk" || diskType == "VIRTIOBLK" || diskType == "virtioblk":
 		return &DiskTypeVirtIoBlk, nil
 	default:
-		return nil, fmt.Errorf("invalid disk type %s specified", diskType)
+		return nil, errDiskTypeUnknown
 	}
 }
 
@@ -388,7 +386,7 @@ func mapDiskDevTypeStringToType(diskDevType string) (*cirrina.DiskDevType, error
 	case diskDevType == "ZVOL" || diskDevType == "zvol":
 		return &DiskDevTypeZVOL, nil
 	default:
-		return nil, fmt.Errorf("invalid disk dev type %s", diskDevType)
+		return nil, errDiskDevTypeUnknown
 	}
 }
 

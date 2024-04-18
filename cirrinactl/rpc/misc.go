@@ -1,9 +1,7 @@
 package rpc
 
 import (
-	"errors"
-
-	"google.golang.org/grpc/status"
+	"fmt"
 
 	"cirrina/cirrina"
 )
@@ -12,12 +10,12 @@ func ReqStat(id string) (ReqStatus, error) {
 	var err error
 
 	if id == "" {
-		return ReqStatus{}, errors.New("id not specified")
+		return ReqStatus{}, errReqEmpty
 	}
 	var res *cirrina.ReqStatus
 	res, err = serverClient.RequestStatus(defaultServerContext, &cirrina.RequestID{Value: id})
 	if err != nil {
-		return ReqStatus{}, errors.New(status.Convert(err).Message())
+		return ReqStatus{}, fmt.Errorf("request error: %w", err)
 	}
 	rv := ReqStatus{
 		Complete: res.Complete,

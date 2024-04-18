@@ -104,7 +104,7 @@ var IsoCreateCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if IsoName == "" {
-			return errors.New("empty ISO name")
+			return errIsoEmptyName
 		}
 		res, err := rpc.AddIso(IsoName, IsoDescription)
 		if err != nil {
@@ -313,14 +313,13 @@ var IsoUploadCmd = &cobra.Command{
 		var err error
 		err = hostPing()
 		if err != nil {
-			return errors.New("host not available")
+			return errHostNotAvailable
 		}
 
 		if IsoID == "" {
-			var aNotFoundErr *rpc.NotFoundError
 			IsoID, err = rpc.IsoNameToID(IsoName)
 			if err != nil {
-				if errors.As(err, &aNotFoundErr) {
+				if errors.Is(err, errIsoNotFound) {
 					IsoID, err = rpc.AddIso(IsoName, IsoDescription)
 					if err != nil {
 						return fmt.Errorf("error adding iso: %w", err)
@@ -351,7 +350,7 @@ var IsoRemoveCmd = &cobra.Command{
 				return fmt.Errorf("error getting iso id: %w", err)
 			}
 			if IsoID == "" {
-				return errors.New("ISO not found")
+				return errIsoNotFound
 			}
 		}
 		err = rpc.RmIso(IsoID)

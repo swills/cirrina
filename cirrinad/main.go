@@ -227,7 +227,7 @@ var rootCmd = &cobra.Command{
 			return fmt.Errorf("error checking config exists: %w", err)
 		}
 		if !configPathExists {
-			return fmt.Errorf("config file %s not found", cfgFile)
+			return fmt.Errorf("config file %s error: %w", cfgFile, errConfigFileNotFound)
 		}
 
 		err = viper.ReadInConfig()

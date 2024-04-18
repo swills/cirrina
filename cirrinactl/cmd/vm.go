@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -146,7 +145,7 @@ var VMCreateCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if VMName == "" {
-			return errors.New("empty VM name")
+			return errVMEmptyName
 		}
 
 		var lDesc *string
@@ -300,7 +299,7 @@ var VMDestroyCmd = &cobra.Command{
 				return fmt.Errorf("error getting VM ID: %w", err)
 			}
 			if VMID == "" {
-				return errors.New("VM not found")
+				return errVMNotFound
 			}
 		}
 
@@ -310,7 +309,7 @@ var VMDestroyCmd = &cobra.Command{
 			return fmt.Errorf("failed checking VM state: %w", err)
 		}
 		if !stopped {
-			return errors.New("VM must be stopped in order to be destroyed")
+			return errVMInUseStop
 		}
 
 		// FIXME check request ID completion and status
@@ -336,7 +335,7 @@ var VMStopCmd = &cobra.Command{
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
-				return errors.New("VM not found")
+				return errVMNotFound
 			}
 		}
 		var running bool
@@ -345,7 +344,7 @@ var VMStopCmd = &cobra.Command{
 			return fmt.Errorf("failed checking VM state: %w", err)
 		}
 		if !running {
-			return errors.New("VM not running")
+			return errVMNotRunning
 		}
 
 		var vmConfig rpc.VMConfig
@@ -404,7 +403,7 @@ var VMStartCmd = &cobra.Command{
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
-				return errors.New("VM not found")
+				return errVMNotFound
 			}
 		}
 
@@ -414,7 +413,7 @@ var VMStartCmd = &cobra.Command{
 			return fmt.Errorf("failed checking VM status: %w", err)
 		}
 		if !stopped {
-			return errors.New("VM must be stopped in order to be started")
+			return errVMNotStopped
 		}
 
 		// borrow the max stop time as a timeout for waiting on startup
@@ -533,7 +532,7 @@ var VMConfigCmd = &cobra.Command{
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
-				return errors.New("VM not found")
+				return errVMNotFound
 			}
 		}
 
@@ -800,7 +799,7 @@ var VMGetCmd = &cobra.Command{
 		case "yaml":
 			outputFormat = YAML
 		default:
-			return errors.New("unknown output format")
+			return errVMUnknownFormat
 		}
 
 		return nil
@@ -815,7 +814,7 @@ var VMGetCmd = &cobra.Command{
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
-				return errors.New("VM not found")
+				return errVMNotFound
 			}
 		}
 		var vmConfig rpc.VMConfig
@@ -945,7 +944,7 @@ var VMClearUefiVarsCmd = &cobra.Command{
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
-				return errors.New("VM not found")
+				return errVMNotFound
 			}
 		}
 		var res bool
@@ -954,7 +953,7 @@ var VMClearUefiVarsCmd = &cobra.Command{
 			return fmt.Errorf("failed clearning UEFI vars: %w", err)
 		}
 		if !res {
-			return errors.New("failed")
+			return errReqFailed
 		}
 		fmt.Printf("UEFI Vars cleared\n")
 

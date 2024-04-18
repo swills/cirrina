@@ -3,7 +3,6 @@ package vmswitch
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -90,14 +89,14 @@ func GetIfBridgeMembers(name string) (members []string, err error) {
 
 func createIfBridge(name string) error {
 	if name == "" {
-		return errors.New("name can't be empty")
+		return errSwitchInvalidName
 	}
 
 	// TODO allow other bridge names by creating with a dummy name and then renaming
 	if !strings.HasPrefix(name, "bridge") {
 		slog.Error("invalid bridge name", "name", name)
 
-		return errors.New("invalid bridge name, bridge name must start with \"bridge\"")
+		return errSwitchInvalidBridgeNameIF
 	}
 	allIfBridges, err := GetAllIfBridges()
 	if err != nil {
@@ -108,7 +107,7 @@ func createIfBridge(name string) error {
 	if util.ContainsStr(allIfBridges, name) {
 		slog.Debug("bridge already exists", "bridge", name)
 
-		return errors.New("duplicate bridge")
+		return errSwitchInvalidBridgeDupe
 	}
 
 	err = actualIfBridgeCreate(name)

@@ -4,10 +4,9 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
-
-	"google.golang.org/grpc/status"
 
 	"cirrina/cirrina"
 )
@@ -22,7 +21,7 @@ func AddIso(name string, descr string) (string, error) {
 	var res *cirrina.ISOID
 	res, err = serverClient.AddISO(defaultServerContext, j)
 	if err != nil {
-		return "", errors.New(status.Convert(err).Message())
+		return "", fmt.Errorf("unable to add iso: %w", err)
 	}
 
 	return res.Value, nil
@@ -34,7 +33,7 @@ func GetIsoIds() ([]string, error) {
 	var res cirrina.VMInfo_GetISOsClient
 	res, err = serverClient.GetISOs(defaultServerContext, &cirrina.ISOsQuery{})
 	if err != nil {
-		return []string{}, errors.New(status.Convert(err).Message())
+		return []string{}, fmt.Errorf("unable to get isos: %w", err)
 	}
 	for {
 		VM, err := res.Recv()
@@ -42,7 +41,7 @@ func GetIsoIds() ([]string, error) {
 			break
 		}
 		if err != nil {
-			return []string{}, errors.New(status.Convert(err).Message())
+			return []string{}, fmt.Errorf("unable to get isos: %w", err)
 		}
 		ids = append(ids, VM.Value)
 	}
@@ -55,10 +54,10 @@ func RmIso(id string) error {
 	var res *cirrina.ReqBool
 	res, err = serverClient.RemoveISO(defaultServerContext, &cirrina.ISOID{Value: id})
 	if err != nil {
-		return errors.New(status.Convert(err).Message())
+		return fmt.Errorf("unable to remove iso: %w", err)
 	}
 	if !res.Success {
-		return errors.New("iso delete failure")
+		return errReqFailed
 	}
 
 	return nil
@@ -66,7 +65,7 @@ func RmIso(id string) error {
 
 func GetIsoInfo(id string) (IsoInfo, error) {
 	if id == "" {
-		return IsoInfo{}, errors.New("id not specified")
+		return IsoInfo{}, errIsoEmptyID
 	}
 
 	var err error
@@ -74,7 +73,7 @@ func GetIsoInfo(id string) (IsoInfo, error) {
 	var isoInfo *cirrina.ISOInfo
 	isoInfo, err = serverClient.GetISOInfo(defaultServerContext, &cirrina.ISOID{Value: id})
 	if err != nil {
-		return IsoInfo{}, errors.New(status.Convert(err).Message())
+		return IsoInfo{}, fmt.Errorf("unable to get iso info: %w", err)
 	}
 
 	return IsoInfo{
@@ -86,7 +85,7 @@ func GetIsoInfo(id string) (IsoInfo, error) {
 
 func IsoNameToID(name string) (string, error) {
 	if name == "" {
-		return "", errors.New("iso name not specified")
+		return "", errIsoEmptyName
 	}
 	isoIds, err := GetIsoIds()
 	if err != nil {
@@ -106,14 +105,14 @@ func IsoNameToID(name string) (string, error) {
 		}
 		if isoInfo.Name == name {
 			if found {
-				return "", errors.New("duplicate iso found")
+				return "", errIsoDuplicate
 			}
 			found = true
 			isoID = aIsoID
 		}
 	}
 	if !found {
-		return "", &NotFoundError{}
+		return "", errNotFound
 	}
 
 	return isoID, nil
@@ -134,7 +133,7 @@ func IsoUpload(isoID string, isoChecksum string,
 	uploadStatChan := make(chan UploadStat, 1)
 
 	if isoID == "" {
-		return uploadStatChan, errors.New("empty iso id")
+		return uploadStatChan, errIsoEmptyID
 	}
 
 	// actually send file, sending status to status channel
@@ -165,7 +164,7 @@ func IsoUpload(isoID string, isoChecksum string,
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,
 				Complete:      false,
-				Err:           errors.New(status.Convert(err).Message()),
+				Err:           fmt.Errorf("unable to upload iso: %w", err),
 			}
 		}
 
@@ -174,7 +173,7 @@ func IsoUpload(isoID string, isoChecksum string,
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,
 				Complete:      false,
-				Err:           errors.New(status.Convert(err).Message()),
+				Err:           fmt.Errorf("unable to upload iso: %w", err),
 			}
 		}
 
@@ -192,7 +191,7 @@ func IsoUpload(isoID string, isoChecksum string,
 				uploadStatChan <- UploadStat{
 					UploadedChunk: false,
 					Complete:      false,
-					Err:           err,
+					Err:           fmt.Errorf("unable to upload iso: %w", err),
 				}
 			}
 			dataReq := &cirrina.ISOImageRequest{
@@ -205,7 +204,7 @@ func IsoUpload(isoID string, isoChecksum string,
 				uploadStatChan <- UploadStat{
 					UploadedChunk: false,
 					Complete:      false,
-					Err:           errors.New(status.Convert(err).Message()),
+					Err:           fmt.Errorf("unable to upload iso: %w", err),
 				}
 			}
 			uploadStatChan <- UploadStat{
@@ -222,14 +221,14 @@ func IsoUpload(isoID string, isoChecksum string,
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,
 				Complete:      false,
-				Err:           errors.New(status.Convert(err).Message()),
+				Err:           fmt.Errorf("unable to upload iso: %w", err),
 			}
 		}
 		if !reply.Success {
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,
 				Complete:      false,
-				Err:           errors.New("failed"),
+				Err:           errReqFailed,
 			}
 		}
 

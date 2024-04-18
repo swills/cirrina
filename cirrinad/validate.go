@@ -55,17 +55,17 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 	if exitCode != expectedExit {
 		slog.Debug("exitCode mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
 
-		return errors.New("exitCode mismatch running command")
+		return errExitCodeMismatch
 	}
 	if !strings.HasPrefix(outBytes.String(), expectedStdOut) {
 		slog.Debug("stdout prefix mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
 
-		return errors.New("stdout prefix mismatch running command")
+		return errSTDOUTMismatch
 	}
 	if !strings.HasPrefix(errBytes.String(), expectedStdErr) {
 		slog.Debug("stderr prefix mismatch running command", "command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
 
-		return errors.New("stderr prefix mismatch running command")
+		return errSTDERRMismatch
 	}
 
 	return nil
@@ -93,7 +93,7 @@ nameLoop:
 				continue
 			}
 			// couldn't find a file name that doesn't exist?
-			return "", errors.New("couldn't find a tmp file")
+			return "", errUnableToMakeTmpFile
 		case errors.Is(err, fs.ErrNotExist):
 			break nameLoop
 		default:

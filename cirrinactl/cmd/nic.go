@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -151,7 +150,7 @@ var NicCreateCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 		if NicName == "" {
-			return errors.New("empty NIC name")
+			return errNicEmptyName
 		}
 		if NicSwitchID == "" {
 			if NicSwitchName != "" {
@@ -160,7 +159,7 @@ var NicCreateCmd = &cobra.Command{
 					return fmt.Errorf("error getting switch id: %w", err)
 				}
 				if NicSwitchID == "" {
-					return errors.New("switch not found")
+					return errSwitchNotFound
 				}
 			}
 		}
@@ -190,7 +189,7 @@ var NicRemoveCmd = &cobra.Command{
 				return fmt.Errorf("error getting nic id: %w", err)
 			}
 			if NicID == "" {
-				return errors.New("NIC not found")
+				return errNicNotFound
 			}
 		}
 		err = rpc.RmNic(NicID)
@@ -221,7 +220,7 @@ var NicSetSwitchCmd = &cobra.Command{
 				return fmt.Errorf("error getting nic id: %w", err)
 			}
 			if NicID == "" {
-				return errors.New("NIC not found")
+				return errNicNotFound
 			}
 		}
 
@@ -231,7 +230,7 @@ var NicSetSwitchCmd = &cobra.Command{
 				return fmt.Errorf("error getting switch id: %w", err)
 			}
 			if NicSwitchID == "" {
-				return errors.New("switch not found")
+				return errSwitchNotFound
 			}
 		}
 
@@ -257,12 +256,12 @@ var NicCloneCmd = &cobra.Command{
 				return fmt.Errorf("error getting nic ID: %w", err)
 			}
 			if NicID == "" {
-				return errors.New("NIC not found")
+				return errNicNotFound
 			}
 		}
 
 		if NicCloneName == "" {
-			return errors.New("empty NIC name")
+			return errNicEmptyName
 		}
 
 		if CheckReqStat {
@@ -329,7 +328,7 @@ var NicUpdateCmd = &cobra.Command{
 				return fmt.Errorf("error getting nic id: %w", err)
 			}
 			if NicID == "" {
-				return errors.New("nic not found")
+				return errNicNotFound
 			}
 		}
 
@@ -369,7 +368,7 @@ var NicUpdateCmd = &cobra.Command{
 				return fmt.Errorf("error getting switch id: %w", err)
 			}
 			if NewNicSwitchID == "" {
-				return errors.New("switch not found")
+				return errSwitchNotFound
 			}
 			newSwitchID = &NewNicSwitchID
 		}

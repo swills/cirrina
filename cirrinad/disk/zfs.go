@@ -2,7 +2,6 @@ package disk
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -75,7 +74,7 @@ func GetZfsVolumeSize(volumeName string) (volSize uint64, err error) {
 		return 0, fmt.Errorf("failed parsing zfs output: %w", err)
 	}
 	if !found {
-		return 0, errors.New("not found")
+		return 0, errDiskNotFound
 	}
 	volSize, err = strconv.ParseUint(volSizeStr, 10, 64)
 	if err != nil {
@@ -105,7 +104,7 @@ func getZfsVolBlockSize(volumeName string) (uint64, error) {
 	var volSizeStr string
 	for scanner.Scan() {
 		if found {
-			return 0, errors.New("duplicate disk found")
+			return 0, errDiskDupe
 		}
 		text := scanner.Text()
 		textFields := strings.Fields(text)
@@ -119,7 +118,7 @@ func getZfsVolBlockSize(volumeName string) (uint64, error) {
 		return 0, fmt.Errorf("failed parsing zfs output: %w", err)
 	}
 	if !found {
-		return 0, errors.New("not found")
+		return 0, errDiskNotFound
 	}
 	var volBlockSize uint64
 	volBlockSize, err = strconv.ParseUint(volSizeStr, 10, 64)
@@ -176,7 +175,7 @@ func SetZfsVolumeSize(volumeName string, volSize uint64) error {
 		// we can force it if the user accepts data loss
 		slog.Error("SetZfsVolumeSize", "error", "new disk smaller than current disk")
 
-		return errors.New("new disk smaller than current disk")
+		return errDiskShrinkage
 	}
 
 	volSizeStr := fmt.Sprintf("volsize=%d", volSize)
@@ -224,7 +223,7 @@ func GetZfsVolumeUsage(volumeName string) (volUsage uint64, err error) {
 		return 0, fmt.Errorf("failed parsing zfs output: %w", err)
 	}
 	if !found {
-		return 0, errors.New("not found")
+		return 0, errDiskNotFound
 	}
 	volUsage, err = strconv.ParseUint(volSizeStr, 10, 64)
 	if err != nil {

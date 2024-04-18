@@ -2,9 +2,8 @@ package rpc
 
 import (
 	"errors"
+	"fmt"
 	"io"
-
-	"google.golang.org/grpc/status"
 
 	"cirrina/cirrina"
 )
@@ -14,7 +13,7 @@ func GetVMNics(id string) ([]string, error) {
 	var res cirrina.VMInfo_GetVMNicsClient
 	res, err = serverClient.GetVMNics(defaultServerContext, &cirrina.VMID{Value: id})
 	if err != nil {
-		return []string{}, errors.New(status.Convert(err).Message())
+		return []string{}, fmt.Errorf("unable to get VM nics: %w", err)
 	}
 	var rv []string
 	for {
@@ -24,7 +23,7 @@ func GetVMNics(id string) ([]string, error) {
 			break
 		}
 		if err != nil {
-			return []string{}, errors.New(status.Convert(err).Message())
+			return []string{}, fmt.Errorf("unable to get VM nics: %w", err)
 		}
 		rv = append(rv, r2.Value)
 	}
@@ -41,7 +40,7 @@ func VMSetNics(id string, nicIds []string) (bool, error) {
 	var res *cirrina.ReqBool
 	res, err = serverClient.SetVMNics(defaultServerContext, &j)
 	if err != nil {
-		return false, errors.New(status.Convert(err).Message())
+		return false, fmt.Errorf("unable to set VM nics: %w", err)
 	}
 
 	return res.Success, nil

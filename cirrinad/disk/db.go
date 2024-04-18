@@ -1,7 +1,6 @@
 package disk
 
 import (
-	"errors"
 	"log"
 	"log/slog"
 	"os"
@@ -62,7 +61,7 @@ func getDiskDB() *gorm.DB {
 func (d *Disk) BeforeCreate(_ *gorm.DB) (err error) {
 	d.ID = uuid.NewString()
 	if d.Name == "" {
-		return errors.New("invalid disk name")
+		return errDiskInvalidName
 	}
 
 	return nil

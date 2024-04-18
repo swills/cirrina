@@ -3,11 +3,15 @@
 
 * Fix zvol ownership!
 * Add a force kill function for OSs that won't shut down properly and when you don't want to wait
+* Add feature to remove CD after first boot
 * have all cirrinactl commands which use server make a call to hostPing() before doing anything with the server
 * Use consistent terminology:
   * destroy, remove -> always use remove?
   * error, failed -> always use error?
-  * etc
+  * switch, bridge -> always use switch?
+  * nic, vmnic -> always use nic?
+  * iso, ISO -> always use ISO in messages? something else?
+* Add check that MAC addresses are MAC-48 or EUI-48, not EUI-64 or 20-octet IP over Infiniband addresses
 * Allow `.` in disk file name, if it's not at the start of the file name and if it's not followed by another `.`
 * Disk resize -- include force flag to allow reducing disk size which includes data loss
 * Convert all UUIDs from strings to UUID type

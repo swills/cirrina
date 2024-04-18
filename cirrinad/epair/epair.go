@@ -2,7 +2,6 @@ package epair
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -75,7 +74,7 @@ func GetDummyEpairName() string {
 
 func CreateEpair(name string) (err error) {
 	if name == "" {
-		return errors.New("empty epair name")
+		return errEpairNameEmpty
 	}
 	args := []string{"/sbin/ifconfig", name, "create", "group", "cirrinad"}
 	cmd := exec.Command(config.Config.Sys.Sudo, args...)
@@ -107,7 +106,7 @@ func CreateEpair(name string) (err error) {
 
 func DestroyEpair(name string) (err error) {
 	if name == "" {
-		return errors.New("empty epair name")
+		return errEpairNameEmpty
 	}
 	args := []string{"/sbin/ifconfig", name + "a", "destroy"}
 	cmd := exec.Command(config.Config.Sys.Sudo, args...)

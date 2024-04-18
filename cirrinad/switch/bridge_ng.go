@@ -3,7 +3,6 @@ package vmswitch
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -165,13 +164,13 @@ func ngBridgeNextLink(peers []ngPeer) (link string) {
 
 func createNgBridge(name string) (err error) {
 	if name == "" {
-		return errors.New("name can't be empty")
+		return errSwitchInvalidName
 	}
 
 	if !strings.HasPrefix(name, "bnet") {
 		slog.Error("invalid bridge name", "name", name)
 
-		return errors.New("invalid bridge name, bridge name must start with \"bnet\"")
+		return errSwitchInvalidBridgeNameNG
 	}
 
 	allIfBridges, err := GetAllNgBridges()
@@ -183,7 +182,7 @@ func createNgBridge(name string) (err error) {
 	if util.ContainsStr(allIfBridges, name) {
 		slog.Debug("bridge already exists", "bridge", name)
 
-		return errors.New("duplicate bridge")
+		return errSwitchInvalidBridgeDupe
 	}
 
 	// actually create the ng bridge
@@ -199,7 +198,7 @@ func actualNgBridgeCreate(netDev string) error {
 	// create a dummy if_bridge to connect the ng_bridge to
 	dummyIfBridgeName := GetDummyBridgeName()
 	if dummyIfBridgeName == "" {
-		return errors.New("failed to create ng bridge: could not get dummy bridge name")
+		return errSwitchFailDummy
 	}
 	err := createIfBridge(dummyIfBridgeName)
 	if err != nil {

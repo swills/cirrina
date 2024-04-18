@@ -49,7 +49,7 @@ func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskI
 	defaultDiskDirect := false
 
 	if i.Name == nil || *i.Name == "" {
-		return &cirrina.DiskId{}, errors.New("name not specified")
+		return &cirrina.DiskId{}, errInvalidName
 	}
 
 	if i.Size == nil || *i.Size == "" {
@@ -93,7 +93,7 @@ func (s *server) AddDisk(_ context.Context, i *cirrina.DiskInfo) (*cirrina.DiskI
 	if diskInst != nil && diskInst.ID != "" {
 		return &cirrina.DiskId{Value: diskInst.ID}, nil
 	} else {
-		return &cirrina.DiskId{}, errors.New("unknown error creating disk")
+		return &cirrina.DiskId{}, errDiskCreateGeneric
 	}
 }
 
@@ -104,19 +104,19 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 
 	diskUUID, err := uuid.Parse(i.Value)
 	if err != nil {
-		return &ic, errors.New("invalid disk id")
+		return &ic, errInvalidID
 	}
 	diskInst, err := disk.GetByID(diskUUID.String())
 	if err != nil {
 		slog.Error("error getting disk", "disk", i.Value, "err", err)
 
-		return &ic, errors.New("not found")
+		return &ic, errNotFound
 	}
 
 	if diskInst.Name == "" {
 		slog.Debug("disk not found")
 
-		return &ic, errors.New("not found")
+		return &ic, errNotFound
 	}
 	ic.Name = &diskInst.Name
 	ic.Description = &diskInst.Description
@@ -157,7 +157,7 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 		}
 	case cirrina.DiskDevType_ZVOL:
 		if config.Config.Disk.VM.Path.Zpool == "" {
-			return &cirrina.DiskInfo{}, errors.New("zfs pool not configured, cannot manage zvol disks")
+			return &cirrina.DiskInfo{}, errDiskZPoolNotConfigured
 		}
 		diskSize, diskBlocks, diskSizeNum, diskUsageNum, err := getDiskInfoZVOL(diskInst)
 		if err != nil {
@@ -169,7 +169,7 @@ func (s *server) GetDiskInfo(_ context.Context, i *cirrina.DiskId) (*cirrina.Dis
 		ic.Usage = &diskBlocks
 		ic.UsageNum = &diskUsageNum
 	default:
-		return &ic, errors.New("unknown dev type")
+		return &ic, errDiskInvalidDevType
 	}
 
 	return &ic, nil
@@ -182,19 +182,19 @@ func (s *server) RemoveDisk(_ context.Context, i *cirrina.DiskId) (*cirrina.ReqB
 
 	diskUUID, err := uuid.Parse(i.Value)
 	if err != nil {
-		return &re, errors.New("invalid disk id")
+		return &re, errInvalidID
 	}
 
 	diskInst, err := disk.GetByID(diskUUID.String())
 	if err != nil {
 		slog.Error("error getting disk", "disk", i.Value, "err", err)
 
-		return &re, errors.New("not found")
+		return &re, errNotFound
 	}
 	if diskInst.Name == "" {
 		slog.Debug("disk not found")
 
-		return &re, errors.New("not found")
+		return &re, errNotFound
 	}
 
 	// check that disk is not in use by a VM
@@ -205,9 +205,7 @@ func (s *server) RemoveDisk(_ context.Context, i *cirrina.DiskId) (*cirrina.ReqB
 	}
 
 	if diskVM != nil {
-		errorMessage := "disk in use by VM " + diskVM.ID
-
-		return &re, errors.New(errorMessage)
+		return &re, errDiskInUse
 	}
 
 	// prevent deleting disk while it's being uploaded etc
@@ -218,7 +216,7 @@ func (s *server) RemoveDisk(_ context.Context, i *cirrina.DiskId) (*cirrina.ReqB
 	if res != nil {
 		slog.Error("error deleting disk", "res", res)
 
-		return &re, errors.New("error deleting disk")
+		return &re, errDiskDeleteGeneric
 	}
 
 	re.Success = true
@@ -231,7 +229,7 @@ func (s *server) GetDiskVM(_ context.Context, i *cirrina.DiskId) (v *cirrina.VMI
 
 	diskUUID, err := uuid.Parse(i.Value)
 	if err != nil {
-		return &pvmID, errors.New("invalid disk id")
+		return &pvmID, errInvalidID
 	}
 
 	var rv *vm.VM
@@ -265,7 +263,7 @@ func getDiskVM(diskUUID uuid.UUID) (*vm.VM, error) {
 						"vmid", thisVM.ID,
 					)
 
-					return &vm.VM{}, errors.New("disk in use by more than one VM")
+					return &vm.VM{}, errDiskInUse
 				}
 				found = true
 				rv = thisVM
@@ -281,12 +279,12 @@ func (s *server) SetDiskInfo(_ context.Context, diu *cirrina.DiskInfoUpdate) (*c
 	re.Success = false
 
 	if diu.Id == "" {
-		return &re, errors.New("id not specified or invalid")
+		return &re, errInvalidID
 	}
 
 	diskUUID, err := uuid.Parse(diu.Id)
 	if err != nil {
-		return &re, errors.New("id not specified or invalid")
+		return &re, errInvalidID
 	}
 
 	diskInst, err := disk.GetByID(diskUUID.String())
@@ -308,7 +306,7 @@ func (s *server) SetDiskInfo(_ context.Context, diu *cirrina.DiskInfoUpdate) (*c
 		case cirrina.DiskType_VIRTIOBLK:
 			diskInst.Type = "VIRTIO-BLK"
 		default:
-			return &re, errors.New("invalid disk type")
+			return &re, errDiskInvalidType
 		}
 		slog.Debug("SetDiskInfo", "type", diskInst.Type)
 	}
@@ -324,7 +322,7 @@ func (s *server) SetDiskInfo(_ context.Context, diu *cirrina.DiskInfoUpdate) (*c
 	slog.Debug("SetDiskInfo saving disk")
 	err = diskInst.Save()
 	if err != nil {
-		return &re, errors.New("failed to update Disk")
+		return &re, errDiskUpdateGeneric
 	}
 	re.Success = true
 
@@ -392,24 +390,24 @@ func validateDiskReq(diskUploadReq *cirrina.DiskUploadInfo) (*disk.Disk, error) 
 	if diskUploadReq == nil || diskUploadReq.Diskid == nil {
 		slog.Error("nil diskUploadReq or disk id")
 
-		return &disk.Disk{}, errors.New("nil diskUploadReq or disk id")
+		return &disk.Disk{}, errReqInvalid
 	}
 	diskUUID, err := uuid.Parse(diskUploadReq.Diskid.Value)
 	if err != nil {
 		slog.Error("disk id not specified or invalid on upload")
 
-		return &disk.Disk{}, errors.New("id not specified or invalid")
+		return &disk.Disk{}, errInvalidID
 	}
 	diskInst, err := disk.GetByID(diskUUID.String())
 	if err != nil {
 		slog.Error("error getting disk", "id", diskUUID.String(), "err", err)
 
-		return &disk.Disk{}, errors.New("not found")
+		return &disk.Disk{}, errNotFound
 	}
 	if diskInst.Name == "" {
 		slog.Debug("disk not found")
 
-		return &disk.Disk{}, errors.New("not found")
+		return &disk.Disk{}, errNotFound
 	}
 	var diskVM *vm.VM
 	diskVM, err = getDiskVM(diskUUID)
@@ -420,9 +418,9 @@ func validateDiskReq(diskUploadReq *cirrina.DiskUploadInfo) (*disk.Disk, error) 
 	}
 	if diskVM != nil {
 		if diskVM.Status != "STOPPED" {
-			slog.Error("UploadDisk can not upload disk to VM that is not stopped")
+			slog.Error("can not upload disk to VM that is not stopped")
 
-			return &disk.Disk{}, errors.New("can not upload disk to VM that is not stopped")
+			return &disk.Disk{}, errInvalidVMStateDiskUpload
 		}
 	}
 	// not technically "validation" per se, but it needs to be done
@@ -489,7 +487,7 @@ func receiveDiskFile(stream cirrina.VMInfo_UploadDiskServer, diskPath string, im
 			"diskUploadReq.Size", diskUploadReq.Size,
 		)
 
-		return errors.New("disk upload size incorrect")
+		return errDiskSizeFailure
 	}
 
 	// verify checksum
@@ -499,7 +497,7 @@ func receiveDiskFile(stream cirrina.VMInfo_UploadDiskServer, diskPath string, im
 			"diskUploadReq.Sha512Sum", diskUploadReq.Sha512Sum,
 		)
 
-		return errors.New("disk upload checksum incorrect")
+		return errDiskChecksumFailure
 	}
 
 	// finish saving file
@@ -520,7 +518,7 @@ func mapDiskDevTypeTypeToDBString(diskDevType cirrina.DiskDevType) (string, erro
 	case cirrina.DiskDevType_ZVOL:
 		return "ZVOL", nil
 	default:
-		return "", fmt.Errorf("invalid disk dev type %s specified", diskDevType)
+		return "", errDiskInvalidDevType
 	}
 }
 
@@ -534,7 +532,7 @@ func mapDiskDevTypeDBStringToType(diskDevType string) (*cirrina.DiskDevType, err
 	case "ZVOL":
 		return &DiskDevTypeZvol, nil
 	default:
-		return nil, errors.New("invalid disk dev type")
+		return nil, errDiskInvalidDevType
 	}
 }
 
@@ -547,7 +545,7 @@ func mapDiskTypeTypeToDBString(diskType cirrina.DiskType) (string, error) {
 	case cirrina.DiskType_VIRTIOBLK:
 		return "VIRTIO-BLK", nil
 	default:
-		return "", fmt.Errorf("invalid disk type %s specified", diskType)
+		return "", errDiskInvalidType
 	}
 }
 
@@ -564,7 +562,7 @@ func mapDiskTypeDBStringToType(diskType string) (*cirrina.DiskType, error) {
 	case "VIRTIO-BLK":
 		return &DiskTypeVIRT, nil
 	default:
-		return nil, errors.New("invalid disk type")
+		return nil, errDiskInvalidType
 	}
 }
 

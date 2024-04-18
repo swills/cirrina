@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -74,7 +73,7 @@ func startCom(comNum int) error {
 			return fmt.Errorf("failed getting VM ID: %w", err)
 		}
 		if VMID == "" {
-			return errors.New("VM not found")
+			return errVMNotFound
 		}
 	}
 	var running bool
@@ -83,11 +82,7 @@ func startCom(comNum int) error {
 		return fmt.Errorf("failed checking VM status: %w", err)
 	}
 	if !running {
-		if VMName != "" {
-			return fmt.Errorf("vm %s not running", VMName)
-		} else {
-			return fmt.Errorf("vm %s not running", VMID)
-		}
+		return errVMNotRunning
 	}
 
 	fmt.Print("starting terminal session, press ctrl-\\ to quit\n")

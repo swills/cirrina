@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -98,7 +97,7 @@ var SwitchCreateCmd = &cobra.Command{
 		"must be named starting with \"bnet\" followed by a number, for example \"bnet0\".",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if SwitchName == "" {
-			return errors.New("empty switch name")
+			return errSwitchEmptyName
 		}
 		res, err := rpc.AddSwitch(SwitchName, &SwitchDescription, &SwitchType, &SwitchUplinkName)
 		if err != nil {
@@ -122,7 +121,7 @@ var SwitchDestroyCmd = &cobra.Command{
 				return fmt.Errorf("error getting switch ID: %w", err)
 			}
 			if SwitchID == "" {
-				return errors.New("switch not found")
+				return errSwitchNotFound
 			}
 		}
 
@@ -148,7 +147,7 @@ var SwitchUplinkCmd = &cobra.Command{
 				return fmt.Errorf("error getting switch id: %w", err)
 			}
 			if SwitchID == "" {
-				return errors.New("switch not found")
+				return errSwitchNotFound
 			}
 		}
 		err = rpc.SetSwitchUplink(SwitchID, &SwitchUplinkName)
@@ -178,7 +177,7 @@ var SwitchUpdateCmd = &cobra.Command{
 				return fmt.Errorf("error getting switch id: %w", err)
 			}
 			if SwitchID == "" {
-				return errors.New("switch not found")
+				return errSwitchNotFound
 			}
 		}
 

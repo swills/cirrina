@@ -2,9 +2,9 @@ package rpc
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
@@ -15,7 +15,7 @@ func GetHostNics() (rv []*cirrina.NetIf, err error) {
 	var res cirrina.VMInfo_GetNetInterfacesClient
 	res, err = serverClient.GetNetInterfaces(defaultServerContext, &cirrina.NetInterfacesReq{})
 	if err != nil {
-		return []*cirrina.NetIf{}, errors.New(status.Convert(err).Message())
+		return []*cirrina.NetIf{}, fmt.Errorf("unable to get host nics: %w", err)
 	}
 	for {
 		hostNic, err := res.Recv()
@@ -23,7 +23,7 @@ func GetHostNics() (rv []*cirrina.NetIf, err error) {
 			break
 		}
 		if err != nil {
-			return []*cirrina.NetIf{}, errors.New(status.Convert(err).Message())
+			return []*cirrina.NetIf{}, fmt.Errorf("unable to get host nics: %w", err)
 		}
 		rv = append(rv, hostNic)
 	}
@@ -35,7 +35,7 @@ func GetHostVersion() (version string, err error) {
 	var res *wrapperspb.StringValue
 	res, err = serverClient.GetVersion(defaultServerContext, &emptypb.Empty{})
 	if err != nil {
-		return "", errors.New(status.Convert(err).Message())
+		return "", fmt.Errorf("unable to get host version: %w", err)
 	}
 	version = res.Value
 

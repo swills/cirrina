@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -25,7 +24,7 @@ var VMIsoListCmd = &cobra.Command{
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
 			if VMID == "" {
-				return errors.New("VM not found")
+				return errVMNotFound
 			}
 		}
 
@@ -106,7 +105,7 @@ var VMIsosAddCmd = &cobra.Command{
 				return nil
 			}
 			if VMID == "" {
-				return errors.New("VM not found")
+				return errVMNotFound
 			}
 		}
 		if IsoID == "" {
@@ -115,7 +114,7 @@ var VMIsosAddCmd = &cobra.Command{
 				return fmt.Errorf("failed setting ISO ID: %w", err)
 			}
 			if IsoID == "" {
-				return errors.New("ISO not found")
+				return errIsoNotFound
 			}
 		}
 
@@ -132,7 +131,7 @@ var VMIsosAddCmd = &cobra.Command{
 			return fmt.Errorf("failed setting VM ISOs: %w", err)
 		}
 		if !res {
-			return errors.New("failed")
+			return errReqFailed
 		}
 		fmt.Printf("Added\n")
 
@@ -153,7 +152,7 @@ var VMIsosRmCmd = &cobra.Command{
 				return fmt.Errorf("failed setting VM ID: %w", err)
 			}
 			if VMID == "" {
-				return errors.New("VM not found")
+				return errVMNotFound
 			}
 		}
 		if IsoID == "" {
@@ -162,7 +161,7 @@ var VMIsosRmCmd = &cobra.Command{
 				return fmt.Errorf("failed getting ISO ID: %w", err)
 			}
 			if IsoID == "" {
-				return errors.New("ISO not found")
+				return errIsoNotFound
 			}
 		}
 
@@ -185,7 +184,7 @@ var VMIsosRmCmd = &cobra.Command{
 			return fmt.Errorf("failed setting VM ISOs: %w", err)
 		}
 		if !res {
-			return errors.New("failed")
+			return errReqFailed
 		}
 		fmt.Printf("Removed\n")
 

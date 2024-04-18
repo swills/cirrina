@@ -2,9 +2,8 @@ package rpc
 
 import (
 	"errors"
+	"fmt"
 	"io"
-
-	"google.golang.org/grpc/status"
 
 	"cirrina/cirrina"
 )
@@ -15,7 +14,7 @@ func GetVMIsos(id string) ([]string, error) {
 	var getVMISOsClient cirrina.VMInfo_GetVMISOsClient
 	getVMISOsClient, err = serverClient.GetVMISOs(defaultServerContext, &cirrina.VMID{Value: id})
 	if err != nil {
-		return []string{}, errors.New(status.Convert(err).Message())
+		return []string{}, fmt.Errorf("unable to get VM isos: %w", err)
 	}
 	for {
 		var isoid *cirrina.ISOID
@@ -24,7 +23,7 @@ func GetVMIsos(id string) ([]string, error) {
 			break
 		}
 		if err != nil {
-			return []string{}, errors.New(status.Convert(err).Message())
+			return []string{}, fmt.Errorf("unable to get VM isos: %w", err)
 		}
 		rv = append(rv, isoid.Value)
 	}
@@ -41,7 +40,7 @@ func VMSetIsos(id string, isoIds []string) (bool, error) {
 	var res *cirrina.ReqBool
 	res, err = serverClient.SetVMISOs(defaultServerContext, &setISOReq)
 	if err != nil {
-		return false, errors.New(status.Convert(err).Message())
+		return false, fmt.Errorf("unable to set VM isos: %w", err)
 	}
 
 	return res.Success, nil

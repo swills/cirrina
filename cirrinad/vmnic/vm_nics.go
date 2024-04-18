@@ -1,8 +1,6 @@
 package vmnic
 
 import (
-	"errors"
-	"fmt"
 	"log/slog"
 	"net"
 
@@ -61,7 +59,7 @@ func Create(vmNicInst *VMNic) (newNicID string, err error) {
 	if !valid {
 		slog.Error("VMNic exists or not valid", "VMNic", vmNicInst.Name)
 
-		return newNicID, errors.New("VMNic exists or not valid")
+		return newNicID, errNicExists
 	}
 
 	db := GetVMNicDB()
@@ -77,9 +75,9 @@ func (d *VMNic) Delete() (err error) {
 	db := GetVMNicDB()
 	res := db.Limit(1).Unscoped().Delete(&d)
 	if res.RowsAffected != 1 {
-		errText := fmt.Sprintf("vmnic delete error, rows affected %v", res.RowsAffected)
+		slog.Error("error saving vmnic", "res", res)
 
-		return errors.New(errText)
+		return errNicInternalDB
 	}
 
 	return nil
@@ -119,7 +117,9 @@ func (d *VMNic) Save() error {
 		)
 
 	if res.Error != nil {
-		return errors.New("error updating vmnic")
+		slog.Error("error updating nic", "res", res)
+
+		return errNicInternalDB
 	}
 
 	return nil
@@ -148,26 +148,26 @@ func ParseMac(macAddress string) (res string, err error) {
 		return macAddress, nil
 	}
 	if macAddress == "" {
-		return "", errors.New("invalid MAC address")
+		return "", errInvalidMac
 	}
 	isBroadcast, err := util.MacIsBroadcast(macAddress)
 	if err != nil {
-		return "", errors.New("invalid MAC address")
+		return "", errInvalidMac
 	}
 	if isBroadcast {
-		return "", errors.New("may not use broadcast MAC address")
+		return "", errInvalidMacBroadcast
 	}
 	isMulticast, err := util.MacIsMulticast(macAddress)
 	if err != nil {
-		return "", errors.New("invalid MAC address")
+		return "", errInvalidMac
 	}
 	if isMulticast {
-		return "", errors.New("may not use multicast MAC address")
+		return "", errInvalidMacMulticast
 	}
 	var newMac net.HardwareAddr
 	newMac, err = net.ParseMAC(macAddress)
 	if err != nil {
-		return "", fmt.Errorf("failed parsing mac: %w", err)
+		return "", errInvalidMac
 	}
 
 	return newMac.String(), nil
@@ -182,7 +182,7 @@ func ParseNetDevType(netDevType cirrina.NetDevType) (res string, err error) {
 	case cirrina.NetDevType_NETGRAPH:
 		res = "NETGRAPH"
 	default:
-		err = errors.New("invalid net dev type name")
+		err = errInvalidNetDevType
 	}
 
 	return res, err
@@ -195,7 +195,7 @@ func ParseNetType(netType cirrina.NetType) (res string, err error) {
 	case cirrina.NetType_E1000:
 		res = "E1000"
 	default:
-		err = errors.New("invalid net type name")
+		err = errInvalidNetType
 	}
 
 	return res, err
@@ -204,7 +204,7 @@ func ParseNetType(netType cirrina.NetType) (res string, err error) {
 // validateNewNic validate and normalize new nic
 func validateNewNic(vmNicInst *VMNic) (bool, error) {
 	if !util.ValidNicName(vmNicInst.Name) {
-		return false, errors.New("invalid name")
+		return false, errInvalidNicName
 	}
 	existingVMNic, err := GetByName(vmNicInst.Name)
 	if err != nil {
@@ -215,22 +215,22 @@ func validateNewNic(vmNicInst *VMNic) (bool, error) {
 	}
 
 	if vmNicInst.NetType != "VIRTIONET" && vmNicInst.NetType != "E1000" {
-		return false, errors.New("bad net type")
+		return false, errInvalidNetType
 	}
 
 	if vmNicInst.NetDevType != "TAP" && vmNicInst.NetDevType != "VMNET" && vmNicInst.NetDevType != "NETGRAPH" {
-		return false, errors.New("bad net dev type")
+		return false, errInvalidNetDevType
 	}
 
 	if vmNicInst.RateLimit {
 		if vmNicInst.RateIn <= 0 || vmNicInst.RateOut <= 0 {
-			return false, errors.New("bad network rate limit")
+			return false, errInvalidNetworkRateLimit
 		}
 	}
 	if vmNicInst.Mac != "AUTO" {
 		newMac, err := net.ParseMAC(vmNicInst.Mac)
 		if err != nil {
-			return false, errors.New("bad MAC address")
+			return false, errInvalidMac
 		}
 		// normalize MAC
 		vmNicInst.Mac = newMac.String()

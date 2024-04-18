@@ -27,9 +27,7 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 	vmid := in.GetVmId()
 	vmuuid, err := uuid.Parse(vmid.Value)
 	if err != nil {
-		errorMessage := fmt.Sprintf("invalid vm id %s", vmid)
-
-		return errors.New(errorMessage)
+		return errInvalidID
 	}
 	vmInst, err := vm.GetByID(vmuuid.String())
 	if err != nil {
@@ -37,7 +35,7 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 	}
 
 	if vmInst.Status != "RUNNING" {
-		return errors.New("vm not running")
+		return errInvalidVMStateStop
 	}
 
 	return comInteractive(stream, vmInst, 1)
@@ -54,9 +52,7 @@ func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) er
 	vmid := in.GetVmId()
 	vmuuid, err := uuid.Parse(vmid.Value)
 	if err != nil {
-		errorMessage := fmt.Sprintf("invalid vm id %s", vmid)
-
-		return errors.New(errorMessage)
+		return errInvalidID
 	}
 	vmInst, err := vm.GetByID(vmuuid.String())
 	if err != nil {
@@ -64,7 +60,7 @@ func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) er
 	}
 
 	if vmInst.Status != "RUNNING" {
-		return errors.New("vm not running")
+		return errInvalidVMStateStop
 	}
 
 	return comInteractive(stream, vmInst, 2)
@@ -81,9 +77,7 @@ func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) er
 	vmid := in.GetVmId()
 	vmuuid, err := uuid.Parse(vmid.Value)
 	if err != nil {
-		errorMessage := fmt.Sprintf("invalid vm id %s", vmid)
-
-		return errors.New(errorMessage)
+		return errInvalidID
 	}
 	vmInst, err := vm.GetByID(vmuuid.String())
 	if err != nil {
@@ -91,7 +85,7 @@ func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) er
 	}
 
 	if vmInst.Status != "RUNNING" {
-		return errors.New("vm not running")
+		return errInvalidVMStateStop
 	}
 
 	return comInteractive(stream, vmInst, 3)
@@ -108,9 +102,7 @@ func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) er
 	vmid := in.GetVmId()
 	vmuuid, err := uuid.Parse(vmid.Value)
 	if err != nil {
-		errorMessage := fmt.Sprintf("invalid vm id %s", vmid)
-
-		return errors.New(errorMessage)
+		return errInvalidID
 	}
 	vmInst, err := vm.GetByID(vmuuid.String())
 	if err != nil {
@@ -118,7 +110,7 @@ func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) er
 	}
 
 	if vmInst.Status != "RUNNING" {
-		return errors.New("vm not running")
+		return errInvalidVMStateStop
 	}
 
 	return comInteractive(stream, vmInst, 4)
@@ -184,7 +176,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 	default:
 		slog.Error("comLogger invalid com", "comNum", comNum)
 
-		return errors.New("invalid comNum")
+		return errComInvalid
 	}
 	err := comInteractiveSetup(thisCom)
 	if err != nil {
@@ -225,7 +217,7 @@ func comInteractiveSetup(thisCom *serial.Port) error {
 	if thisCom == nil {
 		slog.Error("tried to start com but serial port is nil")
 
-		return errors.New("com is not set")
+		return errComDevNotSet
 	}
 	// discard any existing input/output
 	// Flush() doesn't seem to flush everything?
