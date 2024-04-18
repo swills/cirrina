@@ -1385,7 +1385,7 @@ func cleanupIfNic(vmNic vmnic.VMNic) error {
 	if vmNic.NetDev != "" {
 		args := []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"}
 		cmd := exec.Command(config.Config.Sys.Sudo, args...)
-		err := cmd.Run()
+		err = cmd.Run()
 		if err != nil {
 			slog.Error("failed to destroy network interface", "err", err)
 		}

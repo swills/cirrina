@@ -3,6 +3,7 @@ package epair
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -13,20 +14,22 @@ import (
 	"cirrina/cirrinad/util"
 )
 
-func getAllEpair() (epairs []string, err error) {
-	var r []string
+func getAllEpair() ([]string, error) {
+	var err error
+	var epairs []string
 	cmd := exec.Command("/sbin/ifconfig", "-g", "epair")
 	defer func(cmd *exec.Cmd) {
-		err := cmd.Wait()
+		err = cmd.Wait()
 		if err != nil {
 			slog.Error("ifconfig error", "err", err)
 		}
 	}(cmd)
-	stdout, err := cmd.StdoutPipe()
+	var stdout io.ReadCloser
+	stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		return []string{}, fmt.Errorf("error running ifconfig: %w", err)
 	}
-	if err := cmd.Start(); err != nil {
+	if err = cmd.Start(); err != nil {
 		return []string{}, fmt.Errorf("error running ifconfig: %w", err)
 	}
 	scanner := bufio.NewScanner(stdout)
@@ -40,7 +43,7 @@ func getAllEpair() (epairs []string, err error) {
 			continue
 		}
 		aPairName := strings.TrimSuffix(textFields[0], "a")
-		r = append(r, aPairName)
+		epairs = append(epairs, aPairName)
 	}
 	if err := scanner.Err(); err != nil {
 		slog.Error("error scanning ifconfig output", "err", err)
@@ -48,7 +51,7 @@ func getAllEpair() (epairs []string, err error) {
 		return []string{}, fmt.Errorf("error parsing ifconfig output: %w", err)
 	}
 
-	return r, nil
+	return epairs, nil
 }
 
 func GetDummyEpairName() string {
@@ -104,7 +107,8 @@ func CreateEpair(name string) (err error) {
 	return nil
 }
 
-func DestroyEpair(name string) (err error) {
+func DestroyEpair(name string) error {
+	var err error
 	if name == "" {
 		return errEpairNameEmpty
 	}

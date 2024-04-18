@@ -363,7 +363,8 @@ var NicUpdateCmd = &cobra.Command{
 			newRateOut = &NicRateOut
 		}
 		if NicSwitchNameChanged {
-			NewNicSwitchID, err := rpc.SwitchNameToID(NicSwitchName)
+			var NewNicSwitchID string
+			NewNicSwitchID, err = rpc.SwitchNameToID(NicSwitchName)
 			if err != nil {
 				return fmt.Errorf("error getting switch id: %w", err)
 			}

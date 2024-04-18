@@ -124,11 +124,12 @@ func CustomMigrate() {
 }
 
 func migration2024022401(schemaVersion uint32, vmNicDB *gorm.DB, vmDB *gorm.DB) {
+	var err error
 	if schemaVersion < 2024022401 {
 		if vmnic.DBInitialized() {
 			if !vmNicDB.Migrator().HasColumn(vmnic.VMNic{}, "config_id") {
 				slog.Debug("migrating config.nics to vm_nics.config_id")
-				err := vmNicDB.Migrator().AddColumn(vmnic.VMNic{}, "config_id")
+				err = vmNicDB.Migrator().AddColumn(vmnic.VMNic{}, "config_id")
 				if err != nil {
 					slog.Debug("error adding config_id column", "err", err)
 					panic(err)
@@ -148,7 +149,8 @@ func migration2024022401(schemaVersion uint32, vmNicDB *gorm.DB, vmDB *gorm.DB) 
 						if cv == "" {
 							continue
 						}
-						aNic, err := vmnic.GetByID(cv)
+						var aNic *vmnic.VMNic
+						aNic, err = vmnic.GetByID(cv)
 						if err == nil {
 							thisVmsNics = append(thisVmsNics, *aNic)
 						} else {

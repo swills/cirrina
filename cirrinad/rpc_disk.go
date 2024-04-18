@@ -449,7 +449,8 @@ func receiveDiskFile(stream cirrina.VMInfo_UploadDiskServer, diskPath string, im
 	hasher := sha512.New()
 
 	for {
-		req, err := stream.Recv()
+		var req *cirrina.DiskImageRequest
+		req, err = stream.Recv()
 		if errors.Is(err, io.EOF) {
 			break
 		}

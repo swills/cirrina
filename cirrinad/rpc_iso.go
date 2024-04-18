@@ -157,7 +157,8 @@ func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina
 	hasher := sha512.New()
 
 	for {
-		req, err := stream.Recv()
+		var req *cirrina.ISOImageRequest
+		req, err = stream.Recv()
 		if errors.Is(err, io.EOF) {
 			slog.Debug("UploadIso", "msg", "no more data")
 

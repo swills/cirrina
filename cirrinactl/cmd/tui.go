@@ -45,7 +45,7 @@ var vmItems []vmItem
 
 func getVMItems() ([]vmItem, error) {
 	var vmIDs []string
-	var vmItems []vmItem
+	var theseVMItems []vmItem
 	var err error
 
 	vmIDs, err = rpc.GetVMIds()
@@ -62,12 +62,12 @@ func getVMItems() ([]vmItem, error) {
 		var aItem vmItem
 		aItem.name = res.Name
 		aItem.desc = res.Description
-		vmItems = append(vmItems, aItem)
+		theseVMItems = append(theseVMItems, aItem)
 	}
 
-	sort.Slice(vmItems, func(i, j int) bool { return vmItems[i].name < vmItems[j].name })
+	sort.Slice(theseVMItems, func(i, j int) bool { return theseVMItems[i].name < theseVMItems[j].name })
 
-	return vmItems, nil
+	return theseVMItems, nil
 }
 
 func startButtonExit(key tcell.Key) {

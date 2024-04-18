@@ -53,7 +53,8 @@ func nicClone(rs *requests.Request) {
 	// check that mac is not broadcast and is not multicast. do not need to check if it's parseable here
 	// because both do that also
 	if reqData.NewNicMac != "" && reqData.NewNicMac != "AUTO" {
-		isBroadcast, err := util.MacIsBroadcast(reqData.NewNicMac)
+		var isBroadcast bool
+		isBroadcast, err = util.MacIsBroadcast(reqData.NewNicMac)
 		if err != nil {
 			slog.Error("error checking new nic mac", "err", err)
 			rs.Failed()
@@ -66,7 +67,8 @@ func nicClone(rs *requests.Request) {
 
 			return
 		}
-		isMulticast, err := util.MacIsMulticast(reqData.NewNicMac)
+		var isMulticast bool
+		isMulticast, err = util.MacIsMulticast(reqData.NewNicMac)
 		if err != nil {
 			slog.Error("error checking new nic mac", "err", err)
 			rs.Failed()

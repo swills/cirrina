@@ -329,10 +329,12 @@ func CopyFile(in, out string) (int64, error) {
 	return n, nil
 }
 
-func GetIntGroups(interfaceName string) (intGroups []string, err error) {
+func GetIntGroups(interfaceName string) ([]string, error) {
+	var intGroups []string
+	var err error
 	cmd := exec.Command("/sbin/ifconfig", interfaceName)
 	defer func(cmd *exec.Cmd) {
-		err := cmd.Wait()
+		err = cmd.Wait()
 		if err != nil {
 			slog.Error("ifconfig error", "err", err)
 		}

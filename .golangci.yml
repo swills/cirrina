@@ -109,3 +109,6 @@ linters-settings:
       - default
       - prefix(cirrina)
     custom-order: true
+  govet:
+    enable:
+      - shadow

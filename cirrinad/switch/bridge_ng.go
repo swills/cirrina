@@ -32,7 +32,7 @@ type ngPeer struct {
 func ngGetNodes() (ngNodes []NgNode, err error) {
 	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "list")
 	defer func(cmd *exec.Cmd) {
-		err := cmd.Wait()
+		err = cmd.Wait()
 		if err != nil {
 			slog.Error("ngctl error", "err", err)
 		}
@@ -103,7 +103,7 @@ func getNgBridgeMembers(bridge string) (peers []ngPeer, err error) {
 	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "show",
 		bridge+":")
 	defer func(cmd *exec.Cmd) {
-		err := cmd.Wait()
+		err = cmd.Wait()
 		if err != nil {
 			slog.Error("ngctl show error", "err", err)
 		}

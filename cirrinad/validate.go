@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"math/rand"
@@ -368,12 +369,13 @@ func validateZpoolConf() {
 	var emptyBytes []byte
 	var outBytes bytes.Buffer
 	var errBytes bytes.Buffer
+	var err error
 
 	checkCmd := execabs.Command("/sbin/zfs", "list", config.Config.Disk.VM.Path.Zpool)
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
-	err := checkCmd.Run()
+	err = checkCmd.Run()
 	if err != nil {
 		slog.Error("zfs dataset not available, please fix or reconfigure",
 			"checkCmd.String", checkCmd.String(),
@@ -387,12 +389,13 @@ func validateZpoolConf() {
 
 	var rawCapacity string
 	cmd := execabs.Command("/sbin/zpool", "list", "-H", poolName)
-	stdout, err := cmd.StdoutPipe()
+	var stdout io.ReadCloser
+	stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		slog.Error("error checking zpool", "err", err)
 		os.Exit(1)
 	}
-	if err := cmd.Start(); err != nil {
+	if err = cmd.Start(); err != nil {
 		slog.Error("error checking zpool", "err", err)
 		os.Exit(1)
 	}
@@ -408,7 +411,7 @@ func validateZpoolConf() {
 		}
 		rawCapacity = strings.TrimSuffix(textFields[7], "%")
 	}
-	if err := scanner.Err(); err != nil {
+	if err = scanner.Err(); err != nil {
 		slog.Error("error checking zpool", "err", err)
 		os.Exit(1)
 	}

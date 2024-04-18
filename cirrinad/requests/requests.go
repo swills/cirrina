@@ -58,7 +58,6 @@ func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {
 }
 
 func CreateNicCloneReq(nicID string, newName string) (req Request, err error) {
-	reqType := NICCLONE
 	var reqData []byte
 	reqData, err = json.Marshal(NicCloneReqData{NicID: nicID, NewNicName: newName})
 	if err != nil {
@@ -69,7 +68,7 @@ func CreateNicCloneReq(nicID string, newName string) (req Request, err error) {
 	db := GetReqDB()
 	newReq := Request{
 		Data: string(reqData),
-		Type: reqType,
+		Type: NICCLONE,
 	}
 	res := db.Create(&newReq)
 	if res.RowsAffected != 1 {

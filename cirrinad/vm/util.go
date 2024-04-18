@@ -315,7 +315,7 @@ func findChildPid(findPid uint32) (childPid uint32) {
 
 		return 0
 	}
-	if err := cmd.Start(); err != nil {
+	if err = cmd.Start(); err != nil {
 		slog.Error("FindChildPid error", "err", err)
 
 		return 0

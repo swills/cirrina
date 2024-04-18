@@ -35,28 +35,32 @@ func (s *server) AddVMNic(_ context.Context, v *cirrina.VmNicInfo) (*cirrina.VmN
 		}
 	}
 	if v.Netdevtype != nil {
-		newNetDevType, err := vmnic.ParseNetDevType(*v.Netdevtype)
+		var newNetDevType string
+		newNetDevType, err = vmnic.ParseNetDevType(*v.Netdevtype)
 		if err != nil {
 			return vmNicID, fmt.Errorf("error parsing net dev type: %w", err)
 		}
 		vmNicInst.NetDevType = newNetDevType
 	}
 	if v.Nettype != nil {
-		newNetType, err := vmnic.ParseNetType(*v.Nettype)
+		var newNetType string
+		newNetType, err = vmnic.ParseNetType(*v.Nettype)
 		if err != nil {
 			return vmNicID, fmt.Errorf("error parsing net type: %w", err)
 		}
 		vmNicInst.NetType = newNetType
 	}
 	if v.Switchid != nil {
-		newSwitchID, err := _switch.ParseSwitchID(*v.Switchid, vmNicInst.NetType)
+		var newSwitchID string
+		newSwitchID, err = _switch.ParseSwitchID(*v.Switchid, vmNicInst.NetType)
 		if err != nil {
 			return vmNicID, fmt.Errorf("error parsing switch id: %w", err)
 		}
 		vmNicInst.SwitchID = newSwitchID
 	}
 	vmNicParseRateLimit(&vmNicInst, v.Ratelimit, v.Ratein, v.Rateout)
-	newVMNicID, err := vmnic.Create(&vmNicInst)
+	var newVMNicID string
+	newVMNicID, err = vmnic.Create(&vmNicInst)
 	if err != nil {
 		return &cirrina.VmNicId{}, fmt.Errorf("error creating VM: %w", err)
 	}
@@ -142,15 +146,18 @@ func (s *server) GetVMNicInfo(_ context.Context, v *cirrina.VmNicId) (*cirrina.V
 func (s *server) SetVMNicSwitch(_ context.Context, v *cirrina.SetVmNicSwitchReq) (*cirrina.ReqBool, error) {
 	var r cirrina.ReqBool
 	r.Success = false
+	var err error
+	var nicUUID uuid.UUID
 
 	if v.Vmnicid == nil || v.Vmnicid.Value == "" {
 		return &r, errInvalidNicID
 	}
-	nicUUID, err := uuid.Parse(v.Vmnicid.Value)
+	nicUUID, err = uuid.Parse(v.Vmnicid.Value)
 	if err != nil {
 		return &r, fmt.Errorf("error parsing NIC ID: %w", err)
 	}
-	vmNic, err := vmnic.GetByID(nicUUID.String())
+	var vmNic *vmnic.VMNic
+	vmNic, err = vmnic.GetByID(nicUUID.String())
 	if err != nil {
 		slog.Error("error getting nic", "vm", v.Vmnicid.Value, "err", err)
 
@@ -168,11 +175,13 @@ func (s *server) SetVMNicSwitch(_ context.Context, v *cirrina.SetVmNicSwitchReq)
 	if v.Switchid.Value == "" {
 		switchID = ""
 	} else {
-		switchUUID, err := uuid.Parse(v.Switchid.Value)
+		var switchUUID uuid.UUID
+		switchUUID, err = uuid.Parse(v.Switchid.Value)
 		if err != nil {
 			return &r, fmt.Errorf("error parsing switch ID: %w", err)
 		}
-		vmSwitch, err := _switch.GetByID(switchUUID.String())
+		var vmSwitch *_switch.Switch
+		vmSwitch, err = _switch.GetByID(switchUUID.String())
 		if err != nil {
 			slog.Error("error getting switch info", "switch", v.Switchid.Value, "err", err)
 
@@ -197,12 +206,15 @@ func (s *server) RemoveVMNic(_ context.Context, vn *cirrina.VmNicId) (*cirrina.R
 	var re cirrina.ReqBool
 	re.Success = false
 	slog.Debug("RemoveVMNic", "vmnic", vn.Value)
+	var err error
+	var nicUUID uuid.UUID
 
-	nicUUID, err := uuid.Parse(vn.Value)
+	nicUUID, err = uuid.Parse(vn.Value)
 	if err != nil {
 		return &re, fmt.Errorf("error parsing NIC ID: %w", err)
 	}
-	vmNic, err := vmnic.GetByID(nicUUID.String())
+	var vmNic *vmnic.VMNic
+	vmNic, err = vmnic.GetByID(nicUUID.String())
 	if err != nil {
 		slog.Error("error getting nic", "vm", vn.Value, "err", err)
 
@@ -214,7 +226,8 @@ func (s *server) RemoveVMNic(_ context.Context, vn *cirrina.VmNicId) (*cirrina.R
 
 	allVms := vm.GetAll()
 	for _, aVM := range allVms {
-		nics, err := aVM.GetNics()
+		var nics []vmnic.VMNic
+		nics, err = aVM.GetNics()
 		if err != nil {
 			return &re, fmt.Errorf("error getting NICs: %w", err)
 		}
@@ -318,21 +331,24 @@ func (s *server) UpdateVMNic(_ context.Context, v *cirrina.VmNicInfoUpdate) (*ci
 		vmNicInst.Mac = newMac
 	}
 	if v.Netdevtype != nil {
-		newNetDevType, err := vmnic.ParseNetDevType(*v.Netdevtype)
+		var newNetDevType string
+		newNetDevType, err = vmnic.ParseNetDevType(*v.Netdevtype)
 		if err != nil {
 			return &re, fmt.Errorf("error parsing net dev type: %w", err)
 		}
 		vmNicInst.NetDevType = newNetDevType
 	}
 	if v.Nettype != nil {
-		newNetType, err := vmnic.ParseNetType(*v.Nettype)
+		var newNetType string
+		newNetType, err = vmnic.ParseNetType(*v.Nettype)
 		if err != nil {
 			return &re, fmt.Errorf("error parsing net type: %w", err)
 		}
 		vmNicInst.NetType = newNetType
 	}
 	if v.Switchid != nil {
-		newSwitchID, err := _switch.ParseSwitchID(*v.Switchid, vmNicInst.NetType)
+		var newSwitchID string
+		newSwitchID, err = _switch.ParseSwitchID(*v.Switchid, vmNicInst.NetType)
 		if err != nil {
 			return &re, fmt.Errorf("error parsing switch ID: %w", err)
 		}

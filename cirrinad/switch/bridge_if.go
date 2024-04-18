@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -14,20 +15,22 @@ import (
 	"cirrina/cirrinad/util"
 )
 
-func GetAllIfBridges() (bridges []string, err error) {
-	var r []string
+func GetAllIfBridges() ([]string, error) {
+	var err error
+	var bridges []string
 	cmd := exec.Command("/sbin/ifconfig", "-g", "bridge")
 	defer func(cmd *exec.Cmd) {
-		err := cmd.Wait()
+		err = cmd.Wait()
 		if err != nil {
 			slog.Error("ifconfig error", "err", err)
 		}
 	}(cmd)
-	stdout, err := cmd.StdoutPipe()
+	var stdout io.ReadCloser
+	stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("failed running ifconfig command: %w", err)
 	}
-	if err := cmd.Start(); err != nil {
+	if err = cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed running ifconfig command: %w", err)
 	}
 	scanner := bufio.NewScanner(stdout)
@@ -38,31 +41,34 @@ func GetAllIfBridges() (bridges []string, err error) {
 			continue
 		}
 		aBridgeName := textFields[0]
-		r = append(r, aBridgeName)
+		bridges = append(bridges, aBridgeName)
 	}
-	if err := scanner.Err(); err != nil {
+	if err = scanner.Err(); err != nil {
 		slog.Error("error scanning ifconfig output", "err", err)
 
 		return []string{}, fmt.Errorf("failed parsing ifconfig output: %w", err)
 	}
 
-	return r, nil
+	return bridges, nil
 }
 
-func getIfBridgeMembers(name string) (members []string, err error) {
+func getIfBridgeMembers(name string) ([]string, error) {
+	var members []string
+	var err error
 	args := []string{name}
 	cmd := exec.Command("/sbin/ifconfig", args...)
 	defer func(cmd *exec.Cmd) {
-		err := cmd.Wait()
+		err = cmd.Wait()
 		if err != nil {
 			slog.Error("ifconfig error", "err", err)
 		}
 	}(cmd)
-	stdout, err := cmd.StdoutPipe()
+	var stdout io.ReadCloser
+	stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("failed running ifconfig command: %w", err)
 	}
-	if err := cmd.Start(); err != nil {
+	if err = cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed running ifconfig command: %w", err)
 	}
 	scanner := bufio.NewScanner(stdout)
@@ -78,7 +84,7 @@ func getIfBridgeMembers(name string) (members []string, err error) {
 		aBridgeMember := textFields[1]
 		members = append(members, aBridgeMember)
 	}
-	if err := scanner.Err(); err != nil {
+	if err = scanner.Err(); err != nil {
 		slog.Error("error scanning ifconfig output", "err", err)
 
 		return []string{}, fmt.Errorf("failed parsing ifconfig output: %w", err)

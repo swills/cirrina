@@ -196,7 +196,7 @@ func DestroyBridges() {
 		case "IF":
 			if util.ContainsStr(exitingIfBridges, bridge.Name) {
 				slog.Debug("destroying if bridge", "name", bridge.Name)
-				err := DestroyIfBridge(bridge.Name, true)
+				err = DestroyIfBridge(bridge.Name, true)
 				if err != nil {
 					slog.Error("error destroying if bridge", "err", err)
 				}
