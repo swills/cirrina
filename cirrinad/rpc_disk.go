@@ -224,7 +224,8 @@ func (s *server) RemoveDisk(_ context.Context, i *cirrina.DiskId) (*cirrina.ReqB
 	return &re, nil
 }
 
-func (s *server) GetDiskVM(_ context.Context, i *cirrina.DiskId) (v *cirrina.VMID, err error) {
+func (s *server) GetDiskVM(_ context.Context, i *cirrina.DiskId) (*cirrina.VMID, error) {
+	var err error
 	var pvmID cirrina.VMID
 
 	diskUUID, err := uuid.Parse(i.Value)

@@ -58,7 +58,7 @@ func getDiskDB() *gorm.DB {
 	return instance.diskDB
 }
 
-func (d *Disk) BeforeCreate(_ *gorm.DB) (err error) {
+func (d *Disk) BeforeCreate(_ *gorm.DB) error {
 	d.ID = uuid.NewString()
 	if d.Name == "" {
 		return errDiskInvalidName

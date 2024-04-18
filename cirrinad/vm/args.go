@@ -90,7 +90,8 @@ func (vm *VM) getCPUArg() []string {
 	return []string{"-c", strconv.Itoa(int(vmCpus))}
 }
 
-func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (hdArg string, err error) {
+func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (string, error) {
+	var err error
 	var diskController string
 	nocache := ""
 	direct := ""
@@ -562,8 +563,11 @@ func getCom(comDev string, vmName string, num int) ([]string, string) {
 	return comArg, nmdm
 }
 
-func (vm *VM) generateCommandLine() (name string, args []string) {
-	name = config.Config.Sys.Sudo
+func (vm *VM) generateCommandLine() (string, []string) {
+	var args []string
+	// we always start with sudo, at least until bhyve can run as non-root
+	// and no, 'doas' does not work for our needs
+	name := config.Config.Sys.Sudo
 	slot := 0
 	var com1Arg []string
 	var com2Arg []string

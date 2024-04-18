@@ -29,7 +29,9 @@ type ngPeer struct {
 	PeerHook  string
 }
 
-func ngGetNodes() (ngNodes []NgNode, err error) {
+func ngGetNodes() ([]NgNode, error) {
+	var ngNodes []NgNode
+	var err error
 	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "list")
 	defer func(cmd *exec.Cmd) {
 		err = cmd.Wait()
@@ -84,7 +86,8 @@ func ngGetNodes() (ngNodes []NgNode, err error) {
 	return ngNodes, nil
 }
 
-func GetAllNgBridges() (bridges []string, err error) {
+func GetAllNgBridges() ([]string, error) {
+	var bridges []string
 	netgraphNodes, err := ngGetNodes()
 	if err != nil {
 		return nil, err
@@ -99,7 +102,9 @@ func GetAllNgBridges() (bridges []string, err error) {
 	return bridges, nil
 }
 
-func getNgBridgeMembers(bridge string) (peers []ngPeer, err error) {
+func getNgBridgeMembers(bridge string) ([]ngPeer, error) {
+	var err error
+	var peers []ngPeer
 	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "show",
 		bridge+":")
 	defer func(cmd *exec.Cmd) {
@@ -140,7 +145,7 @@ func getNgBridgeMembers(bridge string) (peers []ngPeer, err error) {
 	return peers, nil
 }
 
-func ngBridgeNextLink(peers []ngPeer) (link string) {
+func ngBridgeNextLink(peers []ngPeer) string {
 	found := false
 	linkNum := 0
 	linkName := ""
@@ -162,7 +167,8 @@ func ngBridgeNextLink(peers []ngPeer) (link string) {
 	return linkName
 }
 
-func createNgBridge(name string) (err error) {
+func createNgBridge(name string) error {
+	var err error
 	if name == "" {
 		return errSwitchInvalidName
 	}

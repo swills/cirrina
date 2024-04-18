@@ -11,7 +11,9 @@ import (
 	"cirrina/cirrina"
 )
 
-func GetHostNics() (rv []*cirrina.NetIf, err error) {
+func GetHostNics() ([]*cirrina.NetIf, error) {
+	var err error
+	var rv []*cirrina.NetIf
 	var res cirrina.VMInfo_GetNetInterfacesClient
 	res, err = serverClient.GetNetInterfaces(defaultServerContext, &cirrina.NetInterfacesReq{})
 	if err != nil {
@@ -31,7 +33,9 @@ func GetHostNics() (rv []*cirrina.NetIf, err error) {
 	return rv, nil
 }
 
-func GetHostVersion() (version string, err error) {
+func GetHostVersion() (string, error) {
+	var version string
+	var err error
 	var res *wrapperspb.StringValue
 	res, err = serverClient.GetVersion(defaultServerContext, &emptypb.Empty{})
 	if err != nil {

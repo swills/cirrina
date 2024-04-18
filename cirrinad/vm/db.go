@@ -174,7 +174,7 @@ func (vm *VM) SetDebugPort(port int) {
 	_ = vm.Save()
 }
 
-func (vm *VM) BeforeCreate(_ *gorm.DB) (err error) {
+func (vm *VM) BeforeCreate(_ *gorm.DB) error {
 	vm.ID = uuid.NewString()
 
 	return nil

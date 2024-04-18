@@ -75,7 +75,7 @@ func AutoMigrate() {
 	}
 }
 
-func getSchemaVersion() (schemaVersion uint32) {
+func getSchemaVersion() uint32 {
 	metaDB := getMetaDB()
 	var m meta
 	metaDB.Find(&m)

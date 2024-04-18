@@ -17,7 +17,8 @@ import (
 
 func Create(name string, description string, size string, diskType string, diskDevType string,
 	diskCache bool, diskDirect bool,
-) (disk *Disk, err error) {
+) (*Disk, error) {
+	var err error
 	var diskInst *Disk
 	var diskSize uint64
 
@@ -245,7 +246,7 @@ func GetByName(name string) (*Disk, error) {
 	return &Disk{}, nil
 }
 
-func Delete(id string) (err error) {
+func Delete(id string) error {
 	if id == "" {
 		return errDiskIDEmptyOrInvalid
 	}
@@ -287,7 +288,8 @@ func (d *Disk) Save() error {
 	return nil
 }
 
-func (d *Disk) GetPath() (diskPath string, err error) {
+func (d *Disk) GetPath() (string, error) {
+	var diskPath string
 	switch d.DevType {
 	case "ZVOL":
 		diskPath = "/dev/zvol/" + config.Config.Disk.VM.Path.Zpool + "/" + d.Name
@@ -300,7 +302,9 @@ func (d *Disk) GetPath() (diskPath string, err error) {
 	return diskPath, nil
 }
 
-func (d *Disk) VerifyExists() (exists bool, err error) {
+func (d *Disk) VerifyExists() (bool, error) {
+	var err error
+	var exists bool
 	var diskPath string
 	diskPath, err = d.GetPath()
 	if err != nil {

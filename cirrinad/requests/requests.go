@@ -51,13 +51,14 @@ type VMCloneReqData struct {
 	NewVMName string `json:"new_vm_name"`
 }
 
-func (req *Request) BeforeCreate(_ *gorm.DB) (err error) {
+func (req *Request) BeforeCreate(_ *gorm.DB) error {
 	req.ID = uuid.NewString()
 
 	return nil
 }
 
-func CreateNicCloneReq(nicID string, newName string) (req Request, err error) {
+func CreateNicCloneReq(nicID string, newName string) (Request, error) {
+	var err error
 	var reqData []byte
 	reqData, err = json.Marshal(NicCloneReqData{NicID: nicID, NewNicName: newName})
 	if err != nil {
@@ -78,7 +79,8 @@ func CreateNicCloneReq(nicID string, newName string) (req Request, err error) {
 	return newReq, nil
 }
 
-func CreateVMReq(r reqType, vmID string) (req Request, err error) {
+func CreateVMReq(r reqType, vmID string) (Request, error) {
+	var err error
 	var reqData []byte
 	reqData, err = json.Marshal(VMReqData{VMID: vmID})
 	if err != nil {
@@ -99,7 +101,8 @@ func CreateVMReq(r reqType, vmID string) (req Request, err error) {
 	return newReq, nil
 }
 
-func GetByID(id string) (rs Request, err error) {
+func GetByID(id string) (Request, error) {
+	var rs Request
 	db := GetReqDB()
 	db.Model(&Request{}).Limit(1).Find(&rs, &Request{ID: id})
 
@@ -142,7 +145,8 @@ func (req *Request) Failed() {
 }
 
 // PendingReqExists return pending request IDs for given object ID
-func PendingReqExists(objID string) (reqIDs []string) {
+func PendingReqExists(objID string) []string {
+	var reqIDs []string
 	db := GetReqDB()
 	var err error
 	var incompleteRequests []Request
@@ -178,7 +182,7 @@ func PendingReqExists(objID string) (reqIDs []string) {
 	return reqIDs
 }
 
-func FailAllPending() (cleared int64) {
+func FailAllPending() int64 {
 	db := GetReqDB()
 	res := db.Where(map[string]interface{}{"complete": false}).Updates(
 		Request{

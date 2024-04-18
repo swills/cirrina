@@ -75,7 +75,8 @@ func GetDummyEpairName() string {
 	return ""
 }
 
-func CreateEpair(name string) (err error) {
+func CreateEpair(name string) error {
+	var err error
 	if name == "" {
 		return errEpairNameEmpty
 	}
@@ -124,7 +125,8 @@ func DestroyEpair(name string) error {
 	return nil
 }
 
-func SetRateLimit(name string, rateIn uint64, rateOut uint64) (err error) {
+func SetRateLimit(name string, rateIn uint64, rateOut uint64) error {
+	var err error
 	slog.Debug("setting rate limit on epair",
 		"name", name,
 		"rateIn", rateIn,
@@ -152,7 +154,8 @@ func SetRateLimit(name string, rateIn uint64, rateOut uint64) (err error) {
 	return nil
 }
 
-func NgCreatePipeWithRateLimit(name string, rate uint64) (err error) {
+func NgCreatePipeWithRateLimit(name string, rate uint64) error {
+	var err error
 	slog.Debug("creating ng pipe",
 		"name", name,
 		"rate", rate,
@@ -215,7 +218,8 @@ func NgCreatePipeWithRateLimit(name string, rate uint64) (err error) {
 	return nil
 }
 
-func NgDestroyPipe(name string) (err error) {
+func NgDestroyPipe(name string) error {
+	var err error
 	cmd := exec.Command(config.Config.Sys.Sudo,
 		"/usr/sbin/ngctl", "shutdown", name+"_pipe"+":")
 	err = cmd.Run()

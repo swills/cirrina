@@ -37,14 +37,17 @@ func (s *server) GetKeyboardLayouts(_ *cirrina.KbdQuery, stream cirrina.VMInfo_G
 	return nil
 }
 
-func GetKbdLayoutNames() (kbdlayouts []string) {
+func GetKbdLayoutNames() []string {
+	var kbdLayouts []string
 	// ignore errors and just return empty list if err
-	kbdlayouts, _ = util.OSReadDir(kbdlayoutpath)
+	kbdLayouts, _ = util.OSReadDir(kbdlayoutpath)
 
-	return kbdlayouts
+	return kbdLayouts
 }
 
-func GetKbdDescription(path string) (description string, err error) {
+func GetKbdDescription(path string) (string, error) {
+	var description string
+	var err error
 	file, err := os.Open(path)
 	if err != nil {
 		slog.Error("error opening keyboard description dir", "err", err)

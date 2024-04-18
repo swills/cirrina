@@ -87,6 +87,7 @@ linters:
     - lll
     - revive
     - goimports
+    - nonamedreturns
 
 issues:
   exclude-rules:

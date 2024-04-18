@@ -10,7 +10,7 @@ import (
 	"cirrina/cirrinad/util"
 )
 
-func Create(name string, description string) (iso *ISO, err error) {
+func Create(name string, description string) (*ISO, error) {
 	var isoInst *ISO
 
 	if !util.ValidIsoName(name) {
@@ -63,14 +63,16 @@ func GetAll() []*ISO {
 	return result
 }
 
-func GetByID(id string) (result *ISO, err error) {
+func GetByID(id string) (*ISO, error) {
+	var result *ISO
 	db := getIsoDB()
 	db.Limit(1).Find(&result, "id = ?", id)
 
 	return result, nil
 }
 
-func GetByName(name string) (result *ISO, err error) {
+func GetByName(name string) (*ISO, error) {
+	var result *ISO
 	db := getIsoDB()
 	db.Limit(1).Find(&result, "name = ?", name)
 
@@ -97,7 +99,7 @@ func (iso *ISO) Save() error {
 	return nil
 }
 
-func Delete(id string) (err error) {
+func Delete(id string) error {
 	if id == "" {
 		return errIsoIDEmptyOrInvalid
 	}

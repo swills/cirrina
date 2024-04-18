@@ -57,7 +57,7 @@ func GetVMNicDB() *gorm.DB {
 	return instance.vmNicDB
 }
 
-func (d *VMNic) BeforeCreate(_ *gorm.DB) (err error) {
+func (d *VMNic) BeforeCreate(_ *gorm.DB) error {
 	d.ID = uuid.NewString()
 
 	return nil

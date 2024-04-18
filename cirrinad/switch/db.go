@@ -57,7 +57,7 @@ func getSwitchDB() *gorm.DB {
 	return instance.switchDB
 }
 
-func (d *Switch) BeforeCreate(_ *gorm.DB) (err error) {
+func (d *Switch) BeforeCreate(_ *gorm.DB) error {
 	d.ID = uuid.NewString()
 
 	return nil

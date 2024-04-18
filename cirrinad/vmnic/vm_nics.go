@@ -10,25 +10,28 @@ import (
 	"cirrina/cirrinad/util"
 )
 
-func GetByName(name string) (s *VMNic, err error) {
+func GetByName(name string) (*VMNic, error) {
+	var s *VMNic
 	db := GetVMNicDB()
 	db.Limit(1).Find(&s, "name = ?", name)
 
 	return s, nil
 }
 
-func GetByID(id string) (v *VMNic, err error) {
+func GetByID(id string) (*VMNic, error) {
+	var v *VMNic
 	db := GetVMNicDB()
 	db.Limit(1).Find(&v, "id = ?", id)
 
 	return v, nil
 }
 
-func GetNics(vmConfigID uint) (vms []VMNic) {
+func GetNics(vmConfigID uint) []VMNic {
+	var vmNics []VMNic
 	db := GetVMNicDB()
-	db.Where("config_id = ?", vmConfigID).Find(&vms)
+	db.Where("config_id = ?", vmConfigID).Find(&vmNics)
 
-	return vms
+	return vmNics
 }
 
 func GetAll() []*VMNic {
@@ -39,7 +42,8 @@ func GetAll() []*VMNic {
 	return result
 }
 
-func Create(vmNicInst *VMNic) (newNicID string, err error) {
+func Create(vmNicInst *VMNic) (string, error) {
+	var newNicID string
 	if vmNicInst.Mac == "" {
 		vmNicInst.Mac = "AUTO"
 	}
@@ -71,7 +75,7 @@ func Create(vmNicInst *VMNic) (newNicID string, err error) {
 	return vmNicInst.ID, res.Error
 }
 
-func (d *VMNic) Delete() (err error) {
+func (d *VMNic) Delete() error {
 	db := GetVMNicDB()
 	res := db.Limit(1).Unscoped().Delete(&d)
 	if res.RowsAffected != 1 {
@@ -143,7 +147,7 @@ type VMNic struct {
 	ConfigID    uint `gorm:"index;default:null"`
 }
 
-func ParseMac(macAddress string) (res string, err error) {
+func ParseMac(macAddress string) (string, error) {
 	if macAddress == "AUTO" {
 		return macAddress, nil
 	}
@@ -176,7 +180,9 @@ func ParseMac(macAddress string) (res string, err error) {
 	return newMac.String(), nil
 }
 
-func ParseNetDevType(netDevType cirrina.NetDevType) (res string, err error) {
+func ParseNetDevType(netDevType cirrina.NetDevType) (string, error) {
+	var res string
+	var err error
 	switch netDevType {
 	case cirrina.NetDevType_TAP:
 		res = "TAP"
@@ -191,7 +197,9 @@ func ParseNetDevType(netDevType cirrina.NetDevType) (res string, err error) {
 	return res, err
 }
 
-func ParseNetType(netType cirrina.NetType) (res string, err error) {
+func ParseNetType(netType cirrina.NetType) (string, error) {
+	var err error
+	var res string
 	switch netType {
 	case cirrina.NetType_VIRTIONET:
 		res = "VIRTIONET"

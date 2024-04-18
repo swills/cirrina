@@ -88,7 +88,8 @@ func doAutostart(vmInst *VM) {
 	}
 }
 
-func GetAll() (allVMs []*VM) {
+func GetAll() []*VM {
+	var allVMs []*VM
 	for _, value := range List.VMList {
 		allVMs = append(allVMs, value)
 	}
@@ -96,7 +97,7 @@ func GetAll() (allVMs []*VM) {
 	return allVMs
 }
 
-func GetByName(name string) (v *VM, err error) {
+func GetByName(name string) (*VM, error) {
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
 	for _, t := range List.VMList {
@@ -108,7 +109,7 @@ func GetByName(name string) (v *VM, err error) {
 	return &VM{}, errVMNotFound
 }
 
-func GetByID(id string) (v *VM, err error) {
+func GetByID(id string) (*VM, error) {
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
 	vmInst, valid := List.VMList[id]
@@ -300,7 +301,8 @@ func ensureComDevReadable(comDev string) error {
 	return nil
 }
 
-func findChildPid(findPid uint32) (childPid uint32) {
+func findChildPid(findPid uint32) uint32 {
+	var childPid uint32
 	slog.Debug("FindChildPid finding child proc")
 	pidString := strconv.FormatUint(uint64(findPid), 10)
 	args := []string{"/bin/pgrep", "-P", pidString}

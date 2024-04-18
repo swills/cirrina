@@ -15,7 +15,17 @@ import (
 	"cirrina/cirrinad/vmnic"
 )
 
-func GetByID(id string) (s *Switch, err error) {
+type Switch struct {
+	gorm.Model
+	ID          string `gorm:"uniqueIndex;not null;default:null"`
+	Name        string `gorm:"uniqueIndex;not null;default:null"`
+	Description string
+	Type        string `gorm:"default:IF;check:type IN ('IF','NG')"`
+	Uplink      string
+}
+
+func GetByID(id string) (*Switch, error) {
+	var s *Switch
 	db := getSwitchDB()
 	db.Limit(1).Find(&s, "id = ?", id)
 	if s.Name == "" {
@@ -25,7 +35,8 @@ func GetByID(id string) (s *Switch, err error) {
 	return s, nil
 }
 
-func GetByName(name string) (s *Switch, err error) {
+func GetByName(name string) (*Switch, error) {
+	var s *Switch
 	db := getSwitchDB()
 	db.Limit(1).Find(&s, "name = ?", name)
 	if s.ID == "" {
@@ -43,7 +54,8 @@ func GetAll() []*Switch {
 	return result
 }
 
-func Create(name string, description string, switchType string, uplink string) (_switch *Switch, err error) {
+func Create(name string, description string, switchType string, uplink string) (*Switch, error) {
+	var err error
 	var switchInst *Switch
 	if !util.ValidSwitchName(name) {
 		return switchInst, errSwitchInvalidName
@@ -100,7 +112,7 @@ func Create(name string, description string, switchType string, uplink string) (
 	return switchInst, res.Error
 }
 
-func Delete(id string) (err error) {
+func Delete(id string) error {
 	if id == "" {
 		return errSwitchInvalidID
 	}
@@ -413,7 +425,10 @@ func BuildIfBridge(switchInst *Switch) error {
 	return err
 }
 
-func ngGetBridgeNextLink(bridge string) (nextLink string, err error) {
+func ngGetBridgeNextLink(bridge string) (string, error) {
+	var nextLink string
+	var err error
+
 	bridgePeers, err := getNgBridgeMembers(bridge)
 	if err != nil {
 		return nextLink, err
@@ -424,7 +439,9 @@ func ngGetBridgeNextLink(bridge string) (nextLink string, err error) {
 	return nextLink, nil
 }
 
-func GetNgDev(switchID string) (bridge string, peer string, err error) {
+func GetNgDev(switchID string) (string, string, error) {
+	var err error
+
 	thisSwitch, err := GetByID(switchID)
 	if err != nil {
 		slog.Error("switch lookup error", "switchid", switchID)
@@ -615,7 +632,8 @@ func DestroyIfBridge(name string, cleanup bool) error {
 	return nil
 }
 
-func DestroyNgBridge(netDev string) (err error) {
+func DestroyNgBridge(netDev string) error {
+	var err error
 	if netDev == "" {
 		return errSwitchInvalidNetDevEmpty
 	}
@@ -631,18 +649,10 @@ func DestroyNgBridge(netDev string) (err error) {
 	return nil
 }
 
-type Switch struct {
-	gorm.Model
-	ID          string `gorm:"uniqueIndex;not null;default:null"`
-	Name        string `gorm:"uniqueIndex;not null;default:null"`
-	Description string
-	Type        string `gorm:"default:IF;check:type IN ('IF','NG')"`
-	Uplink      string
-}
-
-func ParseSwitchID(switchID string, netDevType string) (res string, err error) {
+func ParseSwitchID(switchID string, netDevType string) (string, error) {
+	var res string
 	if switchID == "" {
-		return switchID, err
+		return switchID, errSwitchInvalidID
 	}
 
 	switchUUID, err := uuid.Parse(switchID)

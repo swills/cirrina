@@ -28,13 +28,14 @@ import (
 	"cirrina/cirrinad/vmnic"
 )
 
-func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string, cmdArgs ...string) (err error) {
+func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string, cmdArgs ...string) error {
 	var emptyBytes []byte
 	var outBytes bytes.Buffer
 	var errBytes bytes.Buffer
 	var exitCode int
 	var exitErr *execabs.ExitError
 	var c []string
+	var err error
 
 	c = append(c, "-S") // ensure no password prompt on tty
 	c = append(c, cmdArgs...)
@@ -77,7 +78,9 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 }
 
 // getTmpFileName returns the name of a tmp file that doesn't exist or maybe an error
-func getTmpFileName() (tmpFileName string, err error) {
+func getTmpFileName() (string, error) {
+	var tmpFileName string
+	var err error
 	tmpDir := os.Getenv("TMPDIR")
 	if tmpDir == "" {
 		tmpDir = "/tmp"
@@ -109,7 +112,8 @@ nameLoop:
 	return tmpFileName, nil
 }
 
-func kmodLoaded(name string) (loaded bool) {
+func kmodLoaded(name string) bool {
+	var loaded bool
 	slog.Debug("checking module loaded", "module", name)
 	cmd := execabs.Command("/sbin/kldstat", "-q", "-n", name)
 	err := cmd.Run()
@@ -120,7 +124,8 @@ func kmodLoaded(name string) (loaded bool) {
 	return loaded
 }
 
-func kmodInited(name string) (inited bool) {
+func kmodInited(name string) bool {
+	var inited bool
 	slog.Debug("checking module initialized", "module", name)
 	cmd := execabs.Command("/sbin/kldstat", "-q", "-m", name)
 	err := cmd.Run()

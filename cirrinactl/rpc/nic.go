@@ -124,7 +124,9 @@ func GetVMNicInfo(id string) (NicInfo, error) {
 	return info, nil
 }
 
-func NicNameToID(name string) (nicID string, err error) {
+func NicNameToID(name string) (string, error) {
+	var nicID string
+	var err error
 	if name == "" {
 		return "", errNicEmptyName
 	}

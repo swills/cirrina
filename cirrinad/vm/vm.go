@@ -143,7 +143,7 @@ var (
 	}
 )
 
-func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, err error) {
+func Create(name string, description string, cpu uint32, mem uint32) (*VM, error) {
 	var vmInst *VM
 	if !util.ValidVMName(name) {
 		return vmInst, errVMInvalidName
@@ -170,7 +170,7 @@ func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, er
 	return vmInst, res.Error
 }
 
-func (vm *VM) Delete() (err error) {
+func (vm *VM) Delete() error {
 	db := GetVMDB()
 	db.Model(&VM{}).Preload("Config").Limit(1).Find(&vm, &VM{ID: vm.ID})
 	if vm.ID == "" {
@@ -191,7 +191,8 @@ func (vm *VM) Delete() (err error) {
 	return nil
 }
 
-func (vm *VM) Start() (err error) {
+func (vm *VM) Start() error {
+	var err error
 	defer vmStartLock.Unlock()
 	vmStartLock.Lock()
 	if vm.Status != STOPPED {
@@ -259,7 +260,8 @@ func (vm *VM) Start() (err error) {
 	return nil
 }
 
-func (vm *VM) Stop() (err error) {
+func (vm *VM) Stop() error {
+	var err error
 	if vm.Status == STOPPED {
 		slog.Error("tried to stop VM already stopped", "vm", vm.Name)
 

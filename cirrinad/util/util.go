@@ -249,7 +249,8 @@ func parseNetstatJSONOutput(netstatOutput []byte) ([]int, error) {
 	return localPortList, nil
 }
 
-func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (port int, err error) {
+func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (int, error) {
+	var err error
 	// get and parse netstat output
 	netstatJSON, err := getNetstatJSONOutput()
 	if err != nil {
@@ -528,7 +529,8 @@ func ModeIsExecOther(mode os.FileMode) bool {
 	return mode&0o001 != 0
 }
 
-func GetMyUIDGID() (uid uint32, gid uint32, err error) {
+func GetMyUIDGID() (uint32, uint32, error) {
+	var err error
 	myUser, err := user.Current()
 	if err != nil {
 		return 0, 0, fmt.Errorf("error getting current user: %w", err)
@@ -570,7 +572,8 @@ func ValidateDBConfig() {
 	}
 }
 
-func ParseDiskSize(size string) (sizeBytes uint64, err error) {
+func ParseDiskSize(size string) (uint64, error) {
+	var err error
 	var t string
 	var n uint
 	var m uint64

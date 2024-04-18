@@ -247,8 +247,9 @@ func (s *server) RemoveVMNic(_ context.Context, vn *cirrina.VmNicId) (*cirrina.R
 	return &re, nil
 }
 
-func (s *server) GetVMNicVM(_ context.Context, i *cirrina.VmNicId) (v *cirrina.VMID, err error) {
+func (s *server) GetVMNicVM(_ context.Context, i *cirrina.VmNicId) (*cirrina.VMID, error) {
 	var pvmID cirrina.VMID
+	var err error
 
 	nicUUID, err := uuid.Parse(i.Value)
 	if err != nil {
