@@ -100,9 +100,6 @@ func IsoNameToID(name string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if err != nil {
-			return "", err
-		}
 		if isoInfo.Name == name {
 			if found {
 				return "", errIsoDuplicate

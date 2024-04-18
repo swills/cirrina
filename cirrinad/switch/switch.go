@@ -511,9 +511,8 @@ func (d *Switch) SetUplink(uplink string) error {
 		alreadyUsed, err := MemberUsedByNgBridge(uplink)
 		if err != nil {
 			slog.Error("error checking if member already used", "err", err)
-			if err != nil {
-				return err
-			}
+
+			return err
 		}
 		if alreadyUsed {
 			slog.Error("another bridge already contains member, member can not be in two bridges of "+

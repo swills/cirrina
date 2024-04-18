@@ -53,7 +53,7 @@ func PidExists(pid int) (bool, error) {
 	if err == nil {
 		return true, nil
 	}
-	if err.Error() == "os: process already finished" {
+	if errors.Is(err, os.ErrProcessDone) {
 		return false, nil
 	}
 	var errno syscall.Errno
@@ -68,11 +68,7 @@ func PidExists(pid int) (bool, error) {
 		return true, nil
 	}
 
-	if err != nil {
-		return false, fmt.Errorf("failed checking pid exists: %w", err)
-	}
-
-	return false, nil
+	return false, fmt.Errorf("failed checking pid exists: %w", err)
 }
 
 func OSReadDir(root string) ([]string, error) {

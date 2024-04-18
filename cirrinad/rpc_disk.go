@@ -370,7 +370,7 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 	if err != nil {
 		slog.Error("UploadDisk", "msg", "Failed saving to db")
 		err2 := stream.SendAndClose(&re)
-		if err != nil {
+		if err2 != nil {
 			slog.Error("UploadDisk failed sending error response, ignoring", "err", err, "err2", err2)
 		}
 

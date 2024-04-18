@@ -147,3 +147,4 @@ linters-settings:
       - unreachable
       - unsafeptr
       - unusedresult
+      - nilness
