@@ -11,7 +11,8 @@ import (
 )
 
 func AddNic(name string, description string, mac string, nicType string, nicDevType string,
-	rateLimit bool, rateIn uint64, rateOut uint64, switchID string) (string, error) {
+	rateLimit bool, rateIn uint64, rateOut uint64, switchID string,
+) (string, error) {
 	if name == "" {
 		return "", errNicEmptyName
 	}
@@ -255,7 +256,8 @@ func CloneNic(id string, newName string) (string, error) {
 }
 
 func UpdateNic(id string, description *string, mac *string, nicType *string, nicDevType *string,
-	rateLimit *bool, rateIn *uint64, rateOut *uint64, switchID *string) error {
+	rateLimit *bool, rateIn *uint64, rateOut *uint64, switchID *string,
+) error {
 	var err error
 
 	j := cirrina.VmNicInfoUpdate{

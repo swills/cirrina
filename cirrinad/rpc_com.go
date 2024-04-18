@@ -195,7 +195,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 
 			return fmt.Errorf("error getting com log file path: %w", err)
 		}
-		vl, err = os.OpenFile(comLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		vl, err = os.OpenFile(comLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		if err != nil {
 			slog.Error("failed to open VM input log file", "filename", comLogFile, "err", err)
 		}
@@ -239,7 +239,8 @@ func comInteractiveSetup(thisCom *serial.Port) error {
 
 // comInteractiveStreamReceive user -> com and/or log
 func comInteractiveStreamReceive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM,
-	thisCom *serial.Port, thisComLog bool, vl *os.File) (bool, error) {
+	thisCom *serial.Port, thisComLog bool, vl *os.File,
+) (bool, error) {
 	if !vmInst.Running() {
 		return true, nil
 	}
@@ -267,7 +268,8 @@ func comInteractiveStreamReceive(stream cirrina.VMInfo_Com1InteractiveServer, vm
 
 // comInteractiveStreamSend com -> user and/or log
 func comInteractiveStreamSend(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, thisCom *serial.Port,
-	thisComLog bool, thisRChan chan byte) {
+	thisComLog bool, thisRChan chan byte,
+) {
 	b := make([]byte, 1)
 	for {
 		if thisCom == nil || !vmInst.Running() {
@@ -288,7 +290,8 @@ func comInteractiveStreamSend(stream cirrina.VMInfo_Com1InteractiveServer, vmIns
 }
 
 func comIntStreamSendFromDev(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, thisCom *serial.Port,
-	b []byte) bool {
+	b []byte,
+) bool {
 	nb, err := thisCom.Read(b)
 	if nb > 1 {
 		slog.Error("ComInteractive read more than 1 byte", "nb", nb)
@@ -318,7 +321,7 @@ func comIntStreamSendFromDev(stream cirrina.VMInfo_Com1InteractiveServer, vmInst
 }
 
 func comIntStreamSendFromLog(stream cirrina.VMInfo_Com1InteractiveServer, thisRChan chan byte, b []byte) bool {
-	var b2 = <-thisRChan
+	b2 := <-thisRChan
 	b[0] = b2
 	req := cirrina.ComDataResponse{
 		ComOutBytes: b,

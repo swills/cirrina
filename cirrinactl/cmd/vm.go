@@ -19,118 +19,128 @@ import (
 	"cirrina/cirrinactl/rpc"
 )
 
-var AutoStart bool
-var AutoStartChanged bool
-var AutoStartDelay uint32
-var AutoStartDelayChanged bool
-var Restart bool
-var RestartChanged bool
-var RestartDelay uint32
-var RestartDelayChanged bool
-var MaxWait uint32
-var MaxWaitChanged bool
-var Cpus uint16
-var CpusChanged bool
-var VMDescription string
-var VMDescriptionChanged bool
-var Mem uint32
-var MemChanged bool
-var Priority int32
-var PriorityChanged bool
-var Protect bool
-var ProtectChanged bool
-var Pcpu uint32
-var PcpuChanged bool
-var Rbps uint32
-var RbpsChanged bool
-var Wbps uint32
-var WbpsChanged bool
-var Riops uint32
-var RiopsChanged bool
-var Wiops uint32
-var WiopsChanged bool
-var Debug bool
-var DebugChanged bool
-var DebugWait bool
-var DebugWaitChanged bool
-var DebugPort uint32
-var DebugPortChanged bool
-var Screen bool
-var ScreenChanged bool
-var ScreenWidth uint32
-var ScreenWidthChanged bool
-var ScreenHeight uint32
-var ScreenHeightChanged bool
-var VncPort = "AUTO"
-var VncPortChanged bool
-var VncWait bool
-var VncWaitChanged bool
-var VncTablet bool
-var VncTabletChanged bool
-var VncKeyboard = "default"
-var VncKeyboardChanged bool
-var ExtraArgs string
-var ExtraArgsChanged bool
-var Sound bool
-var SoundChanged bool
-var SoundIn = "/dev/dsp0"
-var SoundInChanged bool
-var SoundOut = "/dev/dsp0"
-var SoundOutChanged bool
-var Wire bool
-var WireChanged bool
-var Uefi bool
-var UefiChanged bool
-var Utc bool
-var UtcChanged bool
-var HostBridge bool
-var HostBridgeChanged bool
-var Acpi bool
-var AcpiChanged bool
-var Hlt bool
-var HltChanged bool
-var Eop bool
-var EopChanged bool
-var Dpo bool
-var DpoChanged bool
-var Ium bool
-var IumChanged bool
+var (
+	AutoStart             bool
+	AutoStartChanged      bool
+	AutoStartDelay        uint32
+	AutoStartDelayChanged bool
+	Restart               bool
+	RestartChanged        bool
+	RestartDelay          uint32
+	RestartDelayChanged   bool
+	MaxWait               uint32
+	MaxWaitChanged        bool
+	Cpus                  uint16
+	CpusChanged           bool
+	VMDescription         string
+	VMDescriptionChanged  bool
+	Mem                   uint32
+	MemChanged            bool
+	Priority              int32
+	PriorityChanged       bool
+	Protect               bool
+	ProtectChanged        bool
+	Pcpu                  uint32
+	PcpuChanged           bool
+	Rbps                  uint32
+	RbpsChanged           bool
+	Wbps                  uint32
+	WbpsChanged           bool
+	Riops                 uint32
+	RiopsChanged          bool
+	Wiops                 uint32
+	WiopsChanged          bool
+	Debug                 bool
+	DebugChanged          bool
+	DebugWait             bool
+	DebugWaitChanged      bool
+	DebugPort             uint32
+	DebugPortChanged      bool
+	Screen                bool
+	ScreenChanged         bool
+	ScreenWidth           uint32
+	ScreenWidthChanged    bool
+	ScreenHeight          uint32
+	ScreenHeightChanged   bool
+	VncPort               = "AUTO"
+	VncPortChanged        bool
+	VncWait               bool
+	VncWaitChanged        bool
+	VncTablet             bool
+	VncTabletChanged      bool
+	VncKeyboard           = "default"
+	VncKeyboardChanged    bool
+	ExtraArgs             string
+	ExtraArgsChanged      bool
+	Sound                 bool
+	SoundChanged          bool
+	SoundIn               = "/dev/dsp0"
+	SoundInChanged        bool
+	SoundOut              = "/dev/dsp0"
+	SoundOutChanged       bool
+	Wire                  bool
+	WireChanged           bool
+	Uefi                  bool
+	UefiChanged           bool
+	Utc                   bool
+	UtcChanged            bool
+	HostBridge            bool
+	HostBridgeChanged     bool
+	Acpi                  bool
+	AcpiChanged           bool
+	Hlt                   bool
+	HltChanged            bool
+	Eop                   bool
+	EopChanged            bool
+	Dpo                   bool
+	DpoChanged            bool
+	Ium                   bool
+	IumChanged            bool
+)
 
-var Com1 bool
-var Com1Changed bool
-var Com1Log bool
-var Com1LogChanged bool
-var Com1Dev = "AUTO"
-var Com1DevChanged bool
-var Com1Speed uint32 = 115200
-var Com1SpeedChanged bool
+var (
+	Com1             bool
+	Com1Changed      bool
+	Com1Log          bool
+	Com1LogChanged   bool
+	Com1Dev          = "AUTO"
+	Com1DevChanged   bool
+	Com1Speed        uint32 = 115200
+	Com1SpeedChanged bool
+)
 
-var Com2 bool
-var Com2Changed bool
-var Com2Log bool
-var Com2LogChanged bool
-var Com2Dev = "AUTO"
-var Com2DevChanged bool
-var Com2Speed uint32 = 115200
-var Com2SpeedChanged bool
+var (
+	Com2             bool
+	Com2Changed      bool
+	Com2Log          bool
+	Com2LogChanged   bool
+	Com2Dev          = "AUTO"
+	Com2DevChanged   bool
+	Com2Speed        uint32 = 115200
+	Com2SpeedChanged bool
+)
 
-var Com3 bool
-var Com3Changed bool
-var Com3Log bool
-var Com3LogChanged bool
-var Com3Dev = "AUTO"
-var Com3DevChanged bool
-var Com3Speed uint32 = 115200
-var Com3SpeedChanged bool
+var (
+	Com3             bool
+	Com3Changed      bool
+	Com3Log          bool
+	Com3LogChanged   bool
+	Com3Dev          = "AUTO"
+	Com3DevChanged   bool
+	Com3Speed        uint32 = 115200
+	Com3SpeedChanged bool
+)
 
-var Com4 bool
-var Com4Changed bool
-var Com4Log bool
-var Com4LogChanged bool
-var Com4Dev = "AUTO"
-var Com4DevChanged bool
-var Com4Speed uint32 = 115200
-var Com4SpeedChanged bool
+var (
+	Com4             bool
+	Com4Changed      bool
+	Com4Log          bool
+	Com4LogChanged   bool
+	Com4Dev          = "AUTO"
+	Com4DevChanged   bool
+	Com4Speed        uint32 = 115200
+	Com4SpeedChanged bool
+)
 
 var VMCreateCmd = &cobra.Command{
 	Use:          "create",
@@ -625,7 +635,6 @@ var VMConfigCmd = &cobra.Command{
 
 		if VncPortChanged {
 			newConfig.Vncport = &VncPort
-
 		}
 
 		if VncWaitChanged {
@@ -634,12 +643,10 @@ var VMConfigCmd = &cobra.Command{
 
 		if VncTabletChanged {
 			newConfig.Tablet = &VncTablet
-
 		}
 
 		if VncKeyboardChanged {
 			newConfig.Keyboard = &VncKeyboard
-
 		}
 
 		if SoundChanged {

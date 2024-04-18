@@ -6,64 +6,86 @@ import (
 
 var errConfigFileNotFound = errors.New("config file not found")
 
-var errInvalidID = errors.New("id not specified or invalid")
-var errInvalidName = errors.New("name not specified or invalid")
+var (
+	errInvalidID   = errors.New("id not specified or invalid")
+	errInvalidName = errors.New("name not specified or invalid")
+)
 
 var errReqInvalid = errors.New("nil diskUploadReq or disk id")
 
-var errNotFound = errors.New("not found")
-var errInvalidRequest = errors.New("invalid request")
-var errPendingReqExists = errors.New("pending request already exists")
+var (
+	errNotFound         = errors.New("not found")
+	errInvalidRequest   = errors.New("invalid request")
+	errPendingReqExists = errors.New("pending request already exists")
+)
 
-var errInvalidNicID = errors.New("nic id not specified or invalid")
-var errNicInUseByMultipleVMs = errors.New("nic in use by more than one VM")
-var errNicInUse = errors.New("nic in use")
-var errNicUnknown = errors.New("unknown error creating VMNic")
+var (
+	errInvalidNicID          = errors.New("nic id not specified or invalid")
+	errNicInUseByMultipleVMs = errors.New("nic in use by more than one VM")
+	errNicInUse              = errors.New("nic in use")
+	errNicUnknown            = errors.New("unknown error creating VMNic")
+)
 
-var errSwitchNotFound = errors.New("switch not found")
-var errSwitchInUse = errors.New("switch in use")
-var errSwitchInvalidType = errors.New("invalid switch type")
-var errSwitchInvalidUplink = errors.New("uplink not specified")
-var errSwitchUplinkInUse = errors.New("uplink already in use")
-var errSwitchInternalDB = errors.New("internal switch database error")
-var errSwitchInvalidName = errors.New("invalid bridge name")
+var (
+	errSwitchNotFound      = errors.New("switch not found")
+	errSwitchInUse         = errors.New("switch in use")
+	errSwitchInvalidType   = errors.New("invalid switch type")
+	errSwitchInvalidUplink = errors.New("uplink not specified")
+	errSwitchUplinkInUse   = errors.New("uplink already in use")
+	errSwitchInternalDB    = errors.New("internal switch database error")
+	errSwitchInvalidName   = errors.New("invalid bridge name")
+)
 
-var errInvalidComDev = errors.New("invalid com dev")
-var errComInvalid = errors.New("invalid com port number")
-var errComDevNotSet = errors.New("com is not set")
+var (
+	errInvalidComDev = errors.New("invalid com dev")
+	errComInvalid    = errors.New("invalid com port number")
+	errComDevNotSet  = errors.New("com is not set")
+)
 
-var errIsoUploadNil = errors.New("nil isoUploadReq or iso id")
-var errIsoUploadSize = errors.New("iso upload size incorrect")
-var errIsoUploadChecksum = errors.New("iso upload checksum incorrect")
-var errIsoInUse = errors.New("ISO in use")
+var (
+	errIsoUploadNil      = errors.New("nil isoUploadReq or iso id")
+	errIsoUploadSize     = errors.New("iso upload size incorrect")
+	errIsoUploadChecksum = errors.New("iso upload checksum incorrect")
+	errIsoInUse          = errors.New("ISO in use")
+)
 
-var errInvalidDebugPort = errors.New("invalid debug port")
-var errInvalidKeyboardLayout = errors.New("invalid keyboard layout")
-var errInvalidSoundDev = errors.New("invalid sound dev")
-var errInvalidVncPort = errors.New("invalid vnc port")
+var (
+	errInvalidDebugPort      = errors.New("invalid debug port")
+	errInvalidKeyboardLayout = errors.New("invalid keyboard layout")
+	errInvalidSoundDev       = errors.New("invalid sound dev")
+	errInvalidVncPort        = errors.New("invalid vnc port")
+)
 
-var errInvalidVMState = errors.New("unknown VM state")
-var errInvalidVMStateStop = errors.New("vm not running")
-var errInvalidVMStateDelete = errors.New("vm not stopped")
-var errInvalidVMStateStart = errors.New("vm not stopped")
-var errInvalidVMStateDiskUpload = errors.New("can not upload disk to VM that is not stopped")
+var (
+	errInvalidVMState           = errors.New("unknown VM state")
+	errInvalidVMStateStop       = errors.New("vm not running")
+	errInvalidVMStateDelete     = errors.New("vm not stopped")
+	errInvalidVMStateStart      = errors.New("vm not stopped")
+	errInvalidVMStateDiskUpload = errors.New("can not upload disk to VM that is not stopped")
+)
 
-var errDiskInvalidType = errors.New("invalid disk type")
-var errDiskInvalidDevType = errors.New("invalid disk dev type")
-var errDiskZPoolNotConfigured = errors.New("zfs pool not configured")
-var errDiskInUse = errors.New("disk already attached to another VM")
-var errDiskChecksumFailure = errors.New("disk upload checksum incorrect")
-var errDiskSizeFailure = errors.New("disk upload size incorrect")
-var errDiskCreateGeneric = errors.New("error creating disk")
-var errDiskUpdateGeneric = errors.New("error updating disk")
-var errDiskDeleteGeneric = errors.New("error deleting disk")
+var (
+	errDiskInvalidType        = errors.New("invalid disk type")
+	errDiskInvalidDevType     = errors.New("invalid disk dev type")
+	errDiskZPoolNotConfigured = errors.New("zfs pool not configured")
+	errDiskInUse              = errors.New("disk already attached to another VM")
+	errDiskChecksumFailure    = errors.New("disk upload checksum incorrect")
+	errDiskSizeFailure        = errors.New("disk upload size incorrect")
+	errDiskCreateGeneric      = errors.New("error creating disk")
+	errDiskUpdateGeneric      = errors.New("error updating disk")
+	errDiskDeleteGeneric      = errors.New("error deleting disk")
+)
 
-var errUnableToMakeTmpFile = errors.New("could not find a tmp file")
-var errSTDERRMismatch = errors.New("stderr prefix mismatch running command")
-var errSTDOUTMismatch = errors.New("stdout prefix mismatch running command")
-var errExitCodeMismatch = errors.New("exitCode mismatch running command")
+var (
+	errUnableToMakeTmpFile = errors.New("could not find a tmp file")
+	errSTDERRMismatch      = errors.New("stderr prefix mismatch running command")
+	errSTDOUTMismatch      = errors.New("stdout prefix mismatch running command")
+	errExitCodeMismatch    = errors.New("exitCode mismatch running command")
+)
 
 var errISOInternalDB = errors.New("internal ISO database error")
 
-var errVMDupe = errors.New("VM already exists")
-var errReqExists = errors.New("pending request for already exists")
+var (
+	errVMDupe    = errors.New("VM already exists")
+	errReqExists = errors.New("pending request for already exists")
+)

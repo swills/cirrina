@@ -84,13 +84,17 @@ var VMNicsListCmd = &cobra.Command{
 		t.SetOutputMirror(os.Stdout)
 		if ShowUUID {
 			t.AppendHeader(
-				table.Row{"NAME", "UUID", "MAC", "TYPE", "DEV-TYPE", "SWITCH",
-					"RATE-LIMITED", "RATE-IN", "RATE-OUT", "DESCRIPTION"},
+				table.Row{
+					"NAME", "UUID", "MAC", "TYPE", "DEV-TYPE", "SWITCH",
+					"RATE-LIMITED", "RATE-IN", "RATE-OUT", "DESCRIPTION",
+				},
 			)
 		} else {
 			t.AppendHeader(
-				table.Row{"NAME", "MAC", "TYPE", "DEV-TYPE", "SWITCH",
-					"RATE-LIMITED", "RATE-IN", "RATE-OUT", "DESCRIPTION"},
+				table.Row{
+					"NAME", "MAC", "TYPE", "DEV-TYPE", "SWITCH",
+					"RATE-LIMITED", "RATE-IN", "RATE-OUT", "DESCRIPTION",
+				},
 			)
 		}
 		t.SetStyle(myTableStyle)

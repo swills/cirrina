@@ -32,16 +32,18 @@ type vmItem struct {
 	desc string
 }
 
-var app *tview.Application
-var mainFlex *tview.Flex
-var infoFlex *tview.Flex
-var vmList *tview.List
-var startButton *tview.Button
-var stopButton *tview.Button
-var editButton *tview.Button
-var comButton *tview.Button
-var vncButton *tview.Button
-var vmItems []vmItem
+var (
+	app         *tview.Application
+	mainFlex    *tview.Flex
+	infoFlex    *tview.Flex
+	vmList      *tview.List
+	startButton *tview.Button
+	stopButton  *tview.Button
+	editButton  *tview.Button
+	comButton   *tview.Button
+	vncButton   *tview.Button
+	vmItems     []vmItem
+)
 
 func getVMItems() ([]vmItem, error) {
 	var vmIDs []string

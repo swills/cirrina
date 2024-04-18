@@ -136,10 +136,12 @@ type ListType struct {
 	VMList map[string]*VM
 }
 
-var vmStartLock sync.Mutex
-var List = &ListType{
-	VMList: make(map[string]*VM),
-}
+var (
+	vmStartLock sync.Mutex
+	List        = &ListType{
+		VMList: make(map[string]*VM),
+	}
+)
 
 func Create(name string, description string, cpu uint32, mem uint32) (vm *VM, err error) {
 	var vmInst *VM
@@ -401,7 +403,7 @@ func (vm *VM) createUefiVarsFile() {
 		return
 	}
 	if !uvPathExists {
-		err = os.Mkdir(uefiVarsFilePath, 0755)
+		err = os.Mkdir(uefiVarsFilePath, 0o755)
 		if err != nil {
 			slog.Error("failed to create uefi vars path", "err", err)
 
@@ -558,7 +560,6 @@ func netStartupNg(vmNic vmnic.VMNic) error {
 
 func (vm *VM) netStartup() {
 	vmNicsList, err := vm.GetNics()
-
 	if err != nil {
 		slog.Error("netStartup failed to get nics", "err", err)
 
@@ -1003,7 +1004,7 @@ func comLogger(vm *VM, comNum int) {
 		return
 	}
 
-	vl, err := os.OpenFile(comLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	vl, err := os.OpenFile(comLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		slog.Error("failed to open VM output log file", "filename", comLogFile, "err", err)
 	}

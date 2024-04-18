@@ -20,19 +20,21 @@ import (
 	"cirrina/cirrinactl/rpc"
 )
 
-var DiskName string
-var DiskDescription string
-var DiskDescriptionChanged bool
-var DiskType = "nvme"
-var DiskTypeChanged bool
-var DiskDevType = "FILE"
-var DiskSize = "1G"
-var DiskID string
-var DiskDirect = false
-var DiskDirectChanged = false
-var DiskCache = true
-var DiskCacheChanged = false
-var DiskFilePath string
+var (
+	DiskName               string
+	DiskDescription        string
+	DiskDescriptionChanged bool
+	DiskType               = "nvme"
+	DiskTypeChanged        bool
+	DiskDevType            = "FILE"
+	DiskSize               = "1G"
+	DiskID                 string
+	DiskDirect             = false
+	DiskDirectChanged      = false
+	DiskCache              = true
+	DiskCacheChanged       = false
+	DiskFilePath           string
+)
 
 var DiskListCmd = &cobra.Command{
 	Use:          "list",

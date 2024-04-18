@@ -120,14 +120,18 @@ type ReqStatus struct {
 	Success  bool
 }
 
-var ServerName string
-var ServerPort uint16
-var ServerTimeout uint64
+var (
+	ServerName    string
+	ServerPort    uint16
+	ServerTimeout uint64
+)
 
-var serverConn *grpc.ClientConn
-var serverClient cirrina.VMInfoClient
-var defaultServerContext context.Context
-var defaultCancelFunc context.CancelFunc
+var (
+	serverConn           *grpc.ClientConn
+	serverClient         cirrina.VMInfoClient
+	defaultServerContext context.Context
+	defaultCancelFunc    context.CancelFunc
+)
 
 func GetConn() error {
 	var err error

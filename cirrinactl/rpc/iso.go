@@ -126,7 +126,8 @@ func IsoNameToID(name string) (string, error) {
 // }
 
 func IsoUpload(isoID string, isoChecksum string,
-	isoSize uint64, isoFile *os.File) (<-chan UploadStat, error) {
+	isoSize uint64, isoFile *os.File,
+) (<-chan UploadStat, error) {
 	uploadStatChan := make(chan UploadStat, 1)
 
 	if isoID == "" {

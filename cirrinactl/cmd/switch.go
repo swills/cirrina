@@ -11,12 +11,14 @@ import (
 	"cirrina/cirrinactl/rpc"
 )
 
-var SwitchName string
-var SwitchDescription string
-var SwitchDescriptionChanged bool
-var SwitchUplinkName string
-var SwitchType = "IF"
-var SwitchID string
+var (
+	SwitchName               string
+	SwitchDescription        string
+	SwitchDescriptionChanged bool
+	SwitchUplinkName         string
+	SwitchType               = "IF"
+	SwitchID                 string
+)
 
 var SwitchCmd = &cobra.Command{
 	Use:   "switch",

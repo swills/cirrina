@@ -81,7 +81,6 @@ func GetSwitches() ([]string, error) {
 	var err error
 	var res cirrina.VMInfo_GetSwitchesClient
 	res, err = serverClient.GetSwitches(defaultServerContext, &cirrina.SwitchesQuery{})
-
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get switches: %w", err)
 	}

@@ -317,7 +317,6 @@ func CopyFile(in, out string) (int64, error) {
 	}(o)
 
 	n, err := o.ReadFrom(i)
-
 	if err != nil {
 		return n, fmt.Errorf("error copying file: %w", err)
 	}
@@ -367,7 +366,7 @@ func ValidVMName(name string) bool {
 	}
 
 	// values must be kept sorted
-	var myRT = &unicode.RangeTable{
+	myRT := &unicode.RangeTable{
 		R16: []unicode.Range16{
 			{0x002d, 0x002d, 1}, // -
 			{0x0030, 0x0039, 1}, // numbers
@@ -387,7 +386,7 @@ func ValidDiskName(name string) bool {
 	}
 
 	// values must be kept sorted
-	var myRT = &unicode.RangeTable{
+	myRT := &unicode.RangeTable{
 		R16: []unicode.Range16{
 			{0x002d, 0x002d, 1}, // -
 			{0x0030, 0x0039, 1}, // numbers
@@ -407,7 +406,7 @@ func ValidIsoName(name string) bool {
 	}
 
 	// values must be kept sorted
-	var myRT = &unicode.RangeTable{
+	myRT := &unicode.RangeTable{
 		R16: []unicode.Range16{
 			{0x002d, 0x002e, 1}, // - and .
 			{0x0030, 0x0039, 1}, // numbers
@@ -427,7 +426,7 @@ func ValidNicName(name string) bool {
 	}
 
 	// values must be kept sorted
-	var myRT = &unicode.RangeTable{
+	myRT := &unicode.RangeTable{
 		R16: []unicode.Range16{
 			{0x002d, 0x002d, 1}, // -
 			{0x0030, 0x0039, 1}, // numbers
@@ -447,7 +446,7 @@ func ValidSwitchName(name string) bool {
 	}
 
 	// values must be kept sorted
-	var myRT = &unicode.RangeTable{
+	myRT := &unicode.RangeTable{
 		R16: []unicode.Range16{
 			{0x002d, 0x002d, 1}, // -
 			{0x0030, 0x0039, 1}, // numbers
@@ -526,7 +525,7 @@ func ModeIsSuid(mode fs.FileMode) bool {
 // }
 
 func ModeIsExecOther(mode os.FileMode) bool {
-	return mode&0001 != 0
+	return mode&0o001 != 0
 }
 
 func GetMyUIDGID() (uid uint32, gid uint32, err error) {

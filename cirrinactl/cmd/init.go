@@ -31,16 +31,20 @@ var myTableStyle = table.Style{
 	},
 }
 
-var cfgFile string
-var VMName string
-var VMID string
-var Humanize = true
-var ShowUUID = false
-var CheckReqStat = true
+var (
+	cfgFile      string
+	VMName       string
+	VMID         string
+	Humanize     = true
+	ShowUUID     = false
+	CheckReqStat = true
+)
 
-var defaultHost = "localhost"
-var defaultPort = 50051
-var defaultTimeout = 5
+var (
+	defaultHost    = "localhost"
+	defaultPort    = 50051
+	defaultTimeout = 5
+)
 
 const (
 	TXT = iota

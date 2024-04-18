@@ -1,3 +1,6 @@
+run:
+  go: '1.21'
+
 linters:
   disable-all: true
   enable:
@@ -111,6 +114,45 @@ linters-settings:
       - prefix(cirrina)
     custom-order: true
   govet:
-    enable-all: true
-    disable:
-      - fieldalignment
+    enable:
+      - appends
+      - asmdecl
+      - assign
+      - atomic
+      - atomicalign
+      - bools
+      - buildtag
+      - cgocall
+      - composites
+      - copylocks
+      - deepequalerrors
+      - defers
+      - directive
+      - errorsas
+      - findcall
+      - framepointer
+      - httpresponse
+      - ifaceassert
+      - loopclosure
+      - lostcancel
+      - nilfunc
+      - nilness
+      - printf
+      - reflectvaluecompare
+      - shadow
+      - shift
+      - sigchanyzer
+      - slog
+      - sortslice
+      - stdmethods
+      - stringintconv
+      - structtag
+      - testinggoroutine
+      - tests
+      - unmarshal
+      - unreachable
+      - unsafeptr
+      - unusedresult
+      - unusedwrite
+  gofumpt:
+    module-path: "cirrina"

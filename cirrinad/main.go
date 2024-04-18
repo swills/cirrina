@@ -32,8 +32,10 @@ var mainVersion = "unknown"
 
 var cfgFile = "config.yml"
 
-var shutdownHandlerRunning = false
-var shutdownWaitGroup = sync.WaitGroup{}
+var (
+	shutdownHandlerRunning = false
+	shutdownWaitGroup      = sync.WaitGroup{}
+)
 
 func disableFlagSorting(cmd *cobra.Command) {
 	cmd.Flags().SortFlags = false

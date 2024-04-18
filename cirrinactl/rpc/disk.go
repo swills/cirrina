@@ -236,7 +236,8 @@ func UpdateDisk(id string, newDesc *string, newType *string, direct *bool, cache
 }
 
 func DiskUpload(diskID string, diskChecksum string,
-	diskSize uint64, diskFile *os.File) (<-chan UploadStat, error) {
+	diskSize uint64, diskFile *os.File,
+) (<-chan UploadStat, error) {
 	uploadStatChan := make(chan UploadStat, 1)
 
 	if diskID == "" {

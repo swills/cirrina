@@ -16,7 +16,8 @@ import (
 )
 
 func Create(name string, description string, size string, diskType string, diskDevType string,
-	diskCache bool, diskDirect bool) (disk *Disk, err error) {
+	diskCache bool, diskDirect bool,
+) (disk *Disk, err error) {
 	var diskInst *Disk
 	var diskSize uint64
 
@@ -308,7 +309,6 @@ func (d *Disk) VerifyExists() (exists bool, err error) {
 
 	// perhaps it's not necessary to check the volume -- as long as there's a /dev/zvol entry, we're fine, right?
 	exists, err = util.PathExists(diskPath)
-
 	if err != nil {
 		return exists, fmt.Errorf("failed checking disk exists: %w", err)
 	}

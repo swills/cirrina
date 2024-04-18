@@ -15,27 +15,29 @@ import (
 	"cirrina/cirrinactl/rpc"
 )
 
-var NicName string
-var NicDescription string
-var NicType = "virtio-net"
-var NicTypeChanged bool
-var NicDevType = "tap"
-var NicDevTypeChanged bool
-var NicMac = "AUTO"
-var NicMacChanged bool
-var NicSwitchID string
-var NicSwitchIDChanged bool
-var NicSwitchName string
-var NicSwitchNameChanged bool
-var NicID string
-var NicRateLimited bool
-var NicRateLimitedChanged bool
-var NicRateIn uint64
-var NicRateInChanged bool
-var NicRateOut uint64
-var NicRateOutChanged bool
-var NicCloneName string
-var NicDescriptionChanged bool
+var (
+	NicName               string
+	NicDescription        string
+	NicType               = "virtio-net"
+	NicTypeChanged        bool
+	NicDevType            = "tap"
+	NicDevTypeChanged     bool
+	NicMac                = "AUTO"
+	NicMacChanged         bool
+	NicSwitchID           string
+	NicSwitchIDChanged    bool
+	NicSwitchName         string
+	NicSwitchNameChanged  bool
+	NicID                 string
+	NicRateLimited        bool
+	NicRateLimitedChanged bool
+	NicRateIn             uint64
+	NicRateInChanged      bool
+	NicRateOut            uint64
+	NicRateOutChanged     bool
+	NicCloneName          string
+	NicDescriptionChanged bool
+)
 
 var NicListCmd = &cobra.Command{
 	Use:          "list",
@@ -97,13 +99,17 @@ var NicListCmd = &cobra.Command{
 		t.SetOutputMirror(os.Stdout)
 		if ShowUUID {
 			t.AppendHeader(
-				table.Row{"NAME", "UUID", "MAC", "TYPE", "DEV-TYPE", "UPLINK", "VM",
-					"RATE-LIMITED", "RATE-IN", "RATE-OUT", "DESCRIPTION"},
+				table.Row{
+					"NAME", "UUID", "MAC", "TYPE", "DEV-TYPE", "UPLINK", "VM",
+					"RATE-LIMITED", "RATE-IN", "RATE-OUT", "DESCRIPTION",
+				},
 			)
 		} else {
 			t.AppendHeader(
-				table.Row{"NAME", "MAC", "TYPE", "DEV-TYPE", "UPLINK", "VM",
-					"RATE-LIMITED", "RATE-IN", "RATE-OUT", "DESCRIPTION"},
+				table.Row{
+					"NAME", "MAC", "TYPE", "DEV-TYPE", "UPLINK", "VM",
+					"RATE-LIMITED", "RATE-IN", "RATE-OUT", "DESCRIPTION",
+				},
 			)
 		}
 		t.SetStyle(myTableStyle)

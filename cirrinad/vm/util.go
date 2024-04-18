@@ -19,12 +19,14 @@ import (
 )
 
 func GetVMLogPath(logpath string) error {
-	ex, err := util.PathExists(logpath)
+	var err error
+	var ex bool
+	ex, err = util.PathExists(logpath)
 	if err != nil {
 		return fmt.Errorf("error getting VM log path: %w", err)
 	}
 	if !ex {
-		err := os.MkdirAll(logpath, 0755)
+		err = os.MkdirAll(logpath, 0o755)
 		if err != nil {
 			return fmt.Errorf("error getting VM log path: %w", err)
 		}
@@ -40,11 +42,11 @@ func InitOneVM(vmInst *VM) {
 		panic(err)
 	}
 	vmLogFilePath := vmLogPath + "/log"
-	vmLogFile, err := os.OpenFile(vmLogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	vmLogFile, err := os.OpenFile(vmLogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		slog.Error("failed to open VM log file", "err", err)
 	}
-	var programLevel = new(slog.LevelVar) // Info by default
+	programLevel := new(slog.LevelVar) // Info by default
 	vmLogger := slog.New(slog.NewTextHandler(vmLogFile, &slog.HandlerOptions{Level: programLevel}))
 
 	vmInst.log = *vmLogger

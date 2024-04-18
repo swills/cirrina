@@ -83,7 +83,7 @@ func nicClone(rs *requests.Request) {
 		}
 	}
 
-	var newNic = *nicInst
+	newNic := *nicInst
 	newNic.Name = reqData.NewNicName
 	// ensure cloned nic is not attached to VM
 	newNic.ConfigID = 0
