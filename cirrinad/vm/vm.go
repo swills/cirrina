@@ -171,17 +171,17 @@ func Create(name string, description string, cpu uint32, mem uint32) (*VM, error
 }
 
 func (vm *VM) Delete() error {
-	db := GetVMDB()
-	db.Model(&VM{}).Preload("Config").Limit(1).Find(&vm, &VM{ID: vm.ID})
+	vmDB := GetVMDB()
+	vmDB.Model(&VM{}).Preload("Config").Limit(1).Find(&vm, &VM{ID: vm.ID})
 	if vm.ID == "" {
 		return errVMNotFound
 	}
-	res := db.Limit(1).Delete(&vm.Config)
+	res := vmDB.Limit(1).Delete(&vm.Config)
 	if res.RowsAffected != 1 {
 		// don't fail deleting the VM, may have a bad or missing config, still want to be able to delete VM
 		slog.Error("failed to delete config for VM", "vmid", vm.ID)
 	}
-	res = db.Limit(1).Delete(&vm)
+	res = vmDB.Limit(1).Delete(&vm)
 	if res.RowsAffected != 1 {
 		slog.Error("error deleting VM", "res", res)
 
@@ -231,7 +231,7 @@ func (vm *VM) Start() error {
 		processDebug = true
 	}
 
-	p := supervisor.NewProcess(supervisor.ProcessOptions{
+	vmProc := supervisor.NewProcess(supervisor.ProcessOptions{
 		Name:                    cmdName,
 		Args:                    cmdArgs,
 		Dir:                     "/",
@@ -250,10 +250,10 @@ func (vm *VM) Start() error {
 		Debug:                   processDebug,
 	})
 
-	vm.proc = p
+	vm.proc = vmProc
 	go vmDaemon(events, vm)
 
-	if err := p.Start(); err != nil {
+	if err := vmProc.Start(); err != nil {
 		panic(fmt.Sprintf("failed to start process: %s", err))
 	}
 
@@ -284,9 +284,9 @@ func (vm *VM) Stop() error {
 }
 
 func (vm *VM) Save() error {
-	db := GetVMDB()
+	vmDB := GetVMDB()
 
-	res := db.Model(&vm.Config).
+	res := vmDB.Model(&vm.Config).
 		Updates(map[string]interface{}{
 			"cpu":                &vm.Config.CPU,
 			"mem":                &vm.Config.Mem,
@@ -352,7 +352,7 @@ func (vm *VM) Save() error {
 		return fmt.Errorf("error updating VM: %w", res.Error)
 	}
 
-	res = db.Select([]string{
+	res = vmDB.Select([]string{
 		"name",
 		"description",
 		"net_dev",
@@ -708,46 +708,46 @@ func (vm *VM) NetCleanup() {
 	}
 }
 
-func vmDaemon(events chan supervisor.Event, vm *VM) {
+func vmDaemon(events chan supervisor.Event, thisVM *VM) {
 	for {
 		select {
-		case msg := <-vm.proc.Stdout():
-			vm.log.Info("output", "stdout", *msg)
-		case msg := <-vm.proc.Stderr():
-			vm.log.Info("output", "stderr", *msg)
+		case msg := <-thisVM.proc.Stdout():
+			thisVM.log.Info("output", "stdout", *msg)
+		case msg := <-thisVM.proc.Stderr():
+			thisVM.log.Info("output", "stderr", *msg)
 		case event := <-events:
 			switch event.Code {
 			case "ProcessStart":
-				vm.log.Info("event", "code", event.Code, "message", event.Message)
-				vm.SetRunning(vm.proc.Pid())
-				vmPid := strconv.FormatInt(int64(findChildPid(uint32(vm.proc.Pid()))), 10)
-				slog.Debug("vmDaemon ProcessStart", "bhyvePid", vm.BhyvePid, "sudoPid", vm.proc.Pid(), "realPid", vmPid)
-				vm.setupComLoggers()
-				vm.applyResourceLimits(vmPid)
+				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
+				thisVM.SetRunning(thisVM.proc.Pid())
+				vmPid := strconv.FormatInt(int64(findChildPid(uint32(thisVM.proc.Pid()))), 10)
+				slog.Debug("vmDaemon ProcessStart", "bhyvePid", thisVM.BhyvePid, "sudoPid", thisVM.proc.Pid(), "realPid", vmPid)
+				thisVM.setupComLoggers()
+				thisVM.applyResourceLimits(vmPid)
 			case "ProcessDone":
-				vm.log.Info("event", "code", event.Code, "message", event.Message)
+				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
 			case "ProcessCrashed":
-				vm.log.Info("exited, destroying")
-				vm.MaybeForceKillVM()
+				thisVM.log.Info("exited, destroying")
+				thisVM.MaybeForceKillVM()
 			default:
-				vm.log.Info("event", "code", event.Code, "message", event.Message)
+				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
 			}
-		case <-vm.proc.DoneNotifier():
+		case <-thisVM.proc.DoneNotifier():
 			slog.Debug("vm stopped",
-				"vm_name", vm.Name,
+				"vm_name", thisVM.Name,
 			)
-			vm.log.Info("stopped")
-			vm.NetCleanup()
-			vm.killComLoggers()
-			vm.SetStopped()
-			err := vm.unlockDisks()
+			thisVM.log.Info("stopped")
+			thisVM.NetCleanup()
+			thisVM.killComLoggers()
+			thisVM.SetStopped()
+			err := thisVM.unlockDisks()
 			if err != nil {
 				slog.Debug("failed unlock disks", "err", err)
 
 				return
 			}
-			vm.MaybeForceKillVM()
-			vm.log.Info("closing loop we are done")
+			thisVM.MaybeForceKillVM()
+			thisVM.log.Info("closing loop we are done")
 
 			return
 		}
@@ -757,15 +757,15 @@ func vmDaemon(events chan supervisor.Event, vm *VM) {
 func (vm *VM) GetISOs() ([]iso.ISO, error) {
 	var isos []iso.ISO
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
-	for _, cv := range strings.Split(vm.Config.ISOs, ",") {
-		if cv == "" {
+	for _, configValue := range strings.Split(vm.Config.ISOs, ",") {
+		if configValue == "" {
 			continue
 		}
-		aISO, err := iso.GetByID(cv)
+		aISO, err := iso.GetByID(configValue)
 		if err == nil {
 			isos = append(isos, *aISO)
 		} else {
-			slog.Error("bad iso", "iso", cv, "vm", vm.ID)
+			slog.Error("bad iso", "iso", configValue, "vm", vm.ID)
 		}
 	}
 
@@ -781,15 +781,15 @@ func (vm *VM) GetNics() ([]vmnic.VMNic, error) {
 func (vm *VM) GetDisks() ([]*disk.Disk, error) {
 	var disks []*disk.Disk
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
-	for _, cv := range strings.Split(vm.Config.Disks, ",") {
-		if cv == "" {
+	for _, configValue := range strings.Split(vm.Config.Disks, ",") {
+		if configValue == "" {
 			continue
 		}
-		aDisk, err := disk.GetByID(cv)
+		aDisk, err := disk.GetByID(configValue)
 		if err == nil {
 			disks = append(disks, aDisk)
 		} else {
-			slog.Error("bad disk", "disk", cv, "vm", vm.ID)
+			slog.Error("bad disk", "disk", configValue, "vm", vm.ID)
 		}
 	}
 
@@ -961,35 +961,35 @@ func (vm *VM) setupComLoggers() {
 	}
 }
 
-func comLogger(vm *VM, comNum int) {
+func comLogger(thisVM *VM, comNum int) {
 	var thisCom *serial.Port
 	var thisRChan chan byte
 	comChan := make(chan byte, 4096)
 
 	switch comNum {
 	case 1:
-		thisCom = vm.Com1
-		if vm.Config.Com1Log {
-			vm.Com1rchan = comChan
-			thisRChan = vm.Com1rchan
+		thisCom = thisVM.Com1
+		if thisVM.Config.Com1Log {
+			thisVM.Com1rchan = comChan
+			thisRChan = thisVM.Com1rchan
 		}
 	case 2:
-		thisCom = vm.Com2
-		if vm.Config.Com2Log {
-			vm.Com2rchan = comChan
-			thisRChan = vm.Com2rchan
+		thisCom = thisVM.Com2
+		if thisVM.Config.Com2Log {
+			thisVM.Com2rchan = comChan
+			thisRChan = thisVM.Com2rchan
 		}
 	case 3:
-		thisCom = vm.Com3
-		if vm.Config.Com3Log {
-			vm.Com3rchan = comChan
-			thisRChan = vm.Com3rchan
+		thisCom = thisVM.Com3
+		if thisVM.Config.Com3Log {
+			thisVM.Com3rchan = comChan
+			thisRChan = thisVM.Com3rchan
 		}
 	case 4:
-		thisCom = vm.Com4
-		if vm.Config.Com4Log {
-			vm.Com4rchan = comChan
-			thisRChan = vm.Com4rchan
+		thisCom = thisVM.Com4
+		if thisVM.Config.Com4Log {
+			thisVM.Com4rchan = comChan
+			thisRChan = thisVM.Com4rchan
 		}
 	default:
 		slog.Error("comLogger invalid com", "comNum", comNum)
@@ -997,25 +997,25 @@ func comLogger(vm *VM, comNum int) {
 		return
 	}
 
-	comLogPath := config.Config.Disk.VM.Path.State + "/" + vm.Name + "/"
-	comLogFile := comLogPath + "com" + strconv.Itoa(comNum) + "_out.log"
-	err := GetVMLogPath(comLogPath)
+	logFilePath := config.Config.Disk.VM.Path.State + "/" + thisVM.Name + "/"
+	logFileName := logFilePath + "com" + strconv.Itoa(comNum) + "_out.log"
+	err := GetVMLogPath(logFilePath)
 	if err != nil {
 		slog.Error("setupComLoggers", "err", err)
 
 		return
 	}
 
-	vl, err := os.OpenFile(comLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	logFile, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
-		slog.Error("failed to open VM output log file", "filename", comLogFile, "err", err)
+		slog.Error("failed to open VM output log file", "filename", logFileName, "err", err)
 	}
 	defer func(vl *os.File) {
 		_ = vl.Close()
-	}(vl)
+	}(logFile)
 
 	for {
-		if comLoggerRead(vm, comNum, thisCom, vl, thisRChan) {
+		if comLoggerRead(thisVM, comNum, thisCom, logFile, thisRChan) {
 			return
 		}
 	}
@@ -1045,16 +1045,16 @@ func (vm *VM) GetComWrite(comNum int) bool {
 	return thisComChanWriteFlag
 }
 
-func comLoggerRead(vm *VM, comNum int, thisCom *serial.Port, vl *os.File, thisRChan chan byte) bool {
+func comLoggerRead(thisVM *VM, comNum int, thisCom *serial.Port, logFile *os.File, thisRChan chan byte) bool {
 	var thisComChanWriteFlag bool
-	b := make([]byte, 1)
-	b2 := make([]byte, 1)
+	logBuffer := make([]byte, 1)
+	streamBuffer := make([]byte, 1)
 
-	if !vm.Running() {
+	if !thisVM.Running() {
 		slog.Debug("comLogger vm not running, exiting2",
-			"vm_id", vm.ID,
+			"vm_id", thisVM.ID,
 			"comNum", comNum,
-			"vm.Status", vm.Status,
+			"vm.Status", thisVM.Status,
 		)
 
 		return true
@@ -1065,17 +1065,17 @@ func comLoggerRead(vm *VM, comNum int, thisCom *serial.Port, vl *os.File, thisRC
 		return true
 	}
 
-	thisComChanWriteFlag = vm.GetComWrite(comNum)
+	thisComChanWriteFlag = thisVM.GetComWrite(comNum)
 
-	nb, err := thisCom.Read(b)
-	if nb > 1 {
-		slog.Error("comLogger read more than 1 byte", "nb", nb)
+	nBytes, err := thisCom.Read(logBuffer)
+	if nBytes > 1 {
+		slog.Error("comLogger read more than 1 byte", "nBytes", nBytes)
 	}
-	if errors.Is(err, io.EOF) && !vm.Running() {
+	if errors.Is(err, io.EOF) && !thisVM.Running() {
 		slog.Debug("comLogger vm not running, exiting",
-			"vm_id", vm.ID,
+			"vm_id", thisVM.ID,
 			"comNum", comNum,
-			"vm.Status", vm.Status,
+			"vm.Status", thisVM.Status,
 		)
 
 		return true
@@ -1085,17 +1085,17 @@ func comLoggerRead(vm *VM, comNum int, thisCom *serial.Port, vl *os.File, thisRC
 
 		return true
 	}
-	if nb != 0 {
+	if nBytes != 0 {
 		// write to log file
-		_, err = vl.Write(b)
+		_, err = logFile.Write(logBuffer)
 
 		// write to channel used by remote users, if someone is reading from it
 		if thisRChan != nil && thisComChanWriteFlag {
-			nb2 := copy(b2, b)
-			if nb != nb2 {
+			nb2 := copy(streamBuffer, logBuffer)
+			if nBytes != nb2 {
 				slog.Error("comLogger", "msg", "some bytes lost")
 			}
-			thisRChan <- b2[0]
+			thisRChan <- streamBuffer[0]
 		}
 
 		if err != nil {
@@ -1210,13 +1210,12 @@ func (vm *VM) setupCom(comNum int) error {
 
 		return err
 	}
-	cr, err := startSerialPort(comDev, uint(comSpeed))
+	serialPort, err := startSerialPort(comDev, uint(comSpeed))
 	if err != nil {
 		slog.Error("error starting com", "comNum", comNum, "err", err)
 
 		return err
 	}
-	// com = cr
 
 	// actually setup logging if required
 	if comLog {
@@ -1225,13 +1224,13 @@ func (vm *VM) setupCom(comNum int) error {
 
 	switch comNum {
 	case 1:
-		vm.Com1 = cr
+		vm.Com1 = serialPort
 	case 2:
-		vm.Com2 = cr
+		vm.Com2 = serialPort
 	case 3:
-		vm.Com3 = cr
+		vm.Com3 = serialPort
 	case 4:
-		vm.Com4 = cr
+		vm.Com4 = serialPort
 	default:
 		slog.Error("invalid com port number", "comNum", comNum)
 
@@ -1242,7 +1241,7 @@ func (vm *VM) setupCom(comNum int) error {
 }
 
 // validateDisks check if disks can be attached to a VM
-func validateDisks(diskids []string, vm *VM) error {
+func validateDisks(diskids []string, thisVM *VM) error {
 	occurred := map[string]bool{}
 
 	for _, aDisk := range diskids {
@@ -1272,7 +1271,7 @@ func validateDisks(diskids []string, vm *VM) error {
 		}
 
 		slog.Debug("checking if disk is attached to another VM", "disk", aDisk)
-		diskIsAttached, err := diskAttached(aDisk, vm)
+		diskIsAttached, err := diskAttached(aDisk, thisVM)
 		if err != nil {
 			return err
 		}
@@ -1285,7 +1284,7 @@ func validateDisks(diskids []string, vm *VM) error {
 }
 
 // diskAttached check if disk is attached to another VM besides this one
-func diskAttached(aDisk string, vm *VM) (bool, error) {
+func diskAttached(aDisk string, thisVM *VM) (bool, error) {
 	allVms := GetAll()
 	for _, aVM := range allVms {
 		vmDisks, err := aVM.GetDisks()
@@ -1293,7 +1292,7 @@ func diskAttached(aDisk string, vm *VM) (bool, error) {
 			return true, err
 		}
 		for _, aVMDisk := range vmDisks {
-			if aDisk == aVMDisk.ID && aVM.ID != vm.ID {
+			if aDisk == aVMDisk.ID && aVM.ID != thisVM.ID {
 				return true, nil
 			}
 		}
@@ -1303,10 +1302,10 @@ func diskAttached(aDisk string, vm *VM) (bool, error) {
 }
 
 // validateNics check if nics can be attached to a VM
-func validateNics(nicIDs []string, vm *VM) error {
+func validateNics(nicIDs []string, thisVM *VM) error {
 	occurred := map[string]bool{}
 	for _, aNic := range nicIDs {
-		slog.Debug("checking vm nic exists", "vmnic", aNic)
+		slog.Debug("checking nic exists", "vmnic", aNic)
 
 		nicUUID, err := uuid.Parse(aNic)
 		if err != nil {
@@ -1331,8 +1330,8 @@ func validateNics(nicIDs []string, vm *VM) error {
 			return errVMNicDupe
 		}
 
-		slog.Debug("checking if nic is attached to another VM", "nic", aNic)
-		err = nicAttached(aNic, vm)
+		slog.Debug("checking if nic is already attached", "nic", aNic)
+		err = nicAttached(aNic, thisVM)
 		if err != nil {
 			return err
 		}
@@ -1342,7 +1341,7 @@ func validateNics(nicIDs []string, vm *VM) error {
 }
 
 // nicAttached check if nic is attached to another VM besides this one
-func nicAttached(aNic string, vm *VM) error {
+func nicAttached(aNic string, thisVM *VM) error {
 	allVms := GetAll()
 	for _, aVM := range allVms {
 		vmNics, err := aVM.GetNics()
@@ -1350,7 +1349,7 @@ func nicAttached(aNic string, vm *VM) error {
 			return err
 		}
 		for _, aVMNic := range vmNics {
-			if aNic == aVMNic.ID && aVM.ID != vm.ID {
+			if aNic == aVMNic.ID && aVM.ID != thisVM.ID {
 				slog.Error("nic is already attached to VM", "disk", aNic, "vm", aVM.ID)
 
 				return errVMNicAttached
@@ -1362,10 +1361,10 @@ func nicAttached(aNic string, vm *VM) error {
 }
 
 // removeAllNicsFromVM does what it says on the tin, mate
-func removeAllNicsFromVM(vm *VM) error {
-	thisVMNics, err := vm.GetNics()
+func removeAllNicsFromVM(thisVM *VM) error {
+	thisVMNics, err := thisVM.GetNics()
 	if err != nil {
-		slog.Error("error looking up vm nics", "err", err)
+		slog.Error("error looking up nics", "err", err)
 
 		return err
 	}

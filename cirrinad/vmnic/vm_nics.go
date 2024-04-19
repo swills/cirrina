@@ -222,7 +222,7 @@ func validateNewNic(vmNicInst *VMNic) (bool, error) {
 		return false, err
 	}
 	if existingVMNic.Name != "" {
-		return true, nil
+		return false, errNicExists
 	}
 
 	if vmNicInst.NetType != "VIRTIONET" && vmNicInst.NetType != "E1000" {

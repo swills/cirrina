@@ -13,7 +13,7 @@ import (
 
 func GetHostNics() ([]*cirrina.NetIf, error) {
 	var err error
-	var rv []*cirrina.NetIf
+	var hostNics []*cirrina.NetIf
 	var res cirrina.VMInfo_GetNetInterfacesClient
 	res, err = serverClient.GetNetInterfaces(defaultServerContext, &cirrina.NetInterfacesReq{})
 	if err != nil {
@@ -27,10 +27,10 @@ func GetHostNics() ([]*cirrina.NetIf, error) {
 		if err != nil {
 			return []*cirrina.NetIf{}, fmt.Errorf("unable to get host nics: %w", err)
 		}
-		rv = append(rv, hostNic)
+		hostNics = append(hostNics, hostNic)
 	}
 
-	return rv, nil
+	return hostNics, nil
 }
 
 func GetHostVersion() (string, error) {

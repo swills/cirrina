@@ -145,16 +145,16 @@ func migration2024022401(schemaVersion uint32, vmNicDB *gorm.DB, vmDB *gorm.DB) 
 					vmDB.Raw("SELECT nics FROM configs WHERE id = ?", vmInst.Config.ID).Scan(&result)
 
 					var thisVmsNics []vmnic.VMNic
-					for _, cv := range strings.Split(result.Nics, ",") {
-						if cv == "" {
+					for _, configValue := range strings.Split(result.Nics, ",") {
+						if configValue == "" {
 							continue
 						}
 						var aNic *vmnic.VMNic
-						aNic, err = vmnic.GetByID(cv)
+						aNic, err = vmnic.GetByID(configValue)
 						if err == nil {
 							thisVmsNics = append(thisVmsNics, *aNic)
 						} else {
-							slog.Error("bad nic", "nic", cv, "vm", vmInst.ID)
+							slog.Error("bad nic", "nic", configValue, "vm", vmInst.ID)
 						}
 					}
 

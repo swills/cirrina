@@ -42,8 +42,8 @@ var VMDisksListCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed getting disks: %w", err)
 		}
-		for _, id := range diskIDs {
-			diskInfo, err := rpc.GetDiskInfo(id)
+		for _, diskID := range diskIDs {
+			diskInfo, err := rpc.GetDiskInfo(diskID)
 			if err != nil {
 				return fmt.Errorf("failed getting disk info: %w", err)
 			}
@@ -57,7 +57,7 @@ var VMDisksListCmd = &cobra.Command{
 				diskUsage = strconv.FormatUint(diskInfo.Usage, 10)
 			}
 			diskInfos[diskInfo.Name] = diskListInfo{
-				id:    id,
+				id:    diskID,
 				info:  diskInfo,
 				size:  diskSize,
 				usage: diskUsage,
@@ -66,22 +66,22 @@ var VMDisksListCmd = &cobra.Command{
 
 		}
 
-		t := table.NewWriter()
-		t.SetOutputMirror(os.Stdout)
+		diskTableWriter := table.NewWriter()
+		diskTableWriter.SetOutputMirror(os.Stdout)
 		if ShowUUID {
-			t.AppendHeader(
+			diskTableWriter.AppendHeader(
 				table.Row{"NAME", "UUID", "TYPE", "SIZE", "USAGE", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
 			)
 		} else {
-			t.AppendHeader(
+			diskTableWriter.AppendHeader(
 				table.Row{"NAME", "TYPE", "SIZE", "USAGE", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
 			)
 		}
 
-		t.SetStyle(myTableStyle)
+		diskTableWriter.SetStyle(myTableStyle)
 		for _, diskName := range names {
 			if ShowUUID {
-				t.AppendRow(table.Row{
+				diskTableWriter.AppendRow(table.Row{
 					diskName,
 					diskInfos[diskName].id,
 					diskInfos[diskName].info.DiskType,
@@ -93,7 +93,7 @@ var VMDisksListCmd = &cobra.Command{
 					diskInfos[diskName].info.Descr,
 				})
 			} else {
-				t.AppendRow(table.Row{
+				diskTableWriter.AppendRow(table.Row{
 					diskName,
 					diskInfos[diskName].info.DiskType,
 					diskInfos[diskName].size,
@@ -105,7 +105,7 @@ var VMDisksListCmd = &cobra.Command{
 				})
 			}
 		}
-		t.Render()
+		diskTableWriter.Render()
 
 		return nil
 	},

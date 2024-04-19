@@ -470,7 +470,7 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 	return netArgs, slot
 }
 
-func GetMac(thisNic vmnic.VMNic, vm *VM) string {
+func GetMac(thisNic vmnic.VMNic, thisVM *VM) string {
 	var macAddress string
 	if thisNic.Mac == "AUTO" {
 		// if MAC is AUTO, we still generate our own here rather than letting bhyve generate it, because:
@@ -479,21 +479,21 @@ func GetMac(thisNic vmnic.VMNic, vm *VM) string {
 		// 2. We want to be able to distinguish our VMs from other VMs
 		slog.Debug("getNetArg: Generating MAC")
 		thisNicHashData := MacHashData{
-			vm.ID,
-			vm.Name,
+			thisVM.ID,
+			thisVM.Name,
 			thisNic.ID,
 			thisNic.Name,
 		}
-		h1, err := rxhash.HashStruct(thisNicHashData)
+		nicHash, err := rxhash.HashStruct(thisNicHashData)
 		if err != nil {
 			slog.Error("getNetArg error generating mac", "err", err)
 
 			return ""
 		}
-		slog.Debug("getNetArg", "h1", h1)
-		mac := string(h1[0]) + string(h1[1]) + ":" +
-			string(h1[2]) + string(h1[3]) + ":" +
-			string(h1[4]) + string(h1[5])
+		slog.Debug("getNetArg", "nicHash", nicHash)
+		mac := string(nicHash[0]) + string(nicHash[1]) + ":" +
+			string(nicHash[2]) + string(nicHash[3]) + ":" +
+			string(nicHash[4]) + string(nicHash[5])
 		slog.Debug("getNetArg", "mac", mac)
 		macAddress = config.Config.Network.Mac.Oui + ":" + mac
 	} else {

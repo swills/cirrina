@@ -29,24 +29,24 @@ func AddIso(name string, descr string) (string, error) {
 
 func GetIsoIDs() ([]string, error) {
 	var err error
-	var ids []string
+	var VMIDs []string
 	var res cirrina.VMInfo_GetISOsClient
 	res, err = serverClient.GetISOs(defaultServerContext, &cirrina.ISOsQuery{})
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get isos: %w", err)
 	}
 	for {
-		VM, err := res.Recv()
+		VMID, err := res.Recv()
 		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
 			return []string{}, fmt.Errorf("unable to get isos: %w", err)
 		}
-		ids = append(ids, VM.Value)
+		VMIDs = append(VMIDs, VMID.Value)
 	}
 
-	return ids, nil
+	return VMIDs, nil
 }
 
 func RmIso(id string) error {
@@ -63,15 +63,15 @@ func RmIso(id string) error {
 	return nil
 }
 
-func GetIsoInfo(id string) (IsoInfo, error) {
-	if id == "" {
+func GetIsoInfo(isoID string) (IsoInfo, error) {
+	if isoID == "" {
 		return IsoInfo{}, errIsoEmptyID
 	}
 
 	var err error
 
 	var isoInfo *cirrina.ISOInfo
-	isoInfo, err = serverClient.GetISOInfo(defaultServerContext, &cirrina.ISOID{Value: id})
+	isoInfo, err = serverClient.GetISOInfo(defaultServerContext, &cirrina.ISOID{Value: isoID})
 	if err != nil {
 		return IsoInfo{}, fmt.Errorf("unable to get iso info: %w", err)
 	}
@@ -109,7 +109,7 @@ func IsoNameToID(name string) (string, error) {
 		}
 	}
 	if !found {
-		return "", errNotFound
+		return "", ErrNotFound
 	}
 
 	return isoID, nil
@@ -179,9 +179,9 @@ func IsoUpload(isoID string, isoChecksum string,
 		buffer := make([]byte, 1024*1024)
 
 		var complete bool
-		var n int
+		var nBytesRead int
 		for !complete {
-			n, err = reader.Read(buffer)
+			nBytesRead, err = reader.Read(buffer)
 			if errors.Is(err, io.EOF) {
 				complete = true
 			}
@@ -194,7 +194,7 @@ func IsoUpload(isoID string, isoChecksum string,
 			}
 			dataReq := &cirrina.ISOImageRequest{
 				Data: &cirrina.ISOImageRequest_Image{
-					Image: buffer[:n],
+					Image: buffer[:nBytesRead],
 				},
 			}
 			err = stream.Send(dataReq)
@@ -208,7 +208,7 @@ func IsoUpload(isoID string, isoChecksum string,
 			uploadStatChan <- UploadStat{
 				UploadedChunk: true,
 				Complete:      false,
-				UploadedBytes: n,
+				UploadedBytes: nBytesRead,
 				Err:           nil,
 			}
 		}

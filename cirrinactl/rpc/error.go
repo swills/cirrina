@@ -8,7 +8,7 @@ var (
 	errReqFailed             = errors.New("failed")
 	errReqEmpty              = errors.New("request ID not specified")
 	errInvalidServerResponse = errors.New("invalid server response")
-	errNotFound              = errors.New("not found")
+	ErrNotFound              = errors.New("not found")
 	errInternalError         = errors.New("internal error")
 )
 

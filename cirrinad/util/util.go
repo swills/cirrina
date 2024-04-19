@@ -149,16 +149,16 @@ func runCommandAndCaptureOutput(cmdName string, cmdArgs []string) ([]byte, error
 		return []byte{}, fmt.Errorf("error running command: %w", err)
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	var runCmdWaitGroup sync.WaitGroup
+	runCmdWaitGroup.Add(1)
 	go func() {
 		outResult, errStdout = captureReader(stdoutIn)
-		wg.Done()
+		runCmdWaitGroup.Done()
 	}()
 
 	errResult, errStderr = captureReader(stderrIn)
 
-	wg.Wait()
+	runCmdWaitGroup.Wait()
 
 	if errStdout != nil {
 		return []byte{}, errStderr
@@ -302,22 +302,23 @@ func GetHostInterfaces() []string {
 }
 
 func CopyFile(in, out string) (int64, error) {
-	i, err := os.Open(in)
+	inFile, err := os.Open(in)
 	if err != nil {
 		return 0, fmt.Errorf("error opening file: %w", err)
 	}
 	defer func(i *os.File) {
 		_ = i.Close()
-	}(i)
-	o, err := os.Create(out)
+	}(inFile)
+
+	outFile, err := os.Create(out)
 	if err != nil {
 		return 0, fmt.Errorf("error creating file: %w", err)
 	}
 	defer func(o *os.File) {
 		_ = o.Close()
-	}(o)
+	}(outFile)
 
-	n, err := o.ReadFrom(i)
+	n, err := outFile.ReadFrom(inFile)
 	if err != nil {
 		return n, fmt.Errorf("error copying file: %w", err)
 	}
@@ -572,54 +573,63 @@ func ValidateDBConfig() {
 	}
 }
 
-func ParseDiskSize(size string) (uint64, error) {
+func ParseDiskSize(diskSize string) (uint64, error) {
 	var err error
-	var t string
-	var n uint
-	var m uint64
+	var trimmedSize string
+	var multiplier uint64
+	var diskSizeNum uint64
 	switch {
-	case strings.HasSuffix(size, "k"):
-		t = strings.TrimSuffix(size, "k")
-		m = 1024
-	case strings.HasSuffix(size, "K"):
-		t = strings.TrimSuffix(size, "K")
-		m = 1024
-	case strings.HasSuffix(size, "m"):
-		t = strings.TrimSuffix(size, "m")
-		m = 1024 * 1024
-	case strings.HasSuffix(size, "M"):
-		t = strings.TrimSuffix(size, "M")
-		m = 1024 * 1024
-	case strings.HasSuffix(size, "g"):
-		t = strings.TrimSuffix(size, "g")
-		m = 1024 * 1024 * 1024
-	case strings.HasSuffix(size, "G"):
-		t = strings.TrimSuffix(size, "G")
-		m = 1024 * 1024 * 1024
-	case strings.HasSuffix(size, "t"):
-		t = strings.TrimSuffix(size, "t")
-		m = 1024 * 1024 * 1024 * 1024
-	case strings.HasSuffix(size, "T"):
-		t = strings.TrimSuffix(size, "T")
-		m = 1024 * 1024 * 1024 * 1024
-	case strings.HasSuffix(size, "b"):
-		t = strings.TrimSuffix(size, "b")
-		m = 1024 * 1024 * 1024 * 1024
+	case strings.HasSuffix(diskSize, "b"):
+		trimmedSize = strings.TrimSuffix(diskSize, "b")
+		multiplier = 1
+	case strings.HasSuffix(diskSize, "B"):
+		trimmedSize = strings.TrimSuffix(diskSize, "B")
+		multiplier = 1
+	case strings.HasSuffix(diskSize, "k"):
+		trimmedSize = strings.TrimSuffix(diskSize, "k")
+		multiplier = 1024
+	case strings.HasSuffix(diskSize, "K"):
+		trimmedSize = strings.TrimSuffix(diskSize, "K")
+		multiplier = 1024
+	case strings.HasSuffix(diskSize, "m"):
+		trimmedSize = strings.TrimSuffix(diskSize, "m")
+		multiplier = 1024 * 1024
+	case strings.HasSuffix(diskSize, "M"):
+		trimmedSize = strings.TrimSuffix(diskSize, "M")
+		multiplier = 1024 * 1024
+	case strings.HasSuffix(diskSize, "g"):
+		trimmedSize = strings.TrimSuffix(diskSize, "g")
+		multiplier = 1024 * 1024 * 1024
+	case strings.HasSuffix(diskSize, "G"):
+		trimmedSize = strings.TrimSuffix(diskSize, "G")
+		multiplier = 1024 * 1024 * 1024
+	case strings.HasSuffix(diskSize, "t"):
+		trimmedSize = strings.TrimSuffix(diskSize, "t")
+		multiplier = 1024 * 1024 * 1024 * 1024
+	case strings.HasSuffix(diskSize, "T"):
+		trimmedSize = strings.TrimSuffix(diskSize, "T")
+		multiplier = 1024 * 1024 * 1024 * 1024
 	default:
-		t = size
-		m = 1
+		trimmedSize = diskSize
+		multiplier = 1
 	}
-	nu, err := strconv.Atoi(t)
+	diskSizeNum, err = strconv.ParseUint(trimmedSize, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("failed parsing disk size: %w", err)
 	}
-	if nu < 1 {
+
+	if multiplyWillOverflow(diskSizeNum, multiplier) {
 		return 0, errInvalidDiskSize
 	}
-	n = uint(nu)
-	r := uint64(n) * m
 
-	return r, nil
+	finalSize := diskSizeNum * multiplier
+
+	// limit disks to min 512 bytes, max 128TB
+	if finalSize < 512 || finalSize > 1024*1024*1024*1024*128 {
+		return 0, errInvalidDiskSize
+	}
+
+	return finalSize, nil
 }
 
 func GetHostMaxVMCpus() (uint16, error) {
@@ -651,4 +661,13 @@ func GetHostMaxVMCpus() (uint16, error) {
 	}
 
 	return uint16(maxCPU), nil
+}
+
+func multiplyWillOverflow(xVal, yVal uint64) bool {
+	if xVal <= 1 || yVal <= 1 {
+		return false
+	}
+	d := xVal * yVal
+
+	return d/yVal != xVal
 }

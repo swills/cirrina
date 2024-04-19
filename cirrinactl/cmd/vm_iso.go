@@ -41,9 +41,9 @@ var VMIsoListCmd = &cobra.Command{
 			size string
 		}
 		isoInfos := make(map[string]isoListInfo)
-		for _, id := range isoIDs {
+		for _, isoID := range isoIDs {
 			var isoInfo rpc.IsoInfo
-			isoInfo, err = rpc.GetIsoInfo(id)
+			isoInfo, err = rpc.GetIsoInfo(isoID)
 			if err != nil {
 				return fmt.Errorf("failed setting iso info: %w", err)
 			}
@@ -56,37 +56,37 @@ var VMIsoListCmd = &cobra.Command{
 			}
 
 			isoInfos[isoInfo.Name] = isoListInfo{
-				id:   id,
+				id:   isoID,
 				size: isoSize,
 			}
 			names = append(names, isoInfo.Name)
 		}
 
-		t := table.NewWriter()
-		t.SetOutputMirror(os.Stdout)
+		isoTableWriter := table.NewWriter()
+		isoTableWriter.SetOutputMirror(os.Stdout)
 		if ShowUUID {
-			t.AppendHeader(table.Row{"NAME", "UUID", "SIZE", "DESCRIPTION"})
+			isoTableWriter.AppendHeader(table.Row{"NAME", "UUID", "SIZE", "DESCRIPTION"})
 		} else {
-			t.AppendHeader(table.Row{"NAME", "SIZE", "DESCRIPTION"})
+			isoTableWriter.AppendHeader(table.Row{"NAME", "SIZE", "DESCRIPTION"})
 		}
-		t.SetStyle(myTableStyle)
+		isoTableWriter.SetStyle(myTableStyle)
 		for _, name := range names {
 			if ShowUUID {
-				t.AppendRow(table.Row{
+				isoTableWriter.AppendRow(table.Row{
 					name,
 					isoInfos[name].id,
 					isoInfos[name].size,
 					isoInfos[name].info.Descr,
 				})
 			} else {
-				t.AppendRow(table.Row{
+				isoTableWriter.AppendRow(table.Row{
 					name,
 					isoInfos[name].size,
 					isoInfos[name].info.Descr,
 				})
 			}
 		}
-		t.Render()
+		isoTableWriter.Render()
 
 		return nil
 	},

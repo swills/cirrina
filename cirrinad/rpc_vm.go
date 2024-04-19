@@ -17,160 +17,160 @@ import (
 	"cirrina/cirrinad/vm"
 )
 
-func (s *server) UpdateVM(_ context.Context, rc *cirrina.VMConfig) (*cirrina.ReqBool, error) {
-	re := cirrina.ReqBool{}
-	re.Success = false
+func (s *server) UpdateVM(_ context.Context, vmConfig *cirrina.VMConfig) (*cirrina.ReqBool, error) {
+	res := cirrina.ReqBool{}
+	res.Success = false
 
-	vmUUID, err := uuid.Parse(rc.Id)
+	vmUUID, err := uuid.Parse(vmConfig.Id)
 	if err != nil {
-		return &re, fmt.Errorf("error parsing VM ID: %w", err)
+		return &res, fmt.Errorf("error parsing VM ID: %w", err)
 	}
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
-		slog.Error("UpdateVM error getting vm", "vm", rc.Id, "err", err)
+		slog.Error("UpdateVM error getting vm", "vm", vmConfig.Id, "err", err)
 
-		return &re, errNotFound
+		return &res, errNotFound
 	}
 	if vmInst.Name == "" {
-		return &re, errNotFound
+		return &res, errNotFound
 	}
 
-	err = updateVMBasics(rc, vmInst)
+	err = updateVMBasics(vmConfig, vmInst)
 	if err != nil {
-		return &re, err
+		return &res, err
 	}
 
-	err = updateVMCom1(rc, vmInst)
+	err = updateVMCom1(vmConfig, vmInst)
 	if err != nil {
-		return &re, err
+		return &res, err
 	}
-	err = updateVMCom2(rc, vmInst)
+	err = updateVMCom2(vmConfig, vmInst)
 	if err != nil {
-		return &re, err
+		return &res, err
 	}
-	err = updateVMCom3(rc, vmInst)
+	err = updateVMCom3(vmConfig, vmInst)
 	if err != nil {
-		return &re, err
+		return &res, err
 	}
-	err = updateVMCom4(rc, vmInst)
+	err = updateVMCom4(vmConfig, vmInst)
 	if err != nil {
-		return &re, err
-	}
-
-	updateVMScreen(rc, vmInst)
-	err = updateVMScreenOptions(rc, vmInst)
-	if err != nil {
-		return &re, err
+		return &res, err
 	}
 
-	err = updateVMSound(rc, vmInst)
+	updateVMScreen(vmConfig, vmInst)
+	err = updateVMScreenOptions(vmConfig, vmInst)
 	if err != nil {
-		return &re, err
+		return &res, err
 	}
 
-	updateVMStart(rc, vmInst)
-	updateVMAdvanced1(rc, vmInst)
-	updateVMAdvanced2(rc, vmInst)
-
-	err = updateVMDebug(rc, vmInst)
+	err = updateVMSound(vmConfig, vmInst)
 	if err != nil {
-		return &re, err
+		return &res, err
 	}
 
-	updateVMPriorityLimits(rc, vmInst)
+	updateVMStart(vmConfig, vmInst)
+	updateVMAdvanced1(vmConfig, vmInst)
+	updateVMAdvanced2(vmConfig, vmInst)
+
+	err = updateVMDebug(vmConfig, vmInst)
+	if err != nil {
+		return &res, err
+	}
+
+	updateVMPriorityLimits(vmConfig, vmInst)
 
 	err = vmInst.Save()
 	if err != nil {
-		return &re, fmt.Errorf("error saving VM: %w", err)
+		return &res, fmt.Errorf("error saving VM: %w", err)
 	}
-	re.Success = true
+	res.Success = true
 
-	return &re, nil
+	return &res, nil
 }
 
-func updateVMPriorityLimits(rc *cirrina.VMConfig, vmInst *vm.VM) {
-	if rc.Priority != nil {
-		vmInst.Config.Priority = *rc.Priority
+func updateVMPriorityLimits(vmConfig *cirrina.VMConfig, vmInst *vm.VM) {
+	if vmConfig.Priority != nil {
+		vmInst.Config.Priority = *vmConfig.Priority
 	}
-	if rc.Protect != nil {
-		vmInst.Config.Protect = sql.NullBool{Bool: *rc.Protect, Valid: true}
+	if vmConfig.Protect != nil {
+		vmInst.Config.Protect = sql.NullBool{Bool: *vmConfig.Protect, Valid: true}
 	}
-	if rc.Pcpu != nil {
-		vmInst.Config.Pcpu = *rc.Pcpu
+	if vmConfig.Pcpu != nil {
+		vmInst.Config.Pcpu = *vmConfig.Pcpu
 	}
-	if rc.Rbps != nil {
-		vmInst.Config.Rbps = *rc.Rbps
+	if vmConfig.Rbps != nil {
+		vmInst.Config.Rbps = *vmConfig.Rbps
 	}
-	if rc.Wbps != nil {
-		vmInst.Config.Wbps = *rc.Wbps
+	if vmConfig.Wbps != nil {
+		vmInst.Config.Wbps = *vmConfig.Wbps
 	}
-	if rc.Riops != nil {
-		vmInst.Config.Riops = *rc.Riops
+	if vmConfig.Riops != nil {
+		vmInst.Config.Riops = *vmConfig.Riops
 	}
-	if rc.Wiops != nil {
-		vmInst.Config.Wiops = *rc.Wiops
+	if vmConfig.Wiops != nil {
+		vmInst.Config.Wiops = *vmConfig.Wiops
 	}
 }
 
-func updateVMDebug(rc *cirrina.VMConfig, vmInst *vm.VM) error {
-	if rc.Debug != nil {
-		if *rc.Debug {
+func updateVMDebug(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
+	if vmConfig.Debug != nil {
+		if *vmConfig.Debug {
 			vmInst.Config.Debug = true
 		} else {
 			vmInst.Config.Debug = false
 		}
 	}
-	if rc.DebugWait != nil {
-		if *rc.DebugWait {
+	if vmConfig.DebugWait != nil {
+		if *vmConfig.DebugWait {
 			vmInst.Config.DebugWait = true
 		} else {
 			vmInst.Config.DebugWait = false
 		}
 	}
-	if rc.DebugPort != nil {
-		if *rc.DebugPort != "AUTO" {
-			port, err := strconv.Atoi(*rc.DebugPort)
+	if vmConfig.DebugPort != nil {
+		if *vmConfig.DebugPort != "AUTO" {
+			port, err := strconv.Atoi(*vmConfig.DebugPort)
 			if err != nil || port < 1024 || port > 65535 {
 				return errInvalidDebugPort
 			}
 		}
-		vmInst.Config.DebugPort = *rc.DebugPort
+		vmInst.Config.DebugPort = *vmConfig.DebugPort
 	}
 
 	return nil
 }
 
-func updateVMAdvanced1(rc *cirrina.VMConfig, vmInst *vm.VM) {
-	if rc.Hostbridge != nil {
-		if *rc.Hostbridge {
+func updateVMAdvanced1(vmConfig *cirrina.VMConfig, vmInst *vm.VM) {
+	if vmConfig.Hostbridge != nil {
+		if *vmConfig.Hostbridge {
 			vmInst.Config.HostBridge = true
 		} else {
 			vmInst.Config.HostBridge = false
 		}
 	}
-	if rc.Acpi != nil {
-		if *rc.Acpi {
+	if vmConfig.Acpi != nil {
+		if *vmConfig.Acpi {
 			vmInst.Config.ACPI = true
 		} else {
 			vmInst.Config.ACPI = false
 		}
 	}
-	if rc.Storeuefi != nil {
-		if *rc.Storeuefi {
+	if vmConfig.Storeuefi != nil {
+		if *vmConfig.Storeuefi {
 			vmInst.Config.StoreUEFIVars = true
 		} else {
 			vmInst.Config.StoreUEFIVars = false
 		}
 	}
-	if rc.Utc != nil {
-		if *rc.Utc {
+	if vmConfig.Utc != nil {
+		if *vmConfig.Utc {
 			vmInst.Config.UTCTime = true
 		} else {
 			vmInst.Config.UTCTime = false
 		}
 	}
-	if rc.Wireguestmem != nil {
-		if *rc.Wireguestmem {
+	if vmConfig.Wireguestmem != nil {
+		if *vmConfig.Wireguestmem {
 			vmInst.Config.WireGuestMem = true
 		} else {
 			vmInst.Config.WireGuestMem = false
@@ -178,137 +178,137 @@ func updateVMAdvanced1(rc *cirrina.VMConfig, vmInst *vm.VM) {
 	}
 }
 
-func updateVMAdvanced2(rc *cirrina.VMConfig, vmInst *vm.VM) {
-	if rc.Dpo != nil {
-		if *rc.Dpo {
+func updateVMAdvanced2(vmConfig *cirrina.VMConfig, vmInst *vm.VM) {
+	if vmConfig.Dpo != nil {
+		if *vmConfig.Dpo {
 			vmInst.Config.DestroyPowerOff = true
 		} else {
 			vmInst.Config.DestroyPowerOff = false
 		}
 	}
-	if rc.Eop != nil {
-		if *rc.Eop {
+	if vmConfig.Eop != nil {
+		if *vmConfig.Eop {
 			vmInst.Config.ExitOnPause = true
 		} else {
 			vmInst.Config.ExitOnPause = false
 		}
 	}
-	if rc.Ium != nil {
-		if *rc.Ium {
+	if vmConfig.Ium != nil {
+		if *vmConfig.Ium {
 			vmInst.Config.IgnoreUnknownMSR = true
 		} else {
 			vmInst.Config.IgnoreUnknownMSR = false
 		}
 	}
-	if rc.Hlt != nil {
-		if *rc.Hlt {
+	if vmConfig.Hlt != nil {
+		if *vmConfig.Hlt {
 			vmInst.Config.UseHLT = true
 		} else {
 			vmInst.Config.UseHLT = false
 		}
 	}
 	// TODO -- potential security issue, should it be removed?
-	if rc.ExtraArgs != nil {
-		vmInst.Config.ExtraArgs = *rc.ExtraArgs
+	if vmConfig.ExtraArgs != nil {
+		vmInst.Config.ExtraArgs = *vmConfig.ExtraArgs
 	}
 }
 
-func updateVMStart(rc *cirrina.VMConfig, vmInst *vm.VM) {
-	if rc.Autostart != nil {
-		if *rc.Autostart {
+func updateVMStart(vmConfig *cirrina.VMConfig, vmInst *vm.VM) {
+	if vmConfig.Autostart != nil {
+		if *vmConfig.Autostart {
 			vmInst.Config.AutoStart = true
 		} else {
 			vmInst.Config.AutoStart = false
 		}
 	}
-	if rc.AutostartDelay != nil {
-		if *rc.AutostartDelay > 3600 {
+	if vmConfig.AutostartDelay != nil {
+		if *vmConfig.AutostartDelay > 3600 {
 			vmInst.Config.AutoStartDelay = 3600
 		} else {
-			vmInst.Config.AutoStartDelay = *rc.AutostartDelay
+			vmInst.Config.AutoStartDelay = *vmConfig.AutostartDelay
 		}
 	}
-	if rc.Restart != nil {
-		if *rc.Restart {
+	if vmConfig.Restart != nil {
+		if *vmConfig.Restart {
 			vmInst.Config.Restart = true
 		} else {
 			vmInst.Config.Restart = false
 		}
 	}
-	if rc.RestartDelay != nil {
-		vmInst.Config.RestartDelay = *rc.RestartDelay
+	if vmConfig.RestartDelay != nil {
+		vmInst.Config.RestartDelay = *vmConfig.RestartDelay
 	}
-	if rc.MaxWait != nil {
-		vmInst.Config.MaxWait = *rc.MaxWait
+	if vmConfig.MaxWait != nil {
+		vmInst.Config.MaxWait = *vmConfig.MaxWait
 	}
 }
 
-func updateVMSound(rc *cirrina.VMConfig, vmInst *vm.VM) error {
-	if rc.Sound != nil {
-		if *rc.Sound {
+func updateVMSound(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
+	if vmConfig.Sound != nil {
+		if *vmConfig.Sound {
 			vmInst.Config.Sound = true
 		} else {
 			vmInst.Config.Sound = false
 		}
 	}
-	if rc.SoundIn != nil {
-		if !strings.HasPrefix(*rc.SoundIn, "/dev/dsp") {
+	if vmConfig.SoundIn != nil {
+		if !strings.HasPrefix(*vmConfig.SoundIn, "/dev/dsp") {
 			return errInvalidSoundDev
 		}
-		vmInst.Config.SoundIn = *rc.SoundIn
+		vmInst.Config.SoundIn = *vmConfig.SoundIn
 	}
-	if rc.SoundOut != nil {
-		if !strings.HasPrefix(*rc.SoundOut, "/dev/dsp") {
+	if vmConfig.SoundOut != nil {
+		if !strings.HasPrefix(*vmConfig.SoundOut, "/dev/dsp") {
 			return errInvalidSoundDev
 		}
-		vmInst.Config.SoundOut = *rc.SoundOut
+		vmInst.Config.SoundOut = *vmConfig.SoundOut
 	}
 
 	return nil
 }
 
-func updateVMScreen(rc *cirrina.VMConfig, vmInst *vm.VM) {
-	if rc.Screen != nil {
-		if *rc.Screen {
+func updateVMScreen(vmConfig *cirrina.VMConfig, vmInst *vm.VM) {
+	if vmConfig.Screen != nil {
+		if *vmConfig.Screen {
 			vmInst.Config.Screen = true
 		} else {
 			vmInst.Config.Screen = false
 		}
 	}
-	if rc.ScreenWidth != nil {
-		vmInst.Config.ScreenWidth = *rc.ScreenWidth
+	if vmConfig.ScreenWidth != nil {
+		vmInst.Config.ScreenWidth = *vmConfig.ScreenWidth
 	}
-	if rc.ScreenHeight != nil {
-		vmInst.Config.ScreenHeight = *rc.ScreenHeight
+	if vmConfig.ScreenHeight != nil {
+		vmInst.Config.ScreenHeight = *vmConfig.ScreenHeight
 	}
 }
 
-func updateVMScreenOptions(rc *cirrina.VMConfig, vmInst *vm.VM) error {
-	if rc.Vncport != nil {
-		if *rc.Vncport != "AUTO" {
-			port, err := strconv.Atoi(*rc.Vncport)
+func updateVMScreenOptions(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
+	if vmConfig.Vncport != nil {
+		if *vmConfig.Vncport != "AUTO" {
+			port, err := strconv.Atoi(*vmConfig.Vncport)
 			if err != nil || port < 1024 || port > 65535 {
 				return errInvalidVncPort
 			}
 		}
-		vmInst.Config.VNCPort = *rc.Vncport
+		vmInst.Config.VNCPort = *vmConfig.Vncport
 	}
-	if rc.Keyboard != nil {
+	if vmConfig.Keyboard != nil {
 		layoutNames := GetKbdLayoutNames()
-		if !util.ContainsStr(layoutNames, *rc.Keyboard) {
+		if !util.ContainsStr(layoutNames, *vmConfig.Keyboard) {
 			return errInvalidKeyboardLayout
 		}
-		vmInst.Config.KbdLayout = *rc.Keyboard
+		vmInst.Config.KbdLayout = *vmConfig.Keyboard
 	}
-	if rc.Tablet != nil {
-		if *rc.Tablet {
+	if vmConfig.Tablet != nil {
+		if *vmConfig.Tablet {
 			vmInst.Config.Tablet = true
 		} else {
 			vmInst.Config.Tablet = false
 		}
 	}
-	if rc.Vncwait != nil {
-		if *rc.Vncwait {
+	if vmConfig.Vncwait != nil {
+		if *vmConfig.Vncwait {
 			vmInst.Config.VNCWait = true
 		} else {
 			vmInst.Config.VNCWait = false
@@ -318,157 +318,157 @@ func updateVMScreenOptions(rc *cirrina.VMConfig, vmInst *vm.VM) error {
 	return nil
 }
 
-func updateVMCom1(rc *cirrina.VMConfig, vmInst *vm.VM) error {
-	if rc.Com1 != nil {
-		if *rc.Com1 {
+func updateVMCom1(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
+	if vmConfig.Com1 != nil {
+		if *vmConfig.Com1 {
 			vmInst.Config.Com1 = true
 		} else {
 			vmInst.Config.Com1 = false
 		}
 	}
-	if rc.Com1Dev != nil {
-		if *rc.Com1Dev != "AUTO" {
-			if !strings.HasPrefix(*rc.Com1Dev, "/dev/nmdm") {
+	if vmConfig.Com1Dev != nil {
+		if *vmConfig.Com1Dev != "AUTO" {
+			if !strings.HasPrefix(*vmConfig.Com1Dev, "/dev/nmdm") {
 				return errInvalidComDev
 			}
 		}
-		vmInst.Config.Com1Dev = *rc.Com1Dev
+		vmInst.Config.Com1Dev = *vmConfig.Com1Dev
 	}
-	if rc.Com1Log != nil {
-		if *rc.Com1Log {
+	if vmConfig.Com1Log != nil {
+		if *vmConfig.Com1Log {
 			vmInst.Config.Com1Log = true
 		} else {
 			vmInst.Config.Com1Log = false
 		}
 	}
-	if rc.Com1Speed != nil {
-		vmInst.Config.Com1Speed = *rc.Com1Speed
+	if vmConfig.Com1Speed != nil {
+		vmInst.Config.Com1Speed = *vmConfig.Com1Speed
 	}
 
 	return nil
 }
 
-func updateVMCom2(rc *cirrina.VMConfig, vmInst *vm.VM) error {
-	if rc.Com2 != nil {
-		if *rc.Com2 {
+func updateVMCom2(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
+	if vmConfig.Com2 != nil {
+		if *vmConfig.Com2 {
 			vmInst.Config.Com2 = true
 		} else {
 			vmInst.Config.Com2 = false
 		}
 	}
-	if rc.Com2Dev != nil {
-		if *rc.Com2Dev != "AUTO" {
-			if !strings.HasPrefix(*rc.Com2Dev, "/dev/nmdm") {
+	if vmConfig.Com2Dev != nil {
+		if *vmConfig.Com2Dev != "AUTO" {
+			if !strings.HasPrefix(*vmConfig.Com2Dev, "/dev/nmdm") {
 				return errInvalidComDev
 			}
 		}
-		vmInst.Config.Com2Dev = *rc.Com2Dev
+		vmInst.Config.Com2Dev = *vmConfig.Com2Dev
 	}
-	if rc.Com2Log != nil {
-		if *rc.Com2Log {
+	if vmConfig.Com2Log != nil {
+		if *vmConfig.Com2Log {
 			vmInst.Config.Com2Log = true
 		} else {
 			vmInst.Config.Com2Log = false
 		}
 	}
-	if rc.Com2Speed != nil {
-		vmInst.Config.Com2Speed = *rc.Com2Speed
+	if vmConfig.Com2Speed != nil {
+		vmInst.Config.Com2Speed = *vmConfig.Com2Speed
 	}
 
 	return nil
 }
 
-func updateVMCom3(rc *cirrina.VMConfig, vmInst *vm.VM) error {
-	if rc.Com3 != nil {
-		if *rc.Com3 {
+func updateVMCom3(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
+	if vmConfig.Com3 != nil {
+		if *vmConfig.Com3 {
 			vmInst.Config.Com3 = true
 		} else {
 			vmInst.Config.Com3 = false
 		}
 	}
-	if rc.Com3Dev != nil {
-		if *rc.Com3Dev != "AUTO" {
-			if !strings.HasPrefix(*rc.Com3Dev, "/dev/nmdm") {
+	if vmConfig.Com3Dev != nil {
+		if *vmConfig.Com3Dev != "AUTO" {
+			if !strings.HasPrefix(*vmConfig.Com3Dev, "/dev/nmdm") {
 				return errInvalidComDev
 			}
 		}
-		vmInst.Config.Com3Dev = *rc.Com3Dev
+		vmInst.Config.Com3Dev = *vmConfig.Com3Dev
 	}
-	if rc.Com3Log != nil {
-		if *rc.Com3Log {
+	if vmConfig.Com3Log != nil {
+		if *vmConfig.Com3Log {
 			vmInst.Config.Com3Log = true
 		} else {
 			vmInst.Config.Com3Log = false
 		}
 	}
-	if rc.Com3Speed != nil {
-		vmInst.Config.Com3Speed = *rc.Com3Speed
+	if vmConfig.Com3Speed != nil {
+		vmInst.Config.Com3Speed = *vmConfig.Com3Speed
 	}
 
 	return nil
 }
 
-func updateVMCom4(rc *cirrina.VMConfig, vmInst *vm.VM) error {
-	if rc.Com4 != nil {
-		if *rc.Com4 {
+func updateVMCom4(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
+	if vmConfig.Com4 != nil {
+		if *vmConfig.Com4 {
 			vmInst.Config.Com4 = true
 		} else {
 			vmInst.Config.Com4 = false
 		}
 	}
-	if rc.Com4Dev != nil {
-		if *rc.Com4Dev != "AUTO" {
-			if !strings.HasPrefix(*rc.Com4Dev, "/dev/nmdm") {
+	if vmConfig.Com4Dev != nil {
+		if *vmConfig.Com4Dev != "AUTO" {
+			if !strings.HasPrefix(*vmConfig.Com4Dev, "/dev/nmdm") {
 				return errInvalidComDev
 			}
 		}
-		vmInst.Config.Com4Dev = *rc.Com4Dev
+		vmInst.Config.Com4Dev = *vmConfig.Com4Dev
 	}
-	if rc.Com4Log != nil {
-		if *rc.Com4Log {
+	if vmConfig.Com4Log != nil {
+		if *vmConfig.Com4Log {
 			vmInst.Config.Com4Log = true
 		} else {
 			vmInst.Config.Com4Log = false
 		}
 	}
-	if rc.Com4Speed != nil {
-		vmInst.Config.Com4Speed = *rc.Com4Speed
+	if vmConfig.Com4Speed != nil {
+		vmInst.Config.Com4Speed = *vmConfig.Com4Speed
 	}
 
 	return nil
 }
 
-func updateVMBasics(rc *cirrina.VMConfig, vmInst *vm.VM) error {
-	if rc.Name != nil {
-		if !util.ValidVMName(*rc.Name) {
+func updateVMBasics(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
+	if vmConfig.Name != nil {
+		if !util.ValidVMName(*vmConfig.Name) {
 			return errInvalidName
 		}
-		if _, err := vm.GetByName(*rc.Name); err == nil {
+		if _, err := vm.GetByName(*vmConfig.Name); err == nil {
 			return errVMDupe
 		}
-		vmInst.Name = *rc.Name
+		vmInst.Name = *vmConfig.Name
 	}
-	if rc.Description != nil {
-		vmInst.Description = *rc.Description
+	if vmConfig.Description != nil {
+		vmInst.Description = *vmConfig.Description
 	}
-	if rc.Cpu != nil {
-		vmInst.Config.CPU = *rc.Cpu
+	if vmConfig.Cpu != nil {
+		vmInst.Config.CPU = *vmConfig.Cpu
 	}
-	if rc.Mem != nil {
-		vmInst.Config.Mem = *rc.Mem
+	if vmConfig.Mem != nil {
+		vmInst.Config.Mem = *vmConfig.Mem
 	}
 
 	return nil
 }
 
-func (s *server) GetVMID(_ context.Context, v *wrapperspb.StringValue) (*cirrina.VMID, error) {
+func (s *server) GetVMID(_ context.Context, vmID *wrapperspb.StringValue) (*cirrina.VMID, error) {
 	var vmName string
 
-	if v == nil {
+	if vmID == nil {
 		return &cirrina.VMID{}, errInvalidID
 	}
 
-	vmName = v.GetValue()
+	vmName = vmID.GetValue()
 	vmInst, err := vm.GetByName(vmName)
 	if err != nil {
 		return &cirrina.VMID{}, fmt.Errorf("error getting VM: %w", err)
@@ -477,14 +477,14 @@ func (s *server) GetVMID(_ context.Context, v *wrapperspb.StringValue) (*cirrina
 	return &cirrina.VMID{Value: vmInst.ID}, nil
 }
 
-func (s *server) GetVMName(_ context.Context, v *cirrina.VMID) (*wrapperspb.StringValue, error) {
-	vmUUID, err := uuid.Parse(v.Value)
+func (s *server) GetVMName(_ context.Context, vmID *cirrina.VMID) (*wrapperspb.StringValue, error) {
+	vmUUID, err := uuid.Parse(vmID.Value)
 	if err != nil {
 		return wrapperspb.String(""), fmt.Errorf("error parsing ID: %w", err)
 	}
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
-		slog.Error("GetVMConfig error getting vm", "vm", v.Value, "err", err)
+		slog.Error("GetVMConfig error getting vm", "vm", vmID.Value, "err", err)
 
 		return wrapperspb.String(""), fmt.Errorf("error getting VM: %w", err)
 	}
@@ -492,23 +492,23 @@ func (s *server) GetVMName(_ context.Context, v *cirrina.VMID) (*wrapperspb.Stri
 	return wrapperspb.String(vmInst.Name), nil
 }
 
-func (s *server) GetVMConfig(_ context.Context, v *cirrina.VMID) (*cirrina.VMConfig, error) {
+func (s *server) GetVMConfig(_ context.Context, vmID *cirrina.VMID) (*cirrina.VMConfig, error) {
 	var pvm cirrina.VMConfig
 
-	vmUUID, err := uuid.Parse(v.Value)
+	vmUUID, err := uuid.Parse(vmID.Value)
 	if err != nil {
 		return &pvm, fmt.Errorf("error parsing VM ID: %w", err)
 	}
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
-		slog.Error("GetVMConfig error getting vm", "vm", v.Value, "err", err)
+		slog.Error("GetVMConfig error getting vm", "vm", vmID.Value, "err", err)
 
 		return &pvm, errNotFound
 	}
 	if vmInst.Name == "" {
 		return &pvm, errNotFound
 	}
-	pvm.Id = v.Value
+	pvm.Id = vmID.Value
 	pvm.Name = &vmInst.Name
 	pvm.Description = &vmInst.Description
 	pvm.Cpu = &vmInst.Config.CPU
@@ -584,15 +584,15 @@ func (s *server) GetVMs(_ *cirrina.VMsQuery, stream cirrina.VMInfo_GetVMsServer)
 	return nil
 }
 
-func (s *server) GetVMState(_ context.Context, p *cirrina.VMID) (*cirrina.VMState, error) {
+func (s *server) GetVMState(_ context.Context, vmID *cirrina.VMID) (*cirrina.VMState, error) {
 	pvm := cirrina.VMState{}
-	vmUUID, err := uuid.Parse(p.Value)
+	vmUUID, err := uuid.Parse(vmID.Value)
 	if err != nil {
 		return &pvm, fmt.Errorf("error parsing ID: %w", err)
 	}
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
-		slog.Error("GetVMState error getting vm", "vm", p.Value, "err", err)
+		slog.Error("GetVMState error getting vm", "vm", vmID.Value, "err", err)
 
 		return &pvm, errNotFound
 	}
@@ -622,28 +622,28 @@ func (s *server) GetVMState(_ context.Context, p *cirrina.VMID) (*cirrina.VMStat
 	return &pvm, nil
 }
 
-func (s *server) AddVM(_ context.Context, v *cirrina.VMConfig) (*cirrina.VMID, error) {
+func (s *server) AddVM(_ context.Context, vmConfig *cirrina.VMConfig) (*cirrina.VMID, error) {
 	defaultVMDescription := ""
 	var defaultVMCpuCount uint32 = 1
 	var defaultVMMemCount uint32 = 128
 
-	if v.Name == nil {
+	if vmConfig.Name == nil {
 		return &cirrina.VMID{}, errInvalidName
 	}
-	if !util.ValidVMName(*v.Name) {
+	if !util.ValidVMName(*vmConfig.Name) {
 		return &cirrina.VMID{}, errInvalidName
 	}
 
-	if v.Description == nil {
-		v.Description = &defaultVMDescription
+	if vmConfig.Description == nil {
+		vmConfig.Description = &defaultVMDescription
 	}
-	if v.Cpu == nil || *v.Cpu < 1 || *v.Cpu > 16 {
-		v.Cpu = &defaultVMCpuCount
+	if vmConfig.Cpu == nil || *vmConfig.Cpu < 1 || *vmConfig.Cpu > 16 {
+		vmConfig.Cpu = &defaultVMCpuCount
 	}
-	if v.Mem == nil || *v.Mem < 128 {
-		v.Mem = &defaultVMMemCount
+	if vmConfig.Mem == nil || *vmConfig.Mem < 128 {
+		vmConfig.Mem = &defaultVMMemCount
 	}
-	vmInst, err := vm.Create(*v.Name, *v.Description, *v.Cpu, *v.Mem)
+	vmInst, err := vm.Create(*vmConfig.Name, *vmConfig.Description, *vmConfig.Cpu, *vmConfig.Mem)
 	if err != nil {
 		return &cirrina.VMID{}, fmt.Errorf("error creating VM: %w", err)
 	}
@@ -652,28 +652,28 @@ func (s *server) AddVM(_ context.Context, v *cirrina.VMConfig) (*cirrina.VMID, e
 	return &cirrina.VMID{Value: vmInst.ID}, nil
 }
 
-func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID, error) {
-	vmUUID, err := uuid.Parse(v.Value)
+func (s *server) DeleteVM(_ context.Context, vmID *cirrina.VMID) (*cirrina.RequestID, error) {
+	vmUUID, err := uuid.Parse(vmID.Value)
 	if err != nil {
 		return &cirrina.RequestID{}, fmt.Errorf("error parsing VM ID: %w", err)
 	}
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
-		slog.Error("DeleteVM error getting vm", "vm", v.Value, "err", err)
+		slog.Error("DeleteVM error getting vm", "vm", vmID.Value, "err", err)
 
 		return &cirrina.RequestID{}, fmt.Errorf("error getting VM: %w", err)
 	}
 	if vmInst.Name == "" {
 		return &cirrina.RequestID{}, errNotFound
 	}
-	pendingReqIDs := requests.PendingReqExists(v.Value)
+	pendingReqIDs := requests.PendingReqExists(vmID.Value)
 	if len(pendingReqIDs) > 0 {
 		return &cirrina.RequestID{}, errReqExists
 	}
 	if vmInst.Status != vm.STOPPED {
 		return &cirrina.RequestID{}, errInvalidVMStateDelete
 	}
-	newReq, err := requests.CreateVMReq(requests.VMDELETE, v.Value)
+	newReq, err := requests.CreateVMReq(requests.VMDELETE, vmID.Value)
 	if err != nil {
 		return &cirrina.RequestID{}, fmt.Errorf("error creating request: %w", err)
 	}
@@ -681,97 +681,97 @@ func (s *server) DeleteVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestI
 	return &cirrina.RequestID{Value: newReq.ID}, nil
 }
 
-func (s *server) SetVMISOs(_ context.Context, sr *cirrina.SetISOReq) (*cirrina.ReqBool, error) {
-	re := cirrina.ReqBool{}
-	re.Success = false
+func (s *server) SetVMISOs(_ context.Context, setISOReq *cirrina.SetISOReq) (*cirrina.ReqBool, error) {
+	res := cirrina.ReqBool{}
+	res.Success = false
 
-	vmUUID, err := uuid.Parse(sr.Id)
+	vmUUID, err := uuid.Parse(setISOReq.Id)
 	if err != nil {
-		return &re, fmt.Errorf("error parsing ID: %w", err)
+		return &res, fmt.Errorf("error parsing ID: %w", err)
 	}
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
-		slog.Error("SetVmISOs error getting vm", "vm", sr.Id, "err", err)
+		slog.Error("SetVmISOs error getting vm", "vm", setISOReq.Id, "err", err)
 
-		return &re, errNotFound
+		return &res, errNotFound
 	}
 	if vmInst.Name == "" {
-		return &re, errNotFound
+		return &res, errNotFound
 	}
 
-	err = vmInst.AttachIsos(sr.Isoid)
+	err = vmInst.AttachIsos(setISOReq.Isoid)
 	if err != nil {
-		return &re, fmt.Errorf("error attaching ISO: %w", err)
+		return &res, fmt.Errorf("error attaching ISO: %w", err)
 	}
-	re.Success = true
+	res.Success = true
 
-	return &re, nil
+	return &res, nil
 }
 
-func (s *server) SetVMNics(_ context.Context, sn *cirrina.SetNicReq) (*cirrina.ReqBool, error) {
-	var re cirrina.ReqBool
-	re.Success = false
-	slog.Debug("SetVmNics", "vm", sn.Vmid, "vmnic", sn.Vmnicid)
+func (s *server) SetVMNics(_ context.Context, setNicReq *cirrina.SetNicReq) (*cirrina.ReqBool, error) {
+	var res cirrina.ReqBool
+	res.Success = false
+	slog.Debug("SetVmNics", "vm", setNicReq.Vmid, "vmnic", setNicReq.Vmnicid)
 
-	vmUUID, err := uuid.Parse(sn.Vmid)
+	vmUUID, err := uuid.Parse(setNicReq.Vmid)
 	if err != nil {
-		return &re, fmt.Errorf("error parsing ID: %w", err)
+		return &res, fmt.Errorf("error parsing ID: %w", err)
 	}
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
-		slog.Error("SetVmNics error getting vm", "vm", sn.Vmid, "err", err)
+		slog.Error("SetVmNics error getting vm", "vm", setNicReq.Vmid, "err", err)
 
-		return &re, fmt.Errorf("error getting VM ID: %w", err)
+		return &res, fmt.Errorf("error getting VM ID: %w", err)
 	}
 	if vmInst.Name == "" {
-		return &re, errNotFound
+		return &res, errNotFound
 	}
 
-	err = vmInst.SetNics(sn.Vmnicid)
+	err = vmInst.SetNics(setNicReq.Vmnicid)
 	if err != nil {
-		return &re, fmt.Errorf("error setting NICs: %w", err)
+		return &res, fmt.Errorf("error setting NICs: %w", err)
 	}
-	re.Success = true
+	res.Success = true
 
-	return &re, nil
+	return &res, nil
 }
 
-func (s *server) SetVMDisks(_ context.Context, sr *cirrina.SetDiskReq) (*cirrina.ReqBool, error) {
-	re := cirrina.ReqBool{}
-	re.Success = false
-	slog.Debug("SetVmDisks", "vm", sr.Id, "disk", sr.Diskid)
+func (s *server) SetVMDisks(_ context.Context, setDiskReq *cirrina.SetDiskReq) (*cirrina.ReqBool, error) {
+	res := cirrina.ReqBool{}
+	res.Success = false
+	slog.Debug("SetVmDisks", "vm", setDiskReq.Id, "disk", setDiskReq.Diskid)
 
-	vmUUID, err := uuid.Parse(sr.Id)
+	vmUUID, err := uuid.Parse(setDiskReq.Id)
 	if err != nil {
-		return &re, fmt.Errorf("error parsing ID: %w", err)
+		return &res, fmt.Errorf("error parsing ID: %w", err)
 	}
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
-		slog.Error("SetVmDisks error getting vm", "vm", sr.Id, "err", err)
+		slog.Error("SetVmDisks error getting vm", "vm", setDiskReq.Id, "err", err)
 
-		return &re, errNotFound
+		return &res, errNotFound
 	}
 	if vmInst.Name == "" {
-		return &re, errNotFound
+		return &res, errNotFound
 	}
-	err = vmInst.AttachDisks(sr.Diskid)
+	err = vmInst.AttachDisks(setDiskReq.Diskid)
 	if err != nil {
-		return &re, fmt.Errorf("error attaching disk: %w", err)
+		return &res, fmt.Errorf("error attaching disk: %w", err)
 	}
-	re.Success = true
+	res.Success = true
 
-	return &re, nil
+	return &res, nil
 }
 
-func (s *server) GetVMISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVMISOsServer) error {
-	vmUUID, err := uuid.Parse(v.Value)
+func (s *server) GetVMISOs(vmID *cirrina.VMID, stream cirrina.VMInfo_GetVMISOsServer) error {
+	vmUUID, err := uuid.Parse(vmID.Value)
 	if err != nil {
 		return fmt.Errorf("error parsing ID: %w", err)
 	}
 
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
-		slog.Error("GetVmISOs error getting vm", "vm", v.Value, "err", err)
+		slog.Error("GetVmISOs error getting vm", "vm", vmID.Value, "err", err)
 
 		return fmt.Errorf("error getting VM: %w", err)
 	}
@@ -796,14 +796,14 @@ func (s *server) GetVMISOs(v *cirrina.VMID, stream cirrina.VMInfo_GetVMISOsServe
 	return nil
 }
 
-func (s *server) GetVMDisks(v *cirrina.VMID, stream cirrina.VMInfo_GetVMDisksServer) error {
-	vmUUID, err := uuid.Parse(v.Value)
+func (s *server) GetVMDisks(vmID *cirrina.VMID, stream cirrina.VMInfo_GetVMDisksServer) error {
+	vmUUID, err := uuid.Parse(vmID.Value)
 	if err != nil {
 		return fmt.Errorf("error parsing ID: %w", err)
 	}
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
-		slog.Error("GetVmDisks error getting vm", "vm", v.Value, "err", err)
+		slog.Error("GetVmDisks error getting vm", "vm", vmID.Value, "err", err)
 
 		return fmt.Errorf("error getting VM: %w", err)
 	}
@@ -828,21 +828,21 @@ func (s *server) GetVMDisks(v *cirrina.VMID, stream cirrina.VMInfo_GetVMDisksSer
 	return nil
 }
 
-func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID, error) {
-	vmUUID, err := uuid.Parse(v.Value)
+func (s *server) StartVM(_ context.Context, vmID *cirrina.VMID) (*cirrina.RequestID, error) {
+	vmUUID, err := uuid.Parse(vmID.Value)
 	if err != nil {
 		return &cirrina.RequestID{}, fmt.Errorf("error parsing ID: %w", err)
 	}
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
-		slog.Error("StartVM error getting vm", "vm", v.Value, "err", err)
+		slog.Error("StartVM error getting vm", "vm", vmID.Value, "err", err)
 
 		return &cirrina.RequestID{}, errNotFound
 	}
 	if vmInst.Name == "" {
 		return &cirrina.RequestID{}, errNotFound
 	}
-	pendingReqIDs := requests.PendingReqExists(v.Value)
+	pendingReqIDs := requests.PendingReqExists(vmID.Value)
 	if len(pendingReqIDs) > 0 {
 		return &cirrina.RequestID{}, errReqExists
 	}
@@ -857,28 +857,28 @@ func (s *server) StartVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID
 	return &cirrina.RequestID{Value: newReq.ID}, nil
 }
 
-func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID, error) {
-	vmUUID, err := uuid.Parse(v.Value)
+func (s *server) StopVM(_ context.Context, vmID *cirrina.VMID) (*cirrina.RequestID, error) {
+	vmUUID, err := uuid.Parse(vmID.Value)
 	if err != nil {
 		return &cirrina.RequestID{}, fmt.Errorf("error parsing ID: %w", err)
 	}
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
-		slog.Error("StopVM error getting vm", "vm", v.Value, "err", err)
+		slog.Error("StopVM error getting vm", "vm", vmID.Value, "err", err)
 
 		return &cirrina.RequestID{}, fmt.Errorf("error getting VM: %w", err)
 	}
 	if vmInst.Name == "" {
 		return &cirrina.RequestID{}, errNotFound
 	}
-	pendingReqIDs := requests.PendingReqExists(v.Value)
+	pendingReqIDs := requests.PendingReqExists(vmID.Value)
 	if len(pendingReqIDs) > 0 {
 		return &cirrina.RequestID{}, errReqExists
 	}
 	if vmInst.Status != vm.RUNNING {
 		return &cirrina.RequestID{}, errInvalidVMStateStop
 	}
-	newReq, err := requests.CreateVMReq(requests.VMSTOP, v.Value)
+	newReq, err := requests.CreateVMReq(requests.VMSTOP, vmID.Value)
 	if err != nil {
 		return &cirrina.RequestID{}, fmt.Errorf("error creating request: %w", err)
 	}
@@ -886,15 +886,15 @@ func (s *server) StopVM(_ context.Context, v *cirrina.VMID) (*cirrina.RequestID,
 	return &cirrina.RequestID{Value: newReq.ID}, nil
 }
 
-func (s *server) GetVMNics(v *cirrina.VMID, stream cirrina.VMInfo_GetVMNicsServer) error {
+func (s *server) GetVMNics(vmID *cirrina.VMID, stream cirrina.VMInfo_GetVMNicsServer) error {
 	var pvmnicID cirrina.VmNicId
-	vmUUID, err := uuid.Parse(v.Value)
+	vmUUID, err := uuid.Parse(vmID.Value)
 	if err != nil {
 		return fmt.Errorf("error parsing ID: %w", err)
 	}
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
-		slog.Error("GetVMNics error getting vm", "vm", v.Value, "err", err)
+		slog.Error("GetVMNics error getting vm", "vm", vmID.Value, "err", err)
 
 		return fmt.Errorf("error getting VM: %w", err)
 	}

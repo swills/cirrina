@@ -11,13 +11,14 @@ import (
 	"cirrina/cirrinad/vmnic"
 )
 
-func nicClone(rs *requests.Request) {
+func nicClone(request *requests.Request) {
 	var err error
 	var reqData requests.NicCloneReqData
-	err = json.Unmarshal([]byte(rs.Data), &reqData)
+	err = json.Unmarshal([]byte(request.Data), &reqData)
 	if err != nil {
-		slog.Error("failed unmarshalling request data", "rsData", rs.Data, "reqType", reflect.TypeOf(reqData), "err", err)
-		rs.Failed()
+		slog.Error("failed unmarshalling request data",
+			"rsData", request.Data, "reqType", reflect.TypeOf(reqData), "err", err)
+		request.Failed()
 
 		return
 	}
@@ -25,26 +26,26 @@ func nicClone(rs *requests.Request) {
 	nicInst, err = vmnic.GetByID(reqData.NicID)
 	if err != nil {
 		slog.Error("nicClone error getting nic", "nic", reqData.NicID, "err", err)
-		rs.Failed()
+		request.Failed()
 
 		return
 	}
-	if nicHasPendingReq(rs.ID, nicInst.ID) {
+	if nicHasPendingReq(request.ID, nicInst.ID) {
 		slog.Error("failing request to clone NIC which has pending request", "nic", nicInst.ID)
-		rs.Failed()
+		request.Failed()
 
 		return
 	}
 	existingVMNic, err := vmnic.GetByName(reqData.NewNicName)
 	if err != nil {
 		slog.Error("error getting name of new NIC", "nic", reqData.NicID, "err", err)
-		rs.Failed()
+		request.Failed()
 
 		return
 	}
 	if existingVMNic.Name != "" {
 		slog.Error("cloned nic already exists", "nic", reqData.NicID, "err", err, "newName", reqData.NewNicName)
-		rs.Failed()
+		request.Failed()
 
 		return
 	}
@@ -57,13 +58,13 @@ func nicClone(rs *requests.Request) {
 		isBroadcast, err = util.MacIsBroadcast(reqData.NewNicMac)
 		if err != nil {
 			slog.Error("error checking new nic mac", "err", err)
-			rs.Failed()
+			request.Failed()
 
 			return
 		}
 		if isBroadcast {
 			slog.Error("new nic mac is broadcast", "newNicMac", reqData.NewNicMac)
-			rs.Failed()
+			request.Failed()
 
 			return
 		}
@@ -71,13 +72,13 @@ func nicClone(rs *requests.Request) {
 		isMulticast, err = util.MacIsMulticast(reqData.NewNicMac)
 		if err != nil {
 			slog.Error("error checking new nic mac", "err", err)
-			rs.Failed()
+			request.Failed()
 
 			return
 		}
 		if isMulticast {
 			slog.Error("new nic mac is multicast", "newNicMac", reqData.NewNicMac)
-			rs.Failed()
+			request.Failed()
 
 			return
 		}
@@ -94,12 +95,12 @@ func nicClone(rs *requests.Request) {
 	newVMNicID, err := vmnic.Create(&newNic)
 	if err != nil {
 		slog.Error("error saving cloned nic", "err", err)
-		rs.Failed()
+		request.Failed()
 
 		return
 	}
 	slog.Debug("cloned nic", "newVMNicID", newVMNicID)
-	rs.Succeeded()
+	request.Succeeded()
 }
 
 // nicHasPendingReq check if the nic has pending requests other than this one

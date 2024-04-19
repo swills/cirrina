@@ -198,7 +198,7 @@ var VMListCmd = &cobra.Command{
 	Long:         `List all VMs on specified server and their state`,
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
-		ids, err := rpc.GetVMIds()
+		VMIDs, err := rpc.GetVMIds()
 		if err != nil {
 			return fmt.Errorf("error getting VM IDs: %w", err)
 		}
@@ -213,14 +213,14 @@ var VMListCmd = &cobra.Command{
 		}
 
 		vmInfos := make(map[string]vmListInfo)
-		for _, id := range ids {
-			vmConfig, err := rpc.GetVMConfig(id)
+		for _, VMID := range VMIDs {
+			vmConfig, err := rpc.GetVMConfig(VMID)
 			if err != nil {
 				return fmt.Errorf("error getting VM config: %w", err)
 			}
 
 			var status string
-			status, _, _, err = rpc.GetVMState(id)
+			status, _, _, err = rpc.GetVMState(VMID)
 			if err != nil {
 				return fmt.Errorf("error getting VM state: %w", err)
 			}
@@ -245,7 +245,7 @@ var VMListCmd = &cobra.Command{
 			}
 
 			vmInfos[vmConfig.Name] = vmListInfo{
-				id:     id,
+				id:     VMID,
 				mem:    mems,
 				cpu:    cpus,
 				status: sstatus,
@@ -255,25 +255,25 @@ var VMListCmd = &cobra.Command{
 		}
 
 		sort.Strings(names)
-		t := table.NewWriter()
-		t.SetOutputMirror(os.Stdout)
+		vmTableWriter := table.NewWriter()
+		vmTableWriter.SetOutputMirror(os.Stdout)
 		if ShowUUID {
-			t.AppendHeader(table.Row{"NAME", "UUID", "CPUS", "MEMORY", "STATE", "DESCRIPTION"})
-			t.SetColumnConfigs([]table.ColumnConfig{
+			vmTableWriter.AppendHeader(table.Row{"NAME", "UUID", "CPUS", "MEMORY", "STATE", "DESCRIPTION"})
+			vmTableWriter.SetColumnConfigs([]table.ColumnConfig{
 				{Number: 3, Align: text.AlignRight, AlignHeader: text.AlignRight},
 				{Number: 4, Align: text.AlignRight, AlignHeader: text.AlignRight},
 			})
 		} else {
-			t.AppendHeader(table.Row{"NAME", "CPUS", "MEMORY", "STATE", "DESCRIPTION"})
-			t.SetColumnConfigs([]table.ColumnConfig{
+			vmTableWriter.AppendHeader(table.Row{"NAME", "CPUS", "MEMORY", "STATE", "DESCRIPTION"})
+			vmTableWriter.SetColumnConfigs([]table.ColumnConfig{
 				{Number: 2, Align: text.AlignRight, AlignHeader: text.AlignRight},
 				{Number: 3, Align: text.AlignRight, AlignHeader: text.AlignRight},
 			})
 		}
-		t.SetStyle(myTableStyle)
+		vmTableWriter.SetStyle(myTableStyle)
 		for _, name := range names {
 			if ShowUUID {
-				t.AppendRow(table.Row{
+				vmTableWriter.AppendRow(table.Row{
 					name,
 					vmInfos[name].id,
 					vmInfos[name].cpu,
@@ -282,7 +282,7 @@ var VMListCmd = &cobra.Command{
 					vmInfos[name].descr,
 				})
 			} else {
-				t.AppendRow(table.Row{
+				vmTableWriter.AppendRow(table.Row{
 					name,
 					vmInfos[name].cpu,
 					vmInfos[name].mem,
@@ -291,7 +291,7 @@ var VMListCmd = &cobra.Command{
 				})
 			}
 		}
-		t.Render()
+		vmTableWriter.Render()
 
 		return nil
 	},

@@ -10,7 +10,6 @@ var (
 	errDiskInternalDB         = errors.New("internal disk database error")
 	errDiskInvalidType        = errors.New("invalid disk type")
 	errDiskInvalidDevType     = errors.New("invalid disk dev type")
-	errDiskInvalidSize        = errors.New("invalid disk size")
 	errDiskZPoolNotConfigured = errors.New("zfs pool not configured")
 	errDiskShrinkage          = errors.New("new disk smaller than current disk")
 	errDiskDupe               = errors.New("duplicate disk found")

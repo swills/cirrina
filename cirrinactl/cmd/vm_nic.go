@@ -45,8 +45,8 @@ var VMNicsListCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed getting VM NICs: %w", err)
 		}
-		for _, id := range nicIDs {
-			nicInfo, err := rpc.GetVMNicInfo(id)
+		for _, nicID := range nicIDs {
+			nicInfo, err := rpc.GetVMNicInfo(nicID)
 			if err != nil {
 				return fmt.Errorf("failed getting NIC info: %w", err)
 			}
@@ -70,7 +70,7 @@ var VMNicsListCmd = &cobra.Command{
 				rateLimited = "no"
 			}
 			nicInfos[nicInfo.Name] = nicListInfo{
-				nicID:       id,
+				nicID:       nicID,
 				info:        nicInfo,
 				rateLimited: rateLimited,
 				rateIn:      rateIn,
@@ -80,27 +80,27 @@ var VMNicsListCmd = &cobra.Command{
 		}
 
 		sort.Strings(names)
-		t := table.NewWriter()
-		t.SetOutputMirror(os.Stdout)
+		nicTableWriter := table.NewWriter()
+		nicTableWriter.SetOutputMirror(os.Stdout)
 		if ShowUUID {
-			t.AppendHeader(
+			nicTableWriter.AppendHeader(
 				table.Row{
 					"NAME", "UUID", "MAC", "TYPE", "DEV-TYPE", "SWITCH",
 					"RATE-LIMITED", "RATE-IN", "RATE-OUT", "DESCRIPTION",
 				},
 			)
 		} else {
-			t.AppendHeader(
+			nicTableWriter.AppendHeader(
 				table.Row{
 					"NAME", "MAC", "TYPE", "DEV-TYPE", "SWITCH",
 					"RATE-LIMITED", "RATE-IN", "RATE-OUT", "DESCRIPTION",
 				},
 			)
 		}
-		t.SetStyle(myTableStyle)
+		nicTableWriter.SetStyle(myTableStyle)
 		for _, name := range names {
 			if ShowUUID {
-				t.AppendRow(table.Row{
+				nicTableWriter.AppendRow(table.Row{
 					name,
 					nicInfos[name].nicID,
 					nicInfos[name].info.Mac,
@@ -113,7 +113,7 @@ var VMNicsListCmd = &cobra.Command{
 					nicInfos[name].info.Descr,
 				})
 			} else {
-				t.AppendRow(table.Row{
+				nicTableWriter.AppendRow(table.Row{
 					name,
 					nicInfos[name].info.Mac,
 					nicInfos[name].info.NetType,
@@ -126,7 +126,7 @@ var VMNicsListCmd = &cobra.Command{
 				})
 			}
 		}
-		t.Render()
+		nicTableWriter.Render()
 
 		return nil
 	},

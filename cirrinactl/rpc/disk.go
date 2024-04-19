@@ -50,46 +50,46 @@ func AddDisk(diskName string, diskDescription string, diskSize string,
 func GetDiskInfo(diskID string) (DiskInfo, error) {
 	var err error
 	var info DiskInfo
-	var k *cirrina.DiskInfo
+	var diskInfo *cirrina.DiskInfo
 
-	k, err = serverClient.GetDiskInfo(defaultServerContext, &cirrina.DiskId{Value: diskID})
+	diskInfo, err = serverClient.GetDiskInfo(defaultServerContext, &cirrina.DiskId{Value: diskID})
 	if err != nil {
 		return DiskInfo{}, fmt.Errorf("unable to get disk info: %w", err)
 	}
-	if k == nil {
+	if diskInfo == nil {
 		return DiskInfo{}, errInvalidServerResponse
 	}
 
-	if k.Name != nil {
-		info.Name = *k.Name
+	if diskInfo.Name != nil {
+		info.Name = *diskInfo.Name
 	}
 
-	if k.Description != nil {
-		info.Descr = *k.Description
+	if diskInfo.Description != nil {
+		info.Descr = *diskInfo.Description
 	}
 
-	if k.SizeNum != nil {
-		info.Size = *k.SizeNum
+	if diskInfo.SizeNum != nil {
+		info.Size = *diskInfo.SizeNum
 	}
 
-	if k.UsageNum != nil {
-		info.Usage = *k.UsageNum
+	if diskInfo.UsageNum != nil {
+		info.Usage = *diskInfo.UsageNum
 	}
 
-	if k.DiskType != nil {
-		info.DiskType = mapDiskTypeTypeToString(*k.DiskType)
+	if diskInfo.DiskType != nil {
+		info.DiskType = mapDiskTypeTypeToString(*diskInfo.DiskType)
 	}
 
-	if k.DiskDevType != nil {
-		info.DiskDevType = mapDiskDevTypeTypeToString(*k.DiskDevType)
+	if diskInfo.DiskDevType != nil {
+		info.DiskDevType = mapDiskDevTypeTypeToString(*diskInfo.DiskDevType)
 	}
 
-	if k.Cache != nil {
-		info.Cache = *k.Cache
+	if diskInfo.Cache != nil {
+		info.Cache = *diskInfo.Cache
 	}
 
-	if k.Direct != nil {
-		info.Direct = *k.Direct
+	if diskInfo.Direct != nil {
+		info.Direct = *diskInfo.Direct
 	}
 
 	return info, nil
@@ -98,7 +98,7 @@ func GetDiskInfo(diskID string) (DiskInfo, error) {
 func GetDisks() ([]string, error) {
 	var err error
 
-	var rv []string
+	var disks []string
 
 	var res cirrina.VMInfo_GetDisksClient
 	res, err = serverClient.GetDisks(defaultServerContext, &cirrina.DisksQuery{})
@@ -111,10 +111,10 @@ func GetDisks() ([]string, error) {
 		if errors.Is(err, io.EOF) {
 			break
 		}
-		rv = append(rv, VMDisk.Value)
+		disks = append(disks, VMDisk.Value)
 	}
 
-	return rv, nil
+	return disks, nil
 }
 
 func RmDisk(idPtr string) error {
@@ -161,7 +161,7 @@ func DiskNameToID(name string) (string, error) {
 		}
 	}
 	if !found {
-		return "", errNotFound
+		return "", ErrNotFound
 	}
 
 	return diskID, nil
@@ -178,14 +178,14 @@ func DiskNameToID(name string) (string, error) {
 // 	return *res.Name, nil
 // }
 
-func DiskGetVMID(id string) (string, error) {
+func DiskGetVMID(diskID string) (string, error) {
 	var err error
-	if id == "" {
+	if diskID == "" {
 		return "", errDiskEmptyName
 	}
 
 	var vmID *cirrina.VMID
-	vmID, err = serverClient.GetDiskVM(defaultServerContext, &cirrina.DiskId{Value: id})
+	vmID, err = serverClient.GetDiskVM(defaultServerContext, &cirrina.DiskId{Value: diskID})
 	if err != nil {
 		return "", fmt.Errorf("unable to get disk VM: %w", err)
 	}
@@ -193,15 +193,15 @@ func DiskGetVMID(id string) (string, error) {
 	return vmID.Value, nil
 }
 
-func UpdateDisk(id string, newDesc *string, newType *string, direct *bool, cache *bool) error {
+func UpdateDisk(diskID string, newDesc *string, newType *string, direct *bool, cache *bool) error {
 	var err error
 
-	if id == "" {
+	if diskID == "" {
 		return errDiskEmptyID
 	}
 
 	diu := cirrina.DiskInfoUpdate{
-		Id: id,
+		Id: diskID,
 	}
 
 	if newDesc != nil {
@@ -298,9 +298,9 @@ func DiskUpload(diskID string, diskChecksum string,
 		buffer := make([]byte, 1024*1024)
 
 		var complete bool
-		var n int
+		var nBytesRead int
 		for !complete {
-			n, err = reader.Read(buffer)
+			nBytesRead, err = reader.Read(buffer)
 			if errors.Is(err, io.EOF) {
 				complete = true
 			}
@@ -313,7 +313,7 @@ func DiskUpload(diskID string, diskChecksum string,
 			}
 			dataReq := &cirrina.DiskImageRequest{
 				Data: &cirrina.DiskImageRequest_Image{
-					Image: buffer[:n],
+					Image: buffer[:nBytesRead],
 				},
 			}
 			err = stream.Send(dataReq)
@@ -327,7 +327,7 @@ func DiskUpload(diskID string, diskChecksum string,
 			uploadStatChan <- UploadStat{
 				UploadedChunk: true,
 				Complete:      false,
-				UploadedBytes: n,
+				UploadedBytes: nBytesRead,
 				Err:           nil,
 			}
 		}

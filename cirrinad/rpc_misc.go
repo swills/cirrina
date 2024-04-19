@@ -15,54 +15,54 @@ import (
 	"cirrina/cirrinad/vm"
 )
 
-func (s *server) RequestStatus(_ context.Context, r *cirrina.RequestID) (*cirrina.ReqStatus, error) {
-	reqUUID, err := uuid.Parse(r.Value)
+func (s *server) RequestStatus(_ context.Context, requestID *cirrina.RequestID) (*cirrina.ReqStatus, error) {
+	reqUUID, err := uuid.Parse(requestID.Value)
 	if err != nil {
 		return &cirrina.ReqStatus{}, errInvalidID
 	}
-	rs, err := requests.GetByID(reqUUID.String())
+	request, err := requests.GetByID(reqUUID.String())
 	if err != nil {
-		slog.Error("ReqStatus error getting req", "vm", r.Value, "err", err)
+		slog.Error("ReqStatus error getting req", "vm", requestID.Value, "err", err)
 
 		return &cirrina.ReqStatus{}, errNotFound
 	}
-	if rs.ID == "" {
+	if request.ID == "" {
 		return &cirrina.ReqStatus{}, errNotFound
 	}
 	res := &cirrina.ReqStatus{
-		Complete: rs.Complete,
-		Success:  rs.Successful,
+		Complete: request.Complete,
+		Success:  request.Successful,
 	}
 
 	return res, nil
 }
 
-func (s *server) ClearUEFIState(_ context.Context, v *cirrina.VMID) (*cirrina.ReqBool, error) {
-	re := cirrina.ReqBool{}
-	re.Success = false
+func (s *server) ClearUEFIState(_ context.Context, vmID *cirrina.VMID) (*cirrina.ReqBool, error) {
+	res := cirrina.ReqBool{}
+	res.Success = false
 
-	vmUUID, err := uuid.Parse(v.Value)
+	vmUUID, err := uuid.Parse(vmID.Value)
 	if err != nil {
-		return &re, errInvalidID
+		return &res, errInvalidID
 	}
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
-		slog.Error("ClearUEFIState error getting vm", "vm", v.Value, "err", err)
+		slog.Error("ClearUEFIState error getting vm", "vm", vmID.Value, "err", err)
 
-		return &re, errNotFound
+		return &res, errNotFound
 	}
 	if vmInst.Name == "" {
 		slog.Debug("vm not found")
 
-		return &re, errNotFound
+		return &res, errNotFound
 	}
 	err = vmInst.DeleteUEFIState()
 	if err != nil {
-		return &re, fmt.Errorf("error deleting UEFI state: %w", err)
+		return &res, fmt.Errorf("error deleting UEFI state: %w", err)
 	}
-	re.Success = true
+	res.Success = true
 
-	return &re, nil
+	return &res, nil
 }
 
 func (s *server) GetNetInterfaces(_ *cirrina.NetInterfacesReq, stream cirrina.VMInfo_GetNetInterfacesServer) error {

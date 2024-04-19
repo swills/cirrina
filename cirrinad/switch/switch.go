@@ -24,26 +24,26 @@ type Switch struct {
 	Uplink      string
 }
 
-func GetByID(id string) (*Switch, error) {
-	var s *Switch
+func GetByID(switchID string) (*Switch, error) {
+	var aSwitch *Switch
 	db := getSwitchDB()
-	db.Limit(1).Find(&s, "id = ?", id)
-	if s.Name == "" {
-		return s, errSwitchNotFound
+	db.Limit(1).Find(&aSwitch, "id = ?", switchID)
+	if aSwitch.Name == "" {
+		return aSwitch, errSwitchNotFound
 	}
 
-	return s, nil
+	return aSwitch, nil
 }
 
 func GetByName(name string) (*Switch, error) {
-	var s *Switch
+	var aSwitch *Switch
 	db := getSwitchDB()
-	db.Limit(1).Find(&s, "name = ?", name)
-	if s.ID == "" {
-		return s, errSwitchNotFound
+	db.Limit(1).Find(&aSwitch, "name = ?", name)
+	if aSwitch.ID == "" {
+		return aSwitch, errSwitchNotFound
 	}
 
-	return s, nil
+	return aSwitch, nil
 }
 
 func GetAll() []*Switch {
@@ -112,22 +112,22 @@ func Create(name string, description string, switchType string, uplink string) (
 	return switchInst, res.Error
 }
 
-func Delete(id string) error {
-	if id == "" {
+func Delete(switchID string) error {
+	if switchID == "" {
 		return errSwitchInvalidID
 	}
-	db := getSwitchDB()
-	dSwitch, err := GetByID(id)
+	switchDB := getSwitchDB()
+	dSwitch, err := GetByID(switchID)
 	if err != nil {
 		return errSwitchNotFound
 	}
 
-	err2 := CheckSwitchInUse(id)
+	err2 := CheckSwitchInUse(switchID)
 	if err2 != nil {
 		return err2
 	}
 
-	res := db.Limit(1).Unscoped().Delete(&dSwitch)
+	res := switchDB.Limit(1).Unscoped().Delete(&dSwitch)
 	if res.RowsAffected != 1 {
 		slog.Error("error saving switch", "res", res)
 

@@ -95,29 +95,29 @@ var DiskListCmd = &cobra.Command{
 		}
 
 		sort.Strings(names)
-		t := table.NewWriter()
-		t.SetOutputMirror(os.Stdout)
-		t.SetStyle(myTableStyle)
+		diskTableWriter := table.NewWriter()
+		diskTableWriter.SetOutputMirror(os.Stdout)
+		diskTableWriter.SetStyle(myTableStyle)
 		if ShowUUID {
-			t.AppendHeader(
+			diskTableWriter.AppendHeader(
 				table.Row{"NAME", "UUID", "TYPE", "SIZE", "USAGE", "VM", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
 			)
-			t.SetColumnConfigs([]table.ColumnConfig{
+			diskTableWriter.SetColumnConfigs([]table.ColumnConfig{
 				{Number: 4, Align: text.AlignRight, AlignHeader: text.AlignRight},
 				{Number: 5, Align: text.AlignRight, AlignHeader: text.AlignRight},
 			})
 		} else {
-			t.AppendHeader(
+			diskTableWriter.AppendHeader(
 				table.Row{"NAME", "TYPE", "SIZE", "USAGE", "VM", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
 			)
-			t.SetColumnConfigs([]table.ColumnConfig{
+			diskTableWriter.SetColumnConfigs([]table.ColumnConfig{
 				{Number: 3, Align: text.AlignRight, AlignHeader: text.AlignRight},
 				{Number: 4, Align: text.AlignRight, AlignHeader: text.AlignRight},
 			})
 		}
 		for _, diskName := range names {
 			if ShowUUID {
-				t.AppendRow(table.Row{
+				diskTableWriter.AppendRow(table.Row{
 					diskName,
 					diskInfos[diskName].id,
 					diskInfos[diskName].info.DiskType,
@@ -130,7 +130,7 @@ var DiskListCmd = &cobra.Command{
 					diskInfos[diskName].info.Descr,
 				})
 			} else {
-				t.AppendRow(table.Row{
+				diskTableWriter.AppendRow(table.Row{
 					diskName,
 					diskInfos[diskName].info.DiskType,
 					diskInfos[diskName].size,
@@ -143,7 +143,7 @@ var DiskListCmd = &cobra.Command{
 				})
 			}
 		}
-		t.Render()
+		diskTableWriter.Render()
 
 		return nil
 	},
@@ -249,7 +249,7 @@ var DiskUpdateCmd = &cobra.Command{
 	},
 }
 
-func trackDiskUpload(pw progress.Writer, diskSize int64, f2 *os.File) {
+func trackDiskUpload(diskProgressWriter progress.Writer, diskSize int64, diskFile *os.File) {
 	var err error
 
 	checksumTracker := progress.Tracker{
@@ -257,11 +257,11 @@ func trackDiskUpload(pw progress.Writer, diskSize int64, f2 *os.File) {
 		Total:   diskSize,
 		Units:   progress.UnitsBytes,
 	}
-	pw.AppendTracker(&checksumTracker)
+	diskProgressWriter.AppendTracker(&checksumTracker)
 	checksumTracker.Start()
 
-	var f *os.File
-	f, err = os.Open(DiskFilePath)
+	var diskHasherFile *os.File
+	diskHasherFile, err = os.Open(DiskFilePath)
 	if err != nil {
 		fmt.Printf("error opening file: %s\n", err)
 	}
@@ -272,7 +272,7 @@ func trackDiskUpload(pw progress.Writer, diskSize int64, f2 *os.File) {
 	var n int64
 	var checksumTotal int64
 	for !complete {
-		n, err = io.CopyN(hasher, f, 1024*1024)
+		n, err = io.CopyN(hasher, diskHasherFile, 1024*1024)
 		checksumTotal += n
 		checksumTracker.SetValue(checksumTotal)
 		if err != nil {
@@ -285,7 +285,7 @@ func trackDiskUpload(pw progress.Writer, diskSize int64, f2 *os.File) {
 	}
 
 	diskChecksum := hex.EncodeToString(hasher.Sum(nil))
-	err = f.Close()
+	err = diskHasherFile.Close()
 	if err != nil {
 		fmt.Printf("error closing file: %s\n", err)
 	}
@@ -296,14 +296,14 @@ func trackDiskUpload(pw progress.Writer, diskSize int64, f2 *os.File) {
 		Total:   diskSize,
 		Units:   progress.UnitsBytes,
 	}
-	pw.AppendTracker(&uploadTracker)
+	diskProgressWriter.AppendTracker(&uploadTracker)
 	uploadTracker.Start()
 
 	if DiskID == "" {
 		panic("empty disk id")
 	}
 	var upload <-chan rpc.UploadStat
-	upload, err = rpc.DiskUpload(DiskID, diskChecksum, uint64(diskSize), f2)
+	upload, err = rpc.DiskUpload(DiskID, diskChecksum, uint64(diskSize), diskFile)
 	if err != nil {
 		uploadTracker.MarkAsErrored()
 
@@ -340,36 +340,36 @@ func uploadDiskWithStatus() error {
 	}
 	diskSize := fi.Size()
 
-	var f2 *os.File
-	f2, err = os.Open(DiskFilePath)
+	var diskFile *os.File
+	diskFile, err = os.Open(DiskFilePath)
 	if err != nil {
 		return fmt.Errorf("failed opening disk: %w", err)
 	}
 
-	pw := progress.NewWriter()
-	pw.SetTrackerPosition(progress.PositionRight)
-	pw.SetStyle(progress.StyleBlocks)
-	pw.Style().Visibility.ETA = true
-	pw.Style().Options.ETAPrecision = time.Second
-	pw.Style().Options.SpeedPrecision = time.Second
-	pw.Style().Options.TimeInProgressPrecision = time.Second
-	pw.Style().Options.TimeDonePrecision = time.Second
-	pw.Style().Options.TimeOverallPrecision = time.Second
-	pw.SetAutoStop(false)
-	pw.SetMessageLength(20)
+	diskUploadProgressWriter := progress.NewWriter()
+	diskUploadProgressWriter.SetTrackerPosition(progress.PositionRight)
+	diskUploadProgressWriter.SetStyle(progress.StyleBlocks)
+	diskUploadProgressWriter.Style().Visibility.ETA = true
+	diskUploadProgressWriter.Style().Options.ETAPrecision = time.Second
+	diskUploadProgressWriter.Style().Options.SpeedPrecision = time.Second
+	diskUploadProgressWriter.Style().Options.TimeInProgressPrecision = time.Second
+	diskUploadProgressWriter.Style().Options.TimeDonePrecision = time.Second
+	diskUploadProgressWriter.Style().Options.TimeOverallPrecision = time.Second
+	diskUploadProgressWriter.SetAutoStop(false)
+	diskUploadProgressWriter.SetMessageLength(20)
 
-	go pw.Render()
-	go trackDiskUpload(pw, diskSize, f2)
+	go diskUploadProgressWriter.Render()
+	go trackDiskUpload(diskUploadProgressWriter, diskSize, diskFile)
 
 	// wait for upload to start
-	for !pw.IsRenderInProgress() {
+	for !diskUploadProgressWriter.IsRenderInProgress() {
 		time.Sleep(time.Millisecond * 100)
 	}
 
 	// wait for upload to finish
-	for pw.IsRenderInProgress() {
-		if pw.LengthActive() == 0 {
-			pw.Stop()
+	for diskUploadProgressWriter.IsRenderInProgress() {
+		if diskUploadProgressWriter.LengthActive() == 0 {
+			diskUploadProgressWriter.Stop()
 		}
 		time.Sleep(time.Millisecond * 100)
 	}
@@ -387,8 +387,8 @@ func uploadDiskWithoutStatus() error {
 	}
 	diskSize := fi.Size()
 
-	var f *os.File
-	f, err = os.Open(DiskFilePath)
+	var diskHasherFile *os.File
+	diskHasherFile, err = os.Open(DiskFilePath)
 	if err != nil {
 		return fmt.Errorf("failed opening disk: %w", err)
 	}
@@ -396,17 +396,17 @@ func uploadDiskWithoutStatus() error {
 	hasher := sha512.New()
 
 	fmt.Printf("Calculating disk checksum\n")
-	if _, err = io.Copy(hasher, f); err != nil {
+	if _, err = io.Copy(hasher, diskHasherFile); err != nil {
 		return fmt.Errorf("failed copying data from disk: %w", err)
 	}
 
 	diskChecksum := hex.EncodeToString(hasher.Sum(nil))
-	err = f.Close()
+	err = diskHasherFile.Close()
 	if err != nil {
 		return fmt.Errorf("failed closing disk: %w", err)
 	}
-	var f2 *os.File
-	f2, err = os.Open(DiskFilePath)
+	var diskFile *os.File
+	diskFile, err = os.Open(DiskFilePath)
 	if err != nil {
 		return fmt.Errorf("failed opening disk: %w", err)
 	}
@@ -420,7 +420,7 @@ func uploadDiskWithoutStatus() error {
 
 	fmt.Printf("Streaming: ")
 	var upload <-chan rpc.UploadStat
-	upload, err = rpc.DiskUpload(DiskID, diskChecksum, uint64(diskSize), f2)
+	upload, err = rpc.DiskUpload(DiskID, diskChecksum, uint64(diskSize), diskFile)
 	if err != nil {
 		return fmt.Errorf("failed uploading disk: %w", err)
 	}
@@ -461,7 +461,7 @@ var DiskUploadCmd = &cobra.Command{
 		if DiskID == "" {
 			DiskID, err = rpc.DiskNameToID(DiskName)
 			if err != nil {
-				if errors.Is(err, errDiskNotFound) {
+				if errors.Is(err, rpc.ErrNotFound) {
 					DiskID, err = rpc.AddDisk(DiskName, DiskDescription, DiskSize, DiskType, DiskDevType, DiskCache, DiskDirect)
 					if err != nil {
 						return fmt.Errorf("failed creating disk: %w", err)

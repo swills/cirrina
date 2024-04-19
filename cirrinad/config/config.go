@@ -18,7 +18,7 @@ type Info struct {
 			}
 		}
 		Default struct {
-			Size string
+			Size string `default:"1g"`
 		}
 	}
 	Log struct {

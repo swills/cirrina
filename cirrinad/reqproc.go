@@ -8,18 +8,18 @@ import (
 
 func processRequests() {
 	for {
-		rs := requests.GetUnStarted()
-		if rs.ID != "" {
-			rs.Start()
-			switch rs.Type {
+		request := requests.GetUnStarted()
+		if request.ID != "" {
+			request.Start()
+			switch request.Type {
 			case requests.VMSTART:
-				go startVM(&rs)
+				go startVM(&request)
 			case requests.VMSTOP:
-				go stopVM(&rs)
+				go stopVM(&request)
 			case requests.VMDELETE:
-				go deleteVM(&rs)
+				go deleteVM(&request)
 			case requests.NICCLONE:
-				go nicClone(&rs)
+				go nicClone(&request)
 			}
 		}
 		time.Sleep(50 * time.Millisecond)

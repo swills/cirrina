@@ -15,20 +15,20 @@ func GetVMNics(id string) ([]string, error) {
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get VM nics: %w", err)
 	}
-	var rv []string
+	var vmNics []string
 	for {
-		var r2 *cirrina.VmNicId
-		r2, err = res.Recv()
+		var res2 *cirrina.VmNicId
+		res2, err = res.Recv()
 		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
 			return []string{}, fmt.Errorf("unable to get VM nics: %w", err)
 		}
-		rv = append(rv, r2.Value)
+		vmNics = append(vmNics, res2.Value)
 	}
 
-	return rv, nil
+	return vmNics, nil
 }
 
 func VMSetNics(id string, nicIDs []string) (bool, error) {

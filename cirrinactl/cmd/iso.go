@@ -31,7 +31,7 @@ var IsoListCmd = &cobra.Command{
 	Short:        "List ISOs",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
-		ids, err := rpc.GetIsoIDs()
+		isoIDs, err := rpc.GetIsoIDs()
 		if err != nil {
 			return fmt.Errorf("error getting ISO IDs: %w", err)
 		}
@@ -45,8 +45,8 @@ var IsoListCmd = &cobra.Command{
 
 		isoInfos := make(map[string]isoListInfo)
 
-		for _, id := range ids {
-			isoInfo, err := rpc.GetIsoInfo(id)
+		for _, isoID := range isoIDs {
+			isoInfo, err := rpc.GetIsoInfo(isoID)
 			if err != nil {
 				return fmt.Errorf("error getting iso info: %w", err)
 			}
@@ -59,7 +59,7 @@ var IsoListCmd = &cobra.Command{
 			}
 
 			isoInfos[isoInfo.Name] = isoListInfo{
-				id:   id,
+				id:   isoID,
 				size: isoSize,
 			}
 			names = append(names, isoInfo.Name)
@@ -67,31 +67,31 @@ var IsoListCmd = &cobra.Command{
 
 		sort.Strings(names)
 
-		t := table.NewWriter()
-		t.SetOutputMirror(os.Stdout)
+		isoTableWriter := table.NewWriter()
+		isoTableWriter.SetOutputMirror(os.Stdout)
 		if ShowUUID {
-			t.AppendHeader(table.Row{"NAME", "UUID", "SIZE", "DESCRIPTION"})
+			isoTableWriter.AppendHeader(table.Row{"NAME", "UUID", "SIZE", "DESCRIPTION"})
 		} else {
-			t.AppendHeader(table.Row{"NAME", "SIZE", "DESCRIPTION"})
+			isoTableWriter.AppendHeader(table.Row{"NAME", "SIZE", "DESCRIPTION"})
 		}
-		t.SetStyle(myTableStyle)
+		isoTableWriter.SetStyle(myTableStyle)
 		for _, name := range names {
 			if ShowUUID {
-				t.AppendRow(table.Row{
+				isoTableWriter.AppendRow(table.Row{
 					name,
 					isoInfos[name].id,
 					isoInfos[name].size,
 					isoInfos[name].info.Descr,
 				})
 			} else {
-				t.AppendRow(table.Row{
+				isoTableWriter.AppendRow(table.Row{
 					name,
 					isoInfos[name].size,
 					isoInfos[name].info.Descr,
 				})
 			}
 		}
-		t.Render()
+		isoTableWriter.Render()
 
 		return nil
 	},
@@ -116,7 +116,7 @@ var IsoCreateCmd = &cobra.Command{
 	},
 }
 
-func trackIsoUpload(pw progress.Writer, isoSize int64, f2 *os.File) {
+func trackIsoUpload(isoProgressWriter progress.Writer, isoSize int64, isoFile *os.File) {
 	var err error
 
 	checksumTracker := progress.Tracker{
@@ -124,11 +124,11 @@ func trackIsoUpload(pw progress.Writer, isoSize int64, f2 *os.File) {
 		Total:   isoSize,
 		Units:   progress.UnitsBytes,
 	}
-	pw.AppendTracker(&checksumTracker)
+	isoProgressWriter.AppendTracker(&checksumTracker)
 	checksumTracker.Start()
 
-	var f *os.File
-	f, err = os.Open(IsoFilePath)
+	var isoHashFile *os.File
+	isoHashFile, err = os.Open(IsoFilePath)
 	if err != nil {
 		fmt.Printf("error opening file: %s\n", err)
 	}
@@ -139,7 +139,7 @@ func trackIsoUpload(pw progress.Writer, isoSize int64, f2 *os.File) {
 	var n int64
 	var checksumTotal int64
 	for !complete {
-		n, err = io.CopyN(hasher, f, 1024*1024)
+		n, err = io.CopyN(hasher, isoHashFile, 1024*1024)
 		checksumTotal += n
 		checksumTracker.SetValue(checksumTotal)
 		if err != nil {
@@ -152,7 +152,7 @@ func trackIsoUpload(pw progress.Writer, isoSize int64, f2 *os.File) {
 	}
 
 	isoChecksum := hex.EncodeToString(hasher.Sum(nil))
-	err = f.Close()
+	err = isoHashFile.Close()
 	if err != nil {
 		fmt.Printf("error closing file: %s\n", err)
 	}
@@ -163,14 +163,14 @@ func trackIsoUpload(pw progress.Writer, isoSize int64, f2 *os.File) {
 		Total:   isoSize,
 		Units:   progress.UnitsBytes,
 	}
-	pw.AppendTracker(&uploadTracker)
+	isoProgressWriter.AppendTracker(&uploadTracker)
 	uploadTracker.Start()
 
 	if IsoID == "" {
 		panic("empty iso id")
 	}
 	var upload <-chan rpc.UploadStat
-	upload, err = rpc.IsoUpload(IsoID, isoChecksum, uint64(isoSize), f2)
+	upload, err = rpc.IsoUpload(IsoID, isoChecksum, uint64(isoSize), isoFile)
 	if err != nil {
 		uploadTracker.MarkAsErrored()
 
@@ -200,43 +200,43 @@ func trackIsoUpload(pw progress.Writer, isoSize int64, f2 *os.File) {
 
 func uploadIsoWithStatus() error {
 	var err error
-	var fi os.FileInfo
-	fi, err = os.Stat(IsoFilePath)
+	var isoFileInfo os.FileInfo
+	isoFileInfo, err = os.Stat(IsoFilePath)
 	if err != nil {
 		return fmt.Errorf("error stating iso: %w", err)
 	}
-	isoSize := fi.Size()
+	isoSize := isoFileInfo.Size()
 
-	var f2 *os.File
-	f2, err = os.Open(IsoFilePath)
+	var isoFile *os.File
+	isoFile, err = os.Open(IsoFilePath)
 	if err != nil {
 		return fmt.Errorf("error opening iso: %w", err)
 	}
 
-	pw := progress.NewWriter()
-	pw.SetTrackerPosition(progress.PositionRight)
-	pw.SetStyle(progress.StyleBlocks)
-	pw.Style().Visibility.ETA = true
-	pw.Style().Options.ETAPrecision = time.Second
-	pw.Style().Options.SpeedPrecision = time.Second
-	pw.Style().Options.TimeInProgressPrecision = time.Second
-	pw.Style().Options.TimeDonePrecision = time.Second
-	pw.Style().Options.TimeOverallPrecision = time.Second
-	pw.SetAutoStop(false)
-	pw.SetMessageLength(20)
+	isoProgressWriter := progress.NewWriter()
+	isoProgressWriter.SetTrackerPosition(progress.PositionRight)
+	isoProgressWriter.SetStyle(progress.StyleBlocks)
+	isoProgressWriter.Style().Visibility.ETA = true
+	isoProgressWriter.Style().Options.ETAPrecision = time.Second
+	isoProgressWriter.Style().Options.SpeedPrecision = time.Second
+	isoProgressWriter.Style().Options.TimeInProgressPrecision = time.Second
+	isoProgressWriter.Style().Options.TimeDonePrecision = time.Second
+	isoProgressWriter.Style().Options.TimeOverallPrecision = time.Second
+	isoProgressWriter.SetAutoStop(false)
+	isoProgressWriter.SetMessageLength(20)
 
-	go pw.Render()
-	go trackIsoUpload(pw, isoSize, f2)
+	go isoProgressWriter.Render()
+	go trackIsoUpload(isoProgressWriter, isoSize, isoFile)
 
 	// wait for upload to start
-	for !pw.IsRenderInProgress() {
+	for !isoProgressWriter.IsRenderInProgress() {
 		time.Sleep(time.Millisecond * 100)
 	}
 
 	// wait for upload to finish
-	for pw.IsRenderInProgress() {
-		if pw.LengthActive() == 0 {
-			pw.Stop()
+	for isoProgressWriter.IsRenderInProgress() {
+		if isoProgressWriter.LengthActive() == 0 {
+			isoProgressWriter.Stop()
 		}
 		time.Sleep(time.Millisecond * 100)
 	}
@@ -246,29 +246,29 @@ func uploadIsoWithStatus() error {
 
 func uploadIsoWithoutStatus() error {
 	var err error
-	var fi os.FileInfo
-	fi, err = os.Stat(IsoFilePath)
+	var isoFileInfo os.FileInfo
+	isoFileInfo, err = os.Stat(IsoFilePath)
 	if err != nil {
 		return fmt.Errorf("error stating iso: %w", err)
 	}
-	isoSize := fi.Size()
-	var f *os.File
-	f, err = os.Open(IsoFilePath)
+	isoSize := isoFileInfo.Size()
+	var isoHashFile *os.File
+	isoHashFile, err = os.Open(IsoFilePath)
 	if err != nil {
 		return fmt.Errorf("error opening iso: %w", err)
 	}
 	hasher := sha512.New()
 	fmt.Printf("Calculating iso checksum\n")
-	if _, err = io.Copy(hasher, f); err != nil {
+	if _, err = io.Copy(hasher, isoHashFile); err != nil {
 		return fmt.Errorf("error copying iso data: %w", err)
 	}
 	isoChecksum := hex.EncodeToString(hasher.Sum(nil))
-	err = f.Close()
+	err = isoHashFile.Close()
 	if err != nil {
 		return fmt.Errorf("error closing iso: %w", err)
 	}
-	var f2 *os.File
-	f2, err = os.Open(IsoFilePath)
+	var isoFile *os.File
+	isoFile, err = os.Open(IsoFilePath)
 	if err != nil {
 		return fmt.Errorf("error opening iso: %w", err)
 	}
@@ -280,7 +280,7 @@ func uploadIsoWithoutStatus() error {
 	)
 	fmt.Printf("Streaming: ")
 	var upload <-chan rpc.UploadStat
-	upload, err = rpc.IsoUpload(IsoID, isoChecksum, uint64(isoSize), f2)
+	upload, err = rpc.IsoUpload(IsoID, isoChecksum, uint64(isoSize), isoFile)
 	if err != nil {
 		return fmt.Errorf("error uploading iso: %w", err)
 	}
@@ -319,7 +319,7 @@ var IsoUploadCmd = &cobra.Command{
 		if IsoID == "" {
 			IsoID, err = rpc.IsoNameToID(IsoName)
 			if err != nil {
-				if errors.Is(err, errIsoNotFound) {
+				if errors.Is(err, rpc.ErrNotFound) {
 					IsoID, err = rpc.AddIso(IsoName, IsoDescription)
 					if err != nil {
 						return fmt.Errorf("error adding iso: %w", err)

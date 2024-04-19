@@ -105,7 +105,7 @@ func (vm *VM) SetStarting() {
 
 // SetStopped this can in some cases get called on already stopped/deleted VMs and that's OK
 func (vm *VM) SetStopped() {
-	db := GetVMDB()
+	vmDB := GetVMDB()
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = STOPPED
@@ -116,7 +116,7 @@ func (vm *VM) SetStopped() {
 	vm.Com2Dev = ""
 	vm.Com3Dev = ""
 	vm.Com4Dev = ""
-	res := db.Select([]string{
+	res := vmDB.Select([]string{
 		"status",
 		"net_dev",
 		"vnc_port",

@@ -11,10 +11,10 @@ import (
 	"cirrina/cirrina"
 )
 
-func UseCom(id string, comNum int) error {
+func UseCom(vmID string, comNum int) error {
 	var err error
 
-	if id == "" {
+	if vmID == "" {
 		return errVMEmptyID
 	}
 	bgCtx, cancel := context.WithCancel(context.Background())
@@ -36,10 +36,9 @@ func UseCom(id string, comNum int) error {
 		return fmt.Errorf("unable to use com: %w", err)
 	}
 
-	vmID := &cirrina.VMID{Value: id}
 	req := &cirrina.ComDataRequest{
 		Data: &cirrina.ComDataRequest_VmId{
-			VmId: vmID,
+			VmId: &cirrina.VMID{Value: vmID},
 		},
 	}
 	err = stream.Send(req)
@@ -79,7 +78,7 @@ func UseCom(id string, comNum int) error {
 		default:
 			var res string
 			ResetConnTimeout()
-			res, _, _, err = GetVMState(id)
+			res, _, _, err = GetVMState(vmID)
 			if err != nil {
 				cancel()
 
@@ -100,26 +99,26 @@ func UseCom(id string, comNum int) error {
 func comSend(bgCtx context.Context, cancel context.CancelFunc, stream cirrina.VMInfo_Com1InteractiveClient) {
 	var err error
 	var req *cirrina.ComDataRequest
-	b := make([]byte, 1)
+	bytesBuffer := make([]byte, 1)
 	for {
 		select {
 		case <-bgCtx.Done():
 			return
 		default:
-			_, err = os.Stdin.Read(b)
+			_, err = os.Stdin.Read(bytesBuffer)
 			if err != nil {
 				cancel()
 
 				return
 			}
-			if b[0] == 0x1c { // == FS ("File Separator") control character -- ctrl-\ -- see ascii.7
+			if bytesBuffer[0] == 0x1c { // == FS ("File Separator") control character -- ctrl-\ -- see ascii.7
 				cancel()
 
 				return
 			}
 			req = &cirrina.ComDataRequest{
 				Data: &cirrina.ComDataRequest_ComInBytes{
-					ComInBytes: b,
+					ComInBytes: bytesBuffer,
 				},
 			}
 			err = stream.Send(req)

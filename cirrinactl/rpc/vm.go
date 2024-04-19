@@ -43,14 +43,14 @@ func AddVM(name string, descrPtr *string, cpuPtr *uint32, memPtr *uint32) (strin
 	return res.Value, nil
 }
 
-func DeleteVM(id string) (string, error) {
+func DeleteVM(vmID string) (string, error) {
 	var err error
 
-	if id == "" {
+	if vmID == "" {
 		return "", errVMEmptyID
 	}
 	var reqID *cirrina.RequestID
-	reqID, err = serverClient.DeleteVM(defaultServerContext, &cirrina.VMID{Value: id})
+	reqID, err = serverClient.DeleteVM(defaultServerContext, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return "", fmt.Errorf("unable to delete VM: %w", err)
 	}
@@ -58,14 +58,14 @@ func DeleteVM(id string) (string, error) {
 	return reqID.Value, nil
 }
 
-func StopVM(id string) (string, error) {
+func StopVM(vmID string) (string, error) {
 	var err error
 
-	if id == "" {
+	if vmID == "" {
 		return "", errVMEmptyID
 	}
 	var reqID *cirrina.RequestID
-	reqID, err = serverClient.StopVM(defaultServerContext, &cirrina.VMID{Value: id})
+	reqID, err = serverClient.StopVM(defaultServerContext, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return "", fmt.Errorf("unable to stop VM: %w", err)
 	}
@@ -73,14 +73,14 @@ func StopVM(id string) (string, error) {
 	return reqID.Value, nil
 }
 
-func StartVM(id string) (string, error) {
+func StartVM(vmID string) (string, error) {
 	var err error
 
-	if id == "" {
+	if vmID == "" {
 		return "", errVMEmptyID
 	}
 	var reqID *cirrina.RequestID
-	reqID, err = serverClient.StartVM(defaultServerContext, &cirrina.VMID{Value: id})
+	reqID, err = serverClient.StartVM(defaultServerContext, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return "", fmt.Errorf("unable to start VM: %w", err)
 	}
@@ -88,14 +88,14 @@ func StartVM(id string) (string, error) {
 	return reqID.Value, nil
 }
 
-func GetVMName(id string) (string, error) {
+func GetVMName(vmID string) (string, error) {
 	var err error
 
-	if id == "" {
+	if vmID == "" {
 		return "", errVMEmptyID
 	}
 	var res *wrapperspb.StringValue
-	res, err = serverClient.GetVMName(defaultServerContext, &cirrina.VMID{Value: id})
+	res, err = serverClient.GetVMName(defaultServerContext, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return "", fmt.Errorf("unable to get VM name: %w", err)
 	}
@@ -118,32 +118,32 @@ func GetVMId(name string) (string, error) {
 	return res.Value, nil
 }
 
-func GetVMConfig(id string) (VMConfig, error) {
+func GetVMConfig(vmID string) (VMConfig, error) {
 	var err error
 
-	if id == "" {
+	if vmID == "" {
 		return VMConfig{}, errVMEmptyID
 	}
 	var res *cirrina.VMConfig
-	res, err = serverClient.GetVMConfig(defaultServerContext, &cirrina.VMID{Value: id})
+	res, err = serverClient.GetVMConfig(defaultServerContext, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return VMConfig{}, fmt.Errorf("unable to get VM config: %w", err)
 	}
-	var rv VMConfig
-	rv.ID = res.Id
+	var retVMConfig VMConfig
+	retVMConfig.ID = res.Id
 
-	rv = parseOptionalVMConfigBasic(res, rv)
-	rv = parseOptionalVMConfigPriority(res, rv)
-	rv = parseOptionalVMConfigSerialCom1(res, rv)
-	rv = parseOptionalVMConfigSerialCom2(res, rv)
-	rv = parseOptionalVMConfigSerialCom3(res, rv)
-	rv = parseOptionalVMConfigSerialCom4(res, rv)
-	rv = parseOptionalVMConfigScreen(res, rv)
-	rv = parseOptionalVMConfigSound(res, rv)
-	rv = parseOptionalVMConfigStart(res, rv)
-	rv = parseOptionalVMConfigAdvanced(res, rv)
+	retVMConfig = parseOptionalVMConfigBasic(res, retVMConfig)
+	retVMConfig = parseOptionalVMConfigPriority(res, retVMConfig)
+	retVMConfig = parseOptionalVMConfigSerialCom1(res, retVMConfig)
+	retVMConfig = parseOptionalVMConfigSerialCom2(res, retVMConfig)
+	retVMConfig = parseOptionalVMConfigSerialCom3(res, retVMConfig)
+	retVMConfig = parseOptionalVMConfigSerialCom4(res, retVMConfig)
+	retVMConfig = parseOptionalVMConfigScreen(res, retVMConfig)
+	retVMConfig = parseOptionalVMConfigSound(res, retVMConfig)
+	retVMConfig = parseOptionalVMConfigStart(res, retVMConfig)
+	retVMConfig = parseOptionalVMConfigAdvanced(res, retVMConfig)
 
-	return rv, nil
+	return retVMConfig, nil
 }
 
 func GetVMIds() ([]string, error) {
@@ -156,28 +156,28 @@ func GetVMIds() ([]string, error) {
 		return []string{}, fmt.Errorf("unable to get VM IDs: %w", err)
 	}
 	for {
-		var VM *cirrina.VMID
-		VM, err = res.Recv()
+		var aVMID *cirrina.VMID
+		aVMID, err = res.Recv()
 		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
-			return []string{}, fmt.Errorf("unable to get VM IDs: %w", err)
+			return []string{}, fmt.Errorf("unable to get aVMID IDs: %w", err)
 		}
-		ids = append(ids, VM.Value)
+		ids = append(ids, aVMID.Value)
 	}
 
 	return ids, nil
 }
 
-func GetVMState(id string) (string, string, string, error) {
+func GetVMState(vmID string) (string, string, string, error) {
 	var err error
 
-	if id == "" {
+	if vmID == "" {
 		return "", "", "", errVMEmptyID
 	}
 	var res *cirrina.VMState
-	res, err = serverClient.GetVMState(defaultServerContext, &cirrina.VMID{Value: id})
+	res, err = serverClient.GetVMState(defaultServerContext, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return "", "", "", fmt.Errorf("unable to get VM state: %w", err)
 	}
@@ -196,8 +196,8 @@ func GetVMState(id string) (string, string, string, error) {
 	return vmstate, strconv.FormatInt(int64(res.VncPort), 10), strconv.FormatInt(int64(res.DebugPort), 10), nil
 }
 
-func VMRunning(id string) (bool, error) {
-	r, _, _, err := GetVMState(id)
+func VMRunning(vmID string) (bool, error) {
+	r, _, _, err := GetVMState(vmID)
 	if err != nil {
 		return false, err
 	}
@@ -208,8 +208,8 @@ func VMRunning(id string) (bool, error) {
 	return false, nil
 }
 
-func VMStopped(id string) (bool, error) {
-	r, _, _, err := GetVMState(id)
+func VMStopped(vmID string) (bool, error) {
+	r, _, _, err := GetVMState(vmID)
 	if err != nil {
 		return false, err
 	}
@@ -235,11 +235,11 @@ func VMNameToID(name string) (string, error) {
 	return res, nil
 }
 
-func VMIdToName(id string) (string, error) {
-	if id == "" {
+func VMIdToName(vmID string) (string, error) {
+	if vmID == "" {
 		return "", errVMEmptyID
 	}
-	res, err := GetVMName(id)
+	res, err := GetVMName(vmID)
 	if err != nil {
 		return "", err
 	}
@@ -261,10 +261,10 @@ func UpdateVMConfig(myNewConfig *cirrina.VMConfig) error {
 	return nil
 }
 
-func VMClearUefiVars(id string) (bool, error) {
+func VMClearUefiVars(vmID string) (bool, error) {
 	var err error
 	var res *cirrina.ReqBool
-	res, err = serverClient.ClearUEFIState(defaultServerContext, &cirrina.VMID{Value: id})
+	res, err = serverClient.ClearUEFIState(defaultServerContext, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return false, fmt.Errorf("unable to clear UEFI state vars: %w", err)
 	}
@@ -272,217 +272,217 @@ func VMClearUefiVars(id string) (bool, error) {
 	return res.Success, nil
 }
 
-func parseOptionalVMConfigBasic(res *cirrina.VMConfig, rv VMConfig) VMConfig {
+func parseOptionalVMConfigBasic(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
 	if res.Name != nil {
-		rv.Name = *res.Name
+		retVMConfig.Name = *res.Name
 	}
 	if res.Description != nil {
-		rv.Description = *res.Description
+		retVMConfig.Description = *res.Description
 	}
 	if res.Cpu != nil {
-		rv.CPU = *res.Cpu
+		retVMConfig.CPU = *res.Cpu
 	}
 	if res.Mem != nil {
-		rv.Mem = *res.Mem
+		retVMConfig.Mem = *res.Mem
 	}
 
-	return rv
+	return retVMConfig
 }
 
-func parseOptionalVMConfigPriority(res *cirrina.VMConfig, rv VMConfig) VMConfig {
+func parseOptionalVMConfigPriority(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
 	if res.Priority != nil {
-		rv.Priority = *res.Priority
+		retVMConfig.Priority = *res.Priority
 	}
 	if res.Protect != nil {
-		rv.Protect = *res.Protect
+		retVMConfig.Protect = *res.Protect
 	}
 	if res.Pcpu != nil {
-		rv.Pcpu = *res.Pcpu
+		retVMConfig.Pcpu = *res.Pcpu
 	}
 	if res.Rbps != nil {
-		rv.Rbps = *res.Rbps
+		retVMConfig.Rbps = *res.Rbps
 	}
 	if res.Wbps != nil {
-		rv.Wbps = *res.Wbps
+		retVMConfig.Wbps = *res.Wbps
 	}
 	if res.Riops != nil {
-		rv.Riops = *res.Riops
+		retVMConfig.Riops = *res.Riops
 	}
 	if res.Wiops != nil {
-		rv.Wiops = *res.Wiops
+		retVMConfig.Wiops = *res.Wiops
 	}
 
-	return rv
+	return retVMConfig
 }
 
-func parseOptionalVMConfigSerialCom1(res *cirrina.VMConfig, rv VMConfig) VMConfig {
+func parseOptionalVMConfigSerialCom1(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
 	if res.Com1 != nil {
-		rv.Com1 = *res.Com1
+		retVMConfig.Com1 = *res.Com1
 	}
 	if res.Com1Log != nil {
-		rv.Com1Log = *res.Com1Log
+		retVMConfig.Com1Log = *res.Com1Log
 	}
 	if res.Com1Dev != nil {
-		rv.Com1Dev = *res.Com1Dev
+		retVMConfig.Com1Dev = *res.Com1Dev
 	}
 	if res.Com1Speed != nil {
-		rv.Com1Speed = *res.Com1Speed
+		retVMConfig.Com1Speed = *res.Com1Speed
 	}
 
-	return rv
+	return retVMConfig
 }
 
-func parseOptionalVMConfigSerialCom2(res *cirrina.VMConfig, rv VMConfig) VMConfig {
+func parseOptionalVMConfigSerialCom2(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
 	if res.Com2 != nil {
-		rv.Com2 = *res.Com2
+		retVMConfig.Com2 = *res.Com2
 	}
 	if res.Com2Log != nil {
-		rv.Com2Log = *res.Com2Log
+		retVMConfig.Com2Log = *res.Com2Log
 	}
 	if res.Com2Dev != nil {
-		rv.Com2Dev = *res.Com2Dev
+		retVMConfig.Com2Dev = *res.Com2Dev
 	}
 	if res.Com2Speed != nil {
-		rv.Com2Speed = *res.Com2Speed
+		retVMConfig.Com2Speed = *res.Com2Speed
 	}
 
-	return rv
+	return retVMConfig
 }
 
-func parseOptionalVMConfigSerialCom3(res *cirrina.VMConfig, rv VMConfig) VMConfig {
+func parseOptionalVMConfigSerialCom3(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
 	if res.Com3 != nil {
-		rv.Com3 = *res.Com3
+		retVMConfig.Com3 = *res.Com3
 	}
 	if res.Com3Log != nil {
-		rv.Com3Log = *res.Com3Log
+		retVMConfig.Com3Log = *res.Com3Log
 	}
 	if res.Com3Dev != nil {
-		rv.Com3Dev = *res.Com3Dev
+		retVMConfig.Com3Dev = *res.Com3Dev
 	}
 	if res.Com3Speed != nil {
-		rv.Com3Speed = *res.Com3Speed
+		retVMConfig.Com3Speed = *res.Com3Speed
 	}
 
-	return rv
+	return retVMConfig
 }
 
-func parseOptionalVMConfigSerialCom4(res *cirrina.VMConfig, rv VMConfig) VMConfig {
+func parseOptionalVMConfigSerialCom4(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
 	if res.Com4 != nil {
-		rv.Com4 = *res.Com4
+		retVMConfig.Com4 = *res.Com4
 	}
 	if res.Com4Log != nil {
-		rv.Com4Log = *res.Com4Log
+		retVMConfig.Com4Log = *res.Com4Log
 	}
 	if res.Com4Dev != nil {
-		rv.Com4Dev = *res.Com4Dev
+		retVMConfig.Com4Dev = *res.Com4Dev
 	}
 	if res.Com4Speed != nil {
-		rv.Com4Speed = *res.Com4Speed
+		retVMConfig.Com4Speed = *res.Com4Speed
 	}
 
-	return rv
+	return retVMConfig
 }
 
-func parseOptionalVMConfigScreen(res *cirrina.VMConfig, rv VMConfig) VMConfig {
+func parseOptionalVMConfigScreen(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
 	if res.Screen != nil {
-		rv.Screen = *res.Screen
+		retVMConfig.Screen = *res.Screen
 	}
 	if res.Vncport != nil {
-		rv.Vncport = *res.Vncport
+		retVMConfig.Vncport = *res.Vncport
 	}
 	if res.ScreenWidth != nil {
-		rv.ScreenWidth = *res.ScreenWidth
+		retVMConfig.ScreenWidth = *res.ScreenWidth
 	}
 	if res.ScreenHeight != nil {
-		rv.ScreenHeight = *res.ScreenHeight
+		retVMConfig.ScreenHeight = *res.ScreenHeight
 	}
 	if res.Vncwait != nil {
-		rv.Vncwait = *res.Vncwait
+		retVMConfig.Vncwait = *res.Vncwait
 	}
 	if res.Tablet != nil {
-		rv.Tablet = *res.Tablet
+		retVMConfig.Tablet = *res.Tablet
 	}
 	if res.Keyboard != nil {
-		rv.Keyboard = *res.Keyboard
+		retVMConfig.Keyboard = *res.Keyboard
 	}
 
-	return rv
+	return retVMConfig
 }
 
-func parseOptionalVMConfigSound(res *cirrina.VMConfig, rv VMConfig) VMConfig {
+func parseOptionalVMConfigSound(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
 	if res.Sound != nil {
-		rv.Sound = *res.Sound
+		retVMConfig.Sound = *res.Sound
 	}
 	if res.SoundIn != nil {
-		rv.SoundIn = *res.SoundIn
+		retVMConfig.SoundIn = *res.SoundIn
 	}
 	if res.SoundOut != nil {
-		rv.SoundOut = *res.SoundOut
+		retVMConfig.SoundOut = *res.SoundOut
 	}
 
-	return rv
+	return retVMConfig
 }
 
-func parseOptionalVMConfigStart(res *cirrina.VMConfig, rv VMConfig) VMConfig {
+func parseOptionalVMConfigStart(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
 	if res.Autostart != nil {
-		rv.Autostart = *res.Autostart
+		retVMConfig.Autostart = *res.Autostart
 	}
 	if res.AutostartDelay != nil {
-		rv.AutostartDelay = *res.AutostartDelay
+		retVMConfig.AutostartDelay = *res.AutostartDelay
 	}
 	if res.Restart != nil {
-		rv.Restart = *res.Restart
+		retVMConfig.Restart = *res.Restart
 	}
 	if res.RestartDelay != nil {
-		rv.RestartDelay = *res.RestartDelay
+		retVMConfig.RestartDelay = *res.RestartDelay
 	}
 
-	return rv
+	return retVMConfig
 }
 
-func parseOptionalVMConfigAdvanced(res *cirrina.VMConfig, rv VMConfig) VMConfig {
+func parseOptionalVMConfigAdvanced(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
 	if res.MaxWait != nil {
-		rv.MaxWait = *res.MaxWait
+		retVMConfig.MaxWait = *res.MaxWait
 	}
 	if res.Storeuefi != nil {
-		rv.Storeuefi = *res.Storeuefi
+		retVMConfig.Storeuefi = *res.Storeuefi
 	}
 	if res.Utc != nil {
-		rv.Utc = *res.Utc
+		retVMConfig.Utc = *res.Utc
 	}
 	if res.Dpo != nil {
-		rv.Dpo = *res.Dpo
+		retVMConfig.Dpo = *res.Dpo
 	}
 	if res.Wireguestmem != nil {
-		rv.Wireguestmem = *res.Wireguestmem
+		retVMConfig.Wireguestmem = *res.Wireguestmem
 	}
 	if res.Hostbridge != nil {
-		rv.Hostbridge = *res.Hostbridge
+		retVMConfig.Hostbridge = *res.Hostbridge
 	}
 	if res.Acpi != nil {
-		rv.Acpi = *res.Acpi
+		retVMConfig.Acpi = *res.Acpi
 	}
 	if res.Eop != nil {
-		rv.Eop = *res.Eop
+		retVMConfig.Eop = *res.Eop
 	}
 	if res.Ium != nil {
-		rv.Ium = *res.Ium
+		retVMConfig.Ium = *res.Ium
 	}
 	if res.Hlt != nil {
-		rv.Hlt = *res.Hlt
+		retVMConfig.Hlt = *res.Hlt
 	}
 	if res.Debug != nil {
-		rv.Debug = *res.Debug
+		retVMConfig.Debug = *res.Debug
 	}
 	if res.DebugWait != nil {
-		rv.DebugWait = *res.DebugWait
+		retVMConfig.DebugWait = *res.DebugWait
 	}
 	if res.DebugPort != nil {
-		rv.DebugPort = *res.DebugPort
+		retVMConfig.DebugPort = *res.DebugPort
 	}
 	if res.ExtraArgs != nil {
-		rv.ExtraArgs = *res.ExtraArgs
+		retVMConfig.ExtraArgs = *res.ExtraArgs
 	}
 
-	return rv
+	return retVMConfig
 }

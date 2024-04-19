@@ -31,7 +31,7 @@ var SwitchListCmd = &cobra.Command{
 	Short:        "list virtual switches",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
-		res, err := rpc.GetSwitches()
+		switchIDs, err := rpc.GetSwitches()
 		if err != nil {
 			return fmt.Errorf("error getting switches: %w", err)
 		}
@@ -43,30 +43,30 @@ var SwitchListCmd = &cobra.Command{
 		}
 
 		switchInfos := make(map[string]switchListInfo)
-		for _, id := range res {
-			res, err := rpc.GetSwitch(id)
+		for _, switchID := range switchIDs {
+			res, err := rpc.GetSwitch(switchID)
 			if err != nil {
 				return fmt.Errorf("error getting switch: %w", err)
 			}
 			names = append(names, res.Name)
 			switchInfos[res.Name] = switchListInfo{
-				switchID:   id,
+				switchID:   switchID,
 				switchInfo: res,
 			}
 		}
 
 		sort.Strings(names)
-		t := table.NewWriter()
-		t.SetOutputMirror(os.Stdout)
+		switchTableWriter := table.NewWriter()
+		switchTableWriter.SetOutputMirror(os.Stdout)
 		if ShowUUID {
-			t.AppendHeader(table.Row{"NAME", "UUID", "TYPE", "UPLINK", "DESCRIPTION"})
+			switchTableWriter.AppendHeader(table.Row{"NAME", "UUID", "TYPE", "UPLINK", "DESCRIPTION"})
 		} else {
-			t.AppendHeader(table.Row{"NAME", "TYPE", "UPLINK", "DESCRIPTION"})
+			switchTableWriter.AppendHeader(table.Row{"NAME", "TYPE", "UPLINK", "DESCRIPTION"})
 		}
-		t.SetStyle(myTableStyle)
+		switchTableWriter.SetStyle(myTableStyle)
 		for _, name := range names {
 			if ShowUUID {
-				t.AppendRow(table.Row{
+				switchTableWriter.AppendRow(table.Row{
 					name,
 					switchInfos[name].switchID,
 					switchInfos[name].switchInfo.SwitchType,
@@ -74,7 +74,7 @@ var SwitchListCmd = &cobra.Command{
 					switchInfos[name].switchInfo.Descr,
 				})
 			} else {
-				t.AppendRow(table.Row{
+				switchTableWriter.AppendRow(table.Row{
 					name,
 					switchInfos[name].switchInfo.SwitchType,
 					switchInfos[name].switchInfo.Uplink,
@@ -82,7 +82,7 @@ var SwitchListCmd = &cobra.Command{
 				})
 			}
 		}
-		t.Render()
+		switchTableWriter.Render()
 
 		return nil
 	},

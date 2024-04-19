@@ -9,12 +9,13 @@ import (
 	"cirrina/cirrinad/vm"
 )
 
-func startVM(rs *requests.Request) {
+func startVM(request *requests.Request) {
 	var err error
 	var reqData requests.VMReqData
-	err = json.Unmarshal([]byte(rs.Data), &reqData)
+	err = json.Unmarshal([]byte(request.Data), &reqData)
 	if err != nil {
-		slog.Error("failed unmarshalling request data", "rsData", rs.Data, "reqType", reflect.TypeOf(reqData), "err", err)
+		slog.Error("failed unmarshalling request data",
+			"rsData", request.Data, "reqType", reflect.TypeOf(reqData), "err", err)
 
 		return
 	}
@@ -27,9 +28,9 @@ func startVM(rs *requests.Request) {
 	}
 	pendingReqIDs := requests.PendingReqExists(reqData.VMID)
 	for _, pendingReqID := range pendingReqIDs {
-		if pendingReqID != rs.ID {
+		if pendingReqID != request.ID {
 			slog.Error("failing request to start VM which has pending request", "vm", vmInst.ID)
-			rs.Failed()
+			request.Failed()
 
 			return
 		}
@@ -37,19 +38,20 @@ func startVM(rs *requests.Request) {
 	err = vmInst.Start()
 	if err != nil {
 		slog.Error("failed to start VM", "vm", vmInst.ID, "err", err)
-		rs.Failed()
+		request.Failed()
 
 		return
 	}
-	rs.Succeeded()
+	request.Succeeded()
 }
 
-func stopVM(rs *requests.Request) {
+func stopVM(request *requests.Request) {
 	var err error
 	var reqData requests.VMReqData
-	err = json.Unmarshal([]byte(rs.Data), &reqData)
+	err = json.Unmarshal([]byte(request.Data), &reqData)
 	if err != nil {
-		slog.Error("failed unmarshalling request data", "rsData", rs.Data, "reqType", reflect.TypeOf(reqData), "err", err)
+		slog.Error("failed unmarshalling request data",
+			"rsData", request.Data, "reqType", reflect.TypeOf(reqData), "err", err)
 
 		return
 	}
@@ -63,9 +65,9 @@ func stopVM(rs *requests.Request) {
 	slog.Debug("stopping VM", "vm", reqData.VMID)
 	pendingReqIDs := requests.PendingReqExists(reqData.VMID)
 	for _, pendingReqID := range pendingReqIDs {
-		if pendingReqID != rs.ID {
+		if pendingReqID != request.ID {
 			slog.Error("failing request to stop VM which has pending request", "vm", vmInst.ID)
-			rs.Failed()
+			request.Failed()
 
 			return
 		}
@@ -73,19 +75,20 @@ func stopVM(rs *requests.Request) {
 	err = vmInst.Stop()
 	if err != nil {
 		slog.Error("failed to stop VM", "vm", vmInst.ID, "err", err)
-		rs.Failed()
+		request.Failed()
 
 		return
 	}
-	rs.Succeeded()
+	request.Succeeded()
 }
 
-func deleteVM(rs *requests.Request) {
+func deleteVM(request *requests.Request) {
 	var err error
 	var reqData requests.VMReqData
-	err = json.Unmarshal([]byte(rs.Data), &reqData)
+	err = json.Unmarshal([]byte(request.Data), &reqData)
 	if err != nil {
-		slog.Error("failed unmarshalling request data", "rsData", rs.Data, "reqType", reflect.TypeOf(reqData), "err", err)
+		slog.Error("failed unmarshalling request data",
+			"rsData", request.Data, "reqType", reflect.TypeOf(reqData), "err", err)
 
 		return
 	}
@@ -98,9 +101,9 @@ func deleteVM(rs *requests.Request) {
 	}
 	pendingReqIDs := requests.PendingReqExists(reqData.VMID)
 	for _, pendingReqID := range pendingReqIDs {
-		if pendingReqID != rs.ID {
+		if pendingReqID != request.ID {
 			slog.Error("failing request to delete VM which has pending request", "vm", vmInst.ID)
-			rs.Failed()
+			request.Failed()
 
 			return
 		}
@@ -111,10 +114,10 @@ func deleteVM(rs *requests.Request) {
 	err = vmInst.Delete()
 	if err != nil {
 		slog.Error("failed to delete VM", "vm", vmInst.ID, "err", err)
-		rs.Failed()
+		request.Failed()
 
 		return
 	}
-	rs.Succeeded()
+	request.Succeeded()
 	delete(vm.List.VMList, vmInst.ID)
 }

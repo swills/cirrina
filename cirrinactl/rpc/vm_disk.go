@@ -8,11 +8,11 @@ import (
 	"cirrina/cirrina"
 )
 
-func GetVMDisks(id string) ([]string, error) {
+func GetVMDisks(vmID string) ([]string, error) {
 	var err error
-	var rv []string
+	var diskIDs []string
 	var getVMDisksClient cirrina.VMInfo_GetVMDisksClient
-	getVMDisksClient, err = serverClient.GetVMDisks(defaultServerContext, &cirrina.VMID{Value: id})
+	getVMDisksClient, err = serverClient.GetVMDisks(defaultServerContext, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get VM disks: %w", err)
 	}
@@ -25,10 +25,10 @@ func GetVMDisks(id string) ([]string, error) {
 		if err != nil {
 			return []string{}, fmt.Errorf("unable to get VM disks: %w", err)
 		}
-		rv = append(rv, diskID.Value)
+		diskIDs = append(diskIDs, diskID.Value)
 	}
 
-	return rv, nil
+	return diskIDs, nil
 }
 
 func VMSetDisks(id string, diskIDs []string) (bool, error) {

@@ -36,11 +36,6 @@ func Create(name string, description string, size string, diskType string, diskD
 		return &Disk{}, fmt.Errorf("error creating disk: %w", err)
 	}
 
-	// limit disks to min 512 bytes, max 128TB
-	if diskSize < 512 || diskSize > 1024*1024*1024*1024*128 {
-		return &Disk{}, errDiskInvalidSize
-	}
-
 	// actually create disk!
 	switch diskDevType {
 	case "FILE":
@@ -222,13 +217,13 @@ func GetAllDB() []*Disk {
 	return result
 }
 
-func GetByID(id string) (*Disk, error) {
-	if id == "" {
+func GetByID(diskID string) (*Disk, error) {
+	if diskID == "" {
 		return nil, errDiskIDEmptyOrInvalid
 	}
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
-	diskInst, valid := List.DiskList[id]
+	diskInst, valid := List.DiskList[diskID]
 	if valid {
 		return diskInst, nil
 	}
@@ -246,19 +241,19 @@ func GetByName(name string) (*Disk, error) {
 	return &Disk{}, nil
 }
 
-func Delete(id string) error {
-	if id == "" {
+func Delete(diskID string) error {
+	if diskID == "" {
 		return errDiskIDEmptyOrInvalid
 	}
 
-	_, valid := List.DiskList[id]
+	_, valid := List.DiskList[diskID]
 	if !valid {
 		return errDiskIDEmptyOrInvalid
 	}
-	delete(List.DiskList, id)
+	delete(List.DiskList, diskID)
 
 	db := getDiskDB()
-	res := db.Limit(1).Delete(&Disk{ID: id})
+	res := db.Limit(1).Delete(&Disk{ID: diskID})
 	if res.RowsAffected != 1 {
 		slog.Error("error saving disk", "res", res)
 

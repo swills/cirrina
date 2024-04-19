@@ -12,7 +12,14 @@
   * nic, vmnic -> always use nic?
   * iso, ISO -> always use ISO in messages? something else?
 * Allow `.` in disk file name, if it's not at the start of the file name and if it's not followed by another `.`
+* Add option to cirrinactl com stream to:
+  * Avoid quit info message and pause on startup
+  * Avoid clearing screen
+  * If logging, fetch last N bytes from log and play them back
 * Disk resize -- include force flag to allow reducing disk size which includes data loss
+* Fix setting the switch on a NIC while a VM is running
+  * Currently, it won't work until you stop then start the VM
+  * It should work immediately, without even a reboot, but also if you reboot or stop then start
 * Convert all UUIDs from strings to UUID type
 * Convert all paths from strings to path/filepath
 * Convert all bool in database to `sql.NullBool`

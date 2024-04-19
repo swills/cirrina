@@ -79,7 +79,7 @@ func CreateNicCloneReq(nicID string, newName string) (Request, error) {
 	return newReq, nil
 }
 
-func CreateVMReq(r reqType, vmID string) (Request, error) {
+func CreateVMReq(requestType reqType, vmID string) (Request, error) {
 	var err error
 	var reqData []byte
 	reqData, err = json.Marshal(VMReqData{VMID: vmID})
@@ -91,7 +91,7 @@ func CreateVMReq(r reqType, vmID string) (Request, error) {
 	db := GetReqDB()
 	newReq := Request{
 		Data: string(reqData),
-		Type: r,
+		Type: requestType,
 	}
 	res := db.Create(&newReq)
 	if res.RowsAffected != 1 {

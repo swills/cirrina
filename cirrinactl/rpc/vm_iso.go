@@ -8,27 +8,27 @@ import (
 	"cirrina/cirrina"
 )
 
-func GetVMIsos(id string) ([]string, error) {
+func GetVMIsos(vmID string) ([]string, error) {
 	var err error
-	var rv []string
+	var isoIDs []string
 	var getVMISOsClient cirrina.VMInfo_GetVMISOsClient
-	getVMISOsClient, err = serverClient.GetVMISOs(defaultServerContext, &cirrina.VMID{Value: id})
+	getVMISOsClient, err = serverClient.GetVMISOs(defaultServerContext, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get VM isos: %w", err)
 	}
 	for {
-		var isoid *cirrina.ISOID
-		isoid, err = getVMISOsClient.Recv()
+		var isoID *cirrina.ISOID
+		isoID, err = getVMISOsClient.Recv()
 		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
 			return []string{}, fmt.Errorf("unable to get VM isos: %w", err)
 		}
-		rv = append(rv, isoid.Value)
+		isoIDs = append(isoIDs, isoID.Value)
 	}
 
-	return rv, nil
+	return isoIDs, nil
 }
 
 func VMSetIsos(id string, isoIDs []string) (bool, error) {

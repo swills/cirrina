@@ -34,13 +34,13 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 	var errBytes bytes.Buffer
 	var exitCode int
 	var exitErr *execabs.ExitError
-	var c []string
+	var cmdString []string
 	var err error
 
-	c = append(c, "-S") // ensure no password prompt on tty
-	c = append(c, cmdArgs...)
+	cmdString = append(cmdString, "-S") // ensure no password prompt on tty
+	cmdString = append(cmdString, cmdArgs...)
 
-	checkCmd := execabs.Command(config.Config.Sys.Sudo, c...)
+	checkCmd := execabs.Command(config.Config.Sys.Sudo, cmdString...)
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
@@ -302,16 +302,16 @@ func validateOSVersion() {
 		os.Exit(1)
 	}
 
-	var r []byte
+	var rBuf []byte
 	for _, b := range utsname.Release {
 		if b == 0 {
 			break
 		}
-		r = append(r, b)
+		rBuf = append(rBuf, b)
 	}
 
 	re := regexp.MustCompile("-.*")
-	ov := re.ReplaceAllString(string(r), "")
+	ov := re.ReplaceAllString(string(rBuf), "")
 	ovi, err := version.NewVersion(ov)
 	if err != nil {
 		slog.Error("failed to get OS version", "release", string(utsname.Release[:]))
