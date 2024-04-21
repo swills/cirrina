@@ -146,7 +146,7 @@ func comReceive(bgCtx context.Context, cancel context.CancelFunc, stream cirrina
 
 				return
 			}
-			fmt.Print(string(out.ComOutBytes))
+			fmt.Print(string(out.GetComOutBytes()))
 		}
 	}
 }

@@ -26,7 +26,7 @@ func getSwitchIDs() ([]string, error) {
 		if err != nil {
 			return []string{}, fmt.Errorf("unable to get switch IDs: %w", err)
 		}
-		switchIDs = append(switchIDs, VMSwitch.Value)
+		switchIDs = append(switchIDs, VMSwitch.GetValue())
 	}
 
 	return switchIDs, nil
@@ -50,7 +50,7 @@ func SwitchNameToID(thisSwitchID string) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("unable to get switch id: %w", err)
 		}
-		if *switchInfo.Name == thisSwitchID {
+		if switchInfo.GetName() == thisSwitchID {
 			if found {
 				return "", errSwitchDuplicate
 			}
@@ -62,19 +62,16 @@ func SwitchNameToID(thisSwitchID string) (string, error) {
 	return switchName, nil
 }
 
-func SwitchIDToName(s string) (string, error) {
+func SwitchIDToName(switchID string) (string, error) {
 	var err error
 
 	var res *cirrina.SwitchInfo
-	res, err = serverClient.GetSwitchInfo(defaultServerContext, &cirrina.SwitchId{Value: s})
+	res, err = serverClient.GetSwitchInfo(defaultServerContext, &cirrina.SwitchId{Value: switchID})
 	if err != nil {
 		return "", fmt.Errorf("unable to get switch name: %w", err)
 	}
-	if res.Name != nil {
-		return *res.Name, nil
-	}
 
-	return "", nil
+	return res.GetName(), nil
 }
 
 func GetSwitches() ([]string, error) {
@@ -95,7 +92,7 @@ func GetSwitches() ([]string, error) {
 		if err != nil {
 			return []string{}, fmt.Errorf("unable to get switches: %w", err)
 		}
-		switchIDs = append(switchIDs, SwitchID.Value)
+		switchIDs = append(switchIDs, SwitchID.GetValue())
 	}
 
 	return switchIDs, nil
@@ -130,7 +127,7 @@ func AddSwitch(name string, descrPtr *string, switchTypePtr *string, switchUplin
 		return "", fmt.Errorf("unable to add switch: %w", err)
 	}
 
-	return res.Value, nil
+	return res.GetValue(), nil
 }
 
 func SetSwitchUplink(switchID string, uplinkNamePtr *string) error {
@@ -165,7 +162,7 @@ func RemoveSwitch(switchID string) error {
 	if err != nil {
 		return fmt.Errorf("unable to remove switch: %w", err)
 	}
-	if !reqID.Success {
+	if !reqID.GetSuccess() {
 		return errReqFailed
 	}
 
@@ -190,7 +187,7 @@ func UpdateSwitch(switchID string, description *string) error {
 	if err != nil {
 		return fmt.Errorf("unable to update switch: %w", err)
 	}
-	if !reqStat.Success {
+	if !reqStat.GetSuccess() {
 		return errReqFailed
 	}
 
@@ -211,17 +208,17 @@ func GetSwitch(switchID string) (SwitchInfo, error) {
 	}
 
 	switchType := "unknown"
-	if *res.SwitchType == cirrina.SwitchType_IF {
+	if res.GetSwitchType() == cirrina.SwitchType_IF {
 		switchType = "bridge"
-	} else if *res.SwitchType == cirrina.SwitchType_NG {
+	} else if res.GetSwitchType() == cirrina.SwitchType_NG {
 		switchType = "netgraph"
 	}
 
 	return SwitchInfo{
-		Name:       *res.Name,
+		Name:       res.GetName(),
 		SwitchType: switchType,
-		Uplink:     *res.Uplink,
-		Descr:      *res.Description,
+		Uplink:     res.GetUplink(),
+		Descr:      res.GetDescription(),
 	}, nil
 }
 
@@ -245,7 +242,7 @@ func SetVMNicSwitch(vmNicIDStr string, switchID string) error {
 	if err != nil {
 		return fmt.Errorf("unable to set nic switch: %w", err)
 	}
-	if !r.Success {
+	if !r.GetSuccess() {
 		return errReqFailed
 	}
 

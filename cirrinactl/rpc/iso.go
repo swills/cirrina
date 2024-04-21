@@ -24,7 +24,7 @@ func AddIso(name string, descr string) (string, error) {
 		return "", fmt.Errorf("unable to add iso: %w", err)
 	}
 
-	return res.Value, nil
+	return res.GetValue(), nil
 }
 
 func GetIsoIDs() ([]string, error) {
@@ -43,7 +43,7 @@ func GetIsoIDs() ([]string, error) {
 		if err != nil {
 			return []string{}, fmt.Errorf("unable to get isos: %w", err)
 		}
-		VMIDs = append(VMIDs, VMID.Value)
+		VMIDs = append(VMIDs, VMID.GetValue())
 	}
 
 	return VMIDs, nil
@@ -56,7 +56,7 @@ func RmIso(id string) error {
 	if err != nil {
 		return fmt.Errorf("unable to remove iso: %w", err)
 	}
-	if !res.Success {
+	if !res.GetSuccess() {
 		return errReqFailed
 	}
 
@@ -77,9 +77,9 @@ func GetIsoInfo(isoID string) (IsoInfo, error) {
 	}
 
 	return IsoInfo{
-		Name:  *isoInfo.Name,
-		Descr: *isoInfo.Description,
-		Size:  *isoInfo.Size,
+		Name:  isoInfo.GetName(),
+		Descr: isoInfo.GetDescription(),
+		Size:  isoInfo.GetSize(),
 	}, nil
 }
 
@@ -222,7 +222,7 @@ func IsoUpload(isoID string, isoChecksum string,
 				Err:           fmt.Errorf("unable to upload iso: %w", err),
 			}
 		}
-		if !reply.Success {
+		if !reply.GetSuccess() {
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,
 				Complete:      false,

@@ -44,7 +44,7 @@ func AddNic(name string, description string, mac string, nicType string, nicDevT
 		return "", fmt.Errorf("unable to add nic: %w", err)
 	}
 
-	return nicID.Value, nil
+	return nicID.GetValue(), nil
 }
 
 func RmNic(idPtr string) error {
@@ -57,7 +57,7 @@ func RmNic(idPtr string) error {
 	if err != nil {
 		return fmt.Errorf("unable to remove nic: %w", err)
 	}
-	if !reqID.Success {
+	if !reqID.GetSuccess() {
 		return errReqFailed
 	}
 
@@ -77,28 +77,14 @@ func GetVMNicInfo(nicID string) (NicInfo, error) {
 		return NicInfo{}, errInvalidServerResponse
 	}
 
-	if res.Name != nil {
-		info.Name = *res.Name
-	}
+	info.Name = res.GetName()
+	info.Descr = res.GetDescription()
+	info.Mac = res.GetMac()
+	info.NetType = mapNicTypeTypeToString(res.GetNettype())
+	info.NetDevType = mapNicDevTypeTypeToString(res.GetNetdevtype())
 
-	if res.Description != nil {
-		info.Descr = *res.Description
-	}
-
-	if res.Mac != nil {
-		info.Mac = *res.Mac
-	}
-
-	if res.Nettype != nil {
-		info.NetType = mapNicTypeTypeToString(*res.Nettype)
-	}
-
-	if res.Netdevtype != nil {
-		info.NetDevType = mapNicDevTypeTypeToString(*res.Netdevtype)
-	}
-
-	if res.Switchid != nil && *res.Switchid != "" {
-		info.Uplink, err = SwitchIDToName(*res.Switchid)
+	if res.GetSwitchid() != "" {
+		info.Uplink, err = SwitchIDToName(res.GetSwitchid())
 		if err != nil {
 			info.Uplink = ""
 		}
@@ -109,17 +95,9 @@ func GetVMNicInfo(nicID string) (NicInfo, error) {
 		info.VMName = ""
 	}
 
-	if res.Ratelimit != nil {
-		info.RateLimited = *res.Ratelimit
-	}
-
-	if res.Ratein != nil {
-		info.RateIn = *res.Ratein
-	}
-
-	if res.Rateout != nil {
-		info.RateOut = *res.Rateout
-	}
+	info.RateLimited = res.GetRatelimit()
+	info.RateIn = res.GetRatein()
+	info.RateOut = res.GetRateout()
 
 	return info, nil
 }
@@ -209,7 +187,7 @@ func GetVMNicsAll() ([]string, error) {
 		if err != nil {
 			return []string{}, fmt.Errorf("unable to get nics: %w", err)
 		}
-		allNics = append(allNics, VMNicID.Value)
+		allNics = append(allNics, VMNicID.GetValue())
 	}
 
 	return allNics, nil
@@ -225,11 +203,11 @@ func NicGetVM(nicID string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("unable to get nic VM: %w", err)
 	}
-	if res.Value == "" {
+	if res.GetValue() == "" {
 		return "", nil
 	}
 	var res2 string
-	res2, err = VMIdToName(res.Value)
+	res2, err = VMIdToName(res.GetValue())
 	if err != nil {
 		return "", err
 	}
@@ -254,7 +232,7 @@ func CloneNic(nicID string, newName string) (string, error) {
 		return "", fmt.Errorf("unable to clone nic: %w", err)
 	}
 
-	return reqID.Value, nil
+	return reqID.GetValue(), nil
 }
 
 func UpdateNic(nicID string, description *string, mac *string, nicType *string, nicDevType *string,
@@ -309,7 +287,7 @@ func UpdateNic(nicID string, description *string, mac *string, nicType *string, 
 	if err != nil {
 		return fmt.Errorf("unable to update nic: %w", err)
 	}
-	if !reqStat.Success {
+	if !reqStat.GetSuccess() {
 		return errReqFailed
 	}
 

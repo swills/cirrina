@@ -18,8 +18,8 @@ func ReqStat(reqID string) (ReqStatus, error) {
 		return ReqStatus{}, fmt.Errorf("request error: %w", err)
 	}
 	rv := ReqStatus{
-		Complete: res.Complete,
-		Success:  res.Success,
+		Complete: res.GetComplete(),
+		Success:  res.GetSuccess(),
 	}
 
 	return rv, nil

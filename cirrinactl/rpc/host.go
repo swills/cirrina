@@ -11,13 +11,13 @@ import (
 	"cirrina/cirrina"
 )
 
-func GetHostNics() ([]*cirrina.NetIf, error) {
+func GetHostNics() ([]string, error) {
 	var err error
-	var hostNics []*cirrina.NetIf
+	var hostNics []string
 	var res cirrina.VMInfo_GetNetInterfacesClient
 	res, err = serverClient.GetNetInterfaces(defaultServerContext, &cirrina.NetInterfacesReq{})
 	if err != nil {
-		return []*cirrina.NetIf{}, fmt.Errorf("unable to get host nics: %w", err)
+		return []string{}, fmt.Errorf("unable to get host nics: %w", err)
 	}
 	for {
 		hostNic, err := res.Recv()
@@ -25,9 +25,9 @@ func GetHostNics() ([]*cirrina.NetIf, error) {
 			break
 		}
 		if err != nil {
-			return []*cirrina.NetIf{}, fmt.Errorf("unable to get host nics: %w", err)
+			return []string{}, fmt.Errorf("unable to get host nics: %w", err)
 		}
-		hostNics = append(hostNics, hostNic)
+		hostNics = append(hostNics, hostNic.GetInterfaceName())
 	}
 
 	return hostNics, nil
@@ -41,7 +41,7 @@ func GetHostVersion() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("unable to get host version: %w", err)
 	}
-	version = res.Value
+	version = res.GetValue()
 
 	return version, nil
 }

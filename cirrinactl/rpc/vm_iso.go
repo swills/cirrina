@@ -25,7 +25,7 @@ func GetVMIsos(vmID string) ([]string, error) {
 		if err != nil {
 			return []string{}, fmt.Errorf("unable to get VM isos: %w", err)
 		}
-		isoIDs = append(isoIDs, isoID.Value)
+		isoIDs = append(isoIDs, isoID.GetValue())
 	}
 
 	return isoIDs, nil
@@ -43,5 +43,5 @@ func VMSetIsos(id string, isoIDs []string) (bool, error) {
 		return false, fmt.Errorf("unable to set VM isos: %w", err)
 	}
 
-	return res.Success, nil
+	return res.GetSuccess(), nil
 }

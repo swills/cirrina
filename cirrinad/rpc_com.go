@@ -24,8 +24,7 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 	if err != nil {
 		return fmt.Errorf("error receiving from com stream: %w", err)
 	}
-	vmid := streamInput.GetVmId()
-	vmuuid, err := uuid.Parse(vmid.Value)
+	vmuuid, err := uuid.Parse(streamInput.GetVmId().GetValue())
 	if err != nil {
 		return errInvalidID
 	}
@@ -49,8 +48,7 @@ func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) er
 	if err != nil {
 		return fmt.Errorf("error receiving from com stream: %w", err)
 	}
-	vmid := streamInput.GetVmId()
-	vmuuid, err := uuid.Parse(vmid.Value)
+	vmuuid, err := uuid.Parse(streamInput.GetVmId().GetValue())
 	if err != nil {
 		return errInvalidID
 	}
@@ -74,8 +72,7 @@ func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) er
 	if err != nil {
 		return fmt.Errorf("error receiving from com stream: %w", err)
 	}
-	vmid := streamInput.GetVmId()
-	vmuuid, err := uuid.Parse(vmid.Value)
+	vmuuid, err := uuid.Parse(streamInput.GetVmId().GetValue())
 	if err != nil {
 		return errInvalidID
 	}
@@ -99,8 +96,7 @@ func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) er
 	if err != nil {
 		return fmt.Errorf("error receiving from com stream: %w", err)
 	}
-	vmid := streamInput.GetVmId()
-	vmuuid, err := uuid.Parse(vmid.Value)
+	vmuuid, err := uuid.Parse(streamInput.GetVmId().GetValue())
 	if err != nil {
 		return errInvalidID
 	}

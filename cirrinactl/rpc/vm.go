@@ -40,7 +40,7 @@ func AddVM(name string, descrPtr *string, cpuPtr *uint32, memPtr *uint32) (strin
 		return "", fmt.Errorf("unable to add VM: %w", err)
 	}
 
-	return res.Value, nil
+	return res.GetValue(), nil
 }
 
 func DeleteVM(vmID string) (string, error) {
@@ -55,7 +55,7 @@ func DeleteVM(vmID string) (string, error) {
 		return "", fmt.Errorf("unable to delete VM: %w", err)
 	}
 
-	return reqID.Value, nil
+	return reqID.GetValue(), nil
 }
 
 func StopVM(vmID string) (string, error) {
@@ -70,7 +70,7 @@ func StopVM(vmID string) (string, error) {
 		return "", fmt.Errorf("unable to stop VM: %w", err)
 	}
 
-	return reqID.Value, nil
+	return reqID.GetValue(), nil
 }
 
 func StartVM(vmID string) (string, error) {
@@ -85,7 +85,7 @@ func StartVM(vmID string) (string, error) {
 		return "", fmt.Errorf("unable to start VM: %w", err)
 	}
 
-	return reqID.Value, nil
+	return reqID.GetValue(), nil
 }
 
 func GetVMName(vmID string) (string, error) {
@@ -115,7 +115,7 @@ func GetVMId(name string) (string, error) {
 		return "", fmt.Errorf("unable to get VM ID: %w", err)
 	}
 
-	return res.Value, nil
+	return res.GetValue(), nil
 }
 
 func GetVMConfig(vmID string) (VMConfig, error) {
@@ -130,7 +130,7 @@ func GetVMConfig(vmID string) (VMConfig, error) {
 		return VMConfig{}, fmt.Errorf("unable to get VM config: %w", err)
 	}
 	var retVMConfig VMConfig
-	retVMConfig.ID = res.Id
+	retVMConfig.ID = res.GetId()
 
 	retVMConfig = parseOptionalVMConfigBasic(res, retVMConfig)
 	retVMConfig = parseOptionalVMConfigPriority(res, retVMConfig)
@@ -164,7 +164,7 @@ func GetVMIds() ([]string, error) {
 		if err != nil {
 			return []string{}, fmt.Errorf("unable to get aVMID IDs: %w", err)
 		}
-		ids = append(ids, aVMID.Value)
+		ids = append(ids, aVMID.GetValue())
 	}
 
 	return ids, nil
@@ -182,7 +182,7 @@ func GetVMState(vmID string) (string, string, string, error) {
 		return "", "", "", fmt.Errorf("unable to get VM state: %w", err)
 	}
 	var vmstate string
-	switch res.Status {
+	switch res.GetStatus() {
 	case cirrina.VmStatus_STATUS_STOPPED:
 		vmstate = "stopped"
 	case cirrina.VmStatus_STATUS_STARTING:
@@ -193,7 +193,7 @@ func GetVMState(vmID string) (string, string, string, error) {
 		vmstate = "stopping"
 	}
 
-	return vmstate, strconv.FormatInt(int64(res.VncPort), 10), strconv.FormatInt(int64(res.DebugPort), 10), nil
+	return vmstate, strconv.FormatInt(int64(res.GetVncPort()), 10), strconv.FormatInt(int64(res.GetDebugPort()), 10), nil
 }
 
 func VMRunning(vmID string) (bool, error) {
@@ -269,220 +269,110 @@ func VMClearUefiVars(vmID string) (bool, error) {
 		return false, fmt.Errorf("unable to clear UEFI state vars: %w", err)
 	}
 
-	return res.Success, nil
+	return res.GetSuccess(), nil
 }
 
 func parseOptionalVMConfigBasic(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
-	if res.Name != nil {
-		retVMConfig.Name = *res.Name
-	}
-	if res.Description != nil {
-		retVMConfig.Description = *res.Description
-	}
-	if res.Cpu != nil {
-		retVMConfig.CPU = *res.Cpu
-	}
-	if res.Mem != nil {
-		retVMConfig.Mem = *res.Mem
-	}
+	retVMConfig.Name = res.GetName()
+	retVMConfig.Description = res.GetDescription()
+	retVMConfig.CPU = res.GetCpu()
+	retVMConfig.Mem = res.GetMem()
 
 	return retVMConfig
 }
 
 func parseOptionalVMConfigPriority(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
-	if res.Priority != nil {
-		retVMConfig.Priority = *res.Priority
-	}
-	if res.Protect != nil {
-		retVMConfig.Protect = *res.Protect
-	}
-	if res.Pcpu != nil {
-		retVMConfig.Pcpu = *res.Pcpu
-	}
-	if res.Rbps != nil {
-		retVMConfig.Rbps = *res.Rbps
-	}
-	if res.Wbps != nil {
-		retVMConfig.Wbps = *res.Wbps
-	}
-	if res.Riops != nil {
-		retVMConfig.Riops = *res.Riops
-	}
-	if res.Wiops != nil {
-		retVMConfig.Wiops = *res.Wiops
-	}
+	retVMConfig.Priority = res.GetPriority()
+	retVMConfig.Protect = res.GetProtect()
+	retVMConfig.Pcpu = res.GetPcpu()
+	retVMConfig.Rbps = res.GetRbps()
+	retVMConfig.Wbps = res.GetWbps()
+	retVMConfig.Riops = res.GetRiops()
+	retVMConfig.Wiops = res.GetWiops()
 
 	return retVMConfig
 }
 
 func parseOptionalVMConfigSerialCom1(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
-	if res.Com1 != nil {
-		retVMConfig.Com1 = *res.Com1
-	}
-	if res.Com1Log != nil {
-		retVMConfig.Com1Log = *res.Com1Log
-	}
-	if res.Com1Dev != nil {
-		retVMConfig.Com1Dev = *res.Com1Dev
-	}
-	if res.Com1Speed != nil {
-		retVMConfig.Com1Speed = *res.Com1Speed
-	}
+	retVMConfig.Com1 = res.GetCom1()
+	retVMConfig.Com1Log = res.GetCom1Log()
+	retVMConfig.Com1Dev = res.GetCom1Dev()
+	retVMConfig.Com1Speed = res.GetCom1Speed()
 
 	return retVMConfig
 }
 
 func parseOptionalVMConfigSerialCom2(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
-	if res.Com2 != nil {
-		retVMConfig.Com2 = *res.Com2
-	}
-	if res.Com2Log != nil {
-		retVMConfig.Com2Log = *res.Com2Log
-	}
-	if res.Com2Dev != nil {
-		retVMConfig.Com2Dev = *res.Com2Dev
-	}
-	if res.Com2Speed != nil {
-		retVMConfig.Com2Speed = *res.Com2Speed
-	}
+	retVMConfig.Com2 = res.GetCom2()
+	retVMConfig.Com2Log = res.GetCom2Log()
+	retVMConfig.Com2Dev = res.GetCom2Dev()
+	retVMConfig.Com2Speed = res.GetCom2Speed()
 
 	return retVMConfig
 }
 
 func parseOptionalVMConfigSerialCom3(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
-	if res.Com3 != nil {
-		retVMConfig.Com3 = *res.Com3
-	}
-	if res.Com3Log != nil {
-		retVMConfig.Com3Log = *res.Com3Log
-	}
-	if res.Com3Dev != nil {
-		retVMConfig.Com3Dev = *res.Com3Dev
-	}
-	if res.Com3Speed != nil {
-		retVMConfig.Com3Speed = *res.Com3Speed
-	}
+	retVMConfig.Com3 = res.GetCom3()
+	retVMConfig.Com3Log = res.GetCom3Log()
+	retVMConfig.Com3Dev = res.GetCom3Dev()
+	retVMConfig.Com3Speed = res.GetCom3Speed()
 
 	return retVMConfig
 }
 
 func parseOptionalVMConfigSerialCom4(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
-	if res.Com4 != nil {
-		retVMConfig.Com4 = *res.Com4
-	}
-	if res.Com4Log != nil {
-		retVMConfig.Com4Log = *res.Com4Log
-	}
-	if res.Com4Dev != nil {
-		retVMConfig.Com4Dev = *res.Com4Dev
-	}
-	if res.Com4Speed != nil {
-		retVMConfig.Com4Speed = *res.Com4Speed
-	}
+	retVMConfig.Com4 = res.GetCom4()
+	retVMConfig.Com4Log = res.GetCom4Log()
+	retVMConfig.Com4Dev = res.GetCom4Dev()
+	retVMConfig.Com4Speed = res.GetCom4Speed()
 
 	return retVMConfig
 }
 
 func parseOptionalVMConfigScreen(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
-	if res.Screen != nil {
-		retVMConfig.Screen = *res.Screen
-	}
-	if res.Vncport != nil {
-		retVMConfig.Vncport = *res.Vncport
-	}
-	if res.ScreenWidth != nil {
-		retVMConfig.ScreenWidth = *res.ScreenWidth
-	}
-	if res.ScreenHeight != nil {
-		retVMConfig.ScreenHeight = *res.ScreenHeight
-	}
-	if res.Vncwait != nil {
-		retVMConfig.Vncwait = *res.Vncwait
-	}
-	if res.Tablet != nil {
-		retVMConfig.Tablet = *res.Tablet
-	}
-	if res.Keyboard != nil {
-		retVMConfig.Keyboard = *res.Keyboard
-	}
+	retVMConfig.Screen = res.GetScreen()
+	retVMConfig.Vncport = res.GetVncport()
+	retVMConfig.ScreenWidth = res.GetScreenWidth()
+	retVMConfig.ScreenHeight = res.GetScreenHeight()
+	retVMConfig.Vncwait = res.GetVncwait()
+	retVMConfig.Tablet = res.GetTablet()
+	retVMConfig.Keyboard = res.GetKeyboard()
 
 	return retVMConfig
 }
 
 func parseOptionalVMConfigSound(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
-	if res.Sound != nil {
-		retVMConfig.Sound = *res.Sound
-	}
-	if res.SoundIn != nil {
-		retVMConfig.SoundIn = *res.SoundIn
-	}
-	if res.SoundOut != nil {
-		retVMConfig.SoundOut = *res.SoundOut
-	}
+	retVMConfig.Sound = res.GetSound()
+	retVMConfig.SoundIn = res.GetSoundIn()
+	retVMConfig.SoundOut = res.GetSoundOut()
 
 	return retVMConfig
 }
 
 func parseOptionalVMConfigStart(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
-	if res.Autostart != nil {
-		retVMConfig.Autostart = *res.Autostart
-	}
-	if res.AutostartDelay != nil {
-		retVMConfig.AutostartDelay = *res.AutostartDelay
-	}
-	if res.Restart != nil {
-		retVMConfig.Restart = *res.Restart
-	}
-	if res.RestartDelay != nil {
-		retVMConfig.RestartDelay = *res.RestartDelay
-	}
+	retVMConfig.Autostart = res.GetAutostart()
+	retVMConfig.AutostartDelay = res.GetAutostartDelay()
+	retVMConfig.Restart = res.GetRestart()
+	retVMConfig.RestartDelay = res.GetRestartDelay()
 
 	return retVMConfig
 }
 
 func parseOptionalVMConfigAdvanced(res *cirrina.VMConfig, retVMConfig VMConfig) VMConfig {
-	if res.MaxWait != nil {
-		retVMConfig.MaxWait = *res.MaxWait
-	}
-	if res.Storeuefi != nil {
-		retVMConfig.Storeuefi = *res.Storeuefi
-	}
-	if res.Utc != nil {
-		retVMConfig.Utc = *res.Utc
-	}
-	if res.Dpo != nil {
-		retVMConfig.Dpo = *res.Dpo
-	}
-	if res.Wireguestmem != nil {
-		retVMConfig.Wireguestmem = *res.Wireguestmem
-	}
-	if res.Hostbridge != nil {
-		retVMConfig.Hostbridge = *res.Hostbridge
-	}
-	if res.Acpi != nil {
-		retVMConfig.Acpi = *res.Acpi
-	}
-	if res.Eop != nil {
-		retVMConfig.Eop = *res.Eop
-	}
-	if res.Ium != nil {
-		retVMConfig.Ium = *res.Ium
-	}
-	if res.Hlt != nil {
-		retVMConfig.Hlt = *res.Hlt
-	}
-	if res.Debug != nil {
-		retVMConfig.Debug = *res.Debug
-	}
-	if res.DebugWait != nil {
-		retVMConfig.DebugWait = *res.DebugWait
-	}
-	if res.DebugPort != nil {
-		retVMConfig.DebugPort = *res.DebugPort
-	}
-	if res.ExtraArgs != nil {
-		retVMConfig.ExtraArgs = *res.ExtraArgs
-	}
+	retVMConfig.MaxWait = res.GetMaxWait()
+	retVMConfig.Storeuefi = res.GetStoreuefi()
+	retVMConfig.Utc = res.GetUtc()
+	retVMConfig.Dpo = res.GetDpo()
+	retVMConfig.Wireguestmem = res.GetWireguestmem()
+	retVMConfig.Hostbridge = res.GetHostbridge()
+	retVMConfig.Acpi = res.GetAcpi()
+	retVMConfig.Eop = res.GetEop()
+	retVMConfig.Ium = res.GetIum()
+	retVMConfig.Hlt = res.GetHlt()
+	retVMConfig.Debug = res.GetDebug()
+	retVMConfig.DebugWait = res.GetDebugWait()
+	retVMConfig.DebugPort = res.GetDebugPort()
+	retVMConfig.ExtraArgs = res.GetExtraArgs()
 
 	return retVMConfig
 }

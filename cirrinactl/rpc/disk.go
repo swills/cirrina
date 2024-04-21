@@ -44,7 +44,7 @@ func AddDisk(diskName string, diskDescription string, diskSize string,
 		return "", fmt.Errorf("unable to add disk: %w", err)
 	}
 
-	return diskID.Value, nil
+	return diskID.GetValue(), nil
 }
 
 func GetDiskInfo(diskID string) (DiskInfo, error) {
@@ -60,37 +60,14 @@ func GetDiskInfo(diskID string) (DiskInfo, error) {
 		return DiskInfo{}, errInvalidServerResponse
 	}
 
-	if diskInfo.Name != nil {
-		info.Name = *diskInfo.Name
-	}
-
-	if diskInfo.Description != nil {
-		info.Descr = *diskInfo.Description
-	}
-
-	if diskInfo.SizeNum != nil {
-		info.Size = *diskInfo.SizeNum
-	}
-
-	if diskInfo.UsageNum != nil {
-		info.Usage = *diskInfo.UsageNum
-	}
-
-	if diskInfo.DiskType != nil {
-		info.DiskType = mapDiskTypeTypeToString(*diskInfo.DiskType)
-	}
-
-	if diskInfo.DiskDevType != nil {
-		info.DiskDevType = mapDiskDevTypeTypeToString(*diskInfo.DiskDevType)
-	}
-
-	if diskInfo.Cache != nil {
-		info.Cache = *diskInfo.Cache
-	}
-
-	if diskInfo.Direct != nil {
-		info.Direct = *diskInfo.Direct
-	}
+	info.Name = diskInfo.GetName()
+	info.Descr = diskInfo.GetDescription()
+	info.Size = diskInfo.GetSizeNum()
+	info.Usage = diskInfo.GetUsageNum()
+	info.DiskType = mapDiskTypeTypeToString(diskInfo.GetDiskType())
+	info.DiskDevType = mapDiskDevTypeTypeToString(diskInfo.GetDiskDevType())
+	info.Cache = diskInfo.GetCache()
+	info.Direct = diskInfo.GetDirect()
 
 	return info, nil
 }
@@ -111,7 +88,7 @@ func GetDisks() ([]string, error) {
 		if errors.Is(err, io.EOF) {
 			break
 		}
-		disks = append(disks, VMDisk.Value)
+		disks = append(disks, VMDisk.GetValue())
 	}
 
 	return disks, nil
@@ -125,7 +102,7 @@ func RmDisk(idPtr string) error {
 	if err != nil {
 		return fmt.Errorf("unable to remove disk: %w", err)
 	}
-	if !res.Success {
+	if !res.GetSuccess() {
 		return errReqFailed
 	}
 
@@ -190,7 +167,7 @@ func DiskGetVMID(diskID string) (string, error) {
 		return "", fmt.Errorf("unable to get disk VM: %w", err)
 	}
 
-	return vmID.Value, nil
+	return vmID.GetValue(), nil
 }
 
 func UpdateDisk(diskID string, newDesc *string, newType *string, direct *bool, cache *bool) error {
@@ -228,7 +205,7 @@ func UpdateDisk(diskID string, newDesc *string, newType *string, direct *bool, c
 	if err != nil {
 		return fmt.Errorf("unable to set disk info: %w", err)
 	}
-	if !res.Success {
+	if !res.GetSuccess() {
 		return errReqFailed
 	}
 
@@ -341,7 +318,7 @@ func DiskUpload(diskID string, diskChecksum string,
 				Err:           fmt.Errorf("unable to upload disk: %w", err),
 			}
 		}
-		if !reply.Success {
+		if !reply.GetSuccess() {
 			uploadStatChan <- UploadStat{
 				UploadedChunk: false,
 				Complete:      false,

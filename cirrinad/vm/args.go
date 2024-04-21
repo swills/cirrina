@@ -81,7 +81,7 @@ func (vm *VM) getCPUArg() []string {
 	if err != nil {
 		return []string{}
 	}
-	if vm.Config.CPU > uint32(hostCpus) || vm.Config.CPU > math.MaxUint16 {
+	if !util.NumCpusValid(vmCpus) || vm.Config.CPU > math.MaxUint16 {
 		vmCpus = hostCpus
 	} else {
 		vmCpus = uint16(vm.Config.CPU)

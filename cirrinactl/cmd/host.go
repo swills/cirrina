@@ -18,7 +18,7 @@ var HostNicsCmd = &cobra.Command{
 			return fmt.Errorf("failed getting host nics: %w", err)
 		}
 		for _, nic := range res {
-			fmt.Printf("nic: %s\n", nic.InterfaceName)
+			fmt.Printf("nic: %s\n", nic)
 		}
 
 		return nil

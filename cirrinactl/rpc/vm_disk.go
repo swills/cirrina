@@ -25,7 +25,7 @@ func GetVMDisks(vmID string) ([]string, error) {
 		if err != nil {
 			return []string{}, fmt.Errorf("unable to get VM disks: %w", err)
 		}
-		diskIDs = append(diskIDs, diskID.Value)
+		diskIDs = append(diskIDs, diskID.GetValue())
 	}
 
 	return diskIDs, nil
@@ -43,5 +43,5 @@ func VMSetDisks(id string, diskIDs []string) (bool, error) {
 		return false, fmt.Errorf("unable to set VM disks: %w", err)
 	}
 
-	return res.Success, nil
+	return res.GetSuccess(), nil
 }

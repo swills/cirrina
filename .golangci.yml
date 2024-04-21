@@ -89,6 +89,7 @@ linters:
     - goimports
     - nonamedreturns
     - varnamelen
+    - protogetter
 
 issues:
   exclude-rules:

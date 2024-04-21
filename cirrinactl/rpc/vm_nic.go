@@ -25,7 +25,7 @@ func GetVMNics(id string) ([]string, error) {
 		if err != nil {
 			return []string{}, fmt.Errorf("unable to get VM nics: %w", err)
 		}
-		vmNics = append(vmNics, res2.Value)
+		vmNics = append(vmNics, res2.GetValue())
 	}
 
 	return vmNics, nil
@@ -43,5 +43,5 @@ func VMSetNics(id string, nicIDs []string) (bool, error) {
 		return false, fmt.Errorf("unable to set VM nics: %w", err)
 	}
 
-	return res.Success, nil
+	return res.GetSuccess(), nil
 }

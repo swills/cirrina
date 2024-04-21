@@ -671,3 +671,18 @@ func multiplyWillOverflow(xVal, yVal uint64) bool {
 
 	return d/yVal != xVal
 }
+
+func NumCpusValid(numCpus uint16) bool {
+	hostCpus, err := GetHostMaxVMCpus()
+	if err != nil {
+		slog.Error("error getting number of host cpus", "err", err)
+
+		return false
+	}
+
+	if numCpus > hostCpus {
+		return false
+	}
+
+	return true
+}
