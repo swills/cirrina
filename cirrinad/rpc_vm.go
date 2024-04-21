@@ -17,8 +17,10 @@ import (
 	"cirrina/cirrinad/vm"
 )
 
-var defaultVMCpuCount uint32 = 1
-var defaultVMMemCount uint32 = 128
+var (
+	defaultVMCpuCount uint32 = 1
+	defaultVMMemCount uint32 = 128
+)
 
 func (s *server) UpdateVM(_ context.Context, vmConfig *cirrina.VMConfig) (*cirrina.ReqBool, error) {
 	res := cirrina.ReqBool{}

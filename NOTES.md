@@ -16,6 +16,7 @@
   * Avoid quit info message and pause on startup
   * Avoid clearing screen
   * If logging, fetch last N bytes from log and play them back
+  * Remain running on VM shutdown, either just displaying what was there, or polling the VM for startup
 * Disk resize -- include force flag to allow reducing disk size which includes data loss
 * Fix setting the switch on a NIC while a VM is running
   * Currently, it won't work until you stop then start the VM

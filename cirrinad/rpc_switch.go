@@ -142,7 +142,8 @@ func (s *server) RemoveSwitch(_ context.Context, switchID *cirrina.SwitchId) (*c
 }
 
 func (s *server) SetSwitchUplink(_ context.Context,
-	switchUplinkReq *cirrina.SwitchUplinkReq) (*cirrina.ReqBool, error) {
+	switchUplinkReq *cirrina.SwitchUplinkReq,
+) (*cirrina.ReqBool, error) {
 	var res cirrina.ReqBool
 	res.Success = false
 
@@ -209,7 +210,8 @@ func (s *server) SetSwitchUplink(_ context.Context,
 }
 
 func (s *server) SetSwitchInfo(_ context.Context,
-	switchInfoUpdate *cirrina.SwitchInfoUpdate) (*cirrina.ReqBool, error) {
+	switchInfoUpdate *cirrina.SwitchInfoUpdate,
+) (*cirrina.ReqBool, error) {
 	var res cirrina.ReqBool
 	res.Success = false
 
