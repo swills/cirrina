@@ -13,22 +13,27 @@ import (
 
 func UseCom(vmID string, comNum int) error {
 	var err error
+	var stream cirrina.VMInfo_Com1InteractiveClient
+	var cancel context.CancelFunc
 
 	if vmID == "" {
 		return errVMEmptyID
 	}
-	bgCtx, cancel := context.WithCancel(context.Background())
-	var stream cirrina.VMInfo_Com1InteractiveClient
 
+	defaultServerContext, cancel = context.WithCancel(context.Background())
 	switch comNum {
 	case 1:
-		stream, err = serverClient.Com1Interactive(bgCtx)
+		stream, err = serverClient.Com1Interactive(defaultServerContext)
 	case 2:
-		stream, err = serverClient.Com2Interactive(bgCtx)
+		stream, err = serverClient.Com2Interactive(defaultServerContext)
 	case 3:
-		stream, err = serverClient.Com3Interactive(bgCtx)
+		stream, err = serverClient.Com3Interactive(defaultServerContext)
 	case 4:
-		stream, err = serverClient.Com4Interactive(bgCtx)
+		stream, err = serverClient.Com4Interactive(defaultServerContext)
+	default:
+		cancel()
+
+		return ErrInvalidComNum
 	}
 	if err != nil {
 		cancel()
@@ -36,44 +41,52 @@ func UseCom(vmID string, comNum int) error {
 		return fmt.Errorf("unable to use com: %w", err)
 	}
 
-	req := &cirrina.ComDataRequest{
-		Data: &cirrina.ComDataRequest_VmId{
-			VmId: &cirrina.VMID{Value: vmID},
-		},
-	}
-	err = stream.Send(req)
+	// setup stream
+	err = comStreamSetup(vmID, stream)
 	if err != nil {
 		cancel()
 
-		return fmt.Errorf("unable to use com: %w", err)
+		return err
 	}
 
-	// save term state and set up restore when done
-	var oldState *term.State
-	oldState, err = term.MakeRaw(int(os.Stdin.Fd()))
+	// save term state
+	oldState, err := comTermSetup()
 	if err != nil {
 		cancel()
 
-		return fmt.Errorf("unable to use com: %w", err)
+		return err
 	}
-	defer func(fd int, oldState *term.State) {
-		_ = stream.CloseSend()
-		_ = term.Restore(fd, oldState)
-	}(int(os.Stdin.Fd()), oldState)
 
-	// clear screen
-	fmt.Print("\033[H\033[2J")
+	defer func(stream cirrina.VMInfo_Com1InteractiveClient) {
+		comStreamCleanup(stream)
+	}(stream)
+	defer func(oldState *term.State) {
+		comTermCleanup(oldState)
+	}(oldState)
 
 	// send
-	go comSend(bgCtx, cancel, stream)
+	go comSend(defaultServerContext, cancel, stream)
 
 	// receive
-	go comReceive(bgCtx, cancel, stream)
+	go comReceive(defaultServerContext, cancel, stream)
 
 	// monitor that the VM is still up
+	return comMonitorVM(vmID, cancel)
+}
+
+func comTermCleanup(oldState *term.State) {
+	_ = term.Restore(int(os.Stdin.Fd()), oldState)
+}
+
+func comStreamCleanup(stream cirrina.VMInfo_Com1InteractiveClient) {
+	_ = stream.CloseSend()
+}
+
+func comMonitorVM(vmID string, cancel context.CancelFunc) error {
+	var err error
 	for {
 		select {
-		case <-bgCtx.Done():
+		case <-defaultServerContext.Done():
 			return nil
 		default:
 			var res string
@@ -93,6 +106,35 @@ func UseCom(vmID string, comNum int) error {
 			time.Sleep(1 * time.Second)
 		}
 	}
+}
+
+func comTermSetup() (*term.State, error) {
+	var err error
+	var oldState *term.State
+	oldState, err = term.MakeRaw(int(os.Stdin.Fd()))
+	if err != nil {
+		return nil, fmt.Errorf("unable to use com: %w", err)
+	}
+
+	// clear screen
+	fmt.Print("\033[H\033[2J")
+
+	return oldState, nil
+}
+
+func comStreamSetup(vmID string, stream cirrina.VMInfo_Com1InteractiveClient) error {
+	var err error
+	req := &cirrina.ComDataRequest{
+		Data: &cirrina.ComDataRequest_VmId{
+			VmId: &cirrina.VMID{Value: vmID},
+		},
+	}
+	err = stream.Send(req)
+	if err != nil {
+		return fmt.Errorf("unable to use com: %w", err)
+	}
+
+	return nil
 }
 
 // comSend reads data from the local terminal and sends it to the remote serial port

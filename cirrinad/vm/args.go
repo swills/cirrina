@@ -395,7 +395,61 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 	return fbufArg, slot
 }
 
-func (vm *VM) getNetArg(slot int) ([]string, int) {
+func getNetTypeArg(netType string) (string, error) {
+	switch netType {
+	case "VIRTIONET":
+		return "virtio-net", nil
+	case "E1000":
+		return "e1000", nil
+	default:
+		slog.Debug("unknown net type, cannot configure", "netType", netType)
+
+		return "", errVMUnknownNetType
+	}
+}
+
+func getNetDevTypeArg(netDevType string, switchID string, vmName string) (string, string, error) {
+	var err error
+	var netDev string
+	var netDevArg string
+
+	switch netDevType {
+	case "TAP":
+		netDev, netDevArg, err = GetTapDev()
+		if err != nil {
+			slog.Error("GetTapDev error", "err", err)
+
+			return "", "", fmt.Errorf("error getting net dev arg: %w", err)
+		}
+
+		return netDev, netDevArg, nil
+	case "VMNET":
+		netDev, netDevArg, err = GetVmnetDev()
+		if err != nil {
+			slog.Error("GetVmnetDev error", "err", err)
+
+			return "", "", fmt.Errorf("error getting net dev arg: %w", err)
+		}
+
+		return netDev, netDevArg, nil
+	case "NETGRAPH":
+		netDev, netDevArg, err = _switch.GetNgDev(switchID, vmName)
+		if err != nil {
+			slog.Error("GetNgDev error", "err", err)
+
+			return "", "", fmt.Errorf("error getting net dev arg: %w", err)
+		}
+
+		return netDev, netDevArg, nil
+	default:
+		slog.Debug("unknown net dev type", "netDevType", netDevType)
+
+		return "", "", errVMUnknownNetDevType
+	}
+}
+
+func (vm *VM) getNetArgs(slot int) ([]string, int) {
+	var err error
 	var netArgs []string
 
 	originalSlot := slot
@@ -403,60 +457,31 @@ func (vm *VM) getNetArg(slot int) ([]string, int) {
 
 	for _, nicItem := range nicList {
 		slog.Debug("adding nic", "nic", nicItem)
-		var netType string
-		var netDevArg string
 
-		switch nicItem.NetType {
-		case "VIRTIONET":
-			netType = "virtio-net"
-		case "E1000":
-			netType = "e1000"
-		default:
+		var netType string
+		netType, err = getNetTypeArg(nicItem.NetType)
+		if err != nil {
 			slog.Debug("unknown net type, cannot configure", "netType", nicItem.NetType)
 
 			return []string{}, originalSlot
 		}
 
-		switch nicItem.NetDevType {
-		case "TAP":
-			nicItem.NetDev = GetTapDev()
-			err := nicItem.Save()
-			if err != nil {
-				slog.Error("failed to save net dev", "nic", nicItem.ID, "netdev", nicItem.NetDev)
+		var netDevArg string
 
-				return []string{}, slot
-			}
-			netDevArg = nicItem.NetDev
-		case "VMNET":
-			nicItem.NetDev = GetVmnetDev()
-			err := nicItem.Save()
-			if err != nil {
-				slog.Error("failed to save net dev", "nic", nicItem.ID, "netdev", nicItem.NetDev)
-
-				return []string{}, slot
-			}
-			netDevArg = nicItem.NetDev
-		case "NETGRAPH":
-			ngNetDev, ngPeerHook, err := _switch.GetNgDev(nicItem.SwitchID)
-			if err != nil {
-				slog.Error("GetNgDev error", "err", err)
-
-				return []string{}, slot
-			}
-			nicItem.NetDev = ngNetDev + "," + ngPeerHook
-			err = nicItem.Save()
-			if err != nil {
-				slog.Error("failed to save net dev", "nic", nicItem.ID, "netdev", nicItem.NetDev)
-
-				return []string{}, slot
-			}
-			netDevArg = "netgraph,path=" + ngNetDev + ":,peerhook=" + ngPeerHook + ",socket=" + vm.Name
-		default:
-			slog.Debug("unknown net dev type", "netDevType", nicItem.NetDevType)
+		nicItem.NetDev, netDevArg, err = getNetDevTypeArg(nicItem.NetDevType, nicItem.SwitchID, vm.Name)
+		if err != nil {
+			slog.Error("GetTapDev error", "err", err)
 
 			return []string{}, slot
 		}
-		slog.Debug("getNetArg", "netdevarg", netDevArg)
+
+		err = nicItem.Save()
+		if err != nil {
+			slog.Error("failed to save net dev", "nic", nicItem.ID, "netdev", nicItem.NetDev)
+
+			return []string{}, slot
+		}
+
 		macAddress := GetMac(nicItem, vm)
 		var macString string
 		if macAddress != "" {
@@ -477,7 +502,7 @@ func GetMac(thisNic vmnic.VMNic, thisVM *VM) string {
 		// 1. Bhyve is still using the NetApp MAC:
 		// https://cgit.freebsd.org/src/tree/usr.sbin/bhyve/net_utils.c?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n115
 		// 2. We want to be able to distinguish our VMs from other VMs
-		slog.Debug("getNetArg: Generating MAC")
+		slog.Debug("getNetArgs: Generating MAC")
 		thisNicHashData := MacHashData{
 			thisVM.ID,
 			thisVM.Name,
@@ -486,15 +511,15 @@ func GetMac(thisNic vmnic.VMNic, thisVM *VM) string {
 		}
 		nicHash, err := rxhash.HashStruct(thisNicHashData)
 		if err != nil {
-			slog.Error("getNetArg error generating mac", "err", err)
+			slog.Error("getNetArgs error generating mac", "err", err)
 
 			return ""
 		}
-		slog.Debug("getNetArg", "nicHash", nicHash)
+		slog.Debug("getNetArgs", "nicHash", nicHash)
 		mac := string(nicHash[0]) + string(nicHash[1]) + ":" +
 			string(nicHash[2]) + string(nicHash[3]) + ":" +
 			string(nicHash[4]) + string(nicHash[5])
-		slog.Debug("getNetArg", "mac", mac)
+		slog.Debug("getNetArgs", "mac", mac)
 		macAddress = config.Config.Network.Mac.Oui + ":" + mac
 	} else {
 		macAddress = thisNic.Mac
@@ -503,9 +528,8 @@ func GetMac(thisNic vmnic.VMNic, thisVM *VM) string {
 	return macAddress
 }
 
-// TODO move to _switch
-
-func GetTapDev() string {
+// GetTapDev returns the netDev (stored in DB) and netDevArg (passed to bhyve) -- both happen to be the same here
+func GetTapDev() (string, string, error) {
 	freeTapDevFound := false
 	var netDevs []string
 	tapDev := ""
@@ -523,12 +547,11 @@ func GetTapDev() string {
 		}
 	}
 
-	return tapDev
+	return tapDev, tapDev, nil
 }
 
-// TODO move to _switch
-
-func GetVmnetDev() string {
+// GetVmnetDev returns the netDev (stored in DB) and netDevArg (passed to bhyve) -- both happen to be the same here
+func GetVmnetDev() (string, string, error) {
 	freeVmnetDevFound := false
 	var netDevs []string
 	vmnetDev := ""
@@ -546,7 +569,7 @@ func GetVmnetDev() string {
 		}
 	}
 
-	return vmnetDev
+	return vmnetDev, vmnetDev, nil
 }
 
 func getCom(comDev string, vmName string, num int) ([]string, string) {
@@ -565,81 +588,66 @@ func getCom(comDev string, vmName string, num int) ([]string, string) {
 
 func (vm *VM) generateCommandLine() (string, []string) {
 	var args []string
+
 	// we always start with sudo, at least until bhyve can run as non-root
 	// and no, 'doas' does not work for our needs
 	name := config.Config.Sys.Sudo
-	slot := 0
-	var com1Arg []string
-	var com2Arg []string
-	var com3Arg []string
-	var com4Arg []string
-	var cdArg []string
-	com1Dev := ""
-	com2Dev := ""
-	com3Dev := ""
-	com4Dev := ""
-	cpuArg := vm.getCPUArg()
-	memArg := vm.getMemArg()
-	acpiArg := vm.getACPIArg()
-	haltArg := vm.getHLTArg()
-	eopArg := vm.getEOPArg()
-	wireArg := vm.getWireArg()
-	dpoArg := vm.getDPOArg()
-	msrArg := vm.getMSRArg()
-	utcArg := vm.getUTCArg()
-	romArg := vm.getROMArg()
-	debugArg := vm.getDebugArg()
-	hostBridgeArg, slot := vm.getHostBridgeArg(slot)
-	fbufArg, slot := vm.getVideoArg(slot)
-	tabletArg, slot := vm.getTabletArg(slot)
-	netArg, slot := vm.getNetArg(slot)
-	diskArg, slot := vm.getDiskArg(slot)
-	cdArg, slot = vm.getCDArg(slot)
-	soundArg, slot := vm.getSoundArg(slot)
-	if vm.Config.Com1 {
-		com1Arg, com1Dev = getCom(vm.Config.Com1Dev, vm.Name, 1)
-	}
-	if vm.Config.Com2 {
-		com2Arg, com2Dev = getCom(vm.Config.Com2Dev, vm.Name, 2)
-	}
-	if vm.Config.Com3 {
-		com3Arg, com3Dev = getCom(vm.Config.Com3Dev, vm.Name, 3)
-	}
-	if vm.Config.Com4 {
-		com4Arg, com4Dev = getCom(vm.Config.Com4Dev, vm.Name, 4)
-	}
 
-	vm.Com1Dev = com1Dev
-	vm.Com2Dev = com2Dev
-	vm.Com3Dev = com3Dev
-	vm.Com4Dev = com4Dev
+	slot := 0
+	hostBridgeArg, fbufArg, tabletArg, netArg, diskArg, cdArg, soundArg, lpcArg := getSlotArgs(slot, vm)
+
+	com1Arg, com2Arg, com3Arg, com4Arg := getComArgs(vm)
+
+	args = addProtectArgs(vm, args)
+	args = addPriorityArgs(vm, args)
+	args = append(args, "/usr/sbin/bhyve")
+	args = append(args, "-U", vm.ID)
+	args = addSomeArgs(args, vm)
+	args = addSlotArgs(args, hostBridgeArg, cdArg, fbufArg, tabletArg, netArg, diskArg, soundArg, lpcArg)
+	args = addComArgs(com1Arg, args, com2Arg, com3Arg, com4Arg)
+	args = append(args, vm.getExtraArg()...)
+	args = append(args, vm.Name)
+
 	_ = vm.Save()
 
-	lpcArg, slot := vm.getLPCArg(slot)
+	return name, args
+}
 
-	kbdArg := vm.getKeyboardArg()
-
-	extraArgs := vm.getExtraArg()
-
-	if vm.Config.Protect.Valid && vm.Config.Protect.Bool {
-		args = append(args, "/usr/bin/protect")
-	}
+func addPriorityArgs(vm *VM, args []string) []string {
 	if vm.Config.Priority != 0 {
 		args = append(args, "/usr/bin/nice", "-n", strconv.FormatInt(int64(vm.Config.Priority), 10))
 	}
-	args = append(args, "/usr/sbin/bhyve")
-	args = append(args, kbdArg...)
-	args = append(args, acpiArg...)
-	args = append(args, haltArg...)
-	args = append(args, eopArg...)
-	args = append(args, wireArg...)
-	args = append(args, dpoArg...)
-	args = append(args, msrArg...)
-	args = append(args, utcArg...)
-	args = append(args, romArg...)
-	args = append(args, debugArg...)
-	args = append(args, cpuArg...)
-	args = append(args, memArg...)
+
+	return args
+}
+
+func addProtectArgs(vm *VM, args []string) []string {
+	if vm.Config.Protect.Valid && vm.Config.Protect.Bool {
+		args = append(args, "/usr/bin/protect")
+	}
+
+	return args
+}
+
+func addComArgs(com1Arg []string, args []string, com2Arg []string, com3Arg []string, com4Arg []string) []string {
+	if len(com1Arg) != 0 {
+		args = append(args, com1Arg...)
+	}
+	if len(com2Arg) != 0 {
+		args = append(args, com2Arg...)
+	}
+	if len(com3Arg) != 0 {
+		args = append(args, com3Arg...)
+	}
+	if len(com4Arg) != 0 {
+		args = append(args, com4Arg...)
+	}
+
+	return args
+}
+
+func addSlotArgs(args []string, hostBridgeArg []string, cdArg []string, fbufArg []string, tabletArg []string,
+	netArg []string, diskArg []string, soundArg []string, lpcArg []string) []string {
 	args = append(args, hostBridgeArg...)
 	args = append(args, cdArg...)
 	args = append(args, fbufArg...)
@@ -648,26 +656,58 @@ func (vm *VM) generateCommandLine() (string, []string) {
 	args = append(args, diskArg...)
 	args = append(args, soundArg...)
 	args = append(args, lpcArg...)
-	if len(com1Arg) != 0 {
-		slog.Debug("com1Arg", "com1Arg", com1Arg)
-		args = append(args, com1Arg...)
-	}
-	if len(com2Arg) != 0 {
-		slog.Debug("com2Arg", "com2Arg", com2Arg)
-		args = append(args, com2Arg...)
-	}
-	if len(com3Arg) != 0 {
-		slog.Debug("com3Arg", "com3Arg", com3Arg)
-		args = append(args, com3Arg...)
-	}
-	if len(com4Arg) != 0 {
-		slog.Debug("com4Arg", "com4Arg", com4Arg)
-		args = append(args, com4Arg...)
-	}
-	args = append(args, extraArgs...)
-	args = append(args, "-U", vm.ID)
-	args = append(args, vm.Name)
-	slog.Debug("generateCommandLine last slot", "slot", slot)
 
-	return name, args
+	return args
+}
+
+func addSomeArgs(args []string, aVM *VM) []string {
+	args = append(args, aVM.getKeyboardArg()...)
+	args = append(args, aVM.getACPIArg()...)
+	args = append(args, aVM.getHLTArg()...)
+	args = append(args, aVM.getEOPArg()...)
+	args = append(args, aVM.getWireArg()...)
+	args = append(args, aVM.getDPOArg()...)
+	args = append(args, aVM.getMSRArg()...)
+	args = append(args, aVM.getUTCArg()...)
+	args = append(args, aVM.getROMArg()...)
+	args = append(args, aVM.getDebugArg()...)
+	args = append(args, aVM.getCPUArg()...)
+	args = append(args, aVM.getMemArg()...)
+
+	return args
+}
+
+func getSlotArgs(slot int, aVM *VM) ([]string, []string, []string, []string, []string, []string, []string, []string) {
+	hostBridgeArg, slot := aVM.getHostBridgeArg(slot)
+	fbufArg, slot := aVM.getVideoArg(slot)
+	tabletArg, slot := aVM.getTabletArg(slot)
+	netArg, slot := aVM.getNetArgs(slot)
+	diskArg, slot := aVM.getDiskArg(slot)
+	cdArg, slot := aVM.getCDArg(slot)
+	soundArg, slot := aVM.getSoundArg(slot)
+	lpcArg, slot := aVM.getLPCArg(slot)
+	slog.Debug("last slot", "slot", slot)
+
+	return hostBridgeArg, fbufArg, tabletArg, netArg, diskArg, cdArg, soundArg, lpcArg
+}
+
+func getComArgs(aVM *VM) ([]string, []string, []string, []string) {
+	var com1Arg []string
+	var com2Arg []string
+	var com3Arg []string
+	var com4Arg []string
+	if aVM.Config.Com1 {
+		com1Arg, aVM.Com1Dev = getCom(aVM.Config.Com1Dev, aVM.Name, 1)
+	}
+	if aVM.Config.Com2 {
+		com2Arg, aVM.Com2Dev = getCom(aVM.Config.Com2Dev, aVM.Name, 2)
+	}
+	if aVM.Config.Com3 {
+		com3Arg, aVM.Com3Dev = getCom(aVM.Config.Com3Dev, aVM.Name, 3)
+	}
+	if aVM.Config.Com4 {
+		com4Arg, aVM.Com4Dev = getCom(aVM.Config.Com4Dev, aVM.Name, 4)
+	}
+
+	return com1Arg, com2Arg, com3Arg, com4Arg
 }

@@ -40,49 +40,10 @@ func (s *server) UpdateVM(_ context.Context, vmConfig *cirrina.VMConfig) (*cirri
 		return &res, errNotFound
 	}
 
-	err = updateVMBasics(vmConfig, vmInst)
+	err = updateVMAll(vmConfig, vmInst)
 	if err != nil {
 		return &res, err
 	}
-
-	err = updateVMCom1(vmConfig, vmInst)
-	if err != nil {
-		return &res, err
-	}
-	err = updateVMCom2(vmConfig, vmInst)
-	if err != nil {
-		return &res, err
-	}
-	err = updateVMCom3(vmConfig, vmInst)
-	if err != nil {
-		return &res, err
-	}
-	err = updateVMCom4(vmConfig, vmInst)
-	if err != nil {
-		return &res, err
-	}
-
-	updateVMScreen(vmConfig, vmInst)
-	err = updateVMScreenOptions(vmConfig, vmInst)
-	if err != nil {
-		return &res, err
-	}
-
-	err = updateVMSound(vmConfig, vmInst)
-	if err != nil {
-		return &res, err
-	}
-
-	updateVMStart(vmConfig, vmInst)
-	updateVMAdvanced1(vmConfig, vmInst)
-	updateVMAdvanced2(vmConfig, vmInst)
-
-	err = updateVMDebug(vmConfig, vmInst)
-	if err != nil {
-		return &res, err
-	}
-
-	updateVMPriorityLimits(vmConfig, vmInst)
 
 	err = vmInst.Save()
 	if err != nil {
@@ -91,6 +52,49 @@ func (s *server) UpdateVM(_ context.Context, vmConfig *cirrina.VMConfig) (*cirri
 	res.Success = true
 
 	return &res, nil
+}
+
+func updateVMAll(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
+	var err error
+	err = updateVMBasics(vmConfig, vmInst)
+	if err != nil {
+		return err
+	}
+	err = updateVMCom1(vmConfig, vmInst)
+	if err != nil {
+		return err
+	}
+	err = updateVMCom2(vmConfig, vmInst)
+	if err != nil {
+		return err
+	}
+	err = updateVMCom3(vmConfig, vmInst)
+	if err != nil {
+		return err
+	}
+	err = updateVMCom4(vmConfig, vmInst)
+	if err != nil {
+		return err
+	}
+	updateVMScreen(vmConfig, vmInst)
+	err = updateVMScreenOptions(vmConfig, vmInst)
+	if err != nil {
+		return err
+	}
+	err = updateVMSound(vmConfig, vmInst)
+	if err != nil {
+		return err
+	}
+	updateVMStart(vmConfig, vmInst)
+	updateVMAdvanced1(vmConfig, vmInst)
+	updateVMAdvanced2(vmConfig, vmInst)
+	err = updateVMDebug(vmConfig, vmInst)
+	if err != nil {
+		return err
+	}
+	updateVMPriorityLimits(vmConfig, vmInst)
+
+	return nil
 }
 
 func updateVMPriorityLimits(vmConfig *cirrina.VMConfig, vmInst *vm.VM) {
@@ -513,55 +517,107 @@ func (s *server) GetVMConfig(_ context.Context, vmID *cirrina.VMID) (*cirrina.VM
 	if vmInst.Name == "" {
 		return &pvm, errNotFound
 	}
+
 	pvm.Id = vmID.GetValue()
 	pvm.Name = &vmInst.Name
 	pvm.Description = &vmInst.Description
 	pvm.Cpu = &vmInst.Config.CPU
 	pvm.Mem = &vmInst.Config.Mem
-	pvm.MaxWait = &vmInst.Config.MaxWait
-	pvm.Restart = &vmInst.Config.Restart
-	pvm.RestartDelay = &vmInst.Config.RestartDelay
+
+	getVMConfigCom1(&pvm, vmInst)
+	getVMConfigCom2(&pvm, vmInst)
+	getVMConfigCom3(&pvm, vmInst)
+	getVMConfigCom4(&pvm, vmInst)
+	getVMConfigScreen(&pvm, vmInst)
+	getVMConfigScreenOptions(&pvm, vmInst)
+	getVMCOnfigSound(&pvm, vmInst)
+	getVMConfigStart(&pvm, vmInst)
+	getVMConfigAdvanced1(&pvm, vmInst)
+	getVMConfigAdvanced2(&pvm, vmInst)
+	getVMConfigDebug(&pvm, vmInst)
+	getVMConfigPriorityLimits(&pvm, vmInst)
+
+	return &pvm, nil
+}
+
+func getVMConfigCom1(pvm *cirrina.VMConfig, vmInst *vm.VM) {
+	pvm.Com1 = &vmInst.Config.Com1
+	pvm.Com1Dev = &vmInst.Config.Com1Dev
+	pvm.Com1Log = &vmInst.Config.Com1Log
+	pvm.Com1Speed = &vmInst.Config.Com1Speed
+}
+
+func getVMConfigCom2(pvm *cirrina.VMConfig, vmInst *vm.VM) {
+	pvm.Com2 = &vmInst.Config.Com2
+	pvm.Com2Dev = &vmInst.Config.Com2Dev
+	pvm.Com2Log = &vmInst.Config.Com2Log
+	pvm.Com2Speed = &vmInst.Config.Com2Speed
+}
+
+func getVMConfigCom3(pvm *cirrina.VMConfig, vmInst *vm.VM) {
+	pvm.Com3 = &vmInst.Config.Com3
+	pvm.Com3Dev = &vmInst.Config.Com3Dev
+	pvm.Com3Log = &vmInst.Config.Com3Log
+	pvm.Com3Speed = &vmInst.Config.Com3Speed
+}
+
+func getVMConfigCom4(pvm *cirrina.VMConfig, vmInst *vm.VM) {
+	pvm.Com4 = &vmInst.Config.Com4
+	pvm.Com4Dev = &vmInst.Config.Com4Dev
+	pvm.Com4Log = &vmInst.Config.Com4Log
+	pvm.Com4Speed = &vmInst.Config.Com4Speed
+}
+
+func getVMConfigScreen(pvm *cirrina.VMConfig, vmInst *vm.VM) {
 	pvm.Screen = &vmInst.Config.Screen
 	pvm.ScreenWidth = &vmInst.Config.ScreenWidth
 	pvm.ScreenHeight = &vmInst.Config.ScreenHeight
-	pvm.Vncwait = &vmInst.Config.VNCWait
+}
+
+func getVMConfigScreenOptions(pvm *cirrina.VMConfig, vmInst *vm.VM) {
 	pvm.Vncport = &vmInst.Config.VNCPort
-	pvm.Wireguestmem = &vmInst.Config.WireGuestMem
+	pvm.Keyboard = &vmInst.Config.KbdLayout
 	pvm.Tablet = &vmInst.Config.Tablet
-	pvm.Storeuefi = &vmInst.Config.StoreUEFIVars
-	pvm.Utc = &vmInst.Config.UTCTime
+	pvm.Vncwait = &vmInst.Config.VNCWait
+}
+
+func getVMCOnfigSound(pvm *cirrina.VMConfig, vmInst *vm.VM) {
+	pvm.Sound = &vmInst.Config.Sound
+	pvm.SoundIn = &vmInst.Config.SoundIn
+	pvm.SoundOut = &vmInst.Config.SoundOut
+}
+
+func getVMConfigStart(pvm *cirrina.VMConfig, vmInst *vm.VM) {
+	pvm.Autostart = &vmInst.Config.AutoStart
+	pvm.AutostartDelay = &vmInst.Config.AutoStartDelay
+	pvm.Restart = &vmInst.Config.Restart
+	pvm.RestartDelay = &vmInst.Config.RestartDelay
+	pvm.MaxWait = &vmInst.Config.MaxWait
+}
+
+func getVMConfigAdvanced1(pvm *cirrina.VMConfig, vmInst *vm.VM) {
 	pvm.Hostbridge = &vmInst.Config.HostBridge
 	pvm.Acpi = &vmInst.Config.ACPI
+	pvm.Storeuefi = &vmInst.Config.StoreUEFIVars
+	pvm.Utc = &vmInst.Config.UTCTime
+	pvm.Wireguestmem = &vmInst.Config.WireGuestMem
+}
+
+func getVMConfigAdvanced2(pvm *cirrina.VMConfig, vmInst *vm.VM) {
 	pvm.Hlt = &vmInst.Config.UseHLT
 	pvm.Eop = &vmInst.Config.ExitOnPause
 	pvm.Dpo = &vmInst.Config.DestroyPowerOff
 	pvm.Ium = &vmInst.Config.IgnoreUnknownMSR
-	pvm.Keyboard = &vmInst.Config.KbdLayout
-	pvm.Autostart = &vmInst.Config.AutoStart
-	pvm.Sound = &vmInst.Config.Sound
-	pvm.SoundIn = &vmInst.Config.SoundIn
-	pvm.SoundOut = &vmInst.Config.SoundOut
-	pvm.Com1 = &vmInst.Config.Com1
-	pvm.Com1Dev = &vmInst.Config.Com1Dev
-	pvm.Com2 = &vmInst.Config.Com2
-	pvm.Com2Dev = &vmInst.Config.Com2Dev
-	pvm.Com3 = &vmInst.Config.Com3
-	pvm.Com3Dev = &vmInst.Config.Com3Dev
-	pvm.Com4 = &vmInst.Config.Com4
-	pvm.Com4Dev = &vmInst.Config.Com4Dev
-	pvm.Com1Log = &vmInst.Config.Com1Log
-	pvm.Com2Log = &vmInst.Config.Com2Log
-	pvm.Com3Log = &vmInst.Config.Com3Log
-	pvm.Com4Log = &vmInst.Config.Com4Log
-	pvm.Com1Speed = &vmInst.Config.Com1Speed
-	pvm.Com2Speed = &vmInst.Config.Com2Speed
-	pvm.Com3Speed = &vmInst.Config.Com3Speed
-	pvm.Com4Speed = &vmInst.Config.Com4Speed
-	pvm.AutostartDelay = &vmInst.Config.AutoStartDelay
 	pvm.ExtraArgs = &vmInst.Config.ExtraArgs
+}
+
+func getVMConfigDebug(pvm *cirrina.VMConfig, vmInst *vm.VM) {
 	pvm.Debug = &vmInst.Config.Debug
 	pvm.DebugWait = &vmInst.Config.DebugWait
 	pvm.DebugPort = &vmInst.Config.DebugPort
+}
+
+func getVMConfigPriorityLimits(pvm *cirrina.VMConfig, vmInst *vm.VM) {
 	pvm.Priority = &vmInst.Config.Priority
 	pvm.Protect = &vmInst.Config.Protect.Bool
 	pvm.Pcpu = &vmInst.Config.Pcpu
@@ -569,8 +625,6 @@ func (s *server) GetVMConfig(_ context.Context, vmID *cirrina.VMID) (*cirrina.VM
 	pvm.Wbps = &vmInst.Config.Wbps
 	pvm.Riops = &vmInst.Config.Riops
 	pvm.Wiops = &vmInst.Config.Wiops
-
-	return &pvm, nil
 }
 
 func (s *server) GetVMs(_ *cirrina.VMsQuery, stream cirrina.VMInfo_GetVMsServer) error {

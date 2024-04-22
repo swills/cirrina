@@ -3,9 +3,11 @@ package vm
 import "errors"
 
 var (
-	errVMUnknownDiskType = errors.New("unknown disk type")
-	errVMNotFound        = errors.New("not found")
-	errVMDupe            = errors.New("VM already exists")
+	errVMUnknownDiskType   = errors.New("unknown disk type")
+	errVMUnknownNetType    = errors.New("unknown net type")
+	errVMUnknownNetDevType = errors.New("unknown net dev type")
+	errVMNotFound          = errors.New("not found")
+	errVMDupe              = errors.New("VM already exists")
 )
 
 var (

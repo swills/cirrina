@@ -141,32 +141,47 @@ func (s *server) RemoveSwitch(_ context.Context, switchID *cirrina.SwitchId) (*c
 	return &res, nil
 }
 
+func validateSetSwitchUplinkRequest(switchUplinkReq *cirrina.SwitchUplinkReq) (*_switch.Switch, error) {
+	var err error
+	var switchUUID uuid.UUID
+	var switchInst *_switch.Switch
+
+	if switchUplinkReq.GetSwitchid() == nil {
+		return nil, errInvalidID
+	}
+
+	switchUUID, err = uuid.Parse(switchUplinkReq.GetSwitchid().GetValue())
+	if err != nil {
+		return nil, errInvalidID
+	}
+
+	switchInst, err = _switch.GetByID(switchUUID.String())
+	if err != nil {
+		return nil, fmt.Errorf("error getting switch: %w", err)
+	}
+
+	if switchUplinkReq.Uplink == nil {
+		return nil, errSwitchInvalidUplink
+	}
+
+	return switchInst, nil
+}
+
 func (s *server) SetSwitchUplink(_ context.Context,
 	switchUplinkReq *cirrina.SwitchUplinkReq,
 ) (*cirrina.ReqBool, error) {
 	var res cirrina.ReqBool
+	var err error
+	var switchInst *_switch.Switch
 	res.Success = false
 
-	if switchUplinkReq.GetSwitchid() == nil {
-		return &res, errInvalidID
-	}
-
-	switchUUID, err := uuid.Parse(switchUplinkReq.GetSwitchid().GetValue())
+	switchInst, err = validateSetSwitchUplinkRequest(switchUplinkReq)
 	if err != nil {
-		return &res, errInvalidID
-	}
-
-	if switchUplinkReq.Uplink == nil {
-		return &res, errSwitchInvalidUplink
+		return &res, err
 	}
 
 	uplink := switchUplinkReq.GetUplink()
 	slog.Debug("SetSwitchUplink", "switch", switchUplinkReq.GetSwitchid().GetValue(), "uplink", uplink)
-	switchInst, err := _switch.GetByID(switchUUID.String())
-	if err != nil {
-		return &res, fmt.Errorf("error getting switch: %w", err)
-	}
-
 	if uplink == "" {
 		if switchInst.Uplink != "" {
 			slog.Debug("SetSwitchUplink", "msg", "unsetting switch uplink", "switchInst", switchInst)

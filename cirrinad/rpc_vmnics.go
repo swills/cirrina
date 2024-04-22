@@ -316,9 +316,47 @@ func (s *server) UpdateVMNic(_ context.Context, vmNicInfoUpdate *cirrina.VmNicIn
 		return &res, errInvalidRequest
 	}
 
+	err = vmNicParseUpdate(vmNicInfoUpdate, vmNicInst)
+	if err != nil {
+		return &res, fmt.Errorf("error saving NIC: %w", err)
+	}
+
+	var newRateLimit bool
+	var newRateIn uint64
+	var newRateOut uint64
+	if vmNicInfoUpdate.Ratelimit == nil {
+		newRateLimit = vmNicInst.RateLimit
+	} else {
+		newRateLimit = vmNicInfoUpdate.GetRatelimit()
+	}
+	if vmNicInfoUpdate.Ratein == nil {
+		newRateIn = vmNicInst.RateIn
+	} else {
+		newRateIn = vmNicInfoUpdate.GetRatein()
+	}
+	if vmNicInfoUpdate.Rateout == nil {
+		newRateOut = vmNicInst.RateOut
+	} else {
+		newRateOut = vmNicInfoUpdate.GetRateout()
+	}
+
+	vmNicParseRateLimit(vmNicInst, newRateLimit, newRateIn, newRateOut)
+
+	err = vmNicInst.Save()
+	if err != nil {
+		return &res, fmt.Errorf("error saving NIC: %w", err)
+	}
+
+	res.Success = true
+
+	return &res, nil
+}
+
+func vmNicParseUpdate(vmNicInfoUpdate *cirrina.VmNicInfoUpdate, vmNicInst *vmnic.VMNic) error {
+	var err error
 	if vmNicInfoUpdate.Name != nil {
 		if !util.ValidNicName(vmNicInfoUpdate.GetName()) {
-			return &res, errInvalidName
+			return errInvalidName
 		}
 		vmNicInst.Name = vmNicInfoUpdate.GetName()
 	}
@@ -329,7 +367,7 @@ func (s *server) UpdateVMNic(_ context.Context, vmNicInfoUpdate *cirrina.VmNicIn
 		var newMac string
 		newMac, err = vmnic.ParseMac(vmNicInfoUpdate.GetMac())
 		if err != nil {
-			return &res, fmt.Errorf("error parsing MAC: %w", err)
+			return fmt.Errorf("error parsing MAC: %w", err)
 		}
 		vmNicInst.Mac = newMac
 	}
@@ -337,7 +375,7 @@ func (s *server) UpdateVMNic(_ context.Context, vmNicInfoUpdate *cirrina.VmNicIn
 		var newNetDevType string
 		newNetDevType, err = vmnic.ParseNetDevType(vmNicInfoUpdate.GetNetdevtype())
 		if err != nil {
-			return &res, fmt.Errorf("error parsing net dev type: %w", err)
+			return fmt.Errorf("error parsing net dev type: %w", err)
 		}
 		vmNicInst.NetDevType = newNetDevType
 	}
@@ -345,7 +383,7 @@ func (s *server) UpdateVMNic(_ context.Context, vmNicInfoUpdate *cirrina.VmNicIn
 		var newNetType string
 		newNetType, err = vmnic.ParseNetType(vmNicInfoUpdate.GetNettype())
 		if err != nil {
-			return &res, fmt.Errorf("error parsing net type: %w", err)
+			return fmt.Errorf("error parsing net type: %w", err)
 		}
 		vmNicInst.NetType = newNetType
 	}
@@ -353,22 +391,12 @@ func (s *server) UpdateVMNic(_ context.Context, vmNicInfoUpdate *cirrina.VmNicIn
 		var newSwitchID string
 		newSwitchID, err = _switch.ParseSwitchID(vmNicInfoUpdate.GetSwitchid(), vmNicInst.NetType)
 		if err != nil {
-			return &res, fmt.Errorf("error parsing switch ID: %w", err)
+			return fmt.Errorf("error parsing switch ID: %w", err)
 		}
 		vmNicInst.SwitchID = newSwitchID
 	}
-	vmNicParseRateLimit(vmNicInst,
-		vmNicInfoUpdate.GetRatelimit(), vmNicInfoUpdate.GetRatein(), vmNicInfoUpdate.GetRateout(),
-	)
 
-	err = vmNicInst.Save()
-	if err != nil {
-		return &res, fmt.Errorf("error saving NIC: %w", err)
-	}
-
-	res.Success = true
-
-	return &res, nil
+	return nil
 }
 
 func (s *server) CloneVMNic(_ context.Context, cloneReq *cirrina.VmNicCloneReq) (*cirrina.RequestID, error) {

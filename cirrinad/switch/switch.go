@@ -227,13 +227,8 @@ func DestroyBridges() {
 	}
 }
 
-func BridgeIfAddMember(bridgeName string, memberName string, learn bool) error {
-	// TODO
-	// netDevs := util.GetHostInterfaces()
-	//
-	// if !util.ContainsStr(netDevs, memberName) {
-	// 	return errors.New("invalid switch member name")
-	// }
+func BridgeIfAddMember(bridgeName string, memberName string) error {
+	// TODO - check that the member name is a host interface or a VM nic interface
 
 	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "addm", memberName)
 	var out bytes.Buffer
@@ -244,51 +239,6 @@ func BridgeIfAddMember(bridgeName string, memberName string, learn bool) error {
 	if err := cmd.Wait(); err != nil {
 		return fmt.Errorf("error running ifconfig: %w", err)
 	}
-
-	slog.Debug("learn info", "learn", learn)
-	// code I was testing for disabling "learning" on bridges, ie, being like vmware to a degree -- that is, not
-	// allow VMs to be "promiscuous" and snoop on each others traffic
-	// decided not to use right now. may come back to it later
-
-	// if !learn {
-	// slog.Debug("BridgeIfAddMember", "learn", learn, "mac", mac)
-	// cmd = exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "-learn", memberName)
-	// cmd.Stdout = &out
-	// if err := cmd.Start(); err != nil {
-	// 	return err
-	// }
-	// if err := cmd.Wait(); err != nil {
-	// 	slog.Error("failed running ifconfig", "err", err, "out", out)
-	// 	errtxt := fmt.Sprintf("ifconfig failed: err: %v, out: %v", err, out)
-	// 	return errors.New(errtxt)
-	// }
-	//
-	// cmd = exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "-discover", memberName)
-	// cmd.Stdout = &out
-	// if err := cmd.Start(); err != nil {
-	// 	return err
-	// }
-	// if err := cmd.Wait(); err != nil {
-	// 	slog.Error("failed running ifconfig", "err", err, "out", out)
-	// 	errtxt := fmt.Sprintf("ifconfig failed: err: %v, out: %v", err, out)
-	// 	return errors.New(errtxt)
-	// }
-	// if mac != "" {
-	// 	// https://cgit.freebsd.org/src/tree/sbin/ifconfig/ifbridge.c?id=eba230afba4932f02a1ca44efc797cf7499a5cb0#n405
-	// 	// patched this to 0
-	// 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/obj/usr/src/amd64.amd64/sbin/ifconfig/ifconfig",
-	//	bridgeName, "static", memberName, mac)
-	// 	cmd.Stdout = &out
-	// 	if err := cmd.Start(); err != nil {
-	// 		return err
-	// 	}
-	// 	if err := cmd.Wait(); err != nil {
-	// 		slog.Error("failed running ifconfig", "err", err, "out", out)
-	// 		errtxt := fmt.Sprintf("ifconfig failed: err: %v, out: %v", err, out)
-	// 		return errors.New(errtxt)
-	// 	}
-	// }
-	// }
 
 	return nil
 }
@@ -439,7 +389,8 @@ func ngGetBridgeNextLink(bridge string) (string, error) {
 	return nextLink, nil
 }
 
-func GetNgDev(switchID string) (string, string, error) {
+// GetNgDev returns the netDev (stored in DB) and netDevArg (passed to bhyve)
+func GetNgDev(switchID string, name string) (string, string, error) {
 	var err error
 
 	thisSwitch, err := GetByID(switchID)
@@ -454,7 +405,10 @@ func GetNgDev(switchID string) (string, string, error) {
 
 	nextLink := ngBridgeNextLink(bridgePeers)
 
-	return thisSwitch.Name, nextLink, nil
+	ngNetDev := thisSwitch.Name + "," + nextLink
+	netDevArg := "netgraph,path=" + thisSwitch.Name + ":,peerhook=" + nextLink + ",socket=" + name
+
+	return ngNetDev, netDevArg, nil
 }
 
 func (d *Switch) UnsetUplink() error {
@@ -499,60 +453,68 @@ func (d *Switch) SetUplink(uplink string) error {
 
 	switch d.Type {
 	case "IF":
-		alreadyUsed, err := MemberUsedByIfBridge(uplink)
-		if err != nil {
-			return err
-		}
-		if alreadyUsed {
-			slog.Error("another bridge already contains member, member can not be in two bridges of "+
-				"same type, skipping adding", "member", uplink,
-			)
-
-			return errSwitchUplinkInUse
-		}
-
-		slog.Debug("setting IF bridge uplink", "id", d.ID)
-		err = BridgeIfAddMember(d.Name, uplink, true)
-		if err != nil {
-			return err
-		}
-		d.Uplink = uplink
-		err = d.Save()
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return setUplinkIf(uplink, d)
 	case "NG":
-		// it can't be a member of another bridge already
-		alreadyUsed, err := MemberUsedByNgBridge(uplink)
-		if err != nil {
-			slog.Error("error checking if member already used", "err", err)
-
-			return err
-		}
-		if alreadyUsed {
-			slog.Error("another bridge already contains member, member can not be in two bridges of "+
-				"same type, skipping adding", "member", uplink,
-			)
-
-			return errSwitchUplinkInUse
-		}
-		slog.Debug("setting NG bridge uplink", "id", d.ID)
-		err = BridgeNgAddMember(d.Name, uplink)
-		if err != nil {
-			return err
-		}
-		d.Uplink = uplink
-		err = d.Save()
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return setUplinkNG(uplink, d)
 	default:
 		return errSwitchInvalidType
 	}
+}
+
+func setUplinkNG(uplink string, switchInst *Switch) error {
+	// it can't be a member of another bridge already
+	alreadyUsed, err := MemberUsedByNgBridge(uplink)
+	if err != nil {
+		slog.Error("error checking if member already used", "err", err)
+
+		return err
+	}
+	if alreadyUsed {
+		slog.Error("another bridge already contains member, member can not be in two bridges of "+
+			"same type, skipping adding", "member", uplink,
+		)
+
+		return errSwitchUplinkInUse
+	}
+	slog.Debug("setting NG bridge uplink", "id", switchInst.ID)
+	err = BridgeNgAddMember(switchInst.Name, uplink)
+	if err != nil {
+		return err
+	}
+	switchInst.Uplink = uplink
+	err = switchInst.Save()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func setUplinkIf(uplink string, switchInst *Switch) error {
+	alreadyUsed, err := MemberUsedByIfBridge(uplink)
+	if err != nil {
+		return err
+	}
+	if alreadyUsed {
+		slog.Error("another bridge already contains member, member can not be in two bridges of "+
+			"same type, skipping adding", "member", uplink,
+		)
+
+		return errSwitchUplinkInUse
+	}
+
+	slog.Debug("setting IF bridge uplink", "id", switchInst.ID)
+	err = BridgeIfAddMember(switchInst.Name, uplink)
+	if err != nil {
+		return err
+	}
+	switchInst.Uplink = uplink
+	err = switchInst.Save()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (d *Switch) Save() error {

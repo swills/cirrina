@@ -113,12 +113,10 @@ func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) er
 }
 
 // FIXME -- cheating a bit here
-func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, comNum int) error {
+func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, comNum int) error { //nolint:funlen
 	var thisCom *serial.Port
 	var thisComLog bool
 	var thisRChan chan byte
-
-	slog.Debug("comInteractive starting", "comNum", comNum)
 
 	switch comNum {
 	case 1:

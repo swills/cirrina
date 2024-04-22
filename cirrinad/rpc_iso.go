@@ -79,39 +79,25 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 	var res cirrina.ReqBool
 	res.Success = false
 
-	req, err := stream.Recv()
+	isoUploadReq, isoInst, err := validateIsoUploadRequest(stream)
 	if err != nil {
-		slog.Error("cannot receive image info")
+		return err
 	}
-	isoUploadReq := req.GetIsouploadinfo()
-	if isoUploadReq == nil || isoUploadReq.GetIsoid() == nil {
-		slog.Error("nil isoUploadReq or iso id")
 
-		return errIsoUploadNil
-	}
-	isoUUID, err := uuid.Parse(isoUploadReq.GetIsoid().GetValue())
-	if err != nil {
-		slog.Error("iso id not specified or invalid on upload")
-
-		return errInvalidID
-	}
-	isoInst, err := iso.GetByID(isoUUID.String())
-	if err != nil {
-		slog.Error("error getting iso", "id", isoUUID.String(), "err", err)
-
-		return errNotFound
-	}
-	if isoInst.Name == "" {
-		slog.Debug("iso not found")
-
-		return errNotFound
-	}
 	if isoInst.Path == "" {
 		isoInst.Path = config.Config.Disk.VM.Path.Iso + string(os.PathSeparator) + isoInst.Name
 	}
 	isoInst.Size = isoUploadReq.GetSize()
 
-	err = receiveIsoFile(stream, isoUploadReq, isoInst)
+	var isoFile *os.File
+	isoFile, err = os.Create(isoInst.Path)
+	if err != nil {
+		slog.Error("Failed to open iso file", "err", err.Error())
+
+		return fmt.Errorf("error creating iso file: %w", err)
+	}
+
+	err = receiveIsoFile(stream, isoUploadReq, isoInst, isoFile)
 	if err != nil {
 		slog.Error("error during upload", "err", err)
 		err2 := stream.SendAndClose(&res)
@@ -143,17 +129,49 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 	return nil
 }
 
-func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina.ISOUploadInfo,
-	isoInst *iso.ISO,
-) error {
-	isoFile, err := os.Create(isoInst.Path)
-	if err != nil {
-		slog.Error("Failed to open iso file", "err", err.Error())
+func validateIsoUploadRequest(stream cirrina.VMInfo_UploadIsoServer) (*cirrina.ISOUploadInfo, *iso.ISO, error) {
+	var err error
+	var req *cirrina.ISOImageRequest
 
-		return fmt.Errorf("error creating iso file: %w", err)
+	req, err = stream.Recv()
+	if err != nil {
+		slog.Error("cannot receive image info")
+
+		return nil, nil, errIsoUploadNil
 	}
-	isoFileBuffer := bufio.NewWriter(isoFile)
+	isoUploadReq := req.GetIsouploadinfo()
+	if isoUploadReq == nil || isoUploadReq.GetIsoid() == nil {
+		slog.Error("nil isoUploadReq or iso id")
+
+		return nil, nil, errIsoUploadNil
+	}
+	isoUUID, err := uuid.Parse(isoUploadReq.GetIsoid().GetValue())
+	if err != nil {
+		slog.Error("iso id not specified or invalid on upload")
+
+		return nil, nil, errInvalidID
+	}
+	isoInst, err := iso.GetByID(isoUUID.String())
+	if err != nil {
+		slog.Error("error getting iso", "id", isoUUID.String(), "err", err)
+
+		return nil, nil, errNotFound
+	}
+	if isoInst.Name == "" {
+		slog.Debug("iso not found")
+
+		return nil, nil, errNotFound
+	}
+
+	return isoUploadReq, isoInst, nil
+}
+
+func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina.ISOUploadInfo,
+	isoInst *iso.ISO, isoFile *os.File,
+) error {
+	var err error
 	var imageSize uint64
+	isoFileBuffer := bufio.NewWriter(isoFile)
 
 	hasher := sha512.New()
 
@@ -161,24 +179,15 @@ func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina
 		var req *cirrina.ISOImageRequest
 		req, err = stream.Recv()
 		if errors.Is(err, io.EOF) {
-			slog.Debug("UploadIso", "msg", "no more data")
-
 			break
 		}
 		if err != nil {
-			slog.Error("UploadIso failed receiving", "err", err)
-
 			return fmt.Errorf("error receiving from stream: %w", err)
 		}
-
 		chunk := req.GetImage()
-		size := len(chunk)
-
-		imageSize += uint64(size)
+		imageSize += uint64(len(chunk))
 		_, err = isoFileBuffer.Write(chunk)
 		if err != nil {
-			slog.Error("UploadIso failed writing", "err", err)
-
 			return fmt.Errorf("error writing iso file: %w", err)
 		}
 		hasher.Write(chunk)
@@ -188,30 +197,17 @@ func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina
 	// flush buffer
 	err = isoFileBuffer.Flush()
 	if err != nil {
-		slog.Error("error flushing iso file", "err", err)
-
 		return fmt.Errorf("error flushing iso file: %w", err)
 	}
 
 	// verify size
 	if imageSize != isoUploadReq.GetSize() {
-		slog.Error("iso upload size incorrect",
-			"imageSize", imageSize,
-			"isoUPloadReq.Size", isoUploadReq.GetSize(),
-		)
-
 		return errIsoUploadSize
 	}
 	isoInst.Size = imageSize
-	slog.Debug("UploadIso image size correct")
 
 	// verify checksum
 	if imageChecksum != isoUploadReq.GetSha512Sum() {
-		slog.Error("iso upload checksum incorrect",
-			"imageChecksum", imageChecksum,
-			"isoUploadReq.Sha512Sum", isoUploadReq.GetSha512Sum(),
-		)
-
 		return errIsoUploadChecksum
 	}
 	isoInst.Checksum = imageChecksum

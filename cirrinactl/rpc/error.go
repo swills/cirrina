@@ -48,3 +48,5 @@ var (
 	errVMEmptyID   = errors.New("VM ID not specified")
 	errVMEmptyName = errors.New("VM name not specified")
 )
+
+var ErrInvalidComNum = errors.New("invalid com number")

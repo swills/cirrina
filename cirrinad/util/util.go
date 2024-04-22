@@ -575,9 +575,33 @@ func ValidateDBConfig() {
 
 func ParseDiskSize(diskSize string) (uint64, error) {
 	var err error
+	var diskSizeNum uint64
+
+	trimmedSize, multiplier := parseDiskSizeSuffix(diskSize)
+
+	diskSizeNum, err = strconv.ParseUint(trimmedSize, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed parsing disk size: %w", err)
+	}
+
+	if multiplyWillOverflow(diskSizeNum, multiplier) {
+		return 0, errInvalidDiskSize
+	}
+
+	finalSize := diskSizeNum * multiplier
+
+	// limit disks to min 512 bytes, max 128TB
+	if finalSize < 512 || finalSize > 1024*1024*1024*1024*128 {
+		return 0, errInvalidDiskSize
+	}
+
+	return finalSize, nil
+}
+
+func parseDiskSizeSuffix(diskSize string) (string, uint64) {
 	var trimmedSize string
 	var multiplier uint64
-	var diskSizeNum uint64
+
 	switch {
 	case strings.HasSuffix(diskSize, "b"):
 		trimmedSize = strings.TrimSuffix(diskSize, "b")
@@ -613,23 +637,8 @@ func ParseDiskSize(diskSize string) (uint64, error) {
 		trimmedSize = diskSize
 		multiplier = 1
 	}
-	diskSizeNum, err = strconv.ParseUint(trimmedSize, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("failed parsing disk size: %w", err)
-	}
 
-	if multiplyWillOverflow(diskSizeNum, multiplier) {
-		return 0, errInvalidDiskSize
-	}
-
-	finalSize := diskSizeNum * multiplier
-
-	// limit disks to min 512 bytes, max 128TB
-	if finalSize < 512 || finalSize > 1024*1024*1024*1024*128 {
-		return 0, errInvalidDiskSize
-	}
-
-	return finalSize, nil
+	return trimmedSize, multiplier
 }
 
 func GetHostMaxVMCpus() (uint16, error) {

@@ -229,14 +229,7 @@ func actualNgBridgeCreate(netDev string) error {
 
 		return fmt.Errorf("error running ngctl command: %w", err)
 	}
-	// useUplink := true
-	// var upper string
 	upper := "uplink"
-	// if useUplink {
-	// 	upper = "uplink"
-	// } else {
-	// 	upper = "link"
-	// }
 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "connect",
 		dummyIfBridgeName+":", netDev+":", "upper", upper+"1")
 	err = cmd.Run()
@@ -245,20 +238,6 @@ func actualNgBridgeCreate(netDev string) error {
 
 		return fmt.Errorf("failed running ngctl command: %w", err)
 	}
-	// cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
-	// 	dummyIfBridgeName+":", "setpromisc", "1")
-	// err = cmd.Run()
-	// if err != nil {
-	// 	slog.Error("ngctl msg setpromisc error", "err", err)
-	// 	return err
-	// }
-	// cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
-	// 	dummyIfBridgeName+":", "setautosrc", "0")
-	// err = cmd.Run()
-	// if err != nil {
-	// 	slog.Error("ngctl msg setautosrc error", "err", err)
-	// 	return err
-	// }
 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
 		netDev+":", "setpersistent")
 	err = cmd.Run()

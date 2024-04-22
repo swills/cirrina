@@ -116,7 +116,7 @@ var IsoCreateCmd = &cobra.Command{
 	},
 }
 
-func trackIsoUpload(isoProgressWriter progress.Writer, isoSize int64, isoFile *os.File) {
+func checksumWIthProgress(isoProgressWriter progress.Writer, isoSize int64) (string, error) {
 	var err error
 
 	checksumTracker := progress.Tracker{
@@ -130,7 +130,9 @@ func trackIsoUpload(isoProgressWriter progress.Writer, isoSize int64, isoFile *o
 	var isoHashFile *os.File
 	isoHashFile, err = os.Open(IsoFilePath)
 	if err != nil {
-		fmt.Printf("error opening file: %s\n", err)
+		checksumTracker.MarkAsErrored()
+
+		return "", fmt.Errorf("error opening file: %w", err)
 	}
 
 	hasher := sha512.New()
@@ -147,6 +149,8 @@ func trackIsoUpload(isoProgressWriter progress.Writer, isoSize int64, isoFile *o
 				complete = true
 			} else {
 				checksumTracker.MarkAsErrored()
+
+				return "", fmt.Errorf("error checksuming file: %w", err)
 			}
 		}
 	}
@@ -154,9 +158,20 @@ func trackIsoUpload(isoProgressWriter progress.Writer, isoSize int64, isoFile *o
 	isoChecksum := hex.EncodeToString(hasher.Sum(nil))
 	err = isoHashFile.Close()
 	if err != nil {
-		fmt.Printf("error closing file: %s\n", err)
+		checksumTracker.MarkAsErrored()
+
+		return "", fmt.Errorf("error closing file: %w", err)
 	}
 	checksumTracker.MarkAsDone()
+
+	return isoChecksum, nil
+}
+
+func trackIsoUpload(isoProgressWriter progress.Writer, isoSize int64, isoFile *os.File) {
+	isoChecksum, err := checksumWIthProgress(isoProgressWriter, isoSize)
+	if err != nil {
+		return
+	}
 
 	uploadTracker := progress.Tracker{
 		Message: "Uploading",
@@ -166,9 +181,6 @@ func trackIsoUpload(isoProgressWriter progress.Writer, isoSize int64, isoFile *o
 	isoProgressWriter.AppendTracker(&uploadTracker)
 	uploadTracker.Start()
 
-	if IsoID == "" {
-		panic("empty iso id")
-	}
 	var upload <-chan rpc.UploadStat
 	upload, err = rpc.IsoUpload(IsoID, isoChecksum, uint64(isoSize), isoFile)
 	if err != nil {

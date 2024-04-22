@@ -125,6 +125,142 @@ func IsoNameToID(name string) (string, error) {
 // 	return *res.Name, nil
 // }
 
+func isoUploadFile(isoID string, isoSize uint64, isoChecksum string, isoFile *os.File,
+	uploadStatChan chan<- UploadStat) {
+	var err error
+	var stream cirrina.VMInfo_UploadIsoClient
+
+	defer func(isoFile *os.File) {
+		_ = isoFile.Close()
+	}(isoFile)
+
+	// prevent timeouts
+	defaultServerContext = context.Background()
+
+	stream, err = serverClient.UploadIso(defaultServerContext)
+	if err != nil {
+		uploadStatChan <- UploadStat{
+			UploadedChunk: false,
+			Complete:      false,
+			Err:           err,
+		}
+	}
+
+	err = isoUploadFileSetupRequest(isoID, isoSize, isoChecksum, stream, uploadStatChan)
+	if err != nil {
+		return
+	}
+
+	err = isoUploadFileBytes(isoFile, stream, uploadStatChan)
+	if err != nil {
+		return
+	}
+
+	isoUploadFileComplete(stream, uploadStatChan)
+}
+
+func isoUploadFileBytes(isoFile *os.File,
+	stream cirrina.VMInfo_UploadIsoClient, uploadStatChan chan<- UploadStat) error {
+	var err error
+	reader := bufio.NewReader(isoFile)
+	buffer := make([]byte, 1024*1024)
+
+	var complete bool
+	var nBytesRead int
+	for !complete {
+		nBytesRead, err = reader.Read(buffer)
+		if errors.Is(err, io.EOF) {
+			complete = true
+		}
+		if err != nil && !errors.Is(err, io.EOF) {
+			uploadStatChan <- UploadStat{
+				UploadedChunk: false,
+				Complete:      false,
+				Err:           err,
+			}
+
+			return fmt.Errorf("error reading file bytes: %w", err)
+		}
+		dataReq := &cirrina.ISOImageRequest{
+			Data: &cirrina.ISOImageRequest_Image{
+				Image: buffer[:nBytesRead],
+			},
+		}
+		err = stream.Send(dataReq)
+		if err != nil {
+			uploadStatChan <- UploadStat{
+				UploadedChunk: false,
+				Complete:      false,
+				Err:           err,
+			}
+
+			return fmt.Errorf("error sending file bytes: %w", err)
+		}
+		uploadStatChan <- UploadStat{
+			UploadedChunk: true,
+			Complete:      false,
+			UploadedBytes: nBytesRead,
+			Err:           nil,
+		}
+	}
+
+	return nil
+}
+
+func isoUploadFileComplete(stream cirrina.VMInfo_UploadIsoClient, uploadStatChan chan<- UploadStat) {
+	var err error
+	var reply *cirrina.ReqBool
+	reply, err = stream.CloseAndRecv()
+	if err != nil {
+		uploadStatChan <- UploadStat{
+			UploadedChunk: false,
+			Complete:      false,
+			Err:           fmt.Errorf("unable to upload iso: %w", err),
+		}
+	}
+	if !reply.GetSuccess() {
+		uploadStatChan <- UploadStat{
+			UploadedChunk: false,
+			Complete:      false,
+			Err:           errReqFailed,
+		}
+	}
+
+	// finished!
+	uploadStatChan <- UploadStat{
+		UploadedChunk: false,
+		Complete:      true,
+		Err:           nil,
+	}
+}
+
+func isoUploadFileSetupRequest(isoID string, isoSize uint64, isoChecksum string,
+	stream cirrina.VMInfo_UploadIsoClient, uploadStatChan chan<- UploadStat) error {
+	var err error
+	setupReq := &cirrina.ISOImageRequest{
+		Data: &cirrina.ISOImageRequest_Isouploadinfo{
+			Isouploadinfo: &cirrina.ISOUploadInfo{
+				Isoid:     &cirrina.ISOID{Value: isoID},
+				Size:      isoSize,
+				Sha512Sum: isoChecksum,
+			},
+		},
+	}
+
+	err = stream.Send(setupReq)
+	if err != nil {
+		uploadStatChan <- UploadStat{
+			UploadedChunk: false,
+			Complete:      false,
+			Err:           fmt.Errorf("unable to upload iso: %w", err),
+		}
+
+		return fmt.Errorf("unable to upload iso: %w", err)
+	}
+
+	return nil
+}
+
 func IsoUpload(isoID string, isoChecksum string,
 	isoSize uint64, isoFile *os.File,
 ) (<-chan UploadStat, error) {
@@ -135,108 +271,7 @@ func IsoUpload(isoID string, isoChecksum string,
 	}
 
 	// actually send file, sending status to status channel
-	go func(isoFile *os.File, uploadStatChan chan<- UploadStat) {
-		defer func(isoFile *os.File) {
-			_ = isoFile.Close()
-		}(isoFile)
-		var err error
-
-		// prevent timeouts
-		defaultServerContext = context.Background()
-
-		thisIsoID := cirrina.ISOID{Value: isoID}
-
-		setupReq := &cirrina.ISOImageRequest{
-			Data: &cirrina.ISOImageRequest_Isouploadinfo{
-				Isouploadinfo: &cirrina.ISOUploadInfo{
-					Isoid:     &thisIsoID,
-					Size:      isoSize,
-					Sha512Sum: isoChecksum,
-				},
-			},
-		}
-
-		var stream cirrina.VMInfo_UploadIsoClient
-		stream, err = serverClient.UploadIso(defaultServerContext)
-		if err != nil {
-			uploadStatChan <- UploadStat{
-				UploadedChunk: false,
-				Complete:      false,
-				Err:           fmt.Errorf("unable to upload iso: %w", err),
-			}
-		}
-
-		err = stream.Send(setupReq)
-		if err != nil {
-			uploadStatChan <- UploadStat{
-				UploadedChunk: false,
-				Complete:      false,
-				Err:           fmt.Errorf("unable to upload iso: %w", err),
-			}
-		}
-
-		reader := bufio.NewReader(isoFile)
-		buffer := make([]byte, 1024*1024)
-
-		var complete bool
-		var nBytesRead int
-		for !complete {
-			nBytesRead, err = reader.Read(buffer)
-			if errors.Is(err, io.EOF) {
-				complete = true
-			}
-			if err != nil && !errors.Is(err, io.EOF) {
-				uploadStatChan <- UploadStat{
-					UploadedChunk: false,
-					Complete:      false,
-					Err:           fmt.Errorf("unable to upload iso: %w", err),
-				}
-			}
-			dataReq := &cirrina.ISOImageRequest{
-				Data: &cirrina.ISOImageRequest_Image{
-					Image: buffer[:nBytesRead],
-				},
-			}
-			err = stream.Send(dataReq)
-			if err != nil {
-				uploadStatChan <- UploadStat{
-					UploadedChunk: false,
-					Complete:      false,
-					Err:           fmt.Errorf("unable to upload iso: %w", err),
-				}
-			}
-			uploadStatChan <- UploadStat{
-				UploadedChunk: true,
-				Complete:      false,
-				UploadedBytes: nBytesRead,
-				Err:           nil,
-			}
-		}
-
-		var reply *cirrina.ReqBool
-		reply, err = stream.CloseAndRecv()
-		if err != nil {
-			uploadStatChan <- UploadStat{
-				UploadedChunk: false,
-				Complete:      false,
-				Err:           fmt.Errorf("unable to upload iso: %w", err),
-			}
-		}
-		if !reply.GetSuccess() {
-			uploadStatChan <- UploadStat{
-				UploadedChunk: false,
-				Complete:      false,
-				Err:           errReqFailed,
-			}
-		}
-
-		// finished!
-		uploadStatChan <- UploadStat{
-			UploadedChunk: false,
-			Complete:      true,
-			Err:           nil,
-		}
-	}(isoFile, uploadStatChan)
+	go isoUploadFile(isoID, isoSize, isoChecksum, isoFile, uploadStatChan)
 
 	return uploadStatChan, nil
 }

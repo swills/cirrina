@@ -11,8 +11,6 @@ var (
 	errInvalidName = errors.New("name not specified or invalid")
 )
 
-var errReqInvalid = errors.New("nil diskUploadReq or disk id")
-
 var (
 	errNotFound         = errors.New("not found")
 	errInvalidRequest   = errors.New("invalid request")
@@ -24,6 +22,9 @@ var (
 	errNicInUseByMultipleVMs = errors.New("nic in use by more than one VM")
 	errNicInUse              = errors.New("nic in use")
 	errNicUnknown            = errors.New("unknown error creating VMNic")
+	errNicExists             = errors.New("nic already exists")
+	errNicMacIsBroadcast     = errors.New("MAC is broadcast")
+	errNicMacIsMulticast     = errors.New("MAC is multicast")
 )
 
 var (

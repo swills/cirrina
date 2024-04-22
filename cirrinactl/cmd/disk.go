@@ -252,6 +252,54 @@ var DiskUpdateCmd = &cobra.Command{
 func trackDiskUpload(diskProgressWriter progress.Writer, diskSize int64, diskFile *os.File) {
 	var err error
 
+	diskChecksum, err := checksumWithProgress(diskProgressWriter, diskSize)
+	if err != nil {
+		return
+	}
+
+	uploadTracker := progress.Tracker{
+		Message: "Uploading",
+		Total:   diskSize,
+		Units:   progress.UnitsBytes,
+	}
+	diskProgressWriter.AppendTracker(&uploadTracker)
+	uploadTracker.Start()
+
+	var upload <-chan rpc.UploadStat
+	upload, err = rpc.DiskUpload(DiskID, diskChecksum, uint64(diskSize), diskFile)
+	if err != nil {
+		uploadTracker.MarkAsErrored()
+
+		return
+	}
+	for !uploadTracker.IsDone() {
+		uploadStatEvent := <-upload
+		if uploadStatEvent.Err != nil {
+			uploadTracker.MarkAsErrored()
+		}
+		if uploadStatEvent.UploadedChunk {
+			newTotal := uploadTracker.Value() + int64(uploadStatEvent.UploadedBytes)
+			if newTotal > diskSize {
+				fmt.Printf("uploaded more bytes than size of file")
+				uploadTracker.MarkAsErrored()
+
+				return
+			}
+			// prevent uploadTracker being done before the Complete message arrives
+			if newTotal == diskSize {
+				newTotal--
+			}
+			uploadTracker.SetValue(newTotal)
+		}
+		if uploadStatEvent.Complete {
+			uploadTracker.MarkAsDone()
+		}
+	}
+}
+
+func checksumWithProgress(diskProgressWriter progress.Writer, diskSize int64) (string, error) {
+	var err error
+
 	checksumTracker := progress.Tracker{
 		Message: "Calculating checksum",
 		Total:   diskSize,
@@ -263,7 +311,7 @@ func trackDiskUpload(diskProgressWriter progress.Writer, diskSize int64, diskFil
 	var diskHasherFile *os.File
 	diskHasherFile, err = os.Open(DiskFilePath)
 	if err != nil {
-		fmt.Printf("error opening file: %s\n", err)
+		return "", fmt.Errorf("error opening file: %w", err)
 	}
 
 	hasher := sha512.New()
@@ -280,6 +328,8 @@ func trackDiskUpload(diskProgressWriter progress.Writer, diskSize int64, diskFil
 				complete = true
 			} else {
 				checksumTracker.MarkAsErrored()
+
+				return "", fmt.Errorf("error hashing file: %w", err)
 			}
 		}
 	}
@@ -287,48 +337,11 @@ func trackDiskUpload(diskProgressWriter progress.Writer, diskSize int64, diskFil
 	diskChecksum := hex.EncodeToString(hasher.Sum(nil))
 	err = diskHasherFile.Close()
 	if err != nil {
-		fmt.Printf("error closing file: %s\n", err)
+		return "", fmt.Errorf("error closing file: %w", err)
 	}
 	checksumTracker.MarkAsDone()
 
-	uploadTracker := progress.Tracker{
-		Message: "Uploading",
-		Total:   diskSize,
-		Units:   progress.UnitsBytes,
-	}
-	diskProgressWriter.AppendTracker(&uploadTracker)
-	uploadTracker.Start()
-
-	if DiskID == "" {
-		panic("empty disk id")
-	}
-	var upload <-chan rpc.UploadStat
-	upload, err = rpc.DiskUpload(DiskID, diskChecksum, uint64(diskSize), diskFile)
-	if err != nil {
-		uploadTracker.MarkAsErrored()
-
-		return
-	}
-	for !uploadTracker.IsDone() {
-		uploadStatEvent := <-upload
-		if uploadStatEvent.Err != nil {
-			uploadTracker.MarkAsErrored()
-		}
-		if uploadStatEvent.UploadedChunk {
-			newTotal := uploadTracker.Value() + int64(uploadStatEvent.UploadedBytes)
-			if newTotal > diskSize {
-				panic("uploaded more bytes than size of file")
-			}
-			// prevent uploadTracker being done before the Complete message arrives
-			if newTotal == diskSize {
-				newTotal--
-			}
-			uploadTracker.SetValue(newTotal)
-		}
-		if uploadStatEvent.Complete {
-			uploadTracker.MarkAsDone()
-		}
-	}
+	return diskChecksum, nil
 }
 
 func uploadDiskWithStatus() error {
@@ -377,34 +390,45 @@ func uploadDiskWithStatus() error {
 	return nil
 }
 
-func uploadDiskWithoutStatus() error {
+func checksumWithoutProgress() (int64, string, error) {
 	var err error
 
 	var fi os.FileInfo
 	fi, err = os.Stat(DiskFilePath)
 	if err != nil {
-		return fmt.Errorf("failed stating disk: %w", err)
+		return 0, "", fmt.Errorf("failed stating disk: %w", err)
 	}
 	diskSize := fi.Size()
 
 	var diskHasherFile *os.File
 	diskHasherFile, err = os.Open(DiskFilePath)
 	if err != nil {
-		return fmt.Errorf("failed opening disk: %w", err)
+		return 0, "", fmt.Errorf("failed opening disk: %w", err)
 	}
 
 	hasher := sha512.New()
 
 	fmt.Printf("Calculating disk checksum\n")
 	if _, err = io.Copy(hasher, diskHasherFile); err != nil {
-		return fmt.Errorf("failed copying data from disk: %w", err)
+		return 0, "", fmt.Errorf("failed copying data from disk: %w", err)
 	}
 
 	diskChecksum := hex.EncodeToString(hasher.Sum(nil))
 	err = diskHasherFile.Close()
 	if err != nil {
-		return fmt.Errorf("failed closing disk: %w", err)
+		return 0, "", fmt.Errorf("failed closing disk: %w", err)
 	}
+
+	return diskSize, diskChecksum, nil
+}
+
+func uploadDiskWithoutStatus() error {
+	var err error
+	diskSize, diskChecksum, err := checksumWithoutProgress()
+	if err != nil {
+		return err
+	}
+
 	var diskFile *os.File
 	diskFile, err = os.Open(DiskFilePath)
 	if err != nil {
@@ -502,24 +526,73 @@ var DiskCmd = &cobra.Command{
 func init() {
 	disableFlagSorting(DiskCmd)
 
-	disableFlagSorting(DiskListCmd)
-	DiskListCmd.Flags().BoolVarP(&Humanize,
-		"human", "H", Humanize, "Print sizes in human readable form",
+	setupDiskListCmd()
+	err := setupDiskCreateCmd()
+	if err != nil {
+		panic(err)
+	}
+	setupDiskRemoveCmd()
+	setupDiskUpdateCmd()
+	err = setupDiskUploadCmd()
+	if err != nil {
+		panic(err)
+	}
+
+	DiskCmd.AddCommand(DiskListCmd)
+	DiskCmd.AddCommand(DiskCreateCmd)
+	DiskCmd.AddCommand(DiskRemoveCmd)
+	DiskCmd.AddCommand(DiskUpdateCmd)
+	DiskCmd.AddCommand(DiskUploadCmd)
+}
+
+func setupDiskUploadCmd() error {
+	disableFlagSorting(DiskUploadCmd)
+	addNameOrIDArgs(DiskUploadCmd, &DiskName, &DiskID, "disk")
+	DiskUploadCmd.Flags().StringVarP(&DiskFilePath,
+		"path", "p", DiskFilePath, "Path to Disk File to upload",
 	)
-	DiskListCmd.Flags().BoolVarP(&ShowUUID,
-		"uuid", "u", ShowUUID, "Show UUIDs",
+	err := DiskUploadCmd.MarkFlagRequired("path")
+	if err != nil {
+		return fmt.Errorf("error marking flag required: %w", err)
+	}
+	DiskUploadCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
+
+	return nil
+}
+
+func setupDiskUpdateCmd() {
+	disableFlagSorting(DiskUpdateCmd)
+	addNameOrIDArgs(DiskUpdateCmd, &DiskName, &DiskID, "disk")
+	DiskUpdateCmd.Flags().StringVarP(&DiskDescription,
+		"description", "d", DiskDescription, "description of disk",
 	)
+	DiskUpdateCmd.Flags().StringVarP(&DiskType, "type", "t", DiskType, "type of disk - nvme, ahci, or virtioblk")
+	DiskUpdateCmd.Flags().BoolVar(&DiskCache,
+		"cache", DiskCache, "Enable or disable OS caching for this disk",
+	)
+	DiskUpdateCmd.Flags().BoolVar(&DiskDirect,
+		"direct", DiskDirect, "Enable or disable synchronous writes for this disk",
+	)
+}
+
+func setupDiskRemoveCmd() {
+	disableFlagSorting(DiskRemoveCmd)
+	addNameOrIDArgs(DiskRemoveCmd, &DiskName, &DiskID, "disk")
+}
+
+func setupDiskCreateCmd() error {
+	var err error
 
 	disableFlagSorting(DiskCreateCmd)
 	DiskCreateCmd.Flags().StringVarP(&DiskName, "name", "n", DiskName, "name of disk")
-	err := DiskCreateCmd.MarkFlagRequired("name")
+	err = DiskCreateCmd.MarkFlagRequired("name")
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("error marking flag required: %w", err)
 	}
 	DiskCreateCmd.Flags().StringVarP(&DiskSize, "size", "s", DiskName, "size of disk")
 	err = DiskCreateCmd.MarkFlagRequired("size")
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("error marking flag required: %w", err)
 	}
 	DiskCreateCmd.Flags().StringVarP(&DiskDescription,
 		"description", "d", DiskDescription, "description of disk",
@@ -535,36 +608,15 @@ func init() {
 		"direct", DiskDirect, "Enable or disable synchronous writes for this disk",
 	)
 
-	disableFlagSorting(DiskRemoveCmd)
-	addNameOrIDArgs(DiskRemoveCmd, &DiskName, &DiskID, "disk")
+	return nil
+}
 
-	disableFlagSorting(DiskUpdateCmd)
-	addNameOrIDArgs(DiskUpdateCmd, &DiskName, &DiskID, "disk")
-	DiskUpdateCmd.Flags().StringVarP(&DiskDescription,
-		"description", "d", DiskDescription, "description of disk",
+func setupDiskListCmd() {
+	disableFlagSorting(DiskListCmd)
+	DiskListCmd.Flags().BoolVarP(&Humanize,
+		"human", "H", Humanize, "Print sizes in human readable form",
 	)
-	DiskUpdateCmd.Flags().StringVarP(&DiskType, "type", "t", DiskType, "type of disk - nvme, ahci, or virtioblk")
-	DiskUpdateCmd.Flags().BoolVar(&DiskCache,
-		"cache", DiskCache, "Enable or disable OS caching for this disk",
+	DiskListCmd.Flags().BoolVarP(&ShowUUID,
+		"uuid", "u", ShowUUID, "Show UUIDs",
 	)
-	DiskUpdateCmd.Flags().BoolVar(&DiskDirect,
-		"direct", DiskDirect, "Enable or disable synchronous writes for this disk",
-	)
-
-	disableFlagSorting(DiskUploadCmd)
-	addNameOrIDArgs(DiskUploadCmd, &DiskName, &DiskID, "disk")
-	DiskUploadCmd.Flags().StringVarP(&DiskFilePath,
-		"path", "p", DiskFilePath, "Path to Disk File to upload",
-	)
-	err = DiskUploadCmd.MarkFlagRequired("path")
-	if err != nil {
-		panic(err)
-	}
-	DiskUploadCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
-
-	DiskCmd.AddCommand(DiskListCmd)
-	DiskCmd.AddCommand(DiskCreateCmd)
-	DiskCmd.AddCommand(DiskRemoveCmd)
-	DiskCmd.AddCommand(DiskUpdateCmd)
-	DiskCmd.AddCommand(DiskUploadCmd)
 }

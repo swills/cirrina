@@ -197,79 +197,87 @@ func validateJailed() {
 	}
 }
 
+type cmdCheckData struct {
+	args           []string
+	expectedExit   int
+	expectedStdOut string
+	expectedStdErr string
+}
+
 func validateSudoCommands() {
 	var err error
 
-	err = checkSudoCmd(0, "", "", "/sbin/ifconfig")
-	if err != nil {
-		slog.Error("error running /sbin/ifconfig, check sudo config", "err", err.Error())
-		os.Exit(1)
-	}
+	allCmdChecks := getSudoCommandsList()
 
-	err = checkSudoCmd(0, "", "", "/sbin/zfs", "-V")
-	if err != nil {
-		slog.Error("error running /sbin/zfs, check sudo config", "err", err.Error())
-		os.Exit(1)
+	for _, cmdCheck := range allCmdChecks {
+		err = checkSudoCmd(cmdCheck.expectedExit, cmdCheck.expectedStdOut, cmdCheck.expectedStdErr, cmdCheck.args...)
+		if err != nil {
+			slog.Error("error running cmd, check sudo config",
+				"cmd", cmdCheck.args,
+				"err", err.Error(),
+			)
+			os.Exit(1)
+		}
 	}
+}
 
-	err = checkSudoCmd(0, "", "", "/usr/bin/nice", "/bin/echo", "-n")
-	if err != nil {
-		slog.Error("error running /usr/bin/nice, check sudo config", "err", err.Error())
-		os.Exit(1)
-	}
-
-	err = checkSudoCmd(0, "", "", "/usr/bin/protect", "/bin/echo", "-n")
-	if err != nil {
-		slog.Error("error running /usr/bin/protect, check sudo config", "err", err.Error())
-		os.Exit(1)
-	}
-
-	err = checkSudoCmd(0, "", "", "/usr/bin/rctl")
-	if err != nil {
-		slog.Error("error running /usr/bin/rctl, check sudo config", "err", err.Error())
-		os.Exit(1)
-	}
-
-	name, err := getTmpFileName()
+func getSudoCommandsList() []cmdCheckData {
+	var err error
+	var name string
+	name, err = getTmpFileName()
 	if err != nil {
 		slog.Error("getTmpFilename failed", "err", err.Error())
 		os.Exit(1)
 	}
-	slog.Debug("Checking tmp file", "name", name)
-	err = checkSudoCmd(0, "", "", "/usr/bin/truncate", "-c", "-s", "1", name)
-	if err != nil {
-		slog.Error("error running /usr/bin/truncate, check sudo config", "err", err.Error())
-		os.Exit(1)
+
+	allCmdChecks := []cmdCheckData{
+		{
+			args:         []string{"/sbin/ifconfig"},
+			expectedExit: 0, expectedStdOut: "", expectedStdErr: "",
+		},
+		{
+			args:         []string{"/sbin/zfs", "-V"},
+			expectedExit: 0, expectedStdOut: "", expectedStdErr: "",
+		},
+		{
+			args:         []string{"/usr/bin/nice", "/bin/echo", "-n"},
+			expectedExit: 0, expectedStdOut: "", expectedStdErr: "",
+		},
+		{
+			args:         []string{"/usr/bin/protect", "/bin/echo", "-n"},
+			expectedExit: 0, expectedStdOut: "", expectedStdErr: "",
+		},
+		{
+			args:         []string{"/usr/bin/rctl"},
+			expectedExit: 0, expectedStdOut: "", expectedStdErr: "",
+		},
+		{
+			args:         []string{"/usr/sbin/bhyve", "-h"},
+			expectedExit: 0, expectedStdOut: "", expectedStdErr: "",
+		},
+		{
+			args:         []string{"/usr/sbin/bhyvectl"},
+			expectedExit: 1, expectedStdOut: "", expectedStdErr: "Usage: bhyvectl",
+		},
+		{
+			args:         []string{"/usr/sbin/ngctl", "help"},
+			expectedExit: 0, expectedStdOut: "Available commands:", expectedStdErr: "",
+		},
+		{
+			args:         []string{"/bin/pgrep", "-a", "-l", "-x", "init"},
+			expectedExit: 0, expectedStdOut: "1 init", expectedStdErr: "",
+		},
+		{
+			args:         []string{"/usr/sbin/chown"},
+			expectedExit: 1, expectedStdOut: "", expectedStdErr: "usage: chown",
+		},
+		{
+			args:         []string{"/usr/bin/truncate", "-c", "-s", "1", name},
+			expectedExit: 0, expectedStdOut: "", expectedStdErr: "",
+		},
 	}
 
-	err = checkSudoCmd(0, "", "", "/usr/sbin/bhyve", "-h")
-	if err != nil {
-		slog.Error("error running /usr/sbin/bhyve, check sudo config", "err", err.Error())
-		os.Exit(1)
-	}
-
-	err = checkSudoCmd(1, "", "Usage: bhyvectl", "/usr/sbin/bhyvectl")
-	if err != nil {
-		slog.Error("error running /usr/sbin/bhyvectl, check sudo config", "err", err.Error())
-		os.Exit(1)
-	}
-
-	err = checkSudoCmd(0, "Available commands:", "", "/usr/sbin/ngctl", "help")
-	if err != nil {
-		slog.Error("error running /usr/sbin/ngctl, check sudo config", "err", err.Error())
-		os.Exit(1)
-	}
-
-	err = checkSudoCmd(0, "1 init", "", "/bin/pgrep", "-a", "-l", "-x", "init")
-	if err != nil {
-		slog.Error("error running /bin/pgrep, check sudo config", "err", err.Error())
-		os.Exit(1)
-	}
-	err = checkSudoCmd(1, "", "usage: chown", "/usr/sbin/chown")
-	if err != nil {
-		slog.Error("error running /usr/sbin/chown, check sudo config", "err", err.Error())
-		os.Exit(1)
-	}
+	return allCmdChecks
 }
 
 func validateArch() {
@@ -392,6 +400,11 @@ func validateZpoolConf() {
 	poolParts := strings.Split(config.Config.Disk.VM.Path.Zpool, "/")
 	poolName := poolParts[0]
 
+	checkZpoolCapacity(poolName)
+}
+
+func checkZpoolCapacity(poolName string) {
+	var err error
 	var rawCapacity string
 	cmd := execabs.Command("/sbin/zpool", "list", "-H", poolName)
 	var stdout io.ReadCloser
@@ -574,46 +587,19 @@ func validatePidFilePathConfig() {
 	}
 }
 
-func validateDiskConfig() {
+func validateDefaultDiskSize() {
 	_, err := util.ParseDiskSize(config.Config.Disk.Default.Size)
 	if err != nil {
 		slog.Error("default disk size invalid")
 		os.Exit(1)
 	}
+}
 
-	if config.Config.Disk.VM.Path.Image == "" {
-		if err != nil {
-			slog.Error("disk.vm.path.image not set, please reconfigure")
-			os.Exit(1)
-		}
-	}
-
-	if config.Config.Disk.VM.Path.Iso == "" {
-		if err != nil {
-			slog.Error("disk.vm.path.iso not set, please reconfigure")
-			os.Exit(1)
-		}
-	}
-
+func validateStatePath() {
 	if config.Config.Disk.VM.Path.State == "" {
-		if err != nil {
-			slog.Error("disk.vm.path.state not set, please reconfigure")
-			os.Exit(1)
-		}
-	}
-
-	diskImagePath, err := filepath.Abs(config.Config.Disk.VM.Path.Image)
-	if err != nil {
-		slog.Error("failed parsing disk vm path image, please reconfigure")
+		slog.Error("disk.vm.path.state not set, please reconfigure")
 		os.Exit(1)
 	}
-
-	if unix.Access(diskImagePath, unix.W_OK) != nil {
-		errM := fmt.Sprintf("disk image dir %s not writable", diskImagePath)
-		slog.Error(errM)
-		os.Exit(1)
-	}
-
 	diskStatePath, err := filepath.Abs(config.Config.Disk.VM.Path.State)
 	if err != nil {
 		slog.Error("failed parsing disk vm path state, please reconfigure")
@@ -624,7 +610,13 @@ func validateDiskConfig() {
 		slog.Error(errM)
 		os.Exit(1)
 	}
+}
 
+func validateIsoPath() {
+	if config.Config.Disk.VM.Path.Iso == "" {
+		slog.Error("disk.vm.path.iso not set, please reconfigure")
+		os.Exit(1)
+	}
 	diskIsoPath, err := filepath.Abs(config.Config.Disk.VM.Path.Iso)
 	if err != nil {
 		slog.Error("failed parsing disk vm path iso, please reconfigure")
@@ -635,8 +627,23 @@ func validateDiskConfig() {
 		slog.Error(errM)
 		os.Exit(1)
 	}
+}
 
-	validateZpoolConf()
+func validateDiskFilePath() {
+	if config.Config.Disk.VM.Path.Image == "" {
+		slog.Error("disk.vm.path.image not set, please reconfigure")
+		os.Exit(1)
+	}
+	diskImagePath, err := filepath.Abs(config.Config.Disk.VM.Path.Image)
+	if err != nil {
+		slog.Error("failed parsing disk vm path image, please reconfigure")
+		os.Exit(1)
+	}
+	if unix.Access(diskImagePath, unix.W_OK) != nil {
+		errM := fmt.Sprintf("disk image dir %s not writable", diskImagePath)
+		slog.Error(errM)
+		os.Exit(1)
+	}
 }
 
 func validateConfig() {
@@ -645,12 +652,16 @@ func validateConfig() {
 	validateVncConfig()
 	validateDebugConfig()
 	validateRomConfig()
-	validateDiskConfig()
+	validateDefaultDiskSize()
+	validateDiskFilePath()
+	validateIsoPath()
+	validateStatePath()
+	validateZpoolConf()
 	// validateLogConfig called early in main.rootCmd.RunE
 	validateNetworkConf()
 }
 
-func validateSysctls() {
+func validateSysctlSeeOtherGIDs() {
 	var emptyBytes []byte
 	var outBytes bytes.Buffer
 	var errBytes bytes.Buffer
@@ -672,31 +683,40 @@ func validateSysctls() {
 		slog.Error("Unable to run with other GIDs not visible", "security.bsd.see_other_gids", seeOtherGids)
 		os.Exit(1)
 	}
+}
 
-	outBytes.Reset()
-	errBytes.Reset()
-	checkCmd = execabs.Command("/sbin/sysctl", "-n", "security.bsd.see_other_uids")
+func validateSysctlSeeOtherUIDs() {
+	var emptyBytes []byte
+	var outBytes bytes.Buffer
+	var errBytes bytes.Buffer
+	checkCmd := execabs.Command("/sbin/sysctl", "-n", "security.bsd.see_other_uids")
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
-	err = checkCmd.Run()
+	err := checkCmd.Run()
 	if err != nil {
 		slog.Error("Failed checking sysctl security.bsd.see_other_uids", "command", checkCmd.String(), "err", err.Error())
 		os.Exit(1)
 	}
 	seeOtherUids := strings.TrimSpace(outBytes.String())
-	if seeOtherGids != "1" {
+	if seeOtherUids != "1" {
 		slog.Error("Unable to run with other UIDs not visible", "security.bsd.see_other_uids", seeOtherUids)
 		os.Exit(1)
 	}
+}
+
+func validateSysctlSecureLevel() {
+	var emptyBytes []byte
+	var outBytes bytes.Buffer
+	var errBytes bytes.Buffer
 
 	outBytes.Reset()
 	errBytes.Reset()
-	checkCmd = execabs.Command("/sbin/sysctl", "-n", "kern.securelevel")
+	checkCmd := execabs.Command("/sbin/sysctl", "-n", "kern.securelevel")
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
-	err = checkCmd.Run()
+	err := checkCmd.Run()
 	if err != nil {
 		slog.Error("Failed checking sysctl kern.securelevel", "command", checkCmd.String(), "err", err.Error())
 		os.Exit(1)
@@ -777,6 +797,8 @@ func validateSystem() {
 	validateJailed()
 	validateMyID()
 	validateSudoCommands()
-	validateSysctls()
+	validateSysctlSeeOtherGIDs()
+	validateSysctlSeeOtherUIDs()
+	validateSysctlSecureLevel()
 	validateConfig()
 }

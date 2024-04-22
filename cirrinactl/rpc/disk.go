@@ -212,6 +212,160 @@ func UpdateDisk(diskID string, newDesc *string, newType *string, direct *bool, c
 	return nil
 }
 
+func diskUploadFile(diskID string, diskSize uint64, diskChecksum string,
+	diskFile *os.File, uploadStatChan chan<- UploadStat) {
+	var err error
+	var stream cirrina.VMInfo_UploadDiskClient
+
+	defer func(diskFile *os.File) {
+		_ = diskFile.Close()
+	}(diskFile)
+
+	// prevent timeouts
+	defaultServerContext = context.Background()
+
+	// setup stream
+	stream, err = serverClient.UploadDisk(defaultServerContext)
+	if err != nil {
+		uploadStatChan <- UploadStat{
+			UploadedChunk: false,
+			Complete:      false,
+			Err:           fmt.Errorf("unable to upload disk: %w", err),
+		}
+	}
+	if stream == nil {
+		uploadStatChan <- UploadStat{
+			UploadedChunk: false,
+			Complete:      false,
+			Err:           errInternalError,
+		}
+
+		return
+	}
+
+	err = diskUploadFileSetupRequest(diskID, diskSize, diskChecksum, stream, uploadStatChan)
+	if err != nil {
+		return
+	}
+
+	err = diskUploadFileBytes(diskFile, stream, uploadStatChan)
+	if err != nil {
+		return
+	}
+
+	diskUploadFileComplete(stream, uploadStatChan)
+}
+
+func diskUploadFileComplete(stream cirrina.VMInfo_UploadDiskClient, uploadStatChan chan<- UploadStat) {
+	var err error
+	var reply *cirrina.ReqBool
+	reply, err = stream.CloseAndRecv()
+	if err != nil {
+		uploadStatChan <- UploadStat{
+			UploadedChunk: false,
+			Complete:      false,
+			Err:           fmt.Errorf("unable to upload disk: %w", err),
+		}
+
+		return
+	}
+	if !reply.GetSuccess() {
+		uploadStatChan <- UploadStat{
+			UploadedChunk: false,
+			Complete:      false,
+			Err:           errReqFailed,
+		}
+
+		return
+	}
+
+	// finished!
+	uploadStatChan <- UploadStat{
+		UploadedChunk: false,
+		Complete:      true,
+		Err:           nil,
+	}
+}
+
+func diskUploadFileBytes(diskFile *os.File, stream cirrina.VMInfo_UploadDiskClient,
+	uploadStatChan chan<- UploadStat) error {
+	var err error
+	// send disk bytes
+	reader := bufio.NewReader(diskFile)
+	buffer := make([]byte, 1024*1024)
+
+	var complete bool
+	var nBytesRead int
+	for !complete {
+		nBytesRead, err = reader.Read(buffer)
+		if errors.Is(err, io.EOF) {
+			complete = true
+		}
+		if err != nil && !errors.Is(err, io.EOF) {
+			uploadStatChan <- UploadStat{
+				UploadedChunk: false,
+				Complete:      false,
+				Err:           err,
+			}
+
+			return fmt.Errorf("error reading file bytes: %w", err)
+		}
+		dataReq := &cirrina.DiskImageRequest{
+			Data: &cirrina.DiskImageRequest_Image{
+				Image: buffer[:nBytesRead],
+			},
+		}
+		err = stream.Send(dataReq)
+		if err != nil {
+			uploadStatChan <- UploadStat{
+				UploadedChunk: false,
+				Complete:      false,
+				Err:           err,
+			}
+
+			return fmt.Errorf("error sending file bytes: %w", err)
+		}
+		uploadStatChan <- UploadStat{
+			UploadedChunk: true,
+			Complete:      false,
+			UploadedBytes: nBytesRead,
+			Err:           nil,
+		}
+	}
+
+	return nil
+}
+
+func diskUploadFileSetupRequest(diskID string, diskSize uint64, diskChecksum string,
+	stream cirrina.VMInfo_UploadDiskClient, uploadStatChan chan<- UploadStat) error {
+	var err error
+
+	// create setup request
+	setupReq := &cirrina.DiskImageRequest{
+		Data: &cirrina.DiskImageRequest_Diskuploadinfo{
+			Diskuploadinfo: &cirrina.DiskUploadInfo{
+				Diskid:    &cirrina.DiskId{Value: diskID},
+				Size:      diskSize,
+				Sha512Sum: diskChecksum,
+			},
+		},
+	}
+
+	// send setup request
+	err = stream.Send(setupReq)
+	if err != nil {
+		uploadStatChan <- UploadStat{
+			UploadedChunk: false,
+			Complete:      false,
+			Err:           fmt.Errorf("unable to upload disk: %w", err),
+		}
+
+		return fmt.Errorf("unable to upload disk: %w", err)
+	}
+
+	return nil
+}
+
 func DiskUpload(diskID string, diskChecksum string,
 	diskSize uint64, diskFile *os.File,
 ) (<-chan UploadStat, error) {
@@ -222,117 +376,7 @@ func DiskUpload(diskID string, diskChecksum string,
 	}
 
 	// actually send file, sending status to status channel
-	go func(diskFile *os.File, uploadStatChan chan<- UploadStat) {
-		defer func(diskFile *os.File) {
-			_ = diskFile.Close()
-		}(diskFile)
-		var err error
-
-		// prevent timeouts
-		defaultServerContext = context.Background()
-
-		thisDiskID := cirrina.DiskId{Value: diskID}
-
-		setupReq := &cirrina.DiskImageRequest{
-			Data: &cirrina.DiskImageRequest_Diskuploadinfo{
-				Diskuploadinfo: &cirrina.DiskUploadInfo{
-					Diskid:    &thisDiskID,
-					Size:      diskSize,
-					Sha512Sum: diskChecksum,
-				},
-			},
-		}
-
-		var stream cirrina.VMInfo_UploadDiskClient
-		stream, err = serverClient.UploadDisk(defaultServerContext)
-		if err != nil {
-			uploadStatChan <- UploadStat{
-				UploadedChunk: false,
-				Complete:      false,
-				Err:           fmt.Errorf("unable to upload disk: %w", err),
-			}
-		}
-		if stream == nil {
-			uploadStatChan <- UploadStat{
-				UploadedChunk: false,
-				Complete:      false,
-				Err:           errInternalError,
-			}
-
-			return
-		}
-
-		err = stream.Send(setupReq)
-		if err != nil {
-			uploadStatChan <- UploadStat{
-				UploadedChunk: false,
-				Complete:      false,
-				Err:           fmt.Errorf("unable to upload disk: %w", err),
-			}
-		}
-
-		reader := bufio.NewReader(diskFile)
-		buffer := make([]byte, 1024*1024)
-
-		var complete bool
-		var nBytesRead int
-		for !complete {
-			nBytesRead, err = reader.Read(buffer)
-			if errors.Is(err, io.EOF) {
-				complete = true
-			}
-			if err != nil && !errors.Is(err, io.EOF) {
-				uploadStatChan <- UploadStat{
-					UploadedChunk: false,
-					Complete:      false,
-					Err:           err,
-				}
-			}
-			dataReq := &cirrina.DiskImageRequest{
-				Data: &cirrina.DiskImageRequest_Image{
-					Image: buffer[:nBytesRead],
-				},
-			}
-			err = stream.Send(dataReq)
-			if err != nil {
-				uploadStatChan <- UploadStat{
-					UploadedChunk: false,
-					Complete:      false,
-					Err:           fmt.Errorf("unable to upload disk: %w", err),
-				}
-			}
-			uploadStatChan <- UploadStat{
-				UploadedChunk: true,
-				Complete:      false,
-				UploadedBytes: nBytesRead,
-				Err:           nil,
-			}
-		}
-
-		var reply *cirrina.ReqBool
-		reply, err = stream.CloseAndRecv()
-		if err != nil {
-			uploadStatChan <- UploadStat{
-				UploadedChunk: false,
-				Complete:      false,
-				Err:           fmt.Errorf("unable to upload disk: %w", err),
-			}
-		}
-		if !reply.GetSuccess() {
-			uploadStatChan <- UploadStat{
-				UploadedChunk: false,
-				Complete:      false,
-				Err:           errReqFailed,
-			}
-		}
-
-		// finished!
-		uploadStatChan <- UploadStat{
-			UploadedChunk: false,
-			Complete:      true,
-			Err:           nil,
-		}
-	}(diskFile, uploadStatChan)
+	go diskUploadFile(diskID, diskSize, diskChecksum, diskFile, uploadStatChan)
 
 	return uploadStatChan, nil
 }

@@ -156,10 +156,6 @@ func SetRateLimit(name string, rateIn uint64, rateOut uint64) error {
 
 func NgCreatePipeWithRateLimit(name string, rate uint64) error {
 	var err error
-	slog.Debug("creating ng pipe",
-		"name", name,
-		"rate", rate,
-	)
 
 	cmd := exec.Command(config.Config.Sys.Sudo,
 		"/usr/sbin/ngctl", "mkpeer", name+":", "pipe", "lower", "lower")
