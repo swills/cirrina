@@ -592,3 +592,187 @@ func TestContainsStr(t *testing.T) {
 		})
 	}
 }
+
+func TestValidNicName(t *testing.T) {
+	type args struct {
+		name string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "empty",
+			args: args{""},
+			want: false,
+		},
+		{
+			name: "validupper",
+			args: args{"A"},
+			want: true,
+		},
+		{
+			name: "validupper2",
+			args: args{"THEQUICKBROWNFOXJUMPSOVERTHELAZYDOG"},
+			want: true,
+		},
+		{
+			name: "validlower",
+			args: args{"a"},
+			want: true,
+		},
+		{
+			name: "validlower2",
+			args: args{"thequickbrownfoxjumpsoverthelazydog"},
+			want: true,
+		},
+		{
+			name: "validlower3",
+			args: args{"abc"},
+			want: true,
+		},
+		{
+			name: "validnumber",
+			args: args{"1"},
+			want: true,
+		},
+		{
+			name: "validnumber2",
+			args: args{"0123456789THEQUICKBROWNFOXJUMPSOVERTHELAZYDOGthequickbrownfoxjumpsoverthelazydog"},
+			want: true,
+		},
+		{
+			name: "validunder",
+			args: args{"_"},
+			want: true,
+		},
+		{
+			name: "validunder2",
+			args: args{"_0123456789"},
+			want: true,
+		},
+		{
+			name: "validunder3",
+			args: args{"_0123456789thequickbrownfoxjumpsoverthelazydog"},
+			want: true,
+		},
+		{
+			name: "validnumber4",
+			args: args{"_0123456789thequickbrownfoxjumpsoverthelazydogTHEQUICKBROWNFOXJUMPSOVERTHELAZYDOG"},
+			want: true,
+		},
+		{
+			name: "validdash1",
+			args: args{"-_0123456789"},
+			want: true,
+		},
+		{
+			name: "validdash2",
+			args: args{"-_0123456789thequickbrownfoxjumpsoverthelazydog"},
+			want: true,
+		},
+		{
+			name: "validdash3",
+			args: args{"-_0123456789thequickbrownfoxjumpsoverthelazydogTHEQUICKBROWNFOXJUMPSOVERTHELAZYDOG"},
+			want: true,
+		},
+		{
+			name: "validdash4",
+			args: args{"--a-__a-a-__90123"},
+			want: true,
+		},
+		{
+			name: "invalid1",
+			args: args{"abc9123asdf-@"},
+			want: false,
+		},
+		{
+			name: "invalid2",
+			args: args{"abc9123asdf-#"},
+			want: false,
+		},
+		{
+			name: "invalid3",
+			args: args{"abc9123asdf-)"},
+			want: false,
+		},
+		{
+			name: "invalid4",
+			args: args{"abc9123asdf-("},
+			want: false,
+		},
+		{
+			name: "invalid5",
+			args: args{"abc9123asdf-&"},
+			want: false,
+		},
+		{
+			name: "invalid6",
+			args: args{"abc9123asdf-$"},
+			want: false,
+		},
+		{
+			name: "invalid7",
+			args: args{"abc9123asdf-$"},
+			want: false,
+		},
+		{
+			name: "invalid8",
+			args: args{"abc9123 asdf-$"},
+			want: false,
+		},
+		{
+			name: "invalid9",
+			args: args{"ab.c"},
+			want: false,
+		},
+		{
+			name: "invalid10",
+			args: args{"a..b"},
+			want: false,
+		},
+		{
+			name: "invalidunicode1",
+			args: args{"aа"},
+			want: false,
+		},
+		{
+			name: "invalidunicode2",
+			args: args{"с"},
+			want: false,
+		},
+		{
+			name: "invalidunicode3",
+			args: args{"ԁ"},
+			want: false,
+		},
+		{
+			name: "invalidunicode4",
+			args: args{"ո"},
+			want: false,
+		},
+		{
+			name: "invalidunicode5",
+			args: args{"κ"},
+			want: false,
+		},
+		{
+			name: "invalidunicodesnowman",
+			args: args{"☃︎"},
+			want: false,
+		},
+		{
+			name: "invalidslash",
+			args: args{"/"},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := ValidNicName(tt.args.name); got != tt.want {
+				t.Errorf("ValidNicName() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
