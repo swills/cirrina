@@ -103,7 +103,7 @@ go-test:
   script:
     - export GOBIN=${HOME}/bin
     - export PATH=${GOBIN}:${PATH}
-    - go test -v ./... -coverprofile=coverage.txt -covermode count
+    - go test -v ./... -coverprofile=coverage.txt -covermode count -tags test
     - go tool cover -func coverage.txt
     - go install gotest.tools/gotestsum@v1.11.0
     - gotestsum --junitfile report.xml --format testname

@@ -60,14 +60,3 @@ func hostPing() error {
 
 	return nil
 }
-
-func init() {
-	disableFlagSorting(HostCmd)
-
-	disableFlagSorting(HostVersionCmd)
-
-	disableFlagSorting(HostNicsCmd)
-
-	HostCmd.AddCommand(HostNicsCmd)
-	HostCmd.AddCommand(HostVersionCmd)
-}

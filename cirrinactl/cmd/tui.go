@@ -237,7 +237,3 @@ func StartTui(serverAddr string) error {
 
 	return nil
 }
-
-func init() {
-	disableFlagSorting(TuiCmd)
-}
