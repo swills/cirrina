@@ -108,7 +108,7 @@ go-test:
     - gotestsum --junitfile report.xml --format testname
     - go install github.com/boumenot/gocover-cobertura@v1.2.0
     - gocover-cobertura < coverage.txt > coverage.xml
-  coverage: '/^coverage: (\d+.\d+)% of statements$/'
+  coverage: '/coverage: (\d+.\d+)% of statements/'
   artifacts:
     when: always
     reports:
