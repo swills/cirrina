@@ -97,7 +97,14 @@ go-test:
   tags:
     - FreeBSD
   script:
-    - go test ./...
+    - go install github.com/boumenot/gocover-cobertura@v1.2.0
+    - go test ./... -coverprofile=coverage.txt -covermode count
+    - gocover-cobertura < coverage.txt > coverage.xml
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
 
 cirrinad-upload:
   stage: upload
