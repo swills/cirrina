@@ -103,12 +103,13 @@ go-test:
   script:
     - export GOBIN=${HOME}/bin
     - export PATH=${GOBIN}:${PATH}
-    - go test ./... -coverprofile=coverage.txt -covermode count
+    - go test -v ./... -coverprofile=coverage.txt -covermode count
+    - go tool cover -func coverage.txt
     - go install gotest.tools/gotestsum@v1.11.0
     - gotestsum --junitfile report.xml --format testname
     - go install github.com/boumenot/gocover-cobertura@v1.2.0
     - gocover-cobertura < coverage.txt > coverage.xml
-  coverage: '/coverage: (\d+.\d+)% of statements/'
+  coverage: '/^total:.*(statements).*(\d+.\d+)%$/'
   artifacts:
     when: always
     reports:
