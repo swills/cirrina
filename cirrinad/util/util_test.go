@@ -1289,8 +1289,8 @@ func TestPidExists(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:    "findinit",
-			args:    args{pid: 1},
+			name:    "findownpid",
+			args:    args{pid: os.Getpid()},
 			want:    true,
 			wantErr: false,
 		},
