@@ -511,11 +511,7 @@ func IsValidIP(ipAddress string) bool {
 }
 
 func IsValidTCPPort(tcpPort uint) bool {
-	if tcpPort < 1 || tcpPort > 65535 {
-		return false
-	}
-
-	return true
+	return tcpPort <= 65535
 }
 
 func ModeIsSuid(mode fs.FileMode) bool {
