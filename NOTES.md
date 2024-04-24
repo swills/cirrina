@@ -90,6 +90,8 @@
     * Use real uuid type instead of string everywhere
     * Clients
         * Build TUI with [tview](https://github.com/rivo/tview)
+          * Monitor VMs, similar to "cirrinactl vm list" in a loop
+          * Add top/htop like interface, with VM list and resource usage
         * Build Web UI -- maybe [awesome-grpc](https://github.com/grpc-ecosystem/awesome-grpc) has suggestions
     * Have GUI manage config for and automatically start daemon for a purely local mode
     * User/password auth - perhaps [spiffe](https://spiffe.io/) or [dapr](https://dapr.io/) could help here
