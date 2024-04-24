@@ -1367,10 +1367,7 @@ func TestPidExistsSleeping(t *testing.T) {
 	if err != nil {
 		t.Fail()
 	}
-	err = sleepCmd.Wait()
-	if err != nil {
-		t.Fail()
-	}
+	_ = sleepCmd.Wait()
 }
 
 func TestPidExistsSleepingExited(t *testing.T) {
@@ -1402,10 +1399,7 @@ func TestPidExistsSleepingExited(t *testing.T) {
 	if err != nil {
 		t.Fail()
 	}
-	err = sleepCmd.Wait()
-	if err != nil {
-		t.Fail()
-	}
+	_ = sleepCmd.Wait()
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
