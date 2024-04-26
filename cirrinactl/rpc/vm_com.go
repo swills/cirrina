@@ -14,13 +14,12 @@ import (
 func UseCom(vmID string, comNum int) error {
 	var err error
 	var stream cirrina.VMInfo_Com1InteractiveClient
-	var cancel context.CancelFunc
 
 	if vmID == "" {
 		return errVMEmptyID
 	}
 
-	defaultServerContext, cancel = context.WithCancel(context.Background())
+	defaultServerContext, defaultCancelFunc = context.WithCancel(context.Background())
 	switch comNum {
 	case 1:
 		stream, err = serverClient.Com1Interactive(defaultServerContext)
@@ -31,12 +30,12 @@ func UseCom(vmID string, comNum int) error {
 	case 4:
 		stream, err = serverClient.Com4Interactive(defaultServerContext)
 	default:
-		cancel()
+		defaultCancelFunc()
 
 		return ErrInvalidComNum
 	}
 	if err != nil {
-		cancel()
+		defaultCancelFunc()
 
 		return fmt.Errorf("unable to use com: %w", err)
 	}
@@ -44,7 +43,7 @@ func UseCom(vmID string, comNum int) error {
 	// setup stream
 	err = comStreamSetup(vmID, stream)
 	if err != nil {
-		cancel()
+		defaultCancelFunc()
 
 		return err
 	}
@@ -52,7 +51,7 @@ func UseCom(vmID string, comNum int) error {
 	// save term state
 	oldState, err := comTermSetup()
 	if err != nil {
-		cancel()
+		defaultCancelFunc()
 
 		return err
 	}
@@ -65,13 +64,13 @@ func UseCom(vmID string, comNum int) error {
 	}(oldState)
 
 	// send
-	go comSend(defaultServerContext, cancel, stream)
+	go comSend(stream)
 
 	// receive
-	go comReceive(defaultServerContext, cancel, stream)
+	go comReceive(stream)
 
 	// monitor that the VM is still up
-	return comMonitorVM(vmID, cancel)
+	return comMonitorVM(vmID)
 }
 
 func comTermCleanup(oldState *term.State) {
@@ -82,24 +81,26 @@ func comStreamCleanup(stream cirrina.VMInfo_Com1InteractiveClient) {
 	_ = stream.CloseSend()
 }
 
-func comMonitorVM(vmID string, cancel context.CancelFunc) error {
+func comMonitorVM(vmID string) error {
 	var err error
 	for {
 		select {
 		case <-defaultServerContext.Done():
+			defaultCancelFunc()
+
 			return nil
 		default:
 			var res string
 			ResetConnTimeout()
 			res, _, _, err = GetVMState(vmID)
 			if err != nil {
-				cancel()
+				defaultCancelFunc()
 
 				return fmt.Errorf("unable to use com: %w", err)
 			}
 
 			if res != "running" && res != "stopping" {
-				cancel()
+				defaultCancelFunc()
 
 				return nil
 			}
@@ -138,23 +139,23 @@ func comStreamSetup(vmID string, stream cirrina.VMInfo_Com1InteractiveClient) er
 }
 
 // comSend reads data from the local terminal and sends it to the remote serial port
-func comSend(bgCtx context.Context, cancel context.CancelFunc, stream cirrina.VMInfo_Com1InteractiveClient) {
+func comSend(stream cirrina.VMInfo_Com1InteractiveClient) {
 	var err error
 	var req *cirrina.ComDataRequest
 	bytesBuffer := make([]byte, 1)
 	for {
 		select {
-		case <-bgCtx.Done():
+		case <-defaultServerContext.Done():
 			return
 		default:
 			_, err = os.Stdin.Read(bytesBuffer)
 			if err != nil {
-				cancel()
+				defaultCancelFunc()
 
 				return
 			}
 			if bytesBuffer[0] == 0x1c { // == FS ("File Separator") control character -- ctrl-\ -- see ascii.7
-				cancel()
+				defaultCancelFunc()
 
 				return
 			}
@@ -165,7 +166,7 @@ func comSend(bgCtx context.Context, cancel context.CancelFunc, stream cirrina.VM
 			}
 			err = stream.Send(req)
 			if err != nil {
-				cancel()
+				defaultCancelFunc()
 
 				return
 			}
@@ -174,17 +175,17 @@ func comSend(bgCtx context.Context, cancel context.CancelFunc, stream cirrina.VM
 }
 
 // comReceive receives data from the remote serial port and outputs it to the local terminal
-func comReceive(bgCtx context.Context, cancel context.CancelFunc, stream cirrina.VMInfo_Com1InteractiveClient) {
+func comReceive(stream cirrina.VMInfo_Com1InteractiveClient) {
 	var err error
 	var out *cirrina.ComDataResponse
 	for {
 		select {
-		case <-bgCtx.Done():
+		case <-defaultServerContext.Done():
 			return
 		default:
 			out, err = stream.Recv()
 			if err != nil {
-				cancel()
+				defaultCancelFunc()
 
 				return
 			}
