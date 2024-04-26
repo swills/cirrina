@@ -273,6 +273,11 @@ func validateNewSwitch(switchInfo *cirrina.SwitchInfo) error {
 	if switchInfo == nil || switchInfo.SwitchType == nil {
 		return errSwitchInvalidType
 	}
+
+	if _switch.Exists(switchInfo.GetName()) {
+		return errSwitchExists
+	}
+
 	switch switchInfo.GetSwitchType() {
 	case cirrina.SwitchType_IF:
 		return validateIfSwitch(switchInfo)
@@ -321,6 +326,12 @@ func validateNgSwitch(switchInfo *cirrina.SwitchInfo) error {
 }
 
 func validateIfSwitch(switchInfo *cirrina.SwitchInfo) error {
+	if !strings.HasPrefix(switchInfo.GetName(), "bridge") {
+		slog.Error("invalid name", "name", switchInfo.GetName())
+
+		return errSwitchInvalidName
+	}
+
 	// it can't be a member of another bridge of same type already
 	if switchInfo.Uplink != nil && switchInfo.GetUplink() != "" {
 		alreadyUsed, err := _switch.MemberUsedByIfBridge(switchInfo.GetUplink())
@@ -332,11 +343,6 @@ func validateIfSwitch(switchInfo *cirrina.SwitchInfo) error {
 		if alreadyUsed {
 			return errSwitchUplinkInUse
 		}
-	}
-	if !strings.HasPrefix(switchInfo.GetName(), "bridge") {
-		slog.Error("invalid name", "name", switchInfo.GetName())
-
-		return errSwitchInvalidName
 	}
 
 	bridgeNumStr := strings.TrimPrefix(switchInfo.GetName(), "bridge")
@@ -358,7 +364,7 @@ func validateIfSwitch(switchInfo *cirrina.SwitchInfo) error {
 }
 
 func bringUpNewSwitch(switchInst *_switch.Switch) (*cirrina.SwitchId, error) {
-	if switchInst == nil || switchInst.ID != "" {
+	if switchInst == nil || switchInst.ID == "" {
 		return &cirrina.SwitchId{}, errInvalidID
 	}
 	switch switchInst.Type {

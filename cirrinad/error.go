@@ -35,6 +35,7 @@ var (
 	errSwitchUplinkInUse   = errors.New("uplink already in use")
 	errSwitchInternalDB    = errors.New("internal switch database error")
 	errSwitchInvalidName   = errors.New("invalid bridge name")
+	errSwitchExists        = errors.New("switch exists")
 )
 
 var (

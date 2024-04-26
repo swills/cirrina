@@ -35,15 +35,23 @@ func GetByID(switchID string) (*Switch, error) {
 	return aSwitch, nil
 }
 
-func GetByName(name string) (*Switch, error) {
+func GetByName(name string) *Switch {
 	var aSwitch *Switch
 	db := getSwitchDB()
-	db.Limit(1).Find(&aSwitch, "name = ?", name)
-	if aSwitch.ID == "" {
-		return aSwitch, errSwitchNotFound
+	result := db.Limit(1).Find(&aSwitch, "name = ?", name)
+	if result.RowsAffected == 1 {
+		return aSwitch
 	}
 
-	return aSwitch, nil
+	return nil
+}
+
+// Exists returns true if switch exists, false if not. don't have to worry about switch type because switches of
+// different types have different name patterns (bridgeX vs bnetX)
+func Exists(name string) bool {
+	switchItem := GetByName(name)
+
+	return switchItem != nil
 }
 
 func GetAll() []*Switch {
@@ -55,16 +63,13 @@ func GetAll() []*Switch {
 }
 
 func Create(name string, description string, switchType string, uplink string) (*Switch, error) {
-	var err error
 	var switchInst *Switch
 	if !util.ValidSwitchName(name) {
 		return switchInst, errSwitchInvalidName
 	}
-	_, err = GetByName(name)
-	if err == nil {
-		slog.Error("switch exists", "switch", name)
-
-		return switchInst, errSwitchExists
+	exists := Exists(name)
+	if exists {
+		return nil, errSwitchExists
 	}
 
 	if switchType != "IF" && switchType != "NG" {
