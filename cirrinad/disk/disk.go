@@ -318,7 +318,7 @@ func (d *Disk) Unlock() {
 	d.mu.Unlock()
 }
 
-func InitOneDisk(d *Disk) {
+func initOneDisk(d *Disk) {
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
 	List.DiskList[d.ID] = d

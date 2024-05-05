@@ -42,7 +42,7 @@ func switchCheckUplink(switchInst *Switch) error {
 	switch switchInst.Type {
 	case "IF":
 		if switchInst.Uplink != "" {
-			alreadyUsed, err := MemberUsedByIfBridge(switchInst.Uplink)
+			alreadyUsed, err := memberUsedByIfBridge(switchInst.Uplink)
 			if err != nil {
 				return errSwitchInternalChecking
 			}
@@ -52,7 +52,7 @@ func switchCheckUplink(switchInst *Switch) error {
 		}
 	case "NG":
 		if switchInst.Uplink != "" {
-			alreadyUsed, err := MemberUsedByNgBridge(switchInst.Uplink)
+			alreadyUsed, err := memberUsedByNgBridge(switchInst.Uplink)
 			if err != nil {
 				return errSwitchInternalChecking
 			}
@@ -241,7 +241,7 @@ func CreateBridges() {
 		switch bridge.Type {
 		case "IF":
 			slog.Debug("creating if bridge", "name", bridge.Name)
-			err := BuildIfBridge(bridge)
+			err := buildIfBridge(bridge)
 			if err != nil {
 				slog.Error("error creating if bridge", "err", err)
 
@@ -249,7 +249,7 @@ func CreateBridges() {
 			}
 		case "NG":
 			slog.Debug("creating ng bridge", "name", bridge.Name)
-			err := BuildNgBridge(bridge)
+			err := buildNgBridge(bridge)
 			if err != nil {
 				slog.Error("error creating ng bridge",
 					"name", bridge.Name,
@@ -316,7 +316,7 @@ func BridgeIfAddMember(bridgeName string, memberName string) error {
 	return nil
 }
 
-func MemberUsedByNgBridge(member string) (bool, error) {
+func memberUsedByNgBridge(member string) (bool, error) {
 	allBridges, err := GetAllNgBridges()
 	if err != nil {
 		slog.Error("error getting all if bridges", "err", err)
@@ -345,7 +345,7 @@ func MemberUsedByNgBridge(member string) (bool, error) {
 	return false, nil
 }
 
-func BuildNgBridge(switchInst *Switch) error {
+func buildNgBridge(switchInst *Switch) error {
 	var members []string
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	memberList := strings.Split(switchInst.Uplink, ",")
@@ -366,7 +366,7 @@ func BuildNgBridge(switchInst *Switch) error {
 			continue
 		}
 		// it can't be a member of another bridge already
-		alreadyUsed, err := MemberUsedByNgBridge(member)
+		alreadyUsed, err := memberUsedByNgBridge(member)
 		if err != nil {
 			slog.Error("error checking if member already used", "err", err)
 
@@ -387,7 +387,7 @@ func BuildNgBridge(switchInst *Switch) error {
 	return err
 }
 
-func MemberUsedByIfBridge(member string) (bool, error) {
+func memberUsedByIfBridge(member string) (bool, error) {
 	allBridges, err := GetAllIfBridges()
 	if err != nil {
 		slog.Error("error getting all if bridges", "err", err)
@@ -407,7 +407,7 @@ func MemberUsedByIfBridge(member string) (bool, error) {
 	return false, nil
 }
 
-func BuildIfBridge(switchInst *Switch) error {
+func buildIfBridge(switchInst *Switch) error {
 	var members []string
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	memberList := strings.Split(switchInst.Uplink, ",")
@@ -428,7 +428,7 @@ func BuildIfBridge(switchInst *Switch) error {
 			continue
 		}
 		// it can't be a member of another bridge already
-		alreadyUsed, err := MemberUsedByIfBridge(member)
+		alreadyUsed, err := memberUsedByIfBridge(member)
 		if err != nil {
 			slog.Error("error checking if member already used", "err", err)
 
@@ -536,7 +536,7 @@ func (d *Switch) SetUplink(uplink string) error {
 
 func setUplinkNG(uplink string, switchInst *Switch) error {
 	// it can't be a member of another bridge already
-	alreadyUsed, err := MemberUsedByNgBridge(uplink)
+	alreadyUsed, err := memberUsedByNgBridge(uplink)
 	if err != nil {
 		slog.Error("error checking if member already used", "err", err)
 
@@ -564,7 +564,7 @@ func setUplinkNG(uplink string, switchInst *Switch) error {
 }
 
 func setUplinkIf(uplink string, switchInst *Switch) error {
-	alreadyUsed, err := MemberUsedByIfBridge(uplink)
+	alreadyUsed, err := memberUsedByIfBridge(uplink)
 	if err != nil {
 		return err
 	}
@@ -722,7 +722,7 @@ func bringUpNewSwitch(switchInst *Switch) error {
 	switch switchInst.Type {
 	case "IF":
 		slog.Debug("creating if bridge", "name", switchInst.Name)
-		err := BuildIfBridge(switchInst)
+		err := buildIfBridge(switchInst)
 		if err != nil {
 			slog.Error("error creating if bridge", "err", err)
 			// already created in db, so ignore system state and proceed on...
@@ -730,7 +730,7 @@ func bringUpNewSwitch(switchInst *Switch) error {
 		}
 	case "NG":
 		slog.Debug("creating ng bridge", "name", switchInst.Name)
-		err := BuildNgBridge(switchInst)
+		err := buildNgBridge(switchInst)
 		if err != nil {
 			slog.Error("error creating ng bridge", "err", err)
 			// already created in db, so ignore system state and proceed on...
@@ -748,7 +748,7 @@ func bringUpNewSwitch(switchInst *Switch) error {
 func validateIfSwitch(switchInst *Switch) error {
 	// it can't be a member of another bridge of same type already
 	if switchInst.Uplink != "" {
-		alreadyUsed, err := MemberUsedByIfBridge(switchInst.Uplink)
+		alreadyUsed, err := memberUsedByIfBridge(switchInst.Uplink)
 		if err != nil {
 			slog.Error("error checking if member already used", "err", err)
 
@@ -765,7 +765,7 @@ func validateIfSwitch(switchInst *Switch) error {
 func validateNgSwitch(switchInst *Switch) error {
 	// it can't be a member of another bridge of same type already
 	if switchInst.Uplink != "" {
-		alreadyUsed, err := MemberUsedByNgBridge(switchInst.Uplink)
+		alreadyUsed, err := memberUsedByNgBridge(switchInst.Uplink)
 		if err != nil {
 			slog.Error("error checking if member already used", "err", err)
 

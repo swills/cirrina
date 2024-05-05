@@ -78,6 +78,6 @@ func DBAutoMigrate() {
 		slog.Error("DiskDb DBAutoMigrate failed to drop path column, continuing anyway")
 	}
 	for _, diskInst := range GetAllDB() {
-		InitOneDisk(diskInst)
+		initOneDisk(diskInst)
 	}
 }
