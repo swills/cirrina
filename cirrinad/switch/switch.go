@@ -145,6 +145,9 @@ func GetByID(switchID string) (*Switch, error) {
 }
 
 func GetByName(name string) (*Switch, error) {
+	if name == "" {
+		return nil, errSwitchNotFound
+	}
 	var aSwitch *Switch
 	db := getSwitchDB()
 	res := db.Limit(1).Find(&aSwitch, "name = ?", name)

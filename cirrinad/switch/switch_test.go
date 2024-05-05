@@ -20,7 +20,15 @@ func NewMockDB() (*gorm.DB, sqlmock.Sqlmock) {
 	mock.ExpectQuery("select sqlite_version()").
 		WillReturnRows(sqlmock.NewRows([]string{"sqlite_version()"}).AddRow("3.40.1"))
 
-	gormDB, err := gorm.Open(&sqlite.Dialector{DSN: "testDB", Conn: testDB}, &gorm.Config{DisableAutomaticPing: true})
+	gormDB, err := gorm.Open(
+		&sqlite.Dialector{
+			DSN:  "testDB",
+			Conn: testDB,
+		},
+		&gorm.Config{
+			DisableAutomaticPing: true,
+		},
+	)
 	if err != nil {
 		log.Fatalf("An error '%s' was not expected when opening gorm database", err)
 	}
