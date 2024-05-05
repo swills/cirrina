@@ -113,6 +113,11 @@ linters-settings:
       - default
       - prefix(cirrina)
     custom-order: true
+  ireturn:
+    allow:
+      - error
+      - stdlib
+      - sqlmock
   govet:
     enable:
       - appends

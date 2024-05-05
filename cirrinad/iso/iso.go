@@ -23,11 +23,6 @@ type ISO struct {
 }
 
 func Create(isoInst *ISO) error {
-	err := validateIso(isoInst)
-	if err != nil {
-		return fmt.Errorf("error creating iso: %w", err)
-	}
-
 	thisIsoExists, err := isoExists(isoInst.Name)
 	if err != nil {
 		slog.Error("error checking for iso", "isoInst", isoInst, "err", err)
@@ -38,6 +33,11 @@ func Create(isoInst *ISO) error {
 		slog.Error("iso exists", "iso", isoInst.Name)
 
 		return errIsoExists
+	}
+
+	err = validateIso(isoInst)
+	if err != nil {
+		return fmt.Errorf("error creating iso: %w", err)
 	}
 
 	db := getIsoDB()

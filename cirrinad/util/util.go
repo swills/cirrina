@@ -379,7 +379,7 @@ func ValidVMName(name string) bool {
 		LatinOffset: 0,
 	}
 
-	return checkInRange(name, myRT)
+	return CheckInRange(name, myRT)
 }
 
 func ValidDiskName(name string) bool {
@@ -399,7 +399,7 @@ func ValidDiskName(name string) bool {
 		LatinOffset: 0,
 	}
 
-	return checkInRange(name, myRT)
+	return CheckInRange(name, myRT)
 }
 
 func ValidIsoName(name string) bool {
@@ -419,7 +419,7 @@ func ValidIsoName(name string) bool {
 		LatinOffset: 0,
 	}
 
-	return checkInRange(name, myRT)
+	return CheckInRange(name, myRT)
 }
 
 func ValidNicName(name string) bool {
@@ -439,30 +439,10 @@ func ValidNicName(name string) bool {
 		LatinOffset: 0,
 	}
 
-	return checkInRange(name, myRT)
+	return CheckInRange(name, myRT)
 }
 
-func ValidSwitchName(name string) bool {
-	if name == "" {
-		return false
-	}
-
-	// values must be kept sorted
-	myRT := &unicode.RangeTable{
-		R16: []unicode.Range16{
-			{0x002d, 0x002d, 1}, // -
-			{0x0030, 0x0039, 1}, // numbers
-			{0x0041, 0x005a, 1}, // upper case letters
-			{0x005f, 0x005f, 1}, // _
-			{0x0061, 0x007a, 1}, // lower case letters
-		},
-		LatinOffset: 0,
-	}
-
-	return checkInRange(name, myRT)
-}
-
-func checkInRange(name string, myRT *unicode.RangeTable) bool {
+func CheckInRange(name string, myRT *unicode.RangeTable) bool {
 	for _, i := range name {
 		if !unicode.In(i, myRT) {
 			return false

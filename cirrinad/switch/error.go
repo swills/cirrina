@@ -7,7 +7,7 @@ var (
 	errSwitchInvalidName         = errors.New("invalid name")
 	errSwitchInvalidUplink       = errors.New("invalid switch uplink name")
 	errSwitchInvalidNetDevEmpty  = errors.New("netDev can't be empty")
-	errSwitchNotFound            = errors.New("not found")
+	errSwitchNotFound            = errors.New("switch not found")
 	errSwitchInvalidID           = errors.New("switch id invalid")
 	errSwitchExists              = errors.New("switch exists")
 	errSwitchInUse               = errors.New("switch in use")

@@ -134,13 +134,6 @@ var (
 )
 
 func Create(vmInst *VM) error {
-	err := validateVM(vmInst)
-	if err != nil {
-		slog.Error("error validating vm", "VM", vmInst, "err", err)
-
-		return err
-	}
-
 	vmAlreadyExists, err := vmExists(vmInst.Name)
 	if err != nil {
 		slog.Error("error checking db for vm", "name", vmInst.Name, "err", err)
@@ -151,6 +144,13 @@ func Create(vmInst *VM) error {
 		slog.Error("VM exists", "VM", vmInst.Name)
 
 		return errVMDupe
+	}
+
+	err = validateVM(vmInst)
+	if err != nil {
+		slog.Error("error validating vm", "VM", vmInst, "err", err)
+
+		return err
 	}
 
 	defer List.Mu.Unlock()

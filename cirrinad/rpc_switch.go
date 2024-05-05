@@ -2,28 +2,16 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
-	"strconv"
-	"strings"
 
 	"github.com/google/uuid"
 
 	"cirrina/cirrina"
 	_switch "cirrina/cirrinad/switch"
-	"cirrina/cirrinad/util"
 )
 
 func (s *server) AddSwitch(_ context.Context, switchInfo *cirrina.SwitchInfo) (*cirrina.SwitchId, error) {
-	if switchInfo.Name == nil || !util.ValidSwitchName(switchInfo.GetName()) {
-		return &cirrina.SwitchId{}, errInvalidName
-	}
-
-	err := validateNewSwitch(switchInfo)
-	if err != nil {
-		return nil, err
-	}
 	switchType, err := mapSwitchTypeTypeToDBString(switchInfo.GetSwitchType())
 	if err != nil {
 		return nil, err
@@ -38,10 +26,6 @@ func (s *server) AddSwitch(_ context.Context, switchInfo *cirrina.SwitchInfo) (*
 	err = _switch.Create(switchInst)
 	if err != nil {
 		return nil, fmt.Errorf("error creating switch: %w", err)
-	}
-	err = bringUpNewSwitch(switchInst)
-	if err != nil {
-		return nil, err
 	}
 
 	return &cirrina.SwitchId{Value: switchInst.ID}, nil
@@ -265,137 +249,6 @@ func uplinkInUse(vmSwitch *_switch.Switch, uplinkName string) bool {
 	}
 
 	return false
-}
-
-func validateNewSwitch(switchInfo *cirrina.SwitchInfo) error {
-	if switchInfo == nil || switchInfo.SwitchType == nil {
-		return errSwitchInvalidType
-	}
-
-	existingSwitch, err := _switch.GetByName(switchInfo.GetName())
-	if err != nil {
-		if !errors.Is(err, errSwitchNotFound) {
-			return fmt.Errorf("error checking switch exists: %w", err)
-		}
-	}
-
-	if existingSwitch != nil && existingSwitch.Name != "" {
-		return errSwitchExists
-	}
-
-	switch switchInfo.GetSwitchType() {
-	case cirrina.SwitchType_IF:
-		return validateIfSwitch(switchInfo)
-	case cirrina.SwitchType_NG:
-		return validateNgSwitch(switchInfo)
-	default:
-		return errSwitchInvalidType
-	}
-}
-
-func validateNgSwitch(switchInfo *cirrina.SwitchInfo) error {
-	// it can't be a member of another bridge of same type already
-	if switchInfo.Uplink != nil && switchInfo.GetUplink() != "" {
-		alreadyUsed, err := _switch.MemberUsedByNgBridge(switchInfo.GetUplink())
-		if err != nil {
-			slog.Error("error checking if member already used", "err", err)
-
-			return fmt.Errorf("error checking if member already used: %w", err)
-		}
-		if alreadyUsed {
-			return errSwitchUplinkInUse
-		}
-	}
-	if !strings.HasPrefix(switchInfo.GetName(), "bnet") {
-		slog.Error("invalid bridge name", "name", switchInfo.GetName())
-
-		return errSwitchInvalidName
-	}
-
-	bridgeNumStr := strings.TrimPrefix(switchInfo.GetName(), "bnet")
-	bridgeNum, err := strconv.Atoi(bridgeNumStr)
-	if err != nil {
-		slog.Error("invalid bridge name", "name", switchInfo.GetName())
-
-		return fmt.Errorf("error checking switch name: %w", err)
-	}
-	bridgeNumFormattedString := strconv.FormatInt(int64(bridgeNum), 10)
-	// Check for silly things like "0123"
-	if bridgeNumStr != bridgeNumFormattedString {
-		slog.Error("invalid name", "name", switchInfo.GetName())
-
-		return errSwitchInvalidName
-	}
-
-	return nil
-}
-
-func validateIfSwitch(switchInfo *cirrina.SwitchInfo) error {
-	if !strings.HasPrefix(switchInfo.GetName(), "bridge") {
-		slog.Error("invalid name", "name", switchInfo.GetName())
-
-		return errSwitchInvalidName
-	}
-
-	// it can't be a member of another bridge of same type already
-	if switchInfo.Uplink != nil && switchInfo.GetUplink() != "" {
-		alreadyUsed, err := _switch.MemberUsedByIfBridge(switchInfo.GetUplink())
-		if err != nil {
-			slog.Error("error checking if member already used", "err", err)
-
-			return fmt.Errorf("error checking if switch uplink in use by another bridge: %w", err)
-		}
-		if alreadyUsed {
-			return errSwitchUplinkInUse
-		}
-	}
-
-	bridgeNumStr := strings.TrimPrefix(switchInfo.GetName(), "bridge")
-	bridgeNum, err := strconv.Atoi(bridgeNumStr)
-	if err != nil {
-		slog.Error("invalid bridge name", "name", switchInfo.GetName())
-
-		return fmt.Errorf("error checking switch name: %w", err)
-	}
-	bridgeNumFormattedString := strconv.FormatInt(int64(bridgeNum), 10)
-	// Check for silly things like "0123"
-	if bridgeNumStr != bridgeNumFormattedString {
-		slog.Error("invalid name", "name", switchInfo.GetName())
-
-		return errSwitchInvalidName
-	}
-
-	return nil
-}
-
-func bringUpNewSwitch(switchInst *_switch.Switch) error {
-	if switchInst == nil || switchInst.ID == "" {
-		return errInvalidID
-	}
-	switch switchInst.Type {
-	case "IF":
-		slog.Debug("creating if bridge", "name", switchInst.Name)
-		err := _switch.BuildIfBridge(switchInst)
-		if err != nil {
-			slog.Error("error creating if bridge", "err", err)
-			// already created in db, so ignore system state and proceed on...
-			return nil
-		}
-	case "NG":
-		slog.Debug("creating ng bridge", "name", switchInst.Name)
-		err := _switch.BuildNgBridge(switchInst)
-		if err != nil {
-			slog.Error("error creating ng bridge", "err", err)
-			// already created in db, so ignore system state and proceed on...
-			return nil
-		}
-	default:
-		slog.Error("unknown switch type bringing up new switch")
-
-		return errSwitchInvalidType
-	}
-
-	return nil
 }
 
 func mapSwitchTypeTypeToDBString(switchType cirrina.SwitchType) (string, error) {

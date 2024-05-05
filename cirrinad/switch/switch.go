@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/google/uuid"
 	exec "golang.org/x/sys/execabs"
@@ -25,8 +27,8 @@ type Switch struct {
 	Uplink      string
 }
 
-func switchTypeValid(switchType string) bool {
-	switch switchType {
+func switchTypeValid(switchInst *Switch) bool {
+	switch switchInst.Type {
 	case "IF":
 		return true
 	case "NG":
@@ -68,11 +70,11 @@ func switchCheckUplink(switchInst *Switch) error {
 }
 
 func validateSwitch(switchInst *Switch) error {
-	if !util.ValidSwitchName(switchInst.Name) {
+	if !switchNameValid(switchInst) {
 		return errSwitchInvalidName
 	}
 
-	if !switchTypeValid(switchInst.Type) {
+	if !switchTypeValid(switchInst) {
 		return errSwitchInvalidType
 	}
 
@@ -81,17 +83,17 @@ func validateSwitch(switchInst *Switch) error {
 		return err
 	}
 
-	return nil
+	switch switchInst.Type {
+	case "IF":
+		return validateIfSwitch(switchInst)
+	case "NG":
+		return validateNgSwitch(switchInst)
+	default:
+		return errSwitchInvalidType
+	}
 }
 
 func Create(switchInst *Switch) error {
-	err := validateSwitch(switchInst)
-	if err != nil {
-		slog.Error("error validating switch", "switch", switchInst.Name, "err", err)
-
-		return err
-	}
-
 	switchAlreadyExists, err := switchExists(switchInst.Name)
 	if err != nil {
 		slog.Error("error checking db for switch", "name", switchInst.Name, "err", err)
@@ -104,6 +106,13 @@ func Create(switchInst *Switch) error {
 		return errSwitchExists
 	}
 
+	err = validateSwitch(switchInst)
+	if err != nil {
+		slog.Error("error validating switch", "switch", switchInst.Name, "err", err)
+
+		return err
+	}
+
 	db := getSwitchDB()
 	res := db.Create(&switchInst)
 	if res.RowsAffected != 1 {
@@ -111,6 +120,11 @@ func Create(switchInst *Switch) error {
 	}
 	if res.Error != nil {
 		return res.Error
+	}
+
+	err = bringUpNewSwitch(switchInst)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -699,4 +713,140 @@ func switchExists(switchName string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func bringUpNewSwitch(switchInst *Switch) error {
+	if switchInst == nil || switchInst.ID == "" {
+		return errSwitchInvalidID
+	}
+	switch switchInst.Type {
+	case "IF":
+		slog.Debug("creating if bridge", "name", switchInst.Name)
+		err := BuildIfBridge(switchInst)
+		if err != nil {
+			slog.Error("error creating if bridge", "err", err)
+			// already created in db, so ignore system state and proceed on...
+			return nil
+		}
+	case "NG":
+		slog.Debug("creating ng bridge", "name", switchInst.Name)
+		err := BuildNgBridge(switchInst)
+		if err != nil {
+			slog.Error("error creating ng bridge", "err", err)
+			// already created in db, so ignore system state and proceed on...
+			return nil
+		}
+	default:
+		slog.Error("unknown switch type bringing up new switch")
+
+		return errSwitchInvalidType
+	}
+
+	return nil
+}
+
+func validateIfSwitch(switchInst *Switch) error {
+	// it can't be a member of another bridge of same type already
+	if switchInst.Uplink != "" {
+		alreadyUsed, err := MemberUsedByIfBridge(switchInst.Uplink)
+		if err != nil {
+			slog.Error("error checking if member already used", "err", err)
+
+			return fmt.Errorf("error checking if switch uplink in use by another bridge: %w", err)
+		}
+		if alreadyUsed {
+			return errSwitchUplinkInUse
+		}
+	}
+
+	return nil
+}
+
+func validateNgSwitch(switchInst *Switch) error {
+	// it can't be a member of another bridge of same type already
+	if switchInst.Uplink != "" {
+		alreadyUsed, err := MemberUsedByNgBridge(switchInst.Uplink)
+		if err != nil {
+			slog.Error("error checking if member already used", "err", err)
+
+			return fmt.Errorf("error checking if member already used: %w", err)
+		}
+		if alreadyUsed {
+			return errSwitchUplinkInUse
+		}
+	}
+
+	return nil
+}
+
+func switchNameValid(switchInst *Switch) bool {
+	if switchInst.Name == "" {
+		return false
+	}
+
+	// values must be kept sorted
+	myRT := &unicode.RangeTable{
+		R16: []unicode.Range16{
+			{0x002d, 0x002d, 1}, // -
+			{0x0030, 0x0039, 1}, // numbers
+			{0x0041, 0x005a, 1}, // upper case letters
+			{0x005f, 0x005f, 1}, // _
+			{0x0061, 0x007a, 1}, // lower case letters
+		},
+		LatinOffset: 0,
+	}
+
+	validChars := util.CheckInRange(switchInst.Name, myRT)
+	if !validChars {
+		return false
+	}
+
+	switch switchInst.Type {
+	case "IF":
+		if !strings.HasPrefix(switchInst.Name, "bridge") {
+			slog.Error("invalid name", "name", switchInst.Name)
+
+			return false
+		}
+
+		bridgeNumStr := strings.TrimPrefix(switchInst.Name, "bridge")
+		bridgeNum, err := strconv.Atoi(bridgeNumStr)
+		if err != nil {
+			slog.Error("invalid bridge name", "name", switchInst.Name)
+
+			return false
+		}
+		bridgeNumFormattedString := strconv.FormatInt(int64(bridgeNum), 10)
+		// Check for silly things like "0123"
+		if bridgeNumStr != bridgeNumFormattedString {
+			slog.Error("invalid name", "name", switchInst.Name)
+
+			return false
+		}
+	case "NG":
+		if !strings.HasPrefix(switchInst.Name, "bnet") {
+			slog.Error("invalid bridge name", "name", switchInst.Name)
+
+			return false
+		}
+
+		bridgeNumStr := strings.TrimPrefix(switchInst.Name, "bnet")
+		bridgeNum, err := strconv.Atoi(bridgeNumStr)
+		if err != nil {
+			slog.Error("invalid bridge name", "name", switchInst.Name)
+
+			return false
+		}
+		bridgeNumFormattedString := strconv.FormatInt(int64(bridgeNum), 10)
+		// Check for silly things like "0123"
+		if bridgeNumStr != bridgeNumFormattedString {
+			slog.Error("invalid name", "name", switchInst.Name)
+
+			return false
+		}
+	default:
+		return false
+	}
+
+	return true
 }

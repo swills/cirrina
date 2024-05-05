@@ -42,11 +42,6 @@ func Create(diskInst *Disk, size string) error {
 	var err error
 	var diskSize uint64
 
-	err = validateDisk(diskInst)
-	if err != nil {
-		return fmt.Errorf("error creating disk: %w", err)
-	}
-
 	// check db for existing disk
 	diskAlreadyExists, err := diskExists(diskInst.Name)
 	if err != nil {
@@ -58,6 +53,11 @@ func Create(diskInst *Disk, size string) error {
 		slog.Error("disk exists", "disk", diskInst.Name)
 
 		return errDiskExists
+	}
+
+	err = validateDisk(diskInst)
+	if err != nil {
+		return fmt.Errorf("error creating disk: %w", err)
 	}
 
 	diskSize, err = util.ParseDiskSize(size)
