@@ -3,6 +3,7 @@ module cirrina
 go 1.21
 
 require (
+	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.16.0
 	github.com/gdamore/tcell/v2 v2.7.4

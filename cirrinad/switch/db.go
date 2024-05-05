@@ -34,6 +34,10 @@ func getSwitchDB() *gorm.DB {
 	)
 
 	once.Do(func() {
+		// allow override for testing
+		if instance != nil {
+			return
+		}
 		instance = &singleton{}
 		switchDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
