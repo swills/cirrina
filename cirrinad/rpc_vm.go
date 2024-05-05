@@ -700,7 +700,17 @@ func (s *server) AddVM(_ context.Context, vmConfig *cirrina.VMConfig) (*cirrina.
 	if vmConfig.Mem == nil || vmConfig.GetMem() < defaultVMMemCount {
 		vmConfig.Mem = &defaultVMMemCount
 	}
-	vmInst, err := vm.Create(vmConfig.GetName(), vmConfig.GetDescription(), vmConfig.GetCpu(), vmConfig.GetMem())
+	vmInst := &vm.VM{
+		Name:        vmConfig.GetName(),
+		Status:      vm.STOPPED,
+		Description: vmConfig.GetDescription(),
+		Config: vm.Config{
+			CPU: vmConfig.GetCpu(),
+			Mem: vmConfig.GetMem(),
+		},
+	}
+
+	err := vm.Create(vmInst)
 	if err != nil {
 		return &cirrina.VMID{}, fmt.Errorf("error creating VM: %w", err)
 	}

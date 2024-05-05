@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -15,38 +16,35 @@ import (
 )
 
 func (s *server) AddSwitch(_ context.Context, switchInfo *cirrina.SwitchInfo) (*cirrina.SwitchId, error) {
-	defaultSwitchType := cirrina.SwitchType_IF
-	defaultSwitchDescription := ""
-
 	if switchInfo.Name == nil || !util.ValidSwitchName(switchInfo.GetName()) {
 		return &cirrina.SwitchId{}, errInvalidName
 	}
 
-	if switchInfo.Description == nil {
-		switchInfo.Description = &defaultSwitchDescription
-	}
-
-	if switchInfo.SwitchType == nil {
-		switchInfo.SwitchType = &defaultSwitchType
-	}
-
 	err := validateNewSwitch(switchInfo)
 	if err != nil {
-		return &cirrina.SwitchId{}, err
+		return nil, err
 	}
 	switchType, err := mapSwitchTypeTypeToDBString(switchInfo.GetSwitchType())
 	if err != nil {
-		return &cirrina.SwitchId{}, err
+		return nil, err
+	}
+	switchInst := &_switch.Switch{
+		Name:        switchInfo.GetName(),
+		Description: switchInfo.GetDescription(),
+		Type:        switchType,
+		Uplink:      switchInfo.GetUplink(),
 	}
 
-	switchInst, err := _switch.Create(
-		switchInfo.GetName(), switchInfo.GetDescription(), switchType, switchInfo.GetUplink(),
-	)
+	err = _switch.Create(switchInst)
 	if err != nil {
-		return &cirrina.SwitchId{}, fmt.Errorf("error creating switch: %w", err)
+		return nil, fmt.Errorf("error creating switch: %w", err)
+	}
+	err = bringUpNewSwitch(switchInst)
+	if err != nil {
+		return nil, err
 	}
 
-	return bringUpNewSwitch(switchInst)
+	return &cirrina.SwitchId{Value: switchInst.ID}, nil
 }
 
 func (s *server) GetSwitches(_ *cirrina.SwitchesQuery, stream cirrina.VMInfo_GetSwitchesServer) error {
@@ -274,7 +272,14 @@ func validateNewSwitch(switchInfo *cirrina.SwitchInfo) error {
 		return errSwitchInvalidType
 	}
 
-	if _switch.Exists(switchInfo.GetName()) {
+	existingSwitch, err := _switch.GetByName(switchInfo.GetName())
+	if err != nil {
+		if !errors.Is(err, errSwitchNotFound) {
+			return fmt.Errorf("error checking switch exists: %w", err)
+		}
+	}
+
+	if existingSwitch != nil && existingSwitch.Name != "" {
 		return errSwitchExists
 	}
 
@@ -363,9 +368,9 @@ func validateIfSwitch(switchInfo *cirrina.SwitchInfo) error {
 	return nil
 }
 
-func bringUpNewSwitch(switchInst *_switch.Switch) (*cirrina.SwitchId, error) {
+func bringUpNewSwitch(switchInst *_switch.Switch) error {
 	if switchInst == nil || switchInst.ID == "" {
-		return &cirrina.SwitchId{}, errInvalidID
+		return errInvalidID
 	}
 	switch switchInst.Type {
 	case "IF":
@@ -374,7 +379,7 @@ func bringUpNewSwitch(switchInst *_switch.Switch) (*cirrina.SwitchId, error) {
 		if err != nil {
 			slog.Error("error creating if bridge", "err", err)
 			// already created in db, so ignore system state and proceed on...
-			return &cirrina.SwitchId{Value: switchInst.ID}, nil
+			return nil
 		}
 	case "NG":
 		slog.Debug("creating ng bridge", "name", switchInst.Name)
@@ -382,15 +387,15 @@ func bringUpNewSwitch(switchInst *_switch.Switch) (*cirrina.SwitchId, error) {
 		if err != nil {
 			slog.Error("error creating ng bridge", "err", err)
 			// already created in db, so ignore system state and proceed on...
-			return &cirrina.SwitchId{Value: switchInst.ID}, nil
+			return nil
 		}
 	default:
 		slog.Error("unknown switch type bringing up new switch")
 
-		return &cirrina.SwitchId{}, errSwitchInvalidType
+		return errSwitchInvalidType
 	}
 
-	return &cirrina.SwitchId{Value: switchInst.ID}, nil
+	return nil
 }
 
 func mapSwitchTypeTypeToDBString(switchType cirrina.SwitchType) (string, error) {

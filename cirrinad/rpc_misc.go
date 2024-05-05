@@ -18,13 +18,13 @@ import (
 func (s *server) RequestStatus(_ context.Context, requestID *cirrina.RequestID) (*cirrina.ReqStatus, error) {
 	reqUUID, err := uuid.Parse(requestID.GetValue())
 	if err != nil {
-		return &cirrina.ReqStatus{}, errInvalidID
+		return nil, errInvalidID
 	}
 	request, err := requests.GetByID(reqUUID.String())
 	if err != nil {
 		slog.Error("ReqStatus error getting req", "vm", requestID.GetValue(), "err", err)
 
-		return &cirrina.ReqStatus{}, errNotFound
+		return nil, errNotFound
 	}
 	if request.ID == "" {
 		return &cirrina.ReqStatus{}, errNotFound

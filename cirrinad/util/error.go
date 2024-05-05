@@ -17,4 +17,5 @@ var (
 	errSTDERRNotEmpty  = errors.New("stderr is not empty")
 	errInvalidPid      = errors.New("invalid PID")
 	errInvalidDiskSize = errors.New("invalid disk size")
+	errUserNotFound    = errors.New("user not found")
 )

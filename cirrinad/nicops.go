@@ -51,14 +51,14 @@ func nicClone(request *requests.Request) {
 		newNic.Mac = newMac.String()
 	}
 
-	newVMNicID, err := vmnic.Create(&newNic)
+	err = vmnic.Create(&newNic)
 	if err != nil {
 		slog.Error("error saving cloned nic", "err", err)
 		request.Failed()
 
 		return
 	}
-	slog.Debug("cloned nic", "newVMNicID", newVMNicID)
+	slog.Debug("cloned nic", "newVMNicID", newNic.ID)
 
 	request.Succeeded()
 }
@@ -106,7 +106,7 @@ func nicCloneRequestValidate(requestData string, reqData requests.NicCloneReqDat
 	if err != nil {
 		return nil, fmt.Errorf("error getting name of new NIC: %w", err)
 	}
-	if existingVMNic.Name != "" {
+	if existingVMNic != nil && existingVMNic.Name != "" {
 		return nil, fmt.Errorf("cloned nic already exists: %w", errNicExists)
 	}
 

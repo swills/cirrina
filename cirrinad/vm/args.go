@@ -6,6 +6,7 @@ import (
 	"math"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -96,13 +97,7 @@ func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (string, error) {
 	nocache := ""
 	direct := ""
 
-	diskPath, err := thisDisk.GetPath()
-	if err != nil {
-		slog.Error("error getting disk path", "diskId", thisDisk.ID, "diskName", thisDisk.Name,
-			"diskPath", diskPath, "err", err)
-
-		return "", fmt.Errorf("error getting disk path: %w", err)
-	}
+	diskPath := thisDisk.GetPath()
 	diskExists, err := thisDisk.VerifyExists()
 	if err != nil {
 		slog.Error("error checking disk path exists", "diskId", thisDisk.ID, "diskName", thisDisk.Name, "diskPath", diskPath)
@@ -125,6 +120,9 @@ func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (string, error) {
 		slog.Error("unknown disk type", "type", thisDisk.Type)
 
 		return "", errVMUnknownDiskType
+	}
+	if thisDisk.DevType == "ZVOL" {
+		diskPath = filepath.Join("/dev/zvol/", diskPath)
 	}
 	if thisDisk.DiskCache.Valid && !thisDisk.DiskCache.Bool {
 		nocache = ",nocache"

@@ -26,10 +26,10 @@ func GetAllZfsVolumes() ([]string, error) {
 	var stdout io.ReadCloser
 	stdout, err = cmd.StdoutPipe()
 	if err != nil {
-		return []string{}, fmt.Errorf("failed running zfs command: %w", err)
+		return nil, fmt.Errorf("failed running zfs command: %w", err)
 	}
 	if err = cmd.Start(); err != nil {
-		return []string{}, fmt.Errorf("failed running zfs command: %w", err)
+		return nil, fmt.Errorf("failed running zfs command: %w", err)
 	}
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
@@ -41,7 +41,7 @@ func GetAllZfsVolumes() ([]string, error) {
 		allVolumes = append(allVolumes, textFields[0])
 	}
 	if err = scanner.Err(); err != nil {
-		return []string{}, fmt.Errorf("failed parsing zfs output: %w", err)
+		return nil, fmt.Errorf("failed parsing zfs output: %w", err)
 	}
 
 	return allVolumes, nil

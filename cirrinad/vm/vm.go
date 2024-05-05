@@ -133,143 +133,38 @@ var (
 	}
 )
 
-func Create(name string, description string, cpu uint32, mem uint32) (*VM, error) {
-	var vmInst *VM
-	if !util.ValidVMName(name) {
-		return vmInst, errVMInvalidName
+func Create(vmInst *VM) error {
+	err := validateVM(vmInst)
+	if err != nil {
+		slog.Error("error validating vm", "VM", vmInst, "err", err)
+
+		return err
 	}
-	if _, err := GetByName(name); err == nil {
-		return vmInst, errVMDupe
+
+	vmAlreadyExists, err := vmExists(vmInst.Name)
+	if err != nil {
+		slog.Error("error checking db for vm", "name", vmInst.Name, "err", err)
+
+		return err
 	}
-	vmInst = &VM{
-		Name:        name,
-		Status:      STOPPED,
-		Description: description,
-		Config: Config{
-			CPU: cpu,
-			Mem: mem,
-		},
+	if vmAlreadyExists {
+		slog.Error("VM exists", "VM", vmInst.Name)
+
+		return errVMDupe
 	}
+
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
 	db := GetVMDB()
-	slog.Debug("Creating VM", "vm", name)
+	slog.Debug("Creating VM", "vm", vmInst.Name)
 	res := db.Create(&vmInst)
+	if res.RowsAffected != 1 {
+		return fmt.Errorf("incorrect number of rows affected, err: %w", res.Error)
+	}
+	if res.Error != nil {
+		return res.Error
+	}
 	InitOneVM(vmInst)
-
-	return vmInst, res.Error
-}
-
-func (vm *VM) Delete() error {
-	vmDB := GetVMDB()
-	vmDB.Model(&VM{}).Preload("Config").Limit(1).Find(&vm, &VM{ID: vm.ID})
-	if vm.ID == "" {
-		return errVMNotFound
-	}
-	res := vmDB.Limit(1).Delete(&vm.Config)
-	if res.RowsAffected != 1 {
-		// don't fail deleting the VM, may have a bad or missing config, still want to be able to delete VM
-		slog.Error("failed to delete config for VM", "vmid", vm.ID)
-	}
-	res = vmDB.Limit(1).Delete(&vm)
-	if res.RowsAffected != 1 {
-		slog.Error("error deleting VM", "res", res)
-
-		return errVMInternalDB
-	}
-
-	return nil
-}
-
-func (vm *VM) Start() error { //nolint:funlen
-	var err error
-	defer vmStartLock.Unlock()
-	vmStartLock.Lock()
-
-	if vm.Status != STOPPED {
-		return errVMNotStopped
-	}
-	vm.SetStarting()
-	events := make(chan supervisor.Event)
-	err = vm.lockDisks()
-	if err != nil {
-		slog.Error("Failed locking disks", "err", err)
-
-		return err
-	}
-
-	cmdName, cmdArgs := vm.generateCommandLine()
-	vm.log.Info("start", "cmd", cmdName, "args", cmdArgs)
-	vm.createUefiVarsFile()
-	vm.netStartup()
-	err = vm.Save()
-	if err != nil {
-		slog.Error("Failed saving VM", "err", err)
-
-		return err
-	}
-
-	respawnWait := time.Duration(vm.Config.RestartDelay) * time.Second
-	// avoid go-supervisor setting this to default (2m) -- 1ns is hard to differentiate from 0ns and I prefer not to
-	// change go-supervisor unless I have to
-	if respawnWait == 0 {
-		respawnWait = 1
-	}
-
-	var processDebug bool
-	if config.Config.Log.Level == "debug" {
-		slog.Debug("vm.Start enabling process debugging", "vm", vm.Name)
-		processDebug = true
-	}
-
-	vmProc := supervisor.NewProcess(supervisor.ProcessOptions{
-		Name:                    cmdName,
-		Args:                    cmdArgs,
-		Dir:                     "/",
-		Id:                      vm.Name,
-		EventNotifier:           events,
-		OutputParser:            supervisor.MakeBytesParser,
-		ErrorParser:             supervisor.MakeBytesParser,
-		MaxSpawns:               -1,
-		MaxSpawnAttempts:        -1,
-		RespawnWait:             respawnWait,
-		SpawnWait:               respawnWait,
-		MaxInterruptAttempts:    1,
-		MaxTerminateAttempts:    1,
-		IdleTimeout:             -1,
-		TerminationGraceTimeout: time.Duration(vm.Config.MaxWait) * time.Second,
-		Debug:                   processDebug,
-	})
-
-	vm.proc = vmProc
-	go vmDaemon(events, vm)
-
-	if err := vmProc.Start(); err != nil {
-		panic(fmt.Sprintf("failed to start process: %s", err))
-	}
-
-	return nil
-}
-
-func (vm *VM) Stop() error {
-	var err error
-	if vm.Status == STOPPED {
-		slog.Error("tried to stop VM already stopped", "vm", vm.Name)
-
-		return errVMAlreadyStopped
-	}
-	vm.SetStopping()
-	if vm.proc == nil {
-		vm.SetStopped()
-
-		return nil
-	}
-	err = vm.proc.Stop()
-	if err != nil {
-		slog.Error("Failed to stop VM", "vm", vm.Name, "pid", vm.proc.Pid(), "err", err)
-
-		return errVMStopFail
-	}
 
 	return nil
 }
@@ -374,6 +269,128 @@ func (vm *VM) Save() error { //nolint:funlen
 	return nil
 }
 
+func (vm *VM) Delete() error {
+	vmDB := GetVMDB()
+	vmDB.Model(&VM{}).Preload("Config").Limit(1).Find(&vm, &VM{ID: vm.ID})
+	if vm.ID == "" {
+		return errVMNotFound
+	}
+	res := vmDB.Limit(1).Delete(&vm.Config)
+	if res.RowsAffected != 1 {
+		// don't fail deleting the VM, may have a bad or missing config, still want to be able to delete VM
+		slog.Error("failed to delete config for VM", "vmid", vm.ID)
+	}
+	res = vmDB.Limit(1).Delete(&vm)
+	if res.RowsAffected != 1 {
+		slog.Error("error deleting VM", "res", res)
+
+		return errVMInternalDB
+	}
+
+	return nil
+}
+
+func (vm *VM) Running() bool {
+	if vm.Status == RUNNING || vm.Status == STOPPING {
+		return true
+	}
+
+	return false
+}
+
+func (vm *VM) Start() error { //nolint:funlen
+	var err error
+	defer vmStartLock.Unlock()
+	vmStartLock.Lock()
+
+	if vm.Status != STOPPED {
+		return errVMNotStopped
+	}
+	vm.SetStarting()
+	events := make(chan supervisor.Event)
+	err = vm.lockDisks()
+	if err != nil {
+		slog.Error("Failed locking disks", "err", err)
+
+		return err
+	}
+
+	cmdName, cmdArgs := vm.generateCommandLine()
+	vm.log.Info("start", "cmd", cmdName, "args", cmdArgs)
+	vm.createUefiVarsFile()
+	vm.netStartup()
+	err = vm.Save()
+	if err != nil {
+		slog.Error("Failed saving VM", "err", err)
+
+		return err
+	}
+
+	respawnWait := time.Duration(vm.Config.RestartDelay) * time.Second
+	// avoid go-supervisor setting this to default (2m) -- 1ns is hard to differentiate from 0ns and I prefer not to
+	// change go-supervisor unless I have to
+	if respawnWait == 0 {
+		respawnWait = 1
+	}
+
+	var processDebug bool
+	if config.Config.Log.Level == "debug" {
+		slog.Debug("vm.Start enabling process debugging", "vm", vm.Name)
+		processDebug = true
+	}
+
+	vmProc := supervisor.NewProcess(supervisor.ProcessOptions{
+		Name:                    cmdName,
+		Args:                    cmdArgs,
+		Dir:                     "/",
+		Id:                      vm.Name,
+		EventNotifier:           events,
+		OutputParser:            supervisor.MakeBytesParser,
+		ErrorParser:             supervisor.MakeBytesParser,
+		MaxSpawns:               -1,
+		MaxSpawnAttempts:        -1,
+		RespawnWait:             respawnWait,
+		SpawnWait:               respawnWait,
+		MaxInterruptAttempts:    1,
+		MaxTerminateAttempts:    1,
+		IdleTimeout:             -1,
+		TerminationGraceTimeout: time.Duration(vm.Config.MaxWait) * time.Second,
+		Debug:                   processDebug,
+	})
+
+	vm.proc = vmProc
+	go vmDaemon(events, vm)
+
+	if err := vmProc.Start(); err != nil {
+		panic(fmt.Sprintf("failed to start process: %s", err))
+	}
+
+	return nil
+}
+
+func (vm *VM) Stop() error {
+	var err error
+	if vm.Status == STOPPED {
+		slog.Error("tried to stop VM already stopped", "vm", vm.Name)
+
+		return errVMAlreadyStopped
+	}
+	vm.SetStopping()
+	if vm.proc == nil {
+		vm.SetStopped()
+
+		return nil
+	}
+	err = vm.proc.Stop()
+	if err != nil {
+		slog.Error("Failed to stop VM", "vm", vm.Name, "pid", vm.proc.Pid(), "err", err)
+
+		return errVMStopFail
+	}
+
+	return nil
+}
+
 func (vm *VM) MaybeForceKillVM() {
 	ex, err := util.PathExists("/dev/vmm/" + vm.Name)
 	if err != nil {
@@ -434,10 +451,18 @@ func vmDaemon(events chan supervisor.Event, thisVM *VM) {
 	}
 }
 
-func (vm *VM) Running() bool {
-	if vm.Status == RUNNING || vm.Status == STOPPING {
-		return true
+func validateVM(vmInst *VM) error {
+	if !util.ValidVMName(vmInst.Name) {
+		return errVMInvalidName
 	}
 
-	return false
+	return nil
+}
+
+func vmExists(vmName string) (bool, error) {
+	if _, err := GetByName(vmName); err == nil {
+		return true, errVMDupe
+	}
+
+	return false, nil
 }

@@ -67,9 +67,16 @@ func (s *server) AddISO(_ context.Context, isoInfo *cirrina.ISOInfo) (*cirrina.I
 	if isoInfo.Description == nil {
 		isoInfo.Description = &defaultDescription
 	}
-	isoInst, err := iso.Create(isoInfo.GetName(), isoInfo.GetDescription())
+
+	path := config.Config.Disk.VM.Path.Iso + "/" + isoInfo.GetName()
+	isoInst := &iso.ISO{
+		Name:        isoInfo.GetName(),
+		Description: isoInfo.GetDescription(),
+		Path:        path,
+	}
+	err := iso.Create(isoInst)
 	if err != nil {
-		return &cirrina.ISOID{}, fmt.Errorf("error creating iso: %w", err)
+		return nil, fmt.Errorf("error creating iso: %w", err)
 	}
 
 	return &cirrina.ISOID{Value: isoInst.ID}, nil

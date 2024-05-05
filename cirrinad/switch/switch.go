@@ -2,6 +2,7 @@ package vmswitch
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -24,34 +25,123 @@ type Switch struct {
 	Uplink      string
 }
 
-func GetByID(switchID string) (*Switch, error) {
-	var aSwitch *Switch
-	db := getSwitchDB()
-	db.Limit(1).Find(&aSwitch, "id = ?", switchID)
-	if aSwitch.Name == "" {
-		return aSwitch, errSwitchNotFound
+func switchTypeValid(switchType string) bool {
+	switch switchType {
+	case "IF":
+		return true
+	case "NG":
+		return true
+	default:
+		return false
 	}
-
-	return aSwitch, nil
 }
 
-func GetByName(name string) *Switch {
-	var aSwitch *Switch
-	db := getSwitchDB()
-	result := db.Limit(1).Find(&aSwitch, "name = ?", name)
-	if result.RowsAffected == 1 {
-		return aSwitch
+func switchCheckUplink(switchInst *Switch) error {
+	switch switchInst.Type {
+	case "IF":
+		if switchInst.Uplink != "" {
+			alreadyUsed, err := MemberUsedByIfBridge(switchInst.Uplink)
+			if err != nil {
+				return errSwitchInternalChecking
+			}
+			if alreadyUsed {
+				return errSwitchUplinkInUse
+			}
+		}
+	case "NG":
+		if switchInst.Uplink != "" {
+			alreadyUsed, err := MemberUsedByNgBridge(switchInst.Uplink)
+			if err != nil {
+				return errSwitchInternalChecking
+			}
+			if alreadyUsed {
+				return errSwitchUplinkInUse
+			}
+		}
+	default:
+		slog.Error("bad switch type", "switchType", switchInst.Type)
+
+		return errSwitchInvalidType
 	}
 
 	return nil
 }
 
-// Exists returns true if switch exists, false if not. don't have to worry about switch type because switches of
-// different types have different name patterns (bridgeX vs bnetX)
-func Exists(name string) bool {
-	switchItem := GetByName(name)
+func validateSwitch(switchInst *Switch) error {
+	if !util.ValidSwitchName(switchInst.Name) {
+		return errSwitchInvalidName
+	}
 
-	return switchItem != nil
+	if !switchTypeValid(switchInst.Type) {
+		return errSwitchInvalidType
+	}
+
+	err := switchCheckUplink(switchInst)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Create(switchInst *Switch) error {
+	err := validateSwitch(switchInst)
+	if err != nil {
+		slog.Error("error validating switch", "switch", switchInst.Name, "err", err)
+
+		return err
+	}
+
+	switchAlreadyExists, err := switchExists(switchInst.Name)
+	if err != nil {
+		slog.Error("error checking db for switch", "name", switchInst.Name, "err", err)
+
+		return err
+	}
+	if switchAlreadyExists {
+		slog.Error("switch exists", "switch", switchInst.Name)
+
+		return errSwitchExists
+	}
+
+	db := getSwitchDB()
+	res := db.Create(&switchInst)
+	if res.RowsAffected != 1 {
+		return fmt.Errorf("incorrect number of rows affected, err: %w", res.Error)
+	}
+	if res.Error != nil {
+		return res.Error
+	}
+
+	return nil
+}
+
+func GetByID(switchID string) (*Switch, error) {
+	var aSwitch *Switch
+	db := getSwitchDB()
+	res := db.Limit(1).Find(&aSwitch, "id = ?", switchID)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected != 1 {
+		return nil, errSwitchNotFound
+	}
+
+	return aSwitch, nil
+}
+
+func GetByName(name string) (*Switch, error) {
+	var aSwitch *Switch
+	db := getSwitchDB()
+	res := db.Limit(1).Find(&aSwitch, "name = ?", name)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected != 1 {
+		return nil, errSwitchNotFound
+	}
+
+	return aSwitch, nil
 }
 
 func GetAll() []*Switch {
@@ -62,59 +152,23 @@ func GetAll() []*Switch {
 	return result
 }
 
-func Create(name string, description string, switchType string, uplink string) (*Switch, error) {
-	var switchInst *Switch
-	if !util.ValidSwitchName(name) {
-		return switchInst, errSwitchInvalidName
-	}
-	exists := Exists(name)
-	if exists {
-		return nil, errSwitchExists
-	}
-
-	if switchType != "IF" && switchType != "NG" {
-		slog.Error("bad switch type", "switchType", switchType)
-
-		return switchInst, errSwitchInvalidType
-	}
-
-	switch switchType {
-	case "IF":
-		if uplink != "" {
-			alreadyUsed, err := MemberUsedByIfBridge(uplink)
-			if err != nil {
-				return switchInst, errSwitchInternalChecking
-			}
-			if alreadyUsed {
-				return switchInst, errSwitchUplinkInUse
-			}
-		}
-	case "NG":
-		if uplink != "" {
-			alreadyUsed, err := MemberUsedByNgBridge(uplink)
-			if err != nil {
-				return switchInst, errSwitchInternalChecking
-			}
-			if alreadyUsed {
-				return switchInst, errSwitchUplinkInUse
-			}
-		}
-	default:
-		slog.Error("bad switch type", "switchType", switchType)
-
-		return switchInst, errSwitchInvalidType
-	}
-
-	switchInst = &Switch{
-		Name:        name,
-		Description: description,
-		Type:        switchType,
-		Uplink:      uplink,
-	}
+func (d *Switch) Save() error {
 	db := getSwitchDB()
-	res := db.Create(&switchInst)
 
-	return switchInst, res.Error
+	res := db.Model(&d).
+		Updates(map[string]interface{}{
+			"name":        &d.Name,
+			"description": &d.Description,
+			"type":        &d.Type,
+			"uplink":      &d.Uplink,
+		},
+		)
+
+	if res.Error != nil {
+		return errSwitchInternalDB
+	}
+
+	return nil
 }
 
 func Delete(switchID string) error {
@@ -522,25 +576,6 @@ func setUplinkIf(uplink string, switchInst *Switch) error {
 	return nil
 }
 
-func (d *Switch) Save() error {
-	db := getSwitchDB()
-
-	res := db.Model(&d).
-		Updates(map[string]interface{}{
-			"name":        &d.Name,
-			"description": &d.Description,
-			"type":        &d.Type,
-			"uplink":      &d.Uplink,
-		},
-		)
-
-	if res.Error != nil {
-		return errSwitchInternalDB
-	}
-
-	return nil
-}
-
 func BridgeNgAddMember(bridgeName string, memberName string) error {
 	link, err := ngGetBridgeNextLink(bridgeName)
 	if err != nil {
@@ -650,4 +685,18 @@ func ParseSwitchID(switchID string, netDevType string) (string, error) {
 	res = switchUUID.String()
 
 	return res, nil
+}
+
+func switchExists(switchName string) (bool, error) {
+	var err error
+	_, err = GetByName(switchName)
+	if err != nil {
+		if !errors.Is(err, errSwitchNotFound) {
+			return false, err
+		}
+
+		return false, nil
+	}
+
+	return true, nil
 }

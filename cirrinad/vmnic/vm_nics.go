@@ -1,6 +1,8 @@
 package vmnic
 
 import (
+	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 
@@ -10,20 +12,92 @@ import (
 	"cirrina/cirrinad/util"
 )
 
-func GetByName(name string) (*VMNic, error) {
-	var s *VMNic
-	db := GetVMNicDB()
-	db.Limit(1).Find(&s, "name = ?", name)
+type VMNic struct {
+	gorm.Model
+	ID          string `gorm:"uniqueIndex;not null;default:null"`
+	Name        string `gorm:"uniqueIndex;not null;default:null"`
+	Description string
+	Mac         string `gorm:"default:AUTO"`
+	NetDev      string
+	NetType     string `gorm:"default:VIRTIONET;check:net_type IN ('VIRTIONET','E1000')"`
+	NetDevType  string `gorm:"default:TAP;check:net_dev_type IN ('TAP','VMNET','NETGRAPH')"`
+	SwitchID    string
+	RateLimit   bool `gorm:"default:False;check:rate_limit IN(0,1)"`
+	RateIn      uint64
+	RateOut     uint64
+	InstBridge  string
+	InstEpair   string
+	ConfigID    uint `gorm:"index;default:null"`
+}
 
-	return s, nil
+func Create(vmNicInst *VMNic) error {
+	if vmNicInst.Mac == "" {
+		vmNicInst.Mac = "AUTO"
+	}
+	if vmNicInst.NetType == "" {
+		vmNicInst.NetType = "VIRTIONET"
+	}
+	if vmNicInst.NetDevType == "" {
+		vmNicInst.NetDevType = "TAP"
+	}
+
+	err := validateNic(vmNicInst)
+	if err != nil {
+		slog.Error("error validating nic", "VMNic", vmNicInst, "err", err)
+
+		return err
+	}
+
+	nicAlreadyExists, err := nicExists(vmNicInst.Name)
+	if err != nil {
+		slog.Error("error checking db for nic", "name", vmNicInst.Name, "err", err)
+
+		return err
+	}
+	if nicAlreadyExists {
+		slog.Error("nic exists in DB", "nic", vmNicInst.Name)
+
+		return errNicExists
+	}
+
+	db := GetVMNicDB()
+	res := db.Create(&vmNicInst)
+	if res.RowsAffected != 1 {
+		return fmt.Errorf("incorrect number of rows affected, err: %w", res.Error)
+	}
+	if res.Error != nil {
+		return res.Error
+	}
+
+	return nil
+}
+
+func GetByName(name string) (*VMNic, error) {
+	var vmNic *VMNic
+	db := GetVMNicDB()
+	res := db.Limit(1).Find(&vmNic, "name = ?", name)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected != 1 {
+		return nil, errNicNotFound
+	}
+
+	return vmNic, nil
 }
 
 func GetByID(id string) (*VMNic, error) {
-	var v *VMNic
+	var vmNic *VMNic
 	db := GetVMNicDB()
-	db.Limit(1).Find(&v, "id = ?", id)
+	res := db.Limit(1).Find(&vmNic, "id = ?", id)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected != 1 {
+		return nil, errNicNotFound
+	}
 
-	return v, nil
+	return vmNic, nil
 }
 
 func GetNics(vmConfigID uint) []VMNic {
@@ -40,39 +114,6 @@ func GetAll() []*VMNic {
 	db.Find(&result)
 
 	return result
-}
-
-func Create(vmNicInst *VMNic) (string, error) {
-	var newNicID string
-	if vmNicInst.Mac == "" {
-		vmNicInst.Mac = "AUTO"
-	}
-	if vmNicInst.NetType == "" {
-		vmNicInst.NetType = "VIRTIONET"
-	}
-	if vmNicInst.NetDevType == "" {
-		vmNicInst.NetDevType = "TAP"
-	}
-
-	valid, err := validateNewNic(vmNicInst)
-	if err != nil {
-		slog.Error("error validating nic", "VMNic", vmNicInst, "err", err)
-
-		return newNicID, err
-	}
-	if !valid {
-		slog.Error("VMNic exists or not valid", "VMNic", vmNicInst.Name)
-
-		return newNicID, errNicExists
-	}
-
-	db := GetVMNicDB()
-	res := db.Create(&vmNicInst)
-	if res.RowsAffected != 1 {
-		return newNicID, res.Error
-	}
-
-	return vmNicInst.ID, res.Error
 }
 
 func (d *VMNic) Delete() error {
@@ -127,24 +168,6 @@ func (d *VMNic) Save() error {
 	}
 
 	return nil
-}
-
-type VMNic struct {
-	gorm.Model
-	ID          string `gorm:"uniqueIndex;not null;default:null"`
-	Name        string `gorm:"uniqueIndex;not null;default:null"`
-	Description string
-	Mac         string `gorm:"default:AUTO"`
-	NetDev      string
-	NetType     string `gorm:"default:VIRTIONET;check:net_type IN ('VIRTIONET','E1000')"`
-	NetDevType  string `gorm:"default:TAP;check:net_dev_type IN ('TAP','VMNET','NETGRAPH')"`
-	SwitchID    string
-	RateLimit   bool `gorm:"default:False;check:rate_limit IN(0,1)"`
-	RateIn      uint64
-	RateOut     uint64
-	InstBridge  string
-	InstEpair   string
-	ConfigID    uint `gorm:"index;default:null"`
 }
 
 func ParseMac(macAddress string) (string, error) {
@@ -212,43 +235,71 @@ func ParseNetType(netType cirrina.NetType) (string, error) {
 	return res, err
 }
 
-// validateNewNic validate and normalize new nic
-func validateNewNic(vmNicInst *VMNic) (bool, error) {
+// validateNic validate and normalize new nic
+func validateNic(vmNicInst *VMNic) error {
 	if !util.ValidNicName(vmNicInst.Name) {
-		return false, errInvalidNicName
+		return errInvalidNicName
 	}
-	existingVMNic, err := GetByName(vmNicInst.Name)
-	if err != nil {
-		return false, err
+	if !nicTypeValid(vmNicInst.NetType) {
+		return errInvalidNetType
 	}
-	if existingVMNic.Name != "" {
-		return false, errNicExists
+	if !nicDevTypeValid(vmNicInst.NetDevType) {
+		return errInvalidNetDevType
 	}
-
-	if vmNicInst.NetType != "VIRTIONET" && vmNicInst.NetType != "E1000" {
-		return false, errInvalidNetType
-	}
-
-	if vmNicInst.NetDevType != "TAP" && vmNicInst.NetDevType != "VMNET" && vmNicInst.NetDevType != "NETGRAPH" {
-		return false, errInvalidNetDevType
-	}
-
 	if vmNicInst.RateLimit {
 		if vmNicInst.RateIn <= 0 || vmNicInst.RateOut <= 0 {
-			return false, errInvalidNetworkRateLimit
+			return errInvalidNetworkRateLimit
 		}
 	}
 	if vmNicInst.Mac != "AUTO" {
 		newMac, err := net.ParseMAC(vmNicInst.Mac)
 		if err != nil {
-			return false, errInvalidMac
+			return errInvalidMac
 		}
 		if len(newMac.String()) != 17 {
-			return false, errInvalidMac
+			return errInvalidMac
 		}
 		// normalize MAC
 		vmNicInst.Mac = newMac.String()
 	}
 
+	return nil
+}
+
+func nicExists(nicName string) (bool, error) {
+	var err error
+	_, err = GetByName(nicName)
+	if err != nil {
+		if !errors.Is(err, errNicNotFound) {
+			return false, err
+		}
+
+		return false, nil
+	}
+
 	return true, nil
+}
+
+func nicDevTypeValid(nicDevType string) bool {
+	switch nicDevType {
+	case "TAP":
+		return true
+	case "VMNET":
+		return true
+	case "NETGRAPH":
+		return true
+	default:
+		return false
+	}
+}
+
+func nicTypeValid(nicType string) bool {
+	switch nicType {
+	case "VIRTIONET":
+		return true
+	case "E1000":
+		return true
+	default:
+		return false
+	}
 }

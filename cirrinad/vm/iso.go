@@ -49,7 +49,7 @@ func (vm *VM) AttachIsos(isoIDs []string) error {
 
 			return errVMIsoNotFound
 		}
-		if thisIso.Name == "" {
+		if thisIso == nil || thisIso.Name == "" {
 			return errVMIsoNotFound
 		}
 	}

@@ -357,28 +357,27 @@ func findChildPid(findPid uint32) uint32 {
 }
 
 func startSerialPort(comDev string, comSpeed uint) (*serial.Port, error) {
-	if strings.HasSuffix(comDev, "A") {
-		comBaseDev := comDev[:len(comDev)-1]
-		comReadDev := comBaseDev + "B"
-		slog.Debug("startSerialPort starting serial port on com",
-			"comReadDev", comReadDev,
-			"comSpeed", comSpeed,
-		)
-		c := &serial.Config{
-			Name:        comReadDev,
-			Baud:        int(comSpeed),
-			ReadTimeout: 500 * time.Millisecond,
-		}
-		comReader, err := serial.OpenPort(c)
-		if err != nil {
-			slog.Error("startSerialPort error opening comReadDev", "error", err)
-
-			return nil, fmt.Errorf("error starting com port: %w", err)
-		}
-		slog.Debug("startSerialLogger", "opened", comReadDev)
-
-		return comReader, nil
+	if !strings.HasSuffix(comDev, "A") {
+		return nil, errVMInvalidComDev
 	}
+	comBaseDev := comDev[:len(comDev)-1]
+	comReadDev := comBaseDev + "B"
+	slog.Debug("startSerialPort starting serial port on com",
+		"comReadDev", comReadDev,
+		"comSpeed", comSpeed,
+	)
+	c := &serial.Config{
+		Name:        comReadDev,
+		Baud:        int(comSpeed),
+		ReadTimeout: 500 * time.Millisecond,
+	}
+	comReader, err := serial.OpenPort(c)
+	if err != nil {
+		slog.Error("startSerialPort error opening comReadDev", "error", err)
 
-	return nil, errVMInvalidComDev
+		return nil, fmt.Errorf("error starting com port: %w", err)
+	}
+	slog.Debug("startSerialLogger", "opened", comReadDev)
+
+	return comReader, nil
 }

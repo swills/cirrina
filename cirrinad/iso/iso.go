@@ -1,8 +1,10 @@
 package iso
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
+	"path/filepath"
 
 	"gorm.io/gorm"
 
@@ -10,49 +12,44 @@ import (
 	"cirrina/cirrinad/util"
 )
 
-func Create(name string, description string) (*ISO, error) {
-	var isoInst *ISO
+type ISO struct {
+	gorm.Model
+	ID          string `gorm:"uniqueIndex;not null;default:null"`
+	Name        string `gorm:"uniqueIndex;not null;default:null"`
+	Description string
+	Path        string `gorm:"not null;default:null"`
+	Size        uint64
+	Checksum    string
+}
 
-	if !util.ValidIsoName(name) {
-		return isoInst, errIsoInvalidName
-	}
-
-	// check if it exists on disk
-	path := config.Config.Disk.VM.Path.Iso + "/" + name
-	isoExists, err := util.PathExists(path)
+func Create(isoInst *ISO) error {
+	err := validateIso(isoInst)
 	if err != nil {
-		slog.Error("error checking if iso exists", "path", path, "err", err)
-
-		return isoInst, fmt.Errorf("error checking if iso exists: %w", err)
-	}
-	if isoExists {
-		slog.Error("iso exists", "iso", name)
-
-		return isoInst, errIsoExists
+		return fmt.Errorf("error creating iso: %w", err)
 	}
 
-	// check if it exists in DB
-	existingISO, err := GetByName(name)
+	thisIsoExists, err := isoExists(isoInst.Name)
 	if err != nil {
-		slog.Error("error checking db for iso", "name", name, "err", err)
+		slog.Error("error checking for iso", "isoInst", isoInst, "err", err)
 
-		return isoInst, fmt.Errorf("error checking if iso exists: %w", err)
+		return err
 	}
-	if existingISO.Name != "" {
-		slog.Error("iso exists", "iso", name)
+	if thisIsoExists {
+		slog.Error("iso exists", "iso", isoInst.Name)
 
-		return isoInst, errIsoExists
+		return errIsoExists
 	}
 
-	isoInst = &ISO{
-		Name:        name,
-		Description: description,
-		Path:        path,
-	}
 	db := getIsoDB()
 	res := db.Create(&isoInst)
+	if res.RowsAffected != 1 {
+		return fmt.Errorf("incorrect number of rows affected, err: %w", res.Error)
+	}
+	if res.Error != nil {
+		return res.Error
+	}
 
-	return isoInst, res.Error
+	return nil
 }
 
 func GetAll() []*ISO {
@@ -66,7 +63,13 @@ func GetAll() []*ISO {
 func GetByID(id string) (*ISO, error) {
 	var result *ISO
 	db := getIsoDB()
-	db.Limit(1).Find(&result, "id = ?", id)
+	res := db.Limit(1).Find(&result, "id = ?", id)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected != 1 {
+		return nil, errIsoNotFound
+	}
 
 	return result, nil
 }
@@ -74,7 +77,13 @@ func GetByID(id string) (*ISO, error) {
 func GetByName(name string) (*ISO, error) {
 	var result *ISO
 	db := getIsoDB()
-	db.Limit(1).Find(&result, "name = ?", name)
+	res := db.Limit(1).Find(&result, "name = ?", name)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	if res.RowsAffected != 1 {
+		return nil, errIsoNotFound
+	}
 
 	return result, nil
 }
@@ -118,12 +127,48 @@ func Delete(id string) error {
 	return nil
 }
 
-type ISO struct {
-	gorm.Model
-	ID          string `gorm:"uniqueIndex;not null;default:null"`
-	Name        string `gorm:"uniqueIndex;not null;default:null"`
-	Description string
-	Path        string `gorm:"not null;default:null"`
-	Size        uint64
-	Checksum    string
+func validateIso(isoInst *ISO) error {
+	if !util.ValidIsoName(isoInst.Name) {
+		return errIsoInvalidName
+	}
+
+	return nil
+}
+
+func isoExists(isoName string) (bool, error) {
+	var err error
+
+	// check DB
+	isoInst, err := GetByName(isoName)
+
+	if err != nil {
+		if !errors.Is(err, errIsoNotFound) {
+			slog.Error("error checking db for iso", "name", isoName, "err", err)
+
+			return false, err
+		}
+
+		return false, nil
+	}
+
+	if isoInst != nil && isoInst.Name != "" {
+		return true, nil
+	}
+
+	path := filepath.Join(config.Config.Disk.VM.Path.Iso, isoName)
+
+	// check disk
+	isoPathExists, err := util.PathExists(path)
+	if err != nil {
+		slog.Error("error checking if iso exists", "path", path, "err", err)
+
+		return false, fmt.Errorf("error checking if iso exists: %w", err)
+	}
+	if isoPathExists {
+		slog.Error("iso exists", "iso", isoInst)
+
+		return true, nil
+	}
+
+	return false, nil
 }

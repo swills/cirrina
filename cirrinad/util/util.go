@@ -528,22 +528,29 @@ func ModeIsExecOther(mode os.FileMode) bool {
 
 func GetMyUIDGID() (uint32, uint32, error) {
 	var err error
-	myUser, err := user.Current()
+
+	var myUser *user.User
+	myUser, err = user.Current()
 	if err != nil {
 		return 0, 0, fmt.Errorf("error getting current user: %w", err)
 	}
-	myUID, err := strconv.Atoi(myUser.Uid)
-	if err != nil {
+	if myUser == nil {
+		return 0, 0, errUserNotFound
+	}
+
+	var myUID int
+	myUID, err = strconv.Atoi(myUser.Uid)
+	if err != nil || myUID < 0 {
 		return 0, 0, fmt.Errorf("error parsing UID: %w", err)
 	}
-	myGID, err := strconv.Atoi(myUser.Gid)
-	if err != nil {
+
+	var myGID int
+	myGID, err = strconv.Atoi(myUser.Gid)
+	if err != nil || myGID < 0 {
 		return 0, 0, fmt.Errorf("error parsing GID: %w", err)
 	}
-	u := uint32(myUID)
-	g := uint32(myGID)
 
-	return u, g, nil
+	return uint32(myUID), uint32(myGID), nil
 }
 
 func ValidateDBConfig() {

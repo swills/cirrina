@@ -102,11 +102,17 @@ func CreateVMReq(requestType reqType, vmID string) (Request, error) {
 }
 
 func GetByID(id string) (Request, error) {
-	var rs Request
+	var request Request
 	db := GetReqDB()
-	db.Model(&Request{}).Limit(1).Find(&rs, &Request{ID: id})
+	res := db.Model(&Request{}).Limit(1).Find(&request, &Request{ID: id})
+	if res.Error != nil {
+		return Request{}, res.Error
+	}
+	if res.RowsAffected != 1 {
+		return Request{}, errRequestNotFound
+	}
 
-	return rs, nil
+	return request, nil
 }
 
 func GetUnStarted() Request {
