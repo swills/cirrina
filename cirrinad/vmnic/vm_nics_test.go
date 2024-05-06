@@ -41,10 +41,13 @@ func Test_nicTypeValid(t *testing.T) {
 			want: false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := nicTypeValid(tt.args.nicType); got != tt.want {
-				t.Errorf("nicTypeValid() = %v, want %v", got, tt.want)
+	t.Parallel()
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			if got := nicTypeValid(testCase.args.nicType); got != testCase.want {
+				t.Errorf("nicTypeValid() = %v, want %v", got, testCase.want)
 			}
 		})
 	}
@@ -85,111 +88,80 @@ func Test_nicDevTypeValid(t *testing.T) {
 			want: false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := nicDevTypeValid(tt.args.nicDevType); got != tt.want {
-				t.Errorf("nicDevTypeValid() = %v, want %v", got, tt.want)
+	t.Parallel()
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			if got := nicDevTypeValid(testCase.args.nicDevType); got != testCase.want {
+				t.Errorf("nicDevTypeValid() = %v, want %v", got, testCase.want)
 			}
 		})
 	}
 }
 
 func TestGetByName(t *testing.T) {
-	testDB, mock := cirrinadtest.NewMockDB("nicTest")
-
-	defer func(gormdb *gorm.DB) {
-		db, err := gormdb.DB()
-		if err != nil {
-			t.Fatalf("failed closing db")
-		}
-		_ = db.Close()
-	}(testDB)
-
-	instance = &singleton{
-		vmNicDB: testDB,
-	}
 	createUpdateTime := time.Now()
-
-	mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE name = \\? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1$").
-		WillReturnRows(
-			sqlmock.NewRows(
-				[]string{
-					"id",
-					"created_at",
-					"updated_at",
-					"deleted_at",
-					"name",
-					"description",
-					"mac",
-					"net_type",
-					"net_dev_type",
-					"switch_id",
-					"net_dev",
-					"rate_limit",
-					"rate_in",
-					"rate_out",
-					"inst_bridge",
-					"inst_epair",
-					"config_id",
-				}).
-				AddRow(
-					"a045696b-1c49-49e7-80a0-12a69fc71ada",
-					createUpdateTime,
-					createUpdateTime,
-					nil,
-					"test2024030401_int0",
-					"some description",
-					"AUTO",
-					"VIRTIONET",
-					"TAP",
-					"b7d4cafe-4665-467c-9642-d9c739a9c3b4",
-					"tap0",
-					false,
-					0,
-					0,
-					"",
-					"",
-					123,
-				),
-		)
-	mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE name = \\? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1$").
-		WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
-	mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE name = \\? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1$").
-		WillReturnRows(
-			sqlmock.NewRows(
-				[]string{
-					"id",
-					"created_at",
-					"updated_at",
-					"deleted_at",
-					"name",
-					"description",
-					"mac",
-					"net_type",
-					"net_dev_type",
-					"switch_id",
-					"net_dev",
-					"rate_limit",
-					"rate_in",
-					"rate_out",
-					"inst_bridge",
-					"inst_epair",
-					"config_id",
-				},
-			),
-		)
 
 	type args struct {
 		name string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *VMNic
-		wantErr bool
+		name        string
+		args        args
+		want        *VMNic
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		wantErr     bool
 	}{
 		{
 			name: "getSomeNic",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					vmNicDB: testDB,
+				}
+				mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE name = \\? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1$").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"mac",
+								"net_type",
+								"net_dev_type",
+								"switch_id",
+								"net_dev",
+								"rate_limit",
+								"rate_in",
+								"rate_out",
+								"inst_bridge",
+								"inst_epair",
+								"config_id",
+							}).
+							AddRow(
+								"a045696b-1c49-49e7-80a0-12a69fc71ada",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2024030401_int0",
+								"some description",
+								"AUTO",
+								"VIRTIONET",
+								"TAP",
+								"b7d4cafe-4665-467c-9642-d9c739a9c3b4",
+								"tap0",
+								false,
+								0,
+								0,
+								"",
+								"",
+								123,
+							),
+					)
+			},
 			args: args{name: "test2024041901_int0"},
 			want: &VMNic{
 				Model: gorm.Model{
@@ -216,32 +188,90 @@ func TestGetByName(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "testGetByName_error",
+			name: "testGetByName_error",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					vmNicDB: testDB,
+				}
+				mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE name = \\? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1$").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+			},
 			args:    args{name: "someNicName"},
 			want:    nil,
 			wantErr: true,
 		},
 		{
-			name:    "testGetByName_notfound",
+			name: "testGetByName_notfound",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					vmNicDB: testDB,
+				}
+				mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE name = \\? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1$").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"mac",
+								"net_type",
+								"net_dev_type",
+								"switch_id",
+								"net_dev",
+								"rate_limit",
+								"rate_in",
+								"rate_out",
+								"inst_bridge",
+								"inst_epair",
+								"config_id",
+							},
+						),
+					)
+			},
 			args:    args{name: "someRandomNic"},
 			want:    nil,
 			wantErr: true,
 		},
 		{
-			name:    "testGetByName_emptyName",
-			args:    args{name: ""},
+			name: "testGetByName_emptyName",
+			args: args{name: ""},
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					vmNicDB: testDB,
+				}
+			},
 			want:    nil,
 			wantErr: true,
 		},
 	}
 	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testCase.mockClosure(testDB, mock)
+
 			got, err := GetByName(testCase.args.name)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("GetByName() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}
+
+			mock.ExpectClose()
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+
 			if !reflect.DeepEqual(got, testCase.want) {
 				t.Errorf("GetByName() got = %v, want %v", got, testCase.want)
 			}
@@ -250,89 +280,81 @@ func TestGetByName(t *testing.T) {
 }
 
 func TestGetAll(t *testing.T) {
-	testDB, mock := cirrinadtest.NewMockDB("nicTest")
-
-	defer func(gormdb *gorm.DB) {
-		db, err := gormdb.DB()
-		if err != nil {
-			t.Fatalf("failed closing db")
-		}
-		_ = db.Close()
-	}(testDB)
-
-	instance = &singleton{
-		vmNicDB: testDB,
-	}
 	createUpdateTime := time.Now()
 
-	mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE `vm_nics`.`deleted_at` IS NULL$").
-		WillReturnRows(
-			sqlmock.NewRows(
-				[]string{
-					"id",
-					"created_at",
-					"updated_at",
-					"deleted_at",
-					"name",
-					"description",
-					"mac",
-					"net_type",
-					"net_dev_type",
-					"switch_id",
-					"net_dev",
-					"rate_limit",
-					"rate_in",
-					"rate_out",
-					"inst_bridge",
-					"inst_epair",
-					"config_id",
-				}).
-				AddRow(
-					"a045696b-1c49-49e7-80a0-12a69fc71ada",
-					createUpdateTime,
-					createUpdateTime,
-					nil,
-					"test2024030401_int0",
-					"first VM nic for test2024030401",
-					"AUTO",
-					"VIRTIONET",
-					"TAP",
-					"b7d4cafe-4665-467c-9642-d9c739a9c3b4",
-					"tap0",
-					false,
-					0,
-					0,
-					"",
-					"",
-					123,
-				).
-				AddRow(
-					"15b67c62-4b9a-491b-bc5f-2d4343ccd02b",
-					createUpdateTime,
-					createUpdateTime,
-					nil,
-					"test2024030401_int1",
-					"second VM nic for test2024030401",
-					"AUTO",
-					"VIRTIONET",
-					"TAP",
-					"b7d4cafe-4665-467c-9642-d9c739a9c3b4",
-					"tap1",
-					false,
-					0,
-					0,
-					"",
-					"",
-					123,
-				),
-		)
-
 	tests := []struct {
-		name string
-		want []*VMNic
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		want        []*VMNic
 	}{
 		{
 			name: "testGetAllNics",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					vmNicDB: testDB,
+				}
+				mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE `vm_nics`.`deleted_at` IS NULL$").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"mac",
+								"net_type",
+								"net_dev_type",
+								"switch_id",
+								"net_dev",
+								"rate_limit",
+								"rate_in",
+								"rate_out",
+								"inst_bridge",
+								"inst_epair",
+								"config_id",
+							}).
+							AddRow(
+								"a045696b-1c49-49e7-80a0-12a69fc71ada",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2024030401_int0",
+								"first VM nic for test2024030401",
+								"AUTO",
+								"VIRTIONET",
+								"TAP",
+								"b7d4cafe-4665-467c-9642-d9c739a9c3b4",
+								"tap0",
+								false,
+								0,
+								0,
+								"",
+								"",
+								123,
+							).
+							AddRow(
+								"15b67c62-4b9a-491b-bc5f-2d4343ccd02b",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2024030401_int1",
+								"second VM nic for test2024030401",
+								"AUTO",
+								"VIRTIONET",
+								"TAP",
+								"b7d4cafe-4665-467c-9642-d9c739a9c3b4",
+								"tap1",
+								false,
+								0,
+								0,
+								"",
+								"",
+								123,
+							),
+					)
+			},
 			want: []*VMNic{
 				{
 					Model: gorm.Model{
@@ -381,10 +403,25 @@ func TestGetAll(t *testing.T) {
 			},
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := GetAll(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetAll() = %v, want %v", got, tt.want)
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testCase.mockClosure(testDB, mock)
+
+			if got := GetAll(); !reflect.DeepEqual(got, testCase.want) {
+				t.Errorf("GetAll() = %v, want %v", got, testCase.want)
+			}
+			mock.ExpectClose()
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
 	}
@@ -406,7 +443,7 @@ func TestGetByID(t *testing.T) {
 		{
 			name: "testGetByID_success",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{
+				instance = &singleton{ // prevents parallel testing
 					vmNicDB: testDB,
 				}
 				mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE id = \\? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1$").
@@ -481,7 +518,7 @@ func TestGetByID(t *testing.T) {
 		{
 			name: "testGetByID_error",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{
+				instance = &singleton{ // prevents parallel testing
 					vmNicDB: testDB,
 				}
 				mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE id = \\? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1$").
@@ -494,7 +531,7 @@ func TestGetByID(t *testing.T) {
 		{
 			name: "testGetByID_notfound",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{
+				instance = &singleton{ // prevents parallel testing
 					vmNicDB: testDB,
 				}
 				mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE id = \\? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1$").
@@ -529,7 +566,7 @@ func TestGetByID(t *testing.T) {
 		{
 			name: "testGetByID_empty",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{
+				instance = &singleton{ // prevents parallel testing
 					vmNicDB: testDB,
 				}
 			},
@@ -538,14 +575,12 @@ func TestGetByID(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	t.Parallel()
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
 			testDB, mock := cirrinadtest.NewMockDB("nicTest")
-
 			testCase.mockClosure(testDB, mock)
+
 			got, err := GetByID(testCase.args.id)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("GetByID() error = %v, wantErr %v", err, testCase.wantErr)
@@ -558,13 +593,13 @@ func TestGetByID(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-
 			if err = db.Close(); err != nil {
 				t.Error(err)
 			}
 			if err = mock.ExpectationsWereMet(); err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
+
 			if !reflect.DeepEqual(got, testCase.want) {
 				t.Errorf("GetByID() got = %v, want %v", got, testCase.want)
 			}

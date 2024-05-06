@@ -4,6 +4,6 @@ repos:
     rev: v0.5.1
     hooks:
       - id: go-build
-      - id: golangci-lint
       - id: go-mod-tidy
       - id: go-unit-tests
+      - id: golangci-lint

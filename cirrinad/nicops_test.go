@@ -47,10 +47,13 @@ func Test_nicCloneValidateMac(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := nicCloneValidateMac(tt.args.newMac); (err != nil) != tt.wantErr {
-				t.Errorf("nicCloneValidateMac() error = %v, wantErr %v", err, tt.wantErr)
+	t.Parallel()
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			if err := nicCloneValidateMac(testCase.args.newMac); (err != nil) != testCase.wantErr {
+				t.Errorf("nicCloneValidateMac() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}

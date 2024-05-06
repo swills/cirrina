@@ -94,8 +94,11 @@ func Test_parseDiskSizeSuffix(t *testing.T) {
 			wantMultiplier:  1,
 		},
 	}
+	t.Parallel()
 	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 			trimmedSize, multiplier := parseDiskSizeSuffix(testCase.args.diskSize)
 			if trimmedSize != testCase.wantTrimmedsize {
 				t.Errorf("parseDiskSizeSuffix() trimmedSize = %v, want_trimmedSize %v", trimmedSize, testCase.wantTrimmedsize)
@@ -148,8 +151,11 @@ func Test_ParseDiskSize(t *testing.T) {
 			wantErr: true,
 		},
 	}
+	t.Parallel()
 	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := ParseDiskSize(testCase.args.diskSize)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("ParseDiskSize() error = %v, wantErr %v", err, testCase.wantErr)
@@ -199,8 +205,11 @@ func Test_multiplyWillOverflow(t *testing.T) {
 			want: true,
 		},
 	}
+	t.Parallel()
 	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 			if got := multiplyWillOverflow(testCase.args.xVal, testCase.args.yVal); got != testCase.want {
 				t.Errorf("multiplyWillOverflow() = %v, want %v", got, testCase.want)
 			}
@@ -249,8 +258,11 @@ func TestMacIsBroadcast(t *testing.T) {
 			wantErr: false,
 		},
 	}
+	t.Parallel()
 	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := MacIsBroadcast(testCase.args.macAddress)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("MacIsBroadcast() error = %v, wantErr %v", err, testCase.wantErr)
@@ -311,8 +323,11 @@ func TestMacIsMulticast(t *testing.T) {
 			wantErr: true,
 		},
 	}
+	t.Parallel()
 	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := MacIsMulticast(testCase.args.macAddress)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("MacIsMulticast() error = %v, wantErr %v", err, testCase.wantErr)
@@ -501,10 +516,13 @@ func TestValidVMName(t *testing.T) {
 			want: false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := ValidVMName(tt.args.name); got != tt.want {
-				t.Errorf("ValidVMName() = %v, want %v", got, tt.want)
+	t.Parallel()
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			if got := ValidVMName(testCase.args.name); got != testCase.want {
+				t.Errorf("ValidVMName() = %v, want %v", got, testCase.want)
 			}
 		})
 	}
@@ -556,10 +574,13 @@ func TestContainsInt(t *testing.T) {
 			want: false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := ContainsInt(tt.args.elems, tt.args.v); got != tt.want {
-				t.Errorf("ContainsInt() = %v, want %v", got, tt.want)
+	t.Parallel()
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			if got := ContainsInt(testCase.args.elems, testCase.args.v); got != testCase.want {
+				t.Errorf("ContainsInt() = %v, want %v", got, testCase.want)
 			}
 		})
 	}
@@ -596,10 +617,13 @@ func TestContainsStr(t *testing.T) {
 			want: false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := ContainsStr(tt.args.elems, tt.args.v); got != tt.want {
-				t.Errorf("ContainsStr() = %v, want %v", got, tt.want)
+	t.Parallel()
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			if got := ContainsStr(testCase.args.elems, testCase.args.v); got != testCase.want {
+				t.Errorf("ContainsStr() = %v, want %v", got, testCase.want)
 			}
 		})
 	}
@@ -780,10 +804,13 @@ func TestValidNicName(t *testing.T) {
 			want: false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := ValidNicName(tt.args.name); got != tt.want {
-				t.Errorf("ValidNicName() = %v, want %v", got, tt.want)
+	t.Parallel()
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			if got := ValidNicName(testCase.args.name); got != testCase.want {
+				t.Errorf("ValidNicName() = %v, want %v", got, testCase.want)
 			}
 		})
 	}
@@ -1263,8 +1290,11 @@ func Test_parseNetstatJSONOutput(t *testing.T) {
 			wantErr: false,
 		},
 	}
+	t.Parallel()
 	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := parseNetstatJSONOutput(testCase.args.netstatOutput)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("parseNetstatJSONOutput() error = %v, wantErr %v", err, testCase.wantErr)
@@ -1308,8 +1338,11 @@ func TestPidExists(t *testing.T) {
 		},
 	}
 
+	t.Parallel()
 	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 			got, err := PidExists(testCase.args.pid)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("PidExists() error = %v, wantErr %v", err, testCase.wantErr)
@@ -1325,7 +1358,7 @@ func TestPidExists(t *testing.T) {
 
 func TestPidExistsSleeping(t *testing.T) {
 	var err error
-	sleepCmd := exec.Command("/bin/sleep", "42")
+	sleepCmd := exec.Command("/bin/sleep", "42") // prevents parallel testing
 	err = sleepCmd.Start()
 	if err != nil {
 		t.Fail()
@@ -1371,7 +1404,7 @@ func TestPidExistsSleeping(t *testing.T) {
 }
 
 func TestPidExistsSleepingExited(t *testing.T) {
-	sleepCmd := exec.Command("/bin/sleep", "42")
+	sleepCmd := exec.Command("/bin/sleep", "42") // prevents parallel testing
 	err := sleepCmd.Start()
 	if err != nil {
 		t.Fail()
@@ -1428,6 +1461,7 @@ func RandomString(n int) string {
 }
 
 func TestPathExists(t *testing.T) {
+	// prevents parallel testing
 	testPathExistsTmpDir, err := os.MkdirTemp("/tmp/", "cirrinaTestPathExists")
 	if err != nil {
 		log.Fatal(err)
@@ -1518,6 +1552,7 @@ func TestPathExists(t *testing.T) {
 }
 
 func TestOSReadDir(t *testing.T) {
+	// prevents parallel testing
 	testOSReadDirPath1, err := os.MkdirTemp("/tmp/", "cirrinaTestOSReadDir1")
 	if err != nil {
 		log.Fatal(err)
@@ -1568,6 +1603,7 @@ func TestOSReadDir(t *testing.T) {
 		},
 	}
 	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			got, err := OSReadDir(testCase.args.root)
 			if (err != nil) != testCase.wantErr {
@@ -1603,10 +1639,13 @@ func TestIsValidTCPPort(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := IsValidTCPPort(tt.args.tcpPort); got != tt.want {
-				t.Errorf("IsValidTCPPort() = %v, want %v", got, tt.want)
+	t.Parallel()
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			if got := IsValidTCPPort(testCase.args.tcpPort); got != testCase.want {
+				t.Errorf("IsValidTCPPort() = %v, want %v", got, testCase.want)
 			}
 		})
 	}
@@ -1652,10 +1691,13 @@ func TestIsValidIP(t *testing.T) {
 			want: true,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := IsValidIP(tt.args.ipAddress); got != tt.want {
-				t.Errorf("IsValidIP() = %v, want %v", got, tt.want)
+	t.Parallel()
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			if got := IsValidIP(testCase.args.ipAddress); got != testCase.want {
+				t.Errorf("IsValidIP() = %v, want %v", got, testCase.want)
 			}
 		})
 	}

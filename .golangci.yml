@@ -88,6 +88,7 @@ linters:
     - varnamelen
     - protogetter
     - tparallel
+    - paralleltest
 
 issues:
   exclude-rules:
@@ -104,6 +105,15 @@ issues:
     - path: 'cirrinactl/cmd/tui.go'
       linters:
         - exhaustive
+    - path: 'cirrinad/switch/switch_test.go'
+      linters:
+        - paralleltest
+    - path: 'cirrinad/vmnic/vm_nics_test.go'
+      linters:
+        - paralleltest
+    - path: 'cirrinad/util/util_test.go'
+      linters:
+        - paralleltest
 
 linters-settings:
   cyclop:

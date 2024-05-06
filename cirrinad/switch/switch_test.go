@@ -12,62 +12,54 @@ import (
 )
 
 func TestGetAll(t *testing.T) {
-	testDB, mock := cirrinadtest.NewMockDB("switchTest")
-
-	defer func(gormdb *gorm.DB) {
-		db, err := gormdb.DB()
-		if err != nil {
-			t.Fatalf("failed closing db")
-		}
-		_ = db.Close()
-	}(testDB)
-
-	instance = &singleton{
-		switchDB: testDB,
-	}
 	createUpdateTime := time.Now()
 
-	mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE `switches`.`deleted_at` IS NULL$").
-		WillReturnRows(
-			sqlmock.NewRows(
-				[]string{
-					"id",
-					"created_at",
-					"updated_at",
-					"deleted_at",
-					"name",
-					"description",
-					"type",
-					"uplink",
-				}).
-				AddRow(
-					"0cb98661-6470-432d-8fa4-5eca3668b494",
-					createUpdateTime,
-					createUpdateTime,
-					nil,
-					"bridge0",
-					"some if switch description",
-					"IF",
-					"em1",
-				).
-				AddRow(
-					"76290cc3-7143-4c0b-980f-25f74b12673f",
-					createUpdateTime,
-					createUpdateTime,
-					nil,
-					"bnet0",
-					"some ng switch description",
-					"NG",
-					"em0",
-				),
-		)
-
 	tests := []struct {
-		name string
-		want []*Switch
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		want        []*Switch
 	}{
 		{
 			name: "testGetAllSwitches",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE `switches`.`deleted_at` IS NULL$").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							}).
+							AddRow(
+								"0cb98661-6470-432d-8fa4-5eca3668b494",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"bridge0",
+								"some if switch description",
+								"IF",
+								"em1",
+							).
+							AddRow(
+								"76290cc3-7143-4c0b-980f-25f74b12673f",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"bnet0",
+								"some ng switch description",
+								"NG",
+								"em0",
+							),
+					)
+			},
 			want: []*Switch{
 				{
 					Model: gorm.Model{
@@ -99,82 +91,74 @@ func TestGetAll(t *testing.T) {
 		},
 	}
 	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testCase.mockClosure(testDB, mock)
+
 			if got := GetAll(); !reflect.DeepEqual(got, testCase.want) {
 				t.Errorf("GetAll() = %v, want %v", got, testCase.want)
+			}
+
+			mock.ExpectClose()
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
 	}
 }
 
 func TestGetByName(t *testing.T) {
-	testDB, mock := cirrinadtest.NewMockDB("switchTest")
-
-	defer func(gormdb *gorm.DB) {
-		db, err := gormdb.DB()
-		if err != nil {
-			t.Fatalf("failed closing db")
-		}
-		_ = db.Close()
-	}(testDB)
-
-	instance = &singleton{
-		switchDB: testDB,
-	}
 	createUpdateTime := time.Now()
-
-	mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE name = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
-		WillReturnRows(
-			sqlmock.NewRows(
-				[]string{
-					"id",
-					"created_at",
-					"updated_at",
-					"deleted_at",
-					"name",
-					"description",
-					"type",
-					"uplink",
-				}).
-				AddRow(
-					"0cb98661-6470-432d-8fa4-5eca3668b494",
-					createUpdateTime,
-					createUpdateTime,
-					nil,
-					"bridge0",
-					"some if switch description",
-					"IF",
-					"em1",
-				),
-		)
-	mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE name = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
-		WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
-	mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE name = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
-		WillReturnRows(
-			sqlmock.NewRows(
-				[]string{
-					"id",
-					"created_at",
-					"updated_at",
-					"deleted_at",
-					"name",
-					"description",
-					"type",
-					"uplink",
-				}),
-		)
 
 	type args struct {
 		name string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *Switch
-		wantErr bool
+		name        string
+		args        args
+		want        *Switch
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		wantErr     bool
 	}{
 		{
 			name: "testGetByName_bridge0",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE name = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							}).
+							AddRow(
+								"0cb98661-6470-432d-8fa4-5eca3668b494",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"bridge0",
+								"some if switch description",
+								"IF",
+								"em1",
+							),
+					)
+			},
 			args: args{name: "bridge0"},
 			want: &Switch{
 				Model: gorm.Model{
@@ -191,32 +175,80 @@ func TestGetByName(t *testing.T) {
 			},
 		},
 		{
-			name:    "testGetByName_error",
+			name: "testGetByName_error",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE name = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+			},
 			args:    args{name: "bridge0"},
 			want:    nil,
 			wantErr: true,
 		},
 		{
-			name:    "testGetByName_notfound",
+			name: "testGetByName_notfound",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE name = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							}),
+					)
+			},
 			args:    args{name: "bridge0"},
 			want:    nil,
 			wantErr: true,
 		},
 		{
-			name:    "testGetByName_emptyName",
+			name: "testGetByName_emptyName",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+			},
 			args:    args{name: ""},
 			want:    nil,
 			wantErr: true,
 		},
 	}
 	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testCase.mockClosure(testDB, mock)
+
 			got, err := GetByName(testCase.args.name)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("GetByName() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}
+
+			mock.ExpectClose()
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+
 			if !reflect.DeepEqual(got, testCase.want) {
 				t.Errorf("GetByName() got = %v, want %v", got, testCase.want)
 			}
@@ -225,74 +257,50 @@ func TestGetByName(t *testing.T) {
 }
 
 func TestGetByID(t *testing.T) {
-	testDB, mock := cirrinadtest.NewMockDB("switchTest")
-
-	defer func(gormdb *gorm.DB) {
-		db, err := gormdb.DB()
-		if err != nil {
-			t.Fatalf("failed closing db")
-		}
-		_ = db.Close()
-	}(testDB)
-
-	instance = &singleton{
-		switchDB: testDB,
-	}
 	createUpdateTime := time.Now()
-
-	mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE id = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
-		WillReturnRows(
-			sqlmock.NewRows(
-				[]string{
-					"id",
-					"created_at",
-					"updated_at",
-					"deleted_at",
-					"name",
-					"description",
-					"type",
-					"uplink",
-				},
-			).
-				AddRow(
-					"0cb98661-6470-432d-8fa4-5eca3668b494",
-					createUpdateTime,
-					createUpdateTime,
-					nil,
-					"bridge0",
-					"some if switch description",
-					"IF",
-					"em1",
-				),
-		)
-	mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE id = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
-		WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
-	mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE id = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
-		WillReturnRows(
-			sqlmock.NewRows(
-				[]string{
-					"id",
-					"created_at",
-					"updated_at",
-					"deleted_at",
-					"name",
-					"description",
-					"type",
-					"uplink",
-				}),
-		)
 
 	type args struct {
 		switchID string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    *Switch
-		wantErr bool
+		name        string
+		args        args
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		want        *Switch
+		wantErr     bool
 	}{
 		{
 			name: "testGetByID_success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE id = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							},
+						).
+							AddRow(
+								"0cb98661-6470-432d-8fa4-5eca3668b494",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"bridge0",
+								"some if switch description",
+								"IF",
+								"em1",
+							),
+					)
+			},
 			args: args{switchID: "0cb98661-6470-432d-8fa4-5eca3668b494"},
 			want: &Switch{
 				Model: gorm.Model{
@@ -309,26 +317,69 @@ func TestGetByID(t *testing.T) {
 			},
 		},
 		{
-			name:    "testGetByID_error",
+			name: "testGetByID_error",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE id = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+			},
 			args:    args{switchID: "0cb98661-6470-432d-8fa4-5eca3668b494"},
 			want:    nil,
 			wantErr: true,
 		},
 		{
-			name:    "testGetByID_notfound",
+			name: "testGetByID_notfound",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE id = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							}),
+					)
+			},
 			args:    args{switchID: "713e2714-eb92-4b53-b129-9d1f914eaa06"},
 			want:    nil,
 			wantErr: true,
 		},
 	}
 	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testCase.mockClosure(testDB, mock)
+
 			got, err := GetByID(testCase.args.switchID)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("GetByID() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}
+
+			mock.ExpectClose()
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+
 			if !reflect.DeepEqual(got, testCase.want) {
 				t.Errorf("GetByID() got = %v, want %v", got, testCase.want)
 			}
@@ -406,10 +457,13 @@ func Test_switchNameValid(t *testing.T) {
 			want: false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := switchNameValid(tt.args.switchInst); got != tt.want {
-				t.Errorf("switchNameValid() = %v, want %v", got, tt.want)
+	t.Parallel()
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			if got := switchNameValid(testCase.args.switchInst); got != testCase.want {
+				t.Errorf("switchNameValid() = %v, want %v", got, testCase.want)
 			}
 		})
 	}
