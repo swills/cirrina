@@ -87,6 +87,7 @@ linters:
     - nonamedreturns
     - varnamelen
     - protogetter
+    - tparallel
 
 issues:
   exclude-rules:
