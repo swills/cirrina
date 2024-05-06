@@ -93,7 +93,7 @@ func TestGetAll(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
 
 			if got := GetAll(); !reflect.DeepEqual(got, testCase.want) {

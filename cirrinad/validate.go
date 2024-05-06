@@ -314,6 +314,8 @@ func validateArch() {
 	switch runtimeArch {
 	case "amd64":
 		// Do nothing
+	case "arm64":
+		// Do nothing
 	default:
 		slog.Error("Unsupported Architecture")
 		os.Exit(1)

@@ -34,6 +34,11 @@ func getIsoDB() *gorm.DB {
 	)
 
 	once.Do(func() {
+		// allow override for testing
+		if instance != nil {
+			return
+		}
+
 		instance = &singleton{}
 
 		isoDB, err := gorm.Open(

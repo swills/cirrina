@@ -114,6 +114,9 @@ issues:
     - path: 'cirrinad/util/util_test.go'
       linters:
         - paralleltest
+    - path: 'cirrinad/iso/iso_test.go'
+      linters:
+        - paralleltest
 
 linters-settings:
   cyclop:
