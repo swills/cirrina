@@ -22,10 +22,13 @@ import (
 
 func (s *server) GetISOs(_ *cirrina.ISOsQuery, stream cirrina.VMInfo_GetISOsServer) error {
 	var isos []*iso.ISO
+
 	var ISOId cirrina.ISOID
+
 	isos = iso.GetAll()
 	for e := range isos {
 		ISOId.Value = isos[e].ID
+
 		err := stream.Send(&ISOId)
 		if err != nil {
 			return fmt.Errorf("error sending to stream: %w", err)
@@ -37,21 +40,25 @@ func (s *server) GetISOs(_ *cirrina.ISOsQuery, stream cirrina.VMInfo_GetISOsServ
 
 func (s *server) GetISOInfo(_ context.Context, isoID *cirrina.ISOID) (*cirrina.ISOInfo, error) {
 	var isoInfo cirrina.ISOInfo
+
 	isoUUID, err := uuid.Parse(isoID.GetValue())
 	if err != nil {
 		return &isoInfo, errInvalidID
 	}
+
 	isoInst, err := iso.GetByID(isoUUID.String())
 	if err != nil {
 		slog.Error("error getting iso", "id", isoUUID.String(), "err", err)
 
 		return &isoInfo, errNotFound
 	}
+
 	if isoInst.Name == "" {
 		slog.Debug("iso not found")
 
 		return &isoInfo, errNotFound
 	}
+
 	isoInfo.Name = &isoInst.Name
 	isoInfo.Description = &isoInst.Description
 	isoInfo.Size = &isoInst.Size
@@ -61,9 +68,11 @@ func (s *server) GetISOInfo(_ context.Context, isoID *cirrina.ISOID) (*cirrina.I
 
 func (s *server) AddISO(_ context.Context, isoInfo *cirrina.ISOInfo) (*cirrina.ISOID, error) {
 	defaultDescription := ""
+
 	if isoInfo.Name == nil || !util.ValidIsoName(isoInfo.GetName()) {
 		return &cirrina.ISOID{}, errInvalidName
 	}
+
 	if isoInfo.Description == nil {
 		isoInfo.Description = &defaultDescription
 	}
@@ -74,6 +83,7 @@ func (s *server) AddISO(_ context.Context, isoInfo *cirrina.ISOInfo) (*cirrina.I
 		Description: isoInfo.GetDescription(),
 		Path:        path,
 	}
+
 	err := iso.Create(isoInst)
 	if err != nil {
 		return nil, fmt.Errorf("error creating iso: %w", err)
@@ -94,9 +104,11 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 	if isoInst.Path == "" {
 		isoInst.Path = config.Config.Disk.VM.Path.Iso + string(os.PathSeparator) + isoInst.Name
 	}
+
 	isoInst.Size = isoUploadReq.GetSize()
 
 	var isoFile *os.File
+
 	isoFile, err = os.Create(isoInst.Path)
 	if err != nil {
 		slog.Error("Failed to open iso file", "err", err.Error())
@@ -107,6 +119,7 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 	err = receiveIsoFile(stream, isoUploadReq, isoInst, isoFile)
 	if err != nil {
 		slog.Error("error during upload", "err", err)
+
 		err2 := stream.SendAndClose(&res)
 		if err2 != nil {
 			slog.Error("failed sending error response, ignoring", "err", err, "err2", err2)
@@ -119,6 +132,7 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 	err = isoInst.Save()
 	if err != nil {
 		slog.Debug("UploadIso", "msg", "Failed saving to db")
+
 		err = stream.SendAndClose(&res)
 		if err != nil {
 			slog.Error("UploadIso cannot send response", "err", err)
@@ -128,6 +142,7 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 	}
 	// we're done, return success to client
 	res.Success = true
+
 	err = stream.SendAndClose(&res)
 	if err != nil {
 		slog.Error("cannot send and close", "err", err)
@@ -138,6 +153,7 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 
 func validateIsoUploadRequest(stream cirrina.VMInfo_UploadIsoServer) (*cirrina.ISOUploadInfo, *iso.ISO, error) {
 	var err error
+
 	var req *cirrina.ISOImageRequest
 
 	req, err = stream.Recv()
@@ -146,24 +162,28 @@ func validateIsoUploadRequest(stream cirrina.VMInfo_UploadIsoServer) (*cirrina.I
 
 		return nil, nil, errIsoUploadNil
 	}
+
 	isoUploadReq := req.GetIsouploadinfo()
 	if isoUploadReq == nil || isoUploadReq.GetIsoid() == nil {
 		slog.Error("nil isoUploadReq or iso id")
 
 		return nil, nil, errIsoUploadNil
 	}
+
 	isoUUID, err := uuid.Parse(isoUploadReq.GetIsoid().GetValue())
 	if err != nil {
 		slog.Error("iso id not specified or invalid on upload")
 
 		return nil, nil, errInvalidID
 	}
+
 	isoInst, err := iso.GetByID(isoUUID.String())
 	if err != nil {
 		slog.Error("error getting iso", "id", isoUUID.String(), "err", err)
 
 		return nil, nil, errNotFound
 	}
+
 	if isoInst.Name == "" {
 		slog.Debug("iso not found")
 
@@ -177,28 +197,36 @@ func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina
 	isoInst *iso.ISO, isoFile *os.File,
 ) error {
 	var err error
+
 	var imageSize uint64
+
 	isoFileBuffer := bufio.NewWriter(isoFile)
 
 	hasher := sha512.New()
 
 	for {
 		var req *cirrina.ISOImageRequest
+
 		req, err = stream.Recv()
 		if errors.Is(err, io.EOF) {
 			break
 		}
+
 		if err != nil {
 			return fmt.Errorf("error receiving from stream: %w", err)
 		}
+
 		chunk := req.GetImage()
 		imageSize += uint64(len(chunk))
+
 		_, err = isoFileBuffer.Write(chunk)
 		if err != nil {
 			return fmt.Errorf("error writing iso file: %w", err)
 		}
+
 		hasher.Write(chunk)
 	}
+
 	imageChecksum := hex.EncodeToString(hasher.Sum(nil))
 
 	// flush buffer
@@ -211,12 +239,14 @@ func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina
 	if imageSize != isoUploadReq.GetSize() {
 		return errIsoUploadSize
 	}
+
 	isoInst.Size = imageSize
 
 	// verify checksum
 	if imageChecksum != isoUploadReq.GetSha512Sum() {
 		return errIsoUploadChecksum
 	}
+
 	isoInst.Checksum = imageChecksum
 
 	// finish saving file
@@ -232,7 +262,9 @@ func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina
 
 func (s *server) RemoveISO(_ context.Context, isoID *cirrina.ISOID) (*cirrina.ReqBool, error) {
 	var err error
+
 	var isoUUID uuid.UUID
+
 	var isoInst *iso.ISO
 
 	res := cirrina.ReqBool{}
@@ -260,11 +292,14 @@ func (s *server) RemoveISO(_ context.Context, isoID *cirrina.ISOID) (*cirrina.Re
 	allVMs := vm.GetAll()
 	for _, thisVM := range allVMs {
 		slog.Debug("vm checks", "vm", thisVM)
+
 		var thisVMISOs []iso.ISO
+
 		thisVMISOs, err = thisVM.GetISOs()
 		if err != nil {
 			return &res, fmt.Errorf("error getting VM ISOs: %w", err)
 		}
+
 		for _, vmISO := range thisVMISOs {
 			if vmISO.ID == isoUUID.String() {
 				slog.Error("RemoveISO",

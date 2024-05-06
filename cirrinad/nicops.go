@@ -13,8 +13,11 @@ import (
 
 func nicClone(request *requests.Request) {
 	var err error
+
 	var reqData requests.NicCloneReqData
+
 	var newMac net.HardwareAddr
+
 	var nicInst *vmnic.VMNic
 
 	nicInst, err = nicCloneRequestValidate(request.Data, reqData)
@@ -58,6 +61,7 @@ func nicClone(request *requests.Request) {
 
 		return
 	}
+
 	slog.Debug("cloned nic", "newVMNicID", newNic.ID)
 
 	request.Succeeded()
@@ -65,20 +69,26 @@ func nicClone(request *requests.Request) {
 
 func nicCloneValidateMac(newMac string) error {
 	var err error
+
 	if newMac != "" && newMac != "AUTO" {
 		var isBroadcast bool
+
 		isBroadcast, err = util.MacIsBroadcast(newMac)
 		if err != nil {
 			return fmt.Errorf("error checking new nic mac: %w", err)
 		}
+
 		if isBroadcast {
 			return fmt.Errorf("new nic mac is broadcast: %w", errNicMacIsBroadcast)
 		}
+
 		var isMulticast bool
+
 		isMulticast, err = util.MacIsMulticast(newMac)
 		if err != nil {
 			return fmt.Errorf("error checking new nic mac: %w", err)
 		}
+
 		if isMulticast {
 			return fmt.Errorf("new nic mac is broadcast: %w", errNicMacIsMulticast)
 		}
@@ -89,23 +99,28 @@ func nicCloneValidateMac(newMac string) error {
 
 func nicCloneRequestValidate(requestData string, reqData requests.NicCloneReqData) (*vmnic.VMNic, error) {
 	var err error
+
 	var nicInst *vmnic.VMNic
 
 	err = json.Unmarshal([]byte(requestData), &reqData)
 	if err != nil {
 		return nil, fmt.Errorf("failed unmarshalling request data: %w", err)
 	}
+
 	nicInst, err = vmnic.GetByID(reqData.NicID)
 	if err != nil {
 		return nil, fmt.Errorf("nicClone error getting nic: %w", err)
 	}
+
 	if nicHasPendingReq(reqData.NicID, nicInst.ID) {
 		return nil, fmt.Errorf("failing request to clone NIC which has pending request: %w", errPendingReqExists)
 	}
+
 	existingVMNic, err := vmnic.GetByName(reqData.NewNicName)
 	if err != nil {
 		return nil, fmt.Errorf("error getting name of new NIC: %w", err)
 	}
+
 	if existingVMNic != nil && existingVMNic.Name != "" {
 		return nil, fmt.Errorf("cloned nic already exists: %w", errNicExists)
 	}

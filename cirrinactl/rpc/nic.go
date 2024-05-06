@@ -18,6 +18,7 @@ func AddNic(name string, description string, mac string, nicType string, nicDevT
 	}
 
 	var newVMNic cirrina.VmNicInfo
+
 	var err error
 
 	newVMNic.Name = &name
@@ -39,6 +40,7 @@ func AddNic(name string, description string, mac string, nicType string, nicDevT
 	}
 
 	var nicID *cirrina.VmNicId
+
 	nicID, err = serverClient.AddVMNic(defaultServerContext, &newVMNic)
 	if err != nil {
 		return "", fmt.Errorf("unable to add nic: %w", err)
@@ -49,14 +51,18 @@ func AddNic(name string, description string, mac string, nicType string, nicDevT
 
 func RmNic(idPtr string) error {
 	var err error
+
 	if idPtr == "" {
 		return errNicEmptyID
 	}
+
 	var reqID *cirrina.ReqBool
+
 	reqID, err = serverClient.RemoveVMNic(defaultServerContext, &cirrina.VmNicId{Value: idPtr})
 	if err != nil {
 		return fmt.Errorf("unable to remove nic: %w", err)
 	}
+
 	if !reqID.GetSuccess() {
 		return errReqFailed
 	}
@@ -66,13 +72,16 @@ func RmNic(idPtr string) error {
 
 func GetVMNicInfo(nicID string) (NicInfo, error) {
 	var err error
+
 	var info NicInfo
+
 	var res *cirrina.VmNicInfo
 
 	res, err = serverClient.GetVMNicInfo(defaultServerContext, &cirrina.VmNicId{Value: nicID})
 	if err != nil {
 		return NicInfo{}, fmt.Errorf("unable to get nic info: %w", err)
 	}
+
 	if res == nil {
 		return NicInfo{}, errInvalidServerResponse
 	}
@@ -104,30 +113,38 @@ func GetVMNicInfo(nicID string) (NicInfo, error) {
 
 func NicNameToID(name string) (string, error) {
 	var nicID string
+
 	var err error
+
 	if name == "" {
 		return "", errNicEmptyName
 	}
+
 	var nicIDs []string
+
 	nicIDs, err = GetVMNicsAll()
 	if err != nil {
 		return "", err
 	}
 
 	found := false
+
 	for _, aNicID := range nicIDs {
 		res, err := GetVMNicInfo(aNicID)
 		if err != nil {
 			return "", err
 		}
+
 		if res.Name == name {
 			if found {
 				return "", errNicDuplicate
 			}
+
 			found = true
 			nicID = aNicID
 		}
 	}
+
 	if !found {
 		return "", errNicNotFound
 	}
@@ -171,8 +188,11 @@ func NicNameToID(name string) (string, error) {
 
 func GetVMNicsAll() ([]string, error) {
 	var err error
+
 	var allNics []string
+
 	var res cirrina.VMInfo_GetVMNicsAllClient
+
 	res, err = serverClient.GetVMNicsAll(defaultServerContext, &cirrina.VmNicsQuery{})
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get nics: %w", err)
@@ -180,13 +200,16 @@ func GetVMNicsAll() ([]string, error) {
 
 	for {
 		var VMNicID *cirrina.VmNicId
+
 		VMNicID, err = res.Recv()
 		if errors.Is(err, io.EOF) {
 			break
 		}
+
 		if err != nil {
 			return []string{}, fmt.Errorf("unable to get nics: %w", err)
 		}
+
 		allNics = append(allNics, VMNicID.GetValue())
 	}
 
@@ -195,18 +218,24 @@ func GetVMNicsAll() ([]string, error) {
 
 func NicGetVM(nicID string) (string, error) {
 	var err error
+
 	if nicID == "" {
 		return "", errNicEmptyID
 	}
+
 	var res *cirrina.VMID
+
 	res, err = serverClient.GetVMNicVM(defaultServerContext, &cirrina.VmNicId{Value: nicID})
 	if err != nil {
 		return "", fmt.Errorf("unable to get nic VM: %w", err)
 	}
+
 	if res.GetValue() == "" {
 		return "", nil
 	}
+
 	var res2 string
+
 	res2, err = VMIdToName(res.GetValue())
 	if err != nil {
 		return "", err
@@ -221,12 +250,16 @@ func CloneNic(nicID string, newName string) (string, error) {
 	}
 
 	var err error
+
 	var cloneReq cirrina.VmNicCloneReq
+
 	var existingNicID cirrina.VmNicId
 	existingNicID.Value = nicID
 	cloneReq.Vmnicid = &existingNicID
 	cloneReq.NewVmNicName = wrapperspb.String(newName)
+
 	var reqID *cirrina.RequestID
+
 	reqID, err = serverClient.CloneVMNic(defaultServerContext, &cloneReq)
 	if err != nil {
 		return "", fmt.Errorf("unable to clone nic: %w", err)
@@ -283,10 +316,12 @@ func UpdateNic(nicID string, description *string, mac *string, nicType *string, 
 	}
 
 	var reqStat *cirrina.ReqBool
+
 	reqStat, err = serverClient.UpdateVMNic(defaultServerContext, &newNicInfo)
 	if err != nil {
 		return fmt.Errorf("unable to update nic: %w", err)
 	}
+
 	if !reqStat.GetSuccess() {
 		return errReqFailed
 	}

@@ -47,15 +47,19 @@ func GetVMDB() *gorm.DB {
 			},
 		)
 		vmDB.Preload("Config")
+
 		if err != nil {
 			panic("failed to connect database")
 		}
+
 		sqlDB, err := vmDB.DB()
 		if err != nil {
 			panic("failed to create sqlDB database")
 		}
+
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
+
 		instance.vmDB = vmDB
 		dbInitialized = true
 	}
@@ -64,12 +68,13 @@ func GetVMDB() *gorm.DB {
 }
 
 func (vm *VM) SetRunning(pid int) {
-	db := GetVMDB()
+	vmdb := GetVMDB()
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = RUNNING
 	vm.BhyvePid = uint32(pid)
-	res := db.Select([]string{
+
+	res := vmdb.Select([]string{
 		"status",
 		"bhyve_pid",
 		"com_devs",
@@ -92,6 +97,7 @@ func (vm *VM) SetStarting() {
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = STARTING
+
 	res := db.Select([]string{
 		"status",
 	}).Model(&vm).
@@ -116,6 +122,7 @@ func (vm *VM) SetStopped() {
 	vm.Com2Dev = ""
 	vm.Com3Dev = ""
 	vm.Com4Dev = ""
+
 	res := vmDB.Select([]string{
 		"status",
 		"net_dev",
@@ -147,6 +154,7 @@ func (vm *VM) SetStopping() {
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = STOPPING
+
 	res := db.Select([]string{
 		"status",
 	}).Model(&vm).
@@ -181,12 +189,14 @@ func (vm *VM) BeforeCreate(_ *gorm.DB) error {
 }
 
 func DBAutoMigrate() {
-	db := GetVMDB()
-	err := db.AutoMigrate(&VM{})
+	vmdb := GetVMDB()
+
+	err := vmdb.AutoMigrate(&VM{})
 	if err != nil {
 		panic("failed to auto-migrate VMs")
 	}
-	err = db.AutoMigrate(&Config{})
+
+	err = vmdb.AutoMigrate(&Config{})
 	if err != nil {
 		slog.Error("failed db migration", "err", err)
 		panic("failed to auto-migrate Configs")

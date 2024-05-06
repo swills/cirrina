@@ -36,6 +36,7 @@ func getDiskDB() *gorm.DB {
 
 	once.Do(func() {
 		instance = &singleton{}
+
 		diskDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
 			&gorm.Config{
@@ -46,12 +47,15 @@ func getDiskDB() *gorm.DB {
 		if err != nil {
 			panic("failed to connect database")
 		}
+
 		sqlDB, err := diskDB.DB()
 		if err != nil {
 			panic("failed to create sqlDB database")
 		}
+
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
+
 		instance.diskDB = diskDB
 	})
 
@@ -68,15 +72,18 @@ func (d *Disk) BeforeCreate(_ *gorm.DB) error {
 }
 
 func DBAutoMigrate() {
-	db := getDiskDB()
-	err := db.AutoMigrate(&Disk{})
+	diskDB := getDiskDB()
+
+	err := diskDB.AutoMigrate(&Disk{})
 	if err != nil {
 		panic("failed to auto-migrate disk")
 	}
-	err = db.Migrator().DropColumn(&Disk{}, "path")
+
+	err = diskDB.Migrator().DropColumn(&Disk{}, "path")
 	if err != nil {
 		slog.Error("DiskDb DBAutoMigrate failed to drop path column, continuing anyway")
 	}
+
 	for _, diskInst := range GetAllDB() {
 		initOneDisk(diskInst)
 	}

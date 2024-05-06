@@ -140,6 +140,7 @@ func Create(vmInst *VM) error {
 
 		return err
 	}
+
 	if vmAlreadyExists {
 		slog.Error("VM exists", "VM", vmInst.Name)
 
@@ -156,14 +157,18 @@ func Create(vmInst *VM) error {
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
 	db := GetVMDB()
+
 	slog.Debug("Creating VM", "vm", vmInst.Name)
+
 	res := db.Create(&vmInst)
 	if res.RowsAffected != 1 {
 		return fmt.Errorf("incorrect number of rows affected, err: %w", res.Error)
 	}
+
 	if res.Error != nil {
 		return res.Error
 	}
+
 	InitOneVM(vmInst)
 
 	return nil
@@ -272,14 +277,17 @@ func (vm *VM) Save() error { //nolint:funlen
 func (vm *VM) Delete() error {
 	vmDB := GetVMDB()
 	vmDB.Model(&VM{}).Preload("Config").Limit(1).Find(&vm, &VM{ID: vm.ID})
+
 	if vm.ID == "" {
 		return errVMNotFound
 	}
+
 	res := vmDB.Limit(1).Delete(&vm.Config)
 	if res.RowsAffected != 1 {
 		// don't fail deleting the VM, may have a bad or missing config, still want to be able to delete VM
 		slog.Error("failed to delete config for VM", "vmid", vm.ID)
 	}
+
 	res = vmDB.Limit(1).Delete(&vm)
 	if res.RowsAffected != 1 {
 		slog.Error("error deleting VM", "res", res)
@@ -306,8 +314,11 @@ func (vm *VM) Start() error { //nolint:funlen
 	if vm.Status != STOPPED {
 		return errVMNotStopped
 	}
+
 	vm.SetStarting()
+
 	events := make(chan supervisor.Event)
+
 	err = vm.lockDisks()
 	if err != nil {
 		slog.Error("Failed locking disks", "err", err)
@@ -319,6 +330,7 @@ func (vm *VM) Start() error { //nolint:funlen
 	vm.log.Info("start", "cmd", cmdName, "args", cmdArgs)
 	vm.createUefiVarsFile()
 	vm.netStartup()
+
 	err = vm.Save()
 	if err != nil {
 		slog.Error("Failed saving VM", "err", err)
@@ -334,8 +346,10 @@ func (vm *VM) Start() error { //nolint:funlen
 	}
 
 	var processDebug bool
+
 	if config.Config.Log.Level == "debug" {
 		slog.Debug("vm.Start enabling process debugging", "vm", vm.Name)
+
 		processDebug = true
 	}
 
@@ -370,17 +384,21 @@ func (vm *VM) Start() error { //nolint:funlen
 
 func (vm *VM) Stop() error {
 	var err error
+
 	if vm.Status == STOPPED {
 		slog.Error("tried to stop VM already stopped", "vm", vm.Name)
 
 		return errVMAlreadyStopped
 	}
+
 	vm.SetStopping()
+
 	if vm.proc == nil {
 		vm.SetStopped()
 
 		return nil
 	}
+
 	err = vm.proc.Stop()
 	if err != nil {
 		slog.Error("Failed to stop VM", "vm", vm.Name, "pid", vm.proc.Pid(), "err", err)
@@ -396,9 +414,11 @@ func (vm *VM) MaybeForceKillVM() {
 	if err != nil {
 		return
 	}
+
 	if !ex {
 		return
 	}
+
 	args := []string{"/usr/sbin/bhyvectl", "--destroy"}
 	args = append(args, "--vm="+vm.Name)
 	cmd := exec.Command(config.Config.Sys.Sudo, args...)
@@ -437,12 +457,14 @@ func vmDaemon(events chan supervisor.Event, thisVM *VM) {
 			thisVM.NetCleanup()
 			thisVM.killComLoggers()
 			thisVM.SetStopped()
+
 			err := thisVM.unlockDisks()
 			if err != nil {
 				slog.Debug("failed unlock disks", "err", err)
 
 				return
 			}
+
 			thisVM.MaybeForceKillVM()
 			thisVM.log.Info("closing loop we are done")
 

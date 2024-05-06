@@ -16,6 +16,7 @@ func (vm *VM) GetISOs() ([]iso.ISO, error) {
 		if configValue == "" {
 			continue
 		}
+
 		aISO, err := iso.GetByID(configValue)
 		if err == nil {
 			isos = append(isos, *aISO)
@@ -49,22 +50,27 @@ func (vm *VM) AttachIsos(isoIDs []string) error {
 
 			return errVMIsoNotFound
 		}
+
 		if thisIso == nil || thisIso.Name == "" {
 			return errVMIsoNotFound
 		}
 	}
 
 	var isoConfigVal string
+
 	count := 0
 
 	for _, isoID := range isoIDs {
 		if count > 0 {
 			isoConfigVal += ","
 		}
+
 		isoConfigVal += isoID
 		count++
 	}
+
 	vm.Config.ISOs = isoConfigVal
+
 	err := vm.Save()
 	if err != nil {
 		slog.Error("error saving VM", "err", err)

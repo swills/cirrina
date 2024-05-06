@@ -37,6 +37,7 @@ func GetReqDB() *gorm.DB {
 
 	if !dbInitialized {
 		instance = &singleton{}
+
 		reqDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
 			&gorm.Config{
@@ -47,12 +48,15 @@ func GetReqDB() *gorm.DB {
 		if err != nil {
 			panic("failed to connect database")
 		}
+
 		sqlDB, err := reqDB.DB()
 		if err != nil {
 			panic("failed to create sqlDB database")
 		}
+
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
+
 		instance.reqDB = reqDB
 		dbInitialized = true
 	}
@@ -62,6 +66,7 @@ func GetReqDB() *gorm.DB {
 
 func DBAutoMigrate() {
 	db := GetReqDB()
+
 	err := db.AutoMigrate(&Request{})
 	if err != nil {
 		panic("failed to auto-migrate Requests")

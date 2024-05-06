@@ -11,6 +11,7 @@ func processRequests() {
 		request := requests.GetUnStarted()
 		if request.ID != "" {
 			request.Start()
+
 			switch request.Type {
 			case requests.VMSTART:
 				go startVM(&request)
@@ -22,6 +23,7 @@ func processRequests() {
 				go nicClone(&request)
 			}
 		}
+
 		time.Sleep(50 * time.Millisecond)
 	}
 }

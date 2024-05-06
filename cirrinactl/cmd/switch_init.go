@@ -12,10 +12,12 @@ func init() {
 
 	disableFlagSorting(SwitchCreateCmd)
 	SwitchCreateCmd.Flags().StringVarP(&SwitchName, "name", "n", SwitchName, "name of switch")
+
 	err := SwitchCreateCmd.MarkFlagRequired("name")
 	if err != nil {
 		panic(err)
 	}
+
 	SwitchCreateCmd.Flags().StringVarP(&SwitchDescription,
 		"description", "d", SwitchDescription, "description of switch",
 	)
@@ -32,6 +34,7 @@ func init() {
 	SwitchUplinkCmd.Flags().StringVarP(&SwitchUplinkName,
 		"uplink", "u", SwitchName, "uplink name",
 	)
+
 	err = SwitchUplinkCmd.MarkFlagRequired("uplink")
 	if err != nil {
 		panic(err)

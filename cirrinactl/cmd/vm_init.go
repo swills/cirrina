@@ -8,10 +8,12 @@ func init() {
 	disableFlagSorting(VMCmd)
 
 	setupVMListCmd()
+
 	err := setupVMCreateCmd()
 	if err != nil {
 		panic(err)
 	}
+
 	setupVMDestroyCmd()
 	setupVMStartCmd()
 	setupVMStopCmd()
@@ -205,10 +207,12 @@ func setupVMDestroyCmd() {
 func setupVMCreateCmd() error {
 	disableFlagSorting(VMCreateCmd)
 	VMCreateCmd.Flags().StringVarP(&VMName, "name", "n", VMName, "Name of VM")
+
 	err := VMCreateCmd.MarkFlagRequired("name")
 	if err != nil {
 		return fmt.Errorf("error marking flag required: %w", err)
 	}
+
 	VMCreateCmd.Flags().StringVarP(&VMDescription,
 		"description", "d", SwitchDescription, "SwitchDescription of VM",
 	)

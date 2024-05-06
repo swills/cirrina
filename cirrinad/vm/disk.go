@@ -15,6 +15,7 @@ func (vm *VM) lockDisks() error {
 	if err != nil {
 		return err
 	}
+
 	for _, vmDisk := range vmDisks {
 		vmDisk.Lock()
 	}
@@ -27,6 +28,7 @@ func (vm *VM) unlockDisks() error {
 	if err != nil {
 		return err
 	}
+
 	for _, vmDisk := range vmDisks {
 		vmDisk.Unlock()
 	}
@@ -41,6 +43,7 @@ func (vm *VM) GetDisks() ([]*disk.Disk, error) {
 		if configValue == "" {
 			continue
 		}
+
 		aDisk, err := disk.GetByID(configValue)
 		if err == nil {
 			disks = append(disks, aDisk)
@@ -66,15 +69,19 @@ func (vm *VM) AttachDisks(diskids []string) error {
 
 	// build disk list string to put into DB
 	var disksConfigVal string
+
 	count := 0
 	for _, diskID := range diskids {
 		if count > 0 {
 			disksConfigVal += ","
 		}
+
 		disksConfigVal += diskID
 		count++
 	}
+
 	vm.Config.Disks = disksConfigVal
+
 	err = vm.Save()
 	if err != nil {
 		slog.Error("error saving VM", "err", err)
@@ -103,6 +110,7 @@ func validateDisks(diskids []string, thisVM *VM) error {
 
 			return fmt.Errorf("error getting disk: %w", err)
 		}
+
 		if thisDisk.Name == "" {
 			return errVMDiskNotFound
 		}
@@ -116,10 +124,12 @@ func validateDisks(diskids []string, thisVM *VM) error {
 		}
 
 		slog.Debug("checking if disk is attached to another VM", "disk", aDisk)
+
 		diskIsAttached, err := diskAttached(aDisk, thisVM)
 		if err != nil {
 			return err
 		}
+
 		if diskIsAttached {
 			return errVMDiskAttached
 		}
@@ -136,6 +146,7 @@ func diskAttached(aDisk string, thisVM *VM) (bool, error) {
 		if err != nil {
 			return true, err
 		}
+
 		for _, aVMDisk := range vmDisks {
 			if aDisk == aVMDisk.ID && aVM.ID != thisVM.ID {
 				return true, nil

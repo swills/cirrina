@@ -47,7 +47,9 @@ var (
 
 func getVMItems() ([]vmItem, error) {
 	var vmIDs []string
+
 	var theseVMItems []vmItem
+
 	var err error
 
 	vmIDs, err = rpc.GetVMIds()
@@ -57,10 +59,12 @@ func getVMItems() ([]vmItem, error) {
 
 	for _, vmID := range vmIDs {
 		var res rpc.VMConfig
+
 		res, err = rpc.GetVMConfig(vmID)
 		if err != nil {
 			return []vmItem{}, fmt.Errorf("error getting vm config: %w", err)
 		}
+
 		var aItem vmItem
 		aItem.name = res.Name
 		aItem.desc = res.Description
@@ -137,9 +141,11 @@ func vmStartFunc(name string) {
 	if err != nil {
 		return
 	}
+
 	if vmID == "" {
 		return
 	}
+
 	_, _ = rpc.StartVM(vmID)
 }
 
@@ -148,11 +154,13 @@ func vmStopFunc(name string) {
 	if err != nil {
 		return
 	}
+
 	_, _ = rpc.StopVM(vmID)
 }
 
 func vmChangedFunc(index int, name string, _ string, _ rune) {
 	infoFlex.Clear()
+
 	if index >= len(vmItems) {
 		quit := tview.NewTextView()
 		quit.SetText("Quit?")
@@ -200,18 +208,24 @@ func vmSelectedFunc(_ int, _ string, _ string, _ rune) {
 
 func StartTui(serverAddr string) error {
 	title := fmt.Sprintf(" cirrinactl - %v ", serverAddr)
+
 	var err error
+
 	vmList = tview.NewList()
+
 	vmItems, err = getVMItems()
 	if err != nil {
 		return fmt.Errorf("error getting VMs: %w", err)
 	}
+
 	mainFlex = tview.NewFlex()
 	mainFlex.SetBorder(true)
 	mainFlex.SetTitle(title)
+
 	infoFlex = tview.NewFlex().SetDirection(tview.FlexRow)
 
 	app = tview.NewApplication()
+
 	for _, vmItem := range vmItems {
 		vmList.AddItem(vmItem.name, "", 0, nil)
 	}
@@ -231,6 +245,7 @@ func StartTui(serverAddr string) error {
 	vmList.SetSelectedFunc(vmSelectedFunc)
 	mainFlex.AddItem(vmList, 0, 1, true)
 	mainFlex.AddItem(infoFlex, 0, 2, true)
+
 	if err := app.SetRoot(mainFlex, true).SetFocus(vmList).Run(); err != nil {
 		panic(err)
 	}

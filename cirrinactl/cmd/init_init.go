@@ -23,24 +23,28 @@ func addNameOrIDArgs(cmd *cobra.Command, nameArg *string, idArg *string, objType
 func init() {
 	cobra.OnInitialize(initConfig)
 	cobra.EnableCommandSorting = false
+
 	disableFlagSorting(rootCmd)
 
 	rootCmd.PersistentFlags().StringVarP(&cfgFile,
 		"config", "C", cfgFile, "config file (default $HOME/.cirrinactl.yaml)")
 
 	rootCmd.PersistentFlags().StringP("server", "S", defaultHost, "server")
+
 	err := viper.BindPFlag("server", rootCmd.PersistentFlags().Lookup("server"))
 	if err != nil {
 		panic(err)
 	}
 
 	rootCmd.PersistentFlags().Uint16P("port", "P", uint16(defaultPort), "port")
+
 	err = viper.BindPFlag("port", rootCmd.PersistentFlags().Lookup("port"))
 	if err != nil {
 		panic(err)
 	}
 
 	rootCmd.PersistentFlags().Uint64P("timeout", "T", uint64(defaultTimeout), "timeout in seconds")
+
 	err = viper.BindPFlag("timeout", rootCmd.PersistentFlags().Lookup("timeout"))
 	if err != nil {
 		panic(err)

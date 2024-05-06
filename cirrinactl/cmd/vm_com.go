@@ -72,15 +72,19 @@ func startCom(comNum int) error {
 		if err != nil {
 			return fmt.Errorf("failed getting VM ID: %w", err)
 		}
+
 		if VMID == "" {
 			return errVMNotFound
 		}
 	}
+
 	var running bool
+
 	running, err = rpc.VMRunning(VMID)
 	if err != nil {
 		return fmt.Errorf("failed checking VM status: %w", err)
 	}
+
 	if !running {
 		return errVMNotRunning
 	}

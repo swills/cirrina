@@ -19,13 +19,16 @@ type server struct {
 func rpcServer() {
 	listenAddress := config.Config.Network.Grpc.IP + ":" + strconv.Itoa(int(config.Config.Network.Grpc.Port))
 	lis, err := net.Listen("tcp", listenAddress)
+
 	if err != nil {
 		slog.Error("failed to listen for rpc", "listenAddress", listenAddress, "err", err)
 	}
+
 	s := grpc.NewServer()
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
 	cirrina.RegisterVMInfoServer(s, &server{})
+
 	if err := s.Serve(lis); err != nil {
 		slog.Error("failed to serve rpc", "err", err)
 	}

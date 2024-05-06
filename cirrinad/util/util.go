@@ -45,25 +45,32 @@ func PidExists(pid int) (bool, error) {
 	if pid <= 0 {
 		return false, errInvalidPid
 	}
+
 	proc, err := os.FindProcess(pid)
 	if err != nil {
 		return false, fmt.Errorf("failed checking pid exists: %w", err)
 	}
+
 	err = proc.Signal(syscall.Signal(0))
 	if err == nil {
 		return true, nil
 	}
+
 	if errors.Is(err, os.ErrProcessDone) {
 		return false, nil
 	}
+
 	var errno syscall.Errno
+
 	ok := errors.As(err, &errno)
 	if !ok {
 		return false, fmt.Errorf("failed checking pid exists: %w", err)
 	}
+
 	if errors.Is(errno, syscall.ESRCH) {
 		return false, nil
 	}
+
 	if errors.Is(errno, syscall.EPERM) {
 		return true, nil
 	}
@@ -71,17 +78,21 @@ func PidExists(pid int) (bool, error) {
 	return false, fmt.Errorf("failed checking pid exists: %w", err)
 }
 
-func OSReadDir(root string) ([]string, error) {
+func OSReadDir(path string) ([]string, error) {
 	var files []string
-	f, err := os.Open(root)
+
+	pathFile, err := os.Open(path)
 	if err != nil {
 		return []string{}, fmt.Errorf("failed reading OS dir: %w", err)
 	}
-	fileInfo, err := f.Readdir(-1)
-	_ = f.Close()
+
+	fileInfo, err := pathFile.Readdir(-1)
+	_ = pathFile.Close()
+
 	if err != nil {
 		return []string{}, fmt.Errorf("failed reading OS dir: %w", err)
 	}
+
 	for _, file := range fileInfo {
 		files = append(files, file.Name())
 	}
@@ -109,15 +120,18 @@ func ContainsInt(elems []int, v int) bool {
 	return false
 }
 
-func captureReader(r io.Reader) ([]byte, error) {
+func captureReader(ioReader io.Reader) ([]byte, error) {
 	var out []byte
+
 	buf := make([]byte, 1024)
+
 	for {
-		n, err := r.Read(buf)
+		n, err := ioReader.Read(buf)
 		if n > 0 {
 			d := buf[:n]
 			out = append(out, d...)
 		}
+
 		if err != nil {
 			// Read returns io.EOF at the end of file, which is not an error for us
 			if err == io.EOF {
@@ -133,26 +147,34 @@ func captureReader(r io.Reader) ([]byte, error) {
 // in on standard input. also maybe I should make this public here. perhaps pointer args would be better
 func runCommandAndCaptureOutput(cmdName string, cmdArgs []string) ([]byte, error) {
 	var outResult []byte
+
 	var errResult []byte
+
 	var errStdout, errStderr error
 
 	cmd := exec.Command(cmdName, cmdArgs...)
+
 	stdoutIn, err := cmd.StdoutPipe()
 	if err != nil {
 		return []byte{}, fmt.Errorf("error running command: %w", err)
 	}
+
 	stderrIn, err := cmd.StderrPipe()
 	if err != nil {
 		return []byte{}, fmt.Errorf("error running command: %w", err)
 	}
+
 	if err := cmd.Start(); err != nil {
 		return []byte{}, fmt.Errorf("error running command: %w", err)
 	}
 
 	var runCmdWaitGroup sync.WaitGroup
+
 	runCmdWaitGroup.Add(1)
+
 	go func() {
 		outResult, errStdout = captureReader(stdoutIn)
+
 		runCmdWaitGroup.Done()
 	}()
 
@@ -163,12 +185,15 @@ func runCommandAndCaptureOutput(cmdName string, cmdArgs []string) ([]byte, error
 	if errStdout != nil {
 		return []byte{}, errStderr
 	}
+
 	if errStderr != nil {
 		return []byte{}, errStderr
 	}
+
 	if len(errResult) > 0 {
 		return []byte{}, errSTDERRNotEmpty
 	}
+
 	if err := cmd.Wait(); err != nil {
 		return []byte{}, fmt.Errorf("error running command: %w", err)
 	}
@@ -182,31 +207,38 @@ func getNetstatJSONOutput() ([]byte, error) {
 
 func parseNetstatSocket(socket map[string]interface{}) (int, error) {
 	var portInt int
+
 	var err error
 
 	if socket["protocol"] != "tcp4" && socket["protocol"] != "tcp46" && socket["protocol"] != "tcp6" {
 		return 0, errNoTCPSocket
 	}
+
 	state, valid := socket["tcp-state"].(string)
 	if !valid {
 		return 0, errMissingTCPStat
 	}
+
 	realState := strings.TrimSpace(state)
 	if realState != "LISTEN" {
 		return 0, errNoListenPort
 	}
+
 	local, valid := socket["local"].(map[string]interface{})
 	if !valid {
 		return 0, errNoListenSocket
 	}
+
 	port, valid := local["port"]
 	if !valid {
 		return 0, errPortNotFound
 	}
+
 	p, valid := port.(string)
 	if !valid {
 		return 0, errPortNotParsable
 	}
+
 	portInt, err = strconv.Atoi(p)
 	if err != nil {
 		return 0, errInvalidPort
@@ -222,25 +254,30 @@ func parseNetstatJSONOutput(netstatOutput []byte) ([]int, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed parsing netstat json output: %w", err)
 	}
+
 	statistics, valid := result["statistics"].(map[string]interface{})
 	if !valid {
 		return nil, errFailedParsing
 	}
+
 	sockets, valid := statistics["socket"].([]interface{})
 	if !valid {
 		return nil, errSocketNotFound
 	}
 
 	var localPortList []int
+
 	for _, value := range sockets {
 		socket, valid := value.(map[string]interface{})
 		if !valid {
 			continue
 		}
+
 		portInt, err := parseNetstatSocket(socket)
 		if err != nil {
 			continue
 		}
+
 		if !ContainsInt(localPortList, portInt) {
 			localPortList = append(localPortList, portInt)
 		}
@@ -256,6 +293,7 @@ func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+
 	uniqueLocalListenPorts, err := parseNetstatJSONOutput(netstatJSON)
 	if err != nil {
 		return 0, err
@@ -277,11 +315,14 @@ func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (int, error) {
 
 func GetHostInterfaces() []string {
 	var netDevs []string
+
 	netInterfaces, err := net.Interfaces()
 	if err != nil {
 		panic(err)
 	}
+
 	slog.Debug("GetHostInterfaces", "netInterfaces", netInterfaces)
+
 	for _, inter := range netInterfaces {
 		intGroups, err := GetIntGroups(inter.Name)
 		if err != nil {
@@ -289,12 +330,15 @@ func GetHostInterfaces() []string {
 
 			return []string{}
 		}
+
 		if ContainsStr(intGroups, "cirrinad") {
 			continue
 		}
+
 		if inter.HardwareAddr.String() == "" {
 			continue
 		}
+
 		netDevs = append(netDevs, inter.Name)
 	}
 
@@ -328,7 +372,9 @@ func CopyFile(in, out string) (int64, error) {
 
 func GetIntGroups(interfaceName string) ([]string, error) {
 	var intGroups []string
+
 	var err error
+
 	cmd := exec.Command("/sbin/ifconfig", interfaceName)
 	defer func(cmd *exec.Cmd) {
 		err = cmd.Wait()
@@ -336,25 +382,31 @@ func GetIntGroups(interfaceName string) ([]string, error) {
 			slog.Error("ifconfig error", "err", err)
 		}
 	}(cmd)
+
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return []string{}, fmt.Errorf("error running ifconfig: %w", err)
 	}
+
 	if err := cmd.Start(); err != nil {
 		return []string{}, fmt.Errorf("error running ifconfig: %w", err)
 	}
+
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
 		text := scanner.Text()
+
 		textFields := strings.Fields(text)
 		if !strings.HasPrefix(textFields[0], "groups:") {
 			continue
 		}
+
 		fl := len(textFields)
 		for f := 1; f < fl; f++ {
 			intGroups = append(intGroups, textFields[f])
 		}
 	}
+
 	if err := scanner.Err(); err != nil {
 		return []string{}, fmt.Errorf("error parsing ifconfig output: %w", err)
 	}
@@ -457,9 +509,11 @@ func MacIsBroadcast(macAddress string) (bool, error) {
 	if err != nil {
 		return false, errInvalidMac
 	}
+
 	if len(newMac.String()) != 17 {
 		return false, errInvalidMac
 	}
+
 	if bytes.Equal(newMac, []byte{255, 255, 255, 255, 255, 255}) {
 		return true, nil
 	}
@@ -472,6 +526,7 @@ func MacIsMulticast(macAddress string) (bool, error) {
 	if err != nil {
 		return false, errInvalidMac
 	}
+
 	if len(newMac.String()) != 17 {
 		return false, errInvalidMac
 	}
@@ -510,21 +565,25 @@ func GetMyUIDGID() (uint32, uint32, error) {
 	var err error
 
 	var myUser *user.User
+
 	myUser, err = user.Current()
 	if err != nil {
 		return 0, 0, fmt.Errorf("error getting current user: %w", err)
 	}
+
 	if myUser == nil {
 		return 0, 0, errUserNotFound
 	}
 
 	var myUID int
+
 	myUID, err = strconv.Atoi(myUser.Uid)
 	if err != nil || myUID < 0 {
 		return 0, 0, fmt.Errorf("error parsing UID: %w", err)
 	}
 
 	var myGID int
+
 	myGID, err = strconv.Atoi(myUser.Gid)
 	if err != nil || myGID < 0 {
 		return 0, 0, fmt.Errorf("error parsing GID: %w", err)
@@ -539,6 +598,7 @@ func ValidateDBConfig() {
 		slog.Error("failed to get absolute path to database")
 		os.Exit(1)
 	}
+
 	dbFilePathInfo, err := os.Stat(dbFilePath)
 	// db file will be created if it does not exist
 	if err == nil {
@@ -548,6 +608,7 @@ func ValidateDBConfig() {
 			os.Exit(1)
 		}
 	}
+
 	dbDir := filepath.Dir(config.Config.DB.Path)
 	if unix.Access(dbDir, unix.W_OK) != nil {
 		errM := fmt.Sprintf("db dir %s not writable", dbDir)
@@ -558,6 +619,7 @@ func ValidateDBConfig() {
 
 func ParseDiskSize(diskSize string) (uint64, error) {
 	var err error
+
 	var diskSizeNum uint64
 
 	trimmedSize, multiplier := parseDiskSizeSuffix(diskSize)
@@ -583,6 +645,7 @@ func ParseDiskSize(diskSize string) (uint64, error) {
 
 func parseDiskSizeSuffix(diskSize string) (string, uint64) {
 	var trimmedSize string
+
 	var multiplier uint64
 
 	switch {
@@ -626,7 +689,9 @@ func parseDiskSizeSuffix(diskSize string) (string, uint64) {
 
 func GetHostMaxVMCpus() (uint16, error) {
 	var emptyBytes []byte
+
 	var outBytes bytes.Buffer
+
 	var errBytes bytes.Buffer
 
 	checkCmd := exec.Command("/sbin/sysctl", "-n", "hw.vmm.maxcpu")
@@ -634,18 +699,22 @@ func GetHostMaxVMCpus() (uint16, error) {
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
+
 	if err != nil {
 		slog.Error("Failed getting max vm cpus", "command", checkCmd.String(), "err", err.Error())
 
 		return 0, fmt.Errorf("error running sysctl: %w", err)
 	}
+
 	maxCPUStr := strings.TrimSpace(outBytes.String())
+
 	maxCPU, err := strconv.Atoi(maxCPUStr)
 	if err != nil {
 		slog.Error("Failed converting max cpus to int", "err", err.Error())
 
 		return 0, fmt.Errorf("error parsing cpu count: %w", err)
 	}
+
 	if maxCPU <= 0 || maxCPU >= math.MaxUint16 {
 		slog.Error("Failed invalid max cpus", "maxCPU", maxCPU)
 
@@ -659,6 +728,7 @@ func multiplyWillOverflow(xVal, yVal uint64) bool {
 	if xVal <= 1 || yVal <= 1 {
 		return false
 	}
+
 	d := xVal * yVal
 
 	return d/yVal != xVal

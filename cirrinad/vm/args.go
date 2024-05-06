@@ -45,6 +45,7 @@ func (vm *VM) getACPIArg() []string {
 
 func (vm *VM) getCDArg(slot int) ([]string, int) {
 	var cdString []string
+
 	maxSataDevs := 32 - slot - 1
 	devCount := 0
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
@@ -54,17 +55,21 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 		if isoItem == "" {
 			continue
 		}
+
 		thisIso, err := iso.GetByID(isoItem)
 		if err != nil {
 			slog.Error("error getting ISO", "isoItem", isoItem, "err", err)
 
 			return []string{}, slot
 		}
+
 		if thisIso.Path == "" {
 			slog.Error("empty iso path, correcting", "iso", thisIso.Name, "id", thisIso.ID, "path", thisIso.Path)
 			thisIso.Path = config.Config.Disk.VM.Path.Iso + string(os.PathSeparator) + thisIso.Name
 		}
+
 		slog.Debug("getCDArg", "name", thisIso.Name, "id", thisIso.ID, "path", thisIso.Path)
+
 		if devCount <= maxSataDevs {
 			thisCd := []string{"-s", strconv.Itoa(slot) + ":0,ahci,cd:" + thisIso.Path}
 			cdString = append(cdString, thisCd...)
@@ -78,10 +83,12 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 
 func (vm *VM) getCPUArg() []string {
 	var vmCpus uint16
+
 	hostCpus, err := util.GetHostMaxVMCpus()
 	if err != nil {
 		return []string{}
 	}
+
 	if !util.NumCpusValid(vmCpus) || vm.Config.CPU > math.MaxUint16 {
 		vmCpus = hostCpus
 	} else {
@@ -93,22 +100,27 @@ func (vm *VM) getCPUArg() []string {
 
 func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (string, error) {
 	var err error
+
 	var diskController string
+
 	nocache := ""
 	direct := ""
 
 	diskPath := thisDisk.GetPath()
 	diskExists, err := thisDisk.VerifyExists()
+
 	if err != nil {
 		slog.Error("error checking disk path exists", "diskId", thisDisk.ID, "diskName", thisDisk.Name, "diskPath", diskPath)
 
 		return "", fmt.Errorf("error checking disk path exists: %w", err)
 	}
+
 	if !diskExists {
 		slog.Error("disk path does not exist", "diskId", thisDisk.ID, "diskName", thisDisk.Name, "diskPath", diskPath)
 
 		return "", fmt.Errorf("disk path does not exist: %w", err)
 	}
+
 	switch thisDisk.Type {
 	case "NVME":
 		diskController = "nvme"
@@ -121,12 +133,15 @@ func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (string, error) {
 
 		return "", errVMUnknownDiskType
 	}
+
 	if thisDisk.DevType == "ZVOL" {
 		diskPath = filepath.Join("/dev/zvol/", diskPath)
 	}
+
 	if thisDisk.DiskCache.Valid && !thisDisk.DiskCache.Bool {
 		nocache = ",nocache"
 	}
+
 	if thisDisk.DiskDirect.Valid && thisDisk.DiskDirect.Bool {
 		direct = ",direct"
 	}
@@ -147,15 +162,18 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 		if diskID == "" {
 			continue
 		}
+
 		thisDisk, err := disk.GetByID(diskID)
 		if err != nil {
 			slog.Error("error getting disk, skipping", "diskID", diskID, "err", err)
 
 			continue
 		}
+
 		if thisDisk.Type == "AHCI-HD" {
 			sataDevCount++
 		}
+
 		if sataDevCount > maxSataDevs {
 			slog.Error("sata dev count exceeded, skipping disk", "diskID", diskID)
 
@@ -168,6 +186,7 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 
 			continue
 		}
+
 		thisHd := []string{"-s", strconv.Itoa(slot) + "," + oneHdString}
 		diskString = append(diskString, thisHd...)
 		slot++
@@ -208,6 +227,7 @@ func (vm *VM) getHostBridgeArg(slot int) ([]string, int) {
 	if !vm.Config.HostBridge {
 		return []string{}, slot
 	}
+
 	hostBridgeArg := []string{"-s", strconv.Itoa(slot) + ",hostbridge"}
 	slot++
 
@@ -250,9 +270,13 @@ func (vm *VM) getDebugArg() []string {
 
 	firstDebugPort := config.Config.Debug.Port
 	debugListenIP := config.Config.Debug.IP
+
 	var debugListenPortInt int
+
 	var debugListenPort string
+
 	var debugWaitStr string
+
 	var err error
 
 	if !vm.Config.Debug {
@@ -261,18 +285,22 @@ func (vm *VM) getDebugArg() []string {
 
 	if vm.Config.DebugPort == "AUTO" {
 		usedDebugPorts := GetUsedDebugPorts()
+
 		debugListenPortInt, err = util.GetFreeTCPPort(int(firstDebugPort), usedDebugPorts)
 		if err != nil {
 			return []string{}
 		}
+
 		debugListenPort = strconv.Itoa(debugListenPortInt)
 	} else {
 		debugListenPort = vm.Config.DebugPort
+
 		debugListenPortInt, err = strconv.Atoi(debugListenPort)
 		if err != nil {
 			return []string{}
 		}
 	}
+
 	vm.SetDebugPort(debugListenPortInt)
 
 	if vm.Config.DebugWait {
@@ -291,16 +319,21 @@ func (vm *VM) getSoundArg(slot int) ([]string, int) {
 	if !vm.Config.Sound {
 		return []string{}, slot
 	}
+
 	var soundArg []string
+
 	var soundString string
+
 	inPathExists, err := util.PathExists(vm.Config.SoundIn)
 	if err != nil {
 		slog.Error("sound input check error", "err", err)
 	}
+
 	outPathExists, err := util.PathExists(vm.Config.SoundIn)
 	if err != nil {
 		slog.Error("sound output check error", "err", err)
 	}
+
 	if inPathExists || outPathExists {
 		soundString = ",hda"
 		if outPathExists {
@@ -308,12 +341,14 @@ func (vm *VM) getSoundArg(slot int) ([]string, int) {
 		} else {
 			slog.Debug("sound output path does not exist", "path", vm.Config.SoundOut)
 		}
+
 		if inPathExists {
 			soundString = soundString + ",rec=" + vm.Config.SoundIn
 		} else {
 			slog.Debug("sound input path does not exist", "path", vm.Config.SoundIn)
 		}
 	}
+
 	soundArg = []string{"-s", strconv.Itoa(slot) + soundString}
 	slot++
 
@@ -344,6 +379,7 @@ func (vm *VM) getTabletArg(slot int) ([]string, int) {
 	if !vm.Config.Screen || !vm.Config.Tablet {
 		return []string{}, slot
 	}
+
 	tabletArg := []string{"-s", strconv.Itoa(slot) + ",xhci,tablet"}
 	slot++
 
@@ -357,24 +393,31 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 
 	firstVncPort := config.Config.Vnc.Port
 	vncListenIP := config.Config.Vnc.IP
+
 	var vncListenPortInt int
+
 	var vncListenPort string
+
 	var err error
 
 	if vm.Config.VNCPort == "AUTO" {
 		usedVncPorts := GetUsedVncPorts()
+
 		vncListenPortInt, err = util.GetFreeTCPPort(int(firstVncPort), usedVncPorts)
 		if err != nil {
 			return []string{}, slot
 		}
+
 		vncListenPort = strconv.Itoa(vncListenPortInt)
 	} else {
 		vncListenPort = vm.Config.VNCPort
+
 		vncListenPortInt, err = strconv.Atoi(vncListenPort)
 		if err != nil {
 			return []string{}, slot
 		}
 	}
+
 	vm.SetVNCPort(vncListenPortInt)
 
 	fbufArg := []string{
@@ -388,6 +431,7 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 	if vm.Config.VNCWait {
 		fbufArg[1] += ",wait"
 	}
+
 	slot++
 
 	return fbufArg, slot
@@ -408,7 +452,9 @@ func getNetTypeArg(netType string) (string, error) {
 
 func getNetDevTypeArg(netDevType string, switchID string, vmName string) (string, string, error) {
 	var err error
+
 	var netDev string
+
 	var netDevArg string
 
 	switch netDevType {
@@ -448,6 +494,7 @@ func getNetDevTypeArg(netDevType string, switchID string, vmName string) (string
 
 func (vm *VM) getNetArgs(slot int) ([]string, int) {
 	var err error
+
 	var netArgs []string
 
 	originalSlot := slot
@@ -457,6 +504,7 @@ func (vm *VM) getNetArgs(slot int) ([]string, int) {
 		slog.Debug("adding nic", "nic", nicItem)
 
 		var netType string
+
 		netType, err = getNetTypeArg(nicItem.NetType)
 		if err != nil {
 			slog.Debug("unknown net type, cannot configure", "netType", nicItem.NetType)
@@ -481,12 +529,16 @@ func (vm *VM) getNetArgs(slot int) ([]string, int) {
 		}
 
 		macAddress := GetMac(nicItem, vm)
+
 		var macString string
+
 		if macAddress != "" {
 			macString = ",mac=" + macAddress
 		}
+
 		netArg := []string{"-s", strconv.Itoa(slot) + "," + netType + "," + netDevArg + macString}
 		slot++
+
 		netArgs = append(netArgs, netArg...)
 	}
 
@@ -495,24 +547,28 @@ func (vm *VM) getNetArgs(slot int) ([]string, int) {
 
 func GetMac(thisNic vmnic.VMNic, thisVM *VM) string {
 	var macAddress string
+
 	if thisNic.Mac == "AUTO" {
 		// if MAC is AUTO, we still generate our own here rather than letting bhyve generate it, because:
 		// 1. Bhyve is still using the NetApp MAC:
 		// https://cgit.freebsd.org/src/tree/usr.sbin/bhyve/net_utils.c?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n115
 		// 2. We want to be able to distinguish our VMs from other VMs
 		slog.Debug("getNetArgs: Generating MAC")
+
 		thisNicHashData := MacHashData{
 			thisVM.ID,
 			thisVM.Name,
 			thisNic.ID,
 			thisNic.Name,
 		}
+
 		nicHash, err := rxhash.HashStruct(thisNicHashData)
 		if err != nil {
 			slog.Error("getNetArgs error generating mac", "err", err)
 
 			return ""
 		}
+
 		slog.Debug("getNetArgs", "nicHash", nicHash)
 		mac := string(nicHash[0]) + string(nicHash[1]) + ":" +
 			string(nicHash[2]) + string(nicHash[3]) + ":" +
@@ -529,13 +585,17 @@ func GetMac(thisNic vmnic.VMNic, thisVM *VM) string {
 // GetTapDev returns the netDev (stored in DB) and netDevArg (passed to bhyve) -- both happen to be the same here
 func GetTapDev() (string, string, error) {
 	freeTapDevFound := false
+
 	var netDevs []string
+
 	tapDev := ""
 	tapNum := 0
+
 	interfaces, _ := net.Interfaces()
 	for _, inter := range interfaces {
 		netDevs = append(netDevs, inter.Name)
 	}
+
 	for !freeTapDevFound {
 		tapDev = "tap" + strconv.Itoa(tapNum)
 		if !util.ContainsStr(netDevs, tapDev) && !IsNetPortUsed(tapDev) {
@@ -551,13 +611,17 @@ func GetTapDev() (string, string, error) {
 // GetVmnetDev returns the netDev (stored in DB) and netDevArg (passed to bhyve) -- both happen to be the same here
 func GetVmnetDev() (string, string, error) {
 	freeVmnetDevFound := false
+
 	var netDevs []string
+
 	vmnetDev := ""
 	vmnetNum := 0
+
 	interfaces, _ := net.Interfaces()
 	for _, inter := range interfaces {
 		netDevs = append(netDevs, inter.Name)
 	}
+
 	for !freeVmnetDevFound {
 		vmnetDev = "vmnet" + strconv.Itoa(vmnetNum)
 		if !util.ContainsStr(netDevs, vmnetDev) && !IsNetPortUsed(vmnetDev) {
@@ -572,12 +636,15 @@ func GetVmnetDev() (string, string, error) {
 
 func getCom(comDev string, vmName string, num int) ([]string, string) {
 	var nmdm string
+
 	var comArg []string
+
 	if comDev == "AUTO" {
 		nmdm = "/dev/nmdm-" + vmName + "-com" + strconv.Itoa(num) + "-A"
 	} else {
 		nmdm = comDev
 	}
+
 	slog.Debug("getCom", "nmdm", nmdm)
 	comArg = append(comArg, "-l", "com"+strconv.Itoa(num)+","+nmdm)
 
@@ -631,12 +698,15 @@ func addComArgs(com1Arg []string, args []string, com2Arg []string, com3Arg []str
 	if len(com1Arg) != 0 {
 		args = append(args, com1Arg...)
 	}
+
 	if len(com2Arg) != 0 {
 		args = append(args, com2Arg...)
 	}
+
 	if len(com3Arg) != 0 {
 		args = append(args, com3Arg...)
 	}
+
 	if len(com4Arg) != 0 {
 		args = append(args, com4Arg...)
 	}
@@ -691,18 +761,25 @@ func getSlotArgs(slot int, aVM *VM) ([]string, []string, []string, []string, []s
 
 func getComArgs(aVM *VM) ([]string, []string, []string, []string) {
 	var com1Arg []string
+
 	var com2Arg []string
+
 	var com3Arg []string
+
 	var com4Arg []string
+
 	if aVM.Config.Com1 {
 		com1Arg, aVM.Com1Dev = getCom(aVM.Config.Com1Dev, aVM.Name, 1)
 	}
+
 	if aVM.Config.Com2 {
 		com2Arg, aVM.Com2Dev = getCom(aVM.Config.Com2Dev, aVM.Name, 2)
 	}
+
 	if aVM.Config.Com3 {
 		com3Arg, aVM.Com3Dev = getCom(aVM.Config.Com3Dev, aVM.Name, 3)
 	}
+
 	if aVM.Config.Com4 {
 		com4Arg, aVM.Com4Dev = getCom(aVM.Config.Com4Dev, aVM.Name, 4)
 	}

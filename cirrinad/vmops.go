@@ -11,7 +11,9 @@ import (
 
 func startVM(request *requests.Request) {
 	var err error
+
 	var reqData requests.VMReqData
+
 	err = json.Unmarshal([]byte(request.Data), &reqData)
 	if err != nil {
 		slog.Error("failed unmarshalling request data",
@@ -19,13 +21,16 @@ func startVM(request *requests.Request) {
 
 		return
 	}
+
 	var vmInst *vm.VM
+
 	vmInst, err = vm.GetByID(reqData.VMID)
 	if err != nil {
 		slog.Error("startVM error getting vm", "vm", reqData.VMID, "err", err)
 
 		return
 	}
+
 	pendingReqIDs := requests.PendingReqExists(reqData.VMID)
 	for _, pendingReqID := range pendingReqIDs {
 		if pendingReqID != request.ID {
@@ -35,6 +40,7 @@ func startVM(request *requests.Request) {
 			return
 		}
 	}
+
 	err = vmInst.Start()
 	if err != nil {
 		slog.Error("failed to start VM", "vm", vmInst.ID, "err", err)
@@ -42,12 +48,15 @@ func startVM(request *requests.Request) {
 
 		return
 	}
+
 	request.Succeeded()
 }
 
 func stopVM(request *requests.Request) {
 	var err error
+
 	var reqData requests.VMReqData
+
 	err = json.Unmarshal([]byte(request.Data), &reqData)
 	if err != nil {
 		slog.Error("failed unmarshalling request data",
@@ -55,14 +64,18 @@ func stopVM(request *requests.Request) {
 
 		return
 	}
+
 	var vmInst *vm.VM
+
 	vmInst, err = vm.GetByID(reqData.VMID)
 	if err != nil {
 		slog.Error("stopVM error getting vm", "vm", reqData.VMID, "err", err)
 
 		return
 	}
+
 	slog.Debug("stopping VM", "vm", reqData.VMID)
+
 	pendingReqIDs := requests.PendingReqExists(reqData.VMID)
 	for _, pendingReqID := range pendingReqIDs {
 		if pendingReqID != request.ID {
@@ -72,6 +85,7 @@ func stopVM(request *requests.Request) {
 			return
 		}
 	}
+
 	err = vmInst.Stop()
 	if err != nil {
 		slog.Error("failed to stop VM", "vm", vmInst.ID, "err", err)
@@ -79,12 +93,15 @@ func stopVM(request *requests.Request) {
 
 		return
 	}
+
 	request.Succeeded()
 }
 
 func deleteVM(request *requests.Request) {
 	var err error
+
 	var reqData requests.VMReqData
+
 	err = json.Unmarshal([]byte(request.Data), &reqData)
 	if err != nil {
 		slog.Error("failed unmarshalling request data",
@@ -92,13 +109,16 @@ func deleteVM(request *requests.Request) {
 
 		return
 	}
+
 	var vmInst *vm.VM
+
 	vmInst, err = vm.GetByID(reqData.VMID)
 	if err != nil {
 		slog.Error("deleteVM error getting vm", "vm", reqData.VMID, "err", err)
 
 		return
 	}
+
 	pendingReqIDs := requests.PendingReqExists(reqData.VMID)
 	for _, pendingReqID := range pendingReqIDs {
 		if pendingReqID != request.ID {
@@ -108,9 +128,11 @@ func deleteVM(request *requests.Request) {
 			return
 		}
 	}
+
 	slog.Debug("deleting VM", "id", reqData.VMID)
 	defer vm.List.Mu.Unlock()
 	vm.List.Mu.Lock()
+
 	err = vmInst.Delete()
 	if err != nil {
 		slog.Error("failed to delete VM", "vm", vmInst.ID, "err", err)
@@ -118,6 +140,7 @@ func deleteVM(request *requests.Request) {
 
 		return
 	}
+
 	request.Succeeded()
 	delete(vm.List.VMList, vmInst.ID)
 }

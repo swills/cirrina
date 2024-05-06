@@ -8,12 +8,15 @@ func init() {
 	disableFlagSorting(DiskCmd)
 
 	setupDiskListCmd()
+
 	err := setupDiskCreateCmd()
 	if err != nil {
 		panic(err)
 	}
+
 	setupDiskRemoveCmd()
 	setupDiskUpdateCmd()
+
 	err = setupDiskUploadCmd()
 	if err != nil {
 		panic(err)
@@ -32,10 +35,12 @@ func setupDiskUploadCmd() error {
 	DiskUploadCmd.Flags().StringVarP(&DiskFilePath,
 		"path", "p", DiskFilePath, "Path to Disk File to upload",
 	)
+
 	err := DiskUploadCmd.MarkFlagRequired("path")
 	if err != nil {
 		return fmt.Errorf("error marking flag required: %w", err)
 	}
+
 	DiskUploadCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
 
 	return nil
@@ -66,15 +71,19 @@ func setupDiskCreateCmd() error {
 
 	disableFlagSorting(DiskCreateCmd)
 	DiskCreateCmd.Flags().StringVarP(&DiskName, "name", "n", DiskName, "name of disk")
+
 	err = DiskCreateCmd.MarkFlagRequired("name")
 	if err != nil {
 		return fmt.Errorf("error marking flag required: %w", err)
 	}
+
 	DiskCreateCmd.Flags().StringVarP(&DiskSize, "size", "s", DiskName, "size of disk")
+
 	err = DiskCreateCmd.MarkFlagRequired("size")
 	if err != nil {
 		return fmt.Errorf("error marking flag required: %w", err)
 	}
+
 	DiskCreateCmd.Flags().StringVarP(&DiskDescription,
 		"description", "d", DiskDescription, "description of disk",
 	)

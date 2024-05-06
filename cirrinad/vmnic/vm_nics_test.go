@@ -15,6 +15,7 @@ func Test_nicTypeValid(t *testing.T) {
 	type args struct {
 		nicType string
 	}
+
 	tests := []struct {
 		name string
 		args args
@@ -41,11 +42,14 @@ func Test_nicTypeValid(t *testing.T) {
 			want: false,
 		},
 	}
+
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			if got := nicTypeValid(testCase.args.nicType); got != testCase.want {
 				t.Errorf("nicTypeValid() = %v, want %v", got, testCase.want)
 			}
@@ -57,6 +61,7 @@ func Test_nicDevTypeValid(t *testing.T) {
 	type args struct {
 		nicDevType string
 	}
+
 	tests := []struct {
 		name string
 		args args
@@ -88,11 +93,14 @@ func Test_nicDevTypeValid(t *testing.T) {
 			want: false,
 		},
 	}
+
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			if got := nicDevTypeValid(testCase.args.nicDevType); got != testCase.want {
 				t.Errorf("nicDevTypeValid() = %v, want %v", got, testCase.want)
 			}
@@ -106,6 +114,7 @@ func TestGetByName(t *testing.T) {
 	type args struct {
 		name string
 	}
+
 	tests := []struct {
 		name        string
 		args        args
@@ -261,13 +270,16 @@ func TestGetByName(t *testing.T) {
 			}
 
 			mock.ExpectClose()
+
 			db, err := testDB.DB()
 			if err != nil {
 				t.Error(err)
 			}
+
 			if err = db.Close(); err != nil {
 				t.Error(err)
 			}
+
 			if err = mock.ExpectationsWereMet(); err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
@@ -412,14 +424,18 @@ func TestGetAll(t *testing.T) {
 			if got := GetAll(); !reflect.DeepEqual(got, testCase.want) {
 				t.Errorf("GetAll() = %v, want %v", got, testCase.want)
 			}
+
 			mock.ExpectClose()
+
 			db, err := testDB.DB()
 			if err != nil {
 				t.Error(err)
 			}
+
 			if err = db.Close(); err != nil {
 				t.Error(err)
 			}
+
 			if err = mock.ExpectationsWereMet(); err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
@@ -433,6 +449,7 @@ func TestGetByID(t *testing.T) {
 	type args struct {
 		id string
 	}
+
 	tests := []struct {
 		name        string
 		args        args
@@ -589,13 +606,16 @@ func TestGetByID(t *testing.T) {
 			}
 
 			mock.ExpectClose()
+
 			db, err := testDB.DB()
 			if err != nil {
 				t.Error(err)
 			}
+
 			if err = db.Close(); err != nil {
 				t.Error(err)
 			}
+
 			if err = mock.ExpectationsWereMet(); err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}

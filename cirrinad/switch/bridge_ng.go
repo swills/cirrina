@@ -31,7 +31,9 @@ type ngPeer struct {
 
 func ngGetNodes() ([]NgNode, error) {
 	var ngNodes []NgNode
+
 	var err error
+
 	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "list")
 	defer func(cmd *exec.Cmd) {
 		err = cmd.Wait()
@@ -39,35 +41,47 @@ func ngGetNodes() ([]NgNode, error) {
 			slog.Error("ngctl error", "err", err)
 		}
 	}(cmd)
+
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("failed running ngctl: %w", err)
 	}
+
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed running ngctl: %w", err)
 	}
+
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
 		text := scanner.Text()
+
 		textFields := strings.Fields(text)
 		if len(textFields) != 9 {
 			continue
 		}
+
 		if !strings.HasPrefix(textFields[0], "Name:") {
 			continue
 		}
+
 		aNodeName := textFields[1]
+
 		if !strings.HasPrefix(textFields[2], "Type:") {
 			continue
 		}
+
 		aNodeType := textFields[3]
+
 		if !strings.HasPrefix(textFields[4], "ID:") {
 			continue
 		}
+
 		aNodeID := textFields[5]
+
 		if !strings.HasPrefix(textFields[7], "hooks:") {
 			continue
 		}
+
 		aNodeHooks, _ := strconv.Atoi(textFields[8])
 		ngNodes = append(ngNodes, NgNode{
 			NodeName:  aNodeName,
@@ -88,6 +102,7 @@ func ngGetNodes() ([]NgNode, error) {
 
 func GetAllNgBridges() ([]string, error) {
 	var bridges []string
+
 	netgraphNodes, err := ngGetNodes()
 	if err != nil {
 		return nil, err
@@ -104,7 +119,9 @@ func GetAllNgBridges() ([]string, error) {
 
 func getNgBridgeMembers(bridge string) ([]ngPeer, error) {
 	var err error
+
 	var peers []ngPeer
+
 	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "show",
 		bridge+":")
 	defer func(cmd *exec.Cmd) {
@@ -113,25 +130,32 @@ func getNgBridgeMembers(bridge string) ([]ngPeer, error) {
 			slog.Error("ngctl show error", "err", err)
 		}
 	}(cmd)
+
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("error running ngctl command: %w", err)
 	}
+
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("error running ngctl command: %w", err)
 	}
+
 	scanner := bufio.NewScanner(stdout)
 	lineNo := 0
+
 	for scanner.Scan() {
 		text := scanner.Text()
+
 		lineNo++
 		if lineNo < 4 {
 			continue
 		}
+
 		textFields := strings.Fields(text)
 		if len(textFields) != 5 {
 			continue
 		}
+
 		aPeer := ngPeer{
 			LocalHook: textFields[0],
 			PeerName:  textFields[1],
@@ -149,6 +173,7 @@ func ngBridgeNextLink(peers []ngPeer) string {
 	found := false
 	linkNum := 0
 	linkName := ""
+
 	var hooks []string
 
 	for _, peer := range peers {
@@ -169,6 +194,7 @@ func ngBridgeNextLink(peers []ngPeer) string {
 
 func createNgBridge(name string) error {
 	var err error
+
 	if name == "" {
 		return errSwitchInvalidName
 	}
@@ -185,6 +211,7 @@ func createNgBridge(name string) error {
 
 		return err
 	}
+
 	if util.ContainsStr(allIfBridges, name) {
 		slog.Debug("bridge already exists", "bridge", name)
 
@@ -206,6 +233,7 @@ func actualNgBridgeCreate(netDev string) error {
 	if dummyIfBridgeName == "" {
 		return errSwitchFailDummy
 	}
+
 	err := createIfBridge(dummyIfBridgeName)
 	if err != nil {
 		slog.Error("dummy if_bridge creation error", "err", err)
@@ -215,31 +243,38 @@ func actualNgBridgeCreate(netDev string) error {
 
 	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "mkpeer",
 		dummyIfBridgeName+":", "bridge", "lower", "link0")
+
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("ngctl mkpeer error", "err", err)
 
 		return fmt.Errorf("error running ngctl command: %w", err)
 	}
+
 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "name",
 		dummyIfBridgeName+":lower", netDev)
+
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("ngctl name err", "err", err)
 
 		return fmt.Errorf("error running ngctl command: %w", err)
 	}
+
 	upper := "uplink"
 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "connect",
 		dummyIfBridgeName+":", netDev+":", "upper", upper+"1")
+
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("ngctl connect error", "err", err)
 
 		return fmt.Errorf("failed running ngctl command: %w", err)
 	}
+
 	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
 		netDev+":", "setpersistent")
+
 	err = cmd.Run()
 	if err != nil {
 		slog.Error("ngctl msg setpersistent error", "err", err)
@@ -268,6 +303,7 @@ func createNgBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 
 		return err
 	}
+
 	err = bridgeNgDeleteAllPeers(bridgeName)
 	if err != nil {
 		slog.Error("createNgBridgeWithMembers error deleting bridge peers",
@@ -277,6 +313,7 @@ func createNgBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 
 		return err
 	}
+
 	for _, member := range bridgeMembers {
 		exists := CheckInterfaceExists(member)
 		if !exists {
@@ -286,6 +323,7 @@ func createNgBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 
 			continue
 		}
+
 		err = BridgeNgAddMember(bridgeName, member)
 		if err != nil {
 			slog.Error("createNgBridgeWithMembers error adding bridge member",
@@ -304,9 +342,11 @@ func createNgBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 func bridgeNgDeleteAllPeers(name string) error {
 	bridgePeers, err := getNgBridgeMembers(name)
 	slog.Debug("deleting all ng bridge members", "bridge", name, "members", bridgePeers)
+
 	if err != nil {
 		return err
 	}
+
 	for _, member := range bridgePeers {
 		err := bridgeNgDeletePeer(name, member.PeerName)
 		if err != nil {
@@ -319,11 +359,14 @@ func bridgeNgDeleteAllPeers(name string) error {
 
 func bridgeNgDeletePeer(bridgeName string, hook string) error {
 	var out bytes.Buffer
+
 	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "rmhook", bridgeName+":", hook)
 	cmd.Stdout = &out
+
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("error running ngctl: %w", err)
 	}
+
 	if err := cmd.Wait(); err != nil {
 		slog.Error("failed running ngctl", "err", err, "out", out)
 
@@ -335,6 +378,7 @@ func bridgeNgDeletePeer(bridgeName string, hook string) error {
 
 func bridgeNgRemoveUplink(bridgeName string, peerName string) error {
 	var thisPeer ngPeer
+
 	bridgePeers, err := getNgBridgeMembers(bridgeName)
 	if err != nil {
 		return err
@@ -342,8 +386,10 @@ func bridgeNgRemoveUplink(bridgeName string, peerName string) error {
 
 	for _, peer := range bridgePeers {
 		slog.Debug("bridgeNgRemoveUplink", "peer", peer)
+
 		if peer.PeerName == peerName {
 			thisPeer = peer
+
 			err = bridgeNgDeletePeer(bridgeName, thisPeer.LocalHook)
 			if err != nil {
 				return err

@@ -20,15 +20,18 @@ func (s *server) RequestStatus(_ context.Context, requestID *cirrina.RequestID) 
 	if err != nil {
 		return nil, errInvalidID
 	}
+
 	request, err := requests.GetByID(reqUUID.String())
 	if err != nil {
 		slog.Error("ReqStatus error getting req", "vm", requestID.GetValue(), "err", err)
 
 		return nil, errNotFound
 	}
+
 	if request.ID == "" {
 		return &cirrina.ReqStatus{}, errNotFound
 	}
+
 	res := &cirrina.ReqStatus{
 		Complete: request.Complete,
 		Success:  request.Successful,
@@ -45,21 +48,25 @@ func (s *server) ClearUEFIState(_ context.Context, vmID *cirrina.VMID) (*cirrina
 	if err != nil {
 		return &res, errInvalidID
 	}
+
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
 		slog.Error("ClearUEFIState error getting vm", "vm", vmID.GetValue(), "err", err)
 
 		return &res, errNotFound
 	}
+
 	if vmInst.Name == "" {
 		slog.Debug("vm not found")
 
 		return &res, errNotFound
 	}
+
 	err = vmInst.DeleteUEFIState()
 	if err != nil {
 		return &res, fmt.Errorf("error deleting UEFI state: %w", err)
 	}
+
 	res.Success = true
 
 	return &res, nil

@@ -45,6 +45,7 @@ func disableFlagSorting(cmd *cobra.Command) {
 
 func handleSigInfo() {
 	var mem runtime.MemStats
+
 	vm.LogAllVMStatus()
 	runtime.ReadMemStats(&mem)
 	slog.Debug("MemStats",
@@ -71,6 +72,7 @@ func destroyPidFile() {
 		slog.Error("failed to get absolute path to pid file")
 		os.Exit(1)
 	}
+
 	err = os.Remove(pidFilePath)
 	if err != nil {
 		slog.Error("failed removing leftover pid file")
@@ -85,15 +87,19 @@ func writePidFile() {
 		slog.Error("failed to get absolute path to pid file")
 		os.Exit(1)
 	}
+
 	slog.Debug("Checking pid file", "path", pidFilePath)
+
 	_, err = os.Stat(pidFilePath)
 	if err == nil {
 		slog.Warn("pid file exists, checking pid")
 		checkExistingPidFile(pidFilePath)
 	}
+
 	myPid := os.Getpid()
 
 	var pidMode os.FileMode = 0x755
+
 	err = os.WriteFile(pidFilePath, []byte(strconv.Itoa(myPid)), pidMode)
 	if err != nil {
 		slog.Error("failed writing pid file", "err", err)
@@ -109,22 +115,28 @@ func checkExistingPidFile(pidFilePath string) {
 		slog.Error("pid file exists and unable to read it, please fix")
 		os.Exit(1)
 	}
+
 	existingPid, err := strconv.Atoi(string(existingPidFileContent))
 	if err != nil {
 		slog.Error("failed getting existing pid")
 		os.Exit(1)
 	}
+
 	slog.Debug("Checking pid", "pid", existingPid)
+
 	procExists, err := util.PidExists(existingPid)
 	if err != nil {
 		slog.Error("failed checking existing pid")
 		os.Exit(1)
 	}
+
 	if procExists {
 		slog.Error("duplicate processes not allowed, please kill existing pid", "existingPid", existingPid)
 		os.Exit(1)
 	}
+
 	slog.Warn("left over pid file detected, but process seems not to exist, deleting pid file")
+
 	err = os.Remove(pidFilePath)
 	if err != nil {
 		slog.Error("failed removing leftover pid file, please fix")
@@ -156,13 +168,17 @@ func shutdownHandler() {
 	if shutdownHandlerRunning {
 		return
 	}
+
 	shutdownHandlerRunning = true
+
 	vm.KillVMs()
+
 	for {
 		runningVMs := vm.GetRunningVMs()
 		if runningVMs == 0 {
 			break
 		}
+
 		slog.Info("waiting on running VM(s)", "count", runningVMs)
 		time.Sleep(time.Second)
 	}
@@ -174,6 +190,7 @@ func shutdownHandler() {
 
 func sigHandler(signal os.Signal) {
 	slog.Debug("got signal", "signal", signal)
+
 	switch signal {
 	case syscall.SIGINFO:
 		handleSigInfo()

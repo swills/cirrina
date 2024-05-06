@@ -35,6 +35,7 @@ func getIsoDB() *gorm.DB {
 
 	once.Do(func() {
 		instance = &singleton{}
+
 		isoDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
 			&gorm.Config{
@@ -45,12 +46,15 @@ func getIsoDB() *gorm.DB {
 		if err != nil {
 			panic("failed to connect database")
 		}
+
 		sqlDB, err := isoDB.DB()
 		if err != nil {
 			panic("failed to create sqlDB database")
 		}
+
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
+
 		instance.isoDB = isoDB
 	})
 
@@ -65,6 +69,7 @@ func (iso *ISO) BeforeCreate(_ *gorm.DB) error {
 
 func DBAutoMigrate() {
 	db := getIsoDB()
+
 	err := db.AutoMigrate(&ISO{})
 	if err != nil {
 		panic("failed to auto-migrate ISO")

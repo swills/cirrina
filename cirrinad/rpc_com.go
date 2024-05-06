@@ -21,13 +21,16 @@ func (s *server) Com1Interactive(stream cirrina.VMInfo_Com1InteractiveServer) er
 	if errors.Is(err, io.EOF) {
 		return nil
 	}
+
 	if err != nil {
 		return fmt.Errorf("error receiving from com stream: %w", err)
 	}
+
 	vmuuid, err := uuid.Parse(streamInput.GetVmId().GetValue())
 	if err != nil {
 		return errInvalidID
 	}
+
 	vmInst, err := vm.GetByID(vmuuid.String())
 	if err != nil {
 		return fmt.Errorf("error getting VM ID: %w", err)
@@ -45,13 +48,16 @@ func (s *server) Com2Interactive(stream cirrina.VMInfo_Com2InteractiveServer) er
 	if errors.Is(err, io.EOF) {
 		return nil
 	}
+
 	if err != nil {
 		return fmt.Errorf("error receiving from com stream: %w", err)
 	}
+
 	vmuuid, err := uuid.Parse(streamInput.GetVmId().GetValue())
 	if err != nil {
 		return errInvalidID
 	}
+
 	vmInst, err := vm.GetByID(vmuuid.String())
 	if err != nil {
 		return fmt.Errorf("error getting VM ID: %w", err)
@@ -69,13 +75,16 @@ func (s *server) Com3Interactive(stream cirrina.VMInfo_Com3InteractiveServer) er
 	if errors.Is(err, io.EOF) {
 		return nil
 	}
+
 	if err != nil {
 		return fmt.Errorf("error receiving from com stream: %w", err)
 	}
+
 	vmuuid, err := uuid.Parse(streamInput.GetVmId().GetValue())
 	if err != nil {
 		return errInvalidID
 	}
+
 	vmInst, err := vm.GetByID(vmuuid.String())
 	if err != nil {
 		return fmt.Errorf("error getting VM ID: %w", err)
@@ -93,13 +102,16 @@ func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) er
 	if errors.Is(err, io.EOF) {
 		return nil
 	}
+
 	if err != nil {
 		return fmt.Errorf("error receiving from com stream: %w", err)
 	}
+
 	vmuuid, err := uuid.Parse(streamInput.GetVmId().GetValue())
 	if err != nil {
 		return errInvalidID
 	}
+
 	vmInst, err := vm.GetByID(vmuuid.String())
 	if err != nil {
 		return fmt.Errorf("error getting VM ID: %w", err)
@@ -115,7 +127,9 @@ func (s *server) Com4Interactive(stream cirrina.VMInfo_Com4InteractiveServer) er
 // FIXME -- cheating a bit here
 func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, comNum int) error { //nolint:funlen
 	var thisCom *serial.Port
+
 	var thisComLog bool
+
 	var thisRChan chan byte
 
 	switch comNum {
@@ -124,10 +138,13 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 		defer vmInst.Com1lock.Unlock()
 		thisCom = vmInst.Com1
 		thisComLog = vmInst.Config.Com1Log
+
 		if vmInst.Config.Com1Log {
 			thisRChan = vmInst.Com1rchan
 		}
+
 		vmInst.Com1write = true
+
 		defer func() {
 			vmInst.Com1write = false
 		}()
@@ -136,10 +153,13 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 		defer vmInst.Com2lock.Unlock()
 		thisCom = vmInst.Com2
 		thisComLog = vmInst.Config.Com2Log
+
 		if vmInst.Config.Com2Log {
 			thisRChan = vmInst.Com2rchan
 		}
+
 		vmInst.Com2write = true
+
 		defer func() {
 			vmInst.Com2write = false
 		}()
@@ -148,10 +168,13 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 		defer vmInst.Com3lock.Unlock()
 		thisCom = vmInst.Com3
 		thisComLog = vmInst.Config.Com3Log
+
 		if vmInst.Config.Com3Log {
 			thisRChan = vmInst.Com3rchan
 		}
+
 		vmInst.Com3write = true
+
 		defer func() {
 			vmInst.Com3write = false
 		}()
@@ -160,10 +183,13 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 		defer vmInst.Com4lock.Unlock()
 		thisCom = vmInst.Com4
 		thisComLog = vmInst.Config.Com4Log
+
 		if vmInst.Config.Com4Log {
 			thisRChan = vmInst.Com4rchan
 		}
+
 		vmInst.Com4write = true
+
 		defer func() {
 			vmInst.Com4write = false
 		}()
@@ -172,6 +198,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 
 		return errComInvalid
 	}
+
 	err := comInteractiveSetup(thisCom)
 	if err != nil {
 		return err
@@ -180,19 +207,23 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 	go comInteractiveStreamSend(stream, vmInst, thisCom, thisComLog, thisRChan)
 
 	var logFile *os.File
+
 	if thisComLog {
 		comLogPath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name + "/"
 		comLogFile := comLogPath + "com" + strconv.Itoa(comNum) + "_in.log"
+
 		err := vm.GetVMLogPath(comLogPath)
 		if err != nil {
 			slog.Error("ComInteractive", "err", err)
 
 			return fmt.Errorf("error getting com log file path: %w", err)
 		}
+
 		logFile, err = os.OpenFile(comLogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		if err != nil {
 			slog.Error("failed to open VM input log file", "filename", comLogFile, "err", err)
 		}
+
 		defer func(vl *os.File) {
 			_ = vl.Close()
 		}(logFile)
@@ -217,10 +248,12 @@ func comInteractiveSetup(thisCom *serial.Port) error {
 	// Flush() doesn't seem to flush everything?
 	for {
 		b := make([]byte, 1)
+
 		nb, err := thisCom.Read(b)
 		if nb == 0 {
 			break
 		}
+
 		if err != nil {
 			slog.Error("error setting up com interactive", "err", err)
 
@@ -238,18 +271,23 @@ func comInteractiveStreamReceive(stream cirrina.VMInfo_Com1InteractiveServer, vm
 	if !vmInst.Running() {
 		return true, nil
 	}
+
 	streamInput, err := stream.Recv()
 	if errors.Is(err, io.EOF) {
 		return true, nil
 	}
+
 	if err != nil {
 		return true, fmt.Errorf("error receiving from com stream: %w", err)
 	}
+
 	inBytes := streamInput.GetComInBytes()
+
 	_, err = thisCom.Write(inBytes)
 	if err != nil {
 		return true, fmt.Errorf("error writing to com: %w", err)
 	}
+
 	if thisComLog {
 		_, err = logFile.Write(inBytes)
 		if err != nil {
@@ -265,6 +303,7 @@ func comInteractiveStreamSend(stream cirrina.VMInfo_Com1InteractiveServer, vmIns
 	thisComLog bool, thisRChan chan byte,
 ) {
 	buffer := make([]byte, 1)
+
 	for {
 		if thisCom == nil || !vmInst.Running() {
 			return
@@ -290,20 +329,24 @@ func comIntStreamSendFromDev(stream cirrina.VMInfo_Com1InteractiveServer, vmInst
 	if nBytes > 1 {
 		slog.Error("ComInteractive read more than 1 byte", "nb", nBytes)
 	}
+
 	if errors.Is(err, io.EOF) && !vmInst.Running() {
 		slog.Debug("ComInteractive", "msg", "vm not running, exiting")
 
 		return true
 	}
+
 	if err != nil && !errors.Is(err, io.EOF) {
 		slog.Error("ComInteractive error reading com port", "err", err)
 
 		return true
 	}
+
 	if nBytes != 0 {
 		req := cirrina.ComDataResponse{
 			ComOutBytes: buffer,
 		}
+
 		err = stream.Send(&req)
 		if err != nil {
 			// slog.Debug("ComInteractive un-logged failure sending to com channel", "err", err)
@@ -320,6 +363,7 @@ func comIntStreamSendFromLog(stream cirrina.VMInfo_Com1InteractiveServer, thisRC
 	req := cirrina.ComDataResponse{
 		ComOutBytes: b,
 	}
+
 	err := stream.Send(&req)
 	if err != nil {
 		// unreachable

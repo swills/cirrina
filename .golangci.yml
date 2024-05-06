@@ -2,7 +2,6 @@ run:
   go: '1.21'
 
 linters:
-  disable-all: true
   enable:
     - errcheck
     - gosimple
@@ -89,6 +88,7 @@ linters:
     - protogetter
     - tparallel
     - paralleltest
+    - wsl
 
 issues:
   exclude-rules:

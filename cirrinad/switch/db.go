@@ -38,7 +38,9 @@ func getSwitchDB() *gorm.DB {
 		if instance != nil {
 			return
 		}
+
 		instance = &singleton{}
+
 		switchDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
 			&gorm.Config{
@@ -49,12 +51,15 @@ func getSwitchDB() *gorm.DB {
 		if err != nil {
 			panic("failed to connect database")
 		}
+
 		sqlDB, err := switchDB.DB()
 		if err != nil {
 			panic("failed to create sqlDB database")
 		}
+
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
+
 		instance.switchDB = switchDB
 	})
 
@@ -69,6 +74,7 @@ func (d *Switch) BeforeCreate(_ *gorm.DB) error {
 
 func DBAutoMigrate() {
 	db := getSwitchDB()
+
 	err := db.AutoMigrate(&Switch{})
 	if err != nil {
 		panic("failed to auto-migrate switches")

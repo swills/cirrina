@@ -13,6 +13,7 @@ import (
 
 func UseCom(vmID string, comNum int) error {
 	var err error
+
 	var stream cirrina.VMInfo_Com1InteractiveClient
 
 	if vmID == "" {
@@ -20,6 +21,7 @@ func UseCom(vmID string, comNum int) error {
 	}
 
 	defaultServerContext, defaultCancelFunc = context.WithCancel(context.Background())
+
 	switch comNum {
 	case 1:
 		stream, err = serverClient.Com1Interactive(defaultServerContext)
@@ -34,6 +36,7 @@ func UseCom(vmID string, comNum int) error {
 
 		return ErrInvalidComNum
 	}
+
 	if err != nil {
 		defaultCancelFunc()
 
@@ -83,6 +86,7 @@ func comStreamCleanup(stream cirrina.VMInfo_Com1InteractiveClient) {
 
 func comMonitorVM(vmID string) error {
 	var err error
+
 	for {
 		select {
 		case <-defaultServerContext.Done():
@@ -91,7 +95,9 @@ func comMonitorVM(vmID string) error {
 			return nil
 		default:
 			var res string
+
 			ResetConnTimeout()
+
 			res, _, _, err = GetVMState(vmID)
 			if err != nil {
 				defaultCancelFunc()
@@ -104,6 +110,7 @@ func comMonitorVM(vmID string) error {
 
 				return nil
 			}
+
 			time.Sleep(1 * time.Second)
 		}
 	}
@@ -111,7 +118,9 @@ func comMonitorVM(vmID string) error {
 
 func comTermSetup() (*term.State, error) {
 	var err error
+
 	var oldState *term.State
+
 	oldState, err = term.MakeRaw(int(os.Stdin.Fd()))
 	if err != nil {
 		return nil, fmt.Errorf("unable to use com: %w", err)
@@ -125,11 +134,13 @@ func comTermSetup() (*term.State, error) {
 
 func comStreamSetup(vmID string, stream cirrina.VMInfo_Com1InteractiveClient) error {
 	var err error
+
 	req := &cirrina.ComDataRequest{
 		Data: &cirrina.ComDataRequest_VmId{
 			VmId: &cirrina.VMID{Value: vmID},
 		},
 	}
+
 	err = stream.Send(req)
 	if err != nil {
 		return fmt.Errorf("unable to use com: %w", err)
@@ -141,8 +152,11 @@ func comStreamSetup(vmID string, stream cirrina.VMInfo_Com1InteractiveClient) er
 // comSend reads data from the local terminal and sends it to the remote serial port
 func comSend(stream cirrina.VMInfo_Com1InteractiveClient) {
 	var err error
+
 	var req *cirrina.ComDataRequest
+
 	bytesBuffer := make([]byte, 1)
+
 	for {
 		select {
 		case <-defaultServerContext.Done():
@@ -154,16 +168,19 @@ func comSend(stream cirrina.VMInfo_Com1InteractiveClient) {
 
 				return
 			}
+
 			if bytesBuffer[0] == 0x1c { // == FS ("File Separator") control character -- ctrl-\ -- see ascii.7
 				defaultCancelFunc()
 
 				return
 			}
+
 			req = &cirrina.ComDataRequest{
 				Data: &cirrina.ComDataRequest_ComInBytes{
 					ComInBytes: bytesBuffer,
 				},
 			}
+
 			err = stream.Send(req)
 			if err != nil {
 				defaultCancelFunc()
@@ -177,7 +194,9 @@ func comSend(stream cirrina.VMInfo_Com1InteractiveClient) {
 // comReceive receives data from the remote serial port and outputs it to the local terminal
 func comReceive(stream cirrina.VMInfo_Com1InteractiveClient) {
 	var err error
+
 	var out *cirrina.ComDataResponse
+
 	for {
 		select {
 		case <-defaultServerContext.Done():
@@ -189,6 +208,7 @@ func comReceive(stream cirrina.VMInfo_Com1InteractiveClient) {
 
 				return
 			}
+
 			fmt.Print(string(out.GetComOutBytes()))
 		}
 	}

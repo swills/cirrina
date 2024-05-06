@@ -12,10 +12,12 @@ import (
 func (vm *VM) createUefiVarsFile() {
 	uefiVarsFilePath := config.Config.Disk.VM.Path.State + "/" + vm.Name
 	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
+
 	uvPathExists, err := util.PathExists(uefiVarsFilePath)
 	if err != nil {
 		return
 	}
+
 	if !uvPathExists {
 		err = os.Mkdir(uefiVarsFilePath, 0o755)
 		if err != nil {
@@ -24,10 +26,12 @@ func (vm *VM) createUefiVarsFile() {
 			return
 		}
 	}
+
 	uvFileExists, err := util.PathExists(uefiVarsFile)
 	if err != nil {
 		return
 	}
+
 	if !uvFileExists {
 		_, err = util.CopyFile(config.Config.Rom.Vars.Template, uefiVarsFile)
 		if err != nil {
@@ -39,10 +43,12 @@ func (vm *VM) createUefiVarsFile() {
 func (vm *VM) DeleteUEFIState() error {
 	uefiVarsFilePath := config.Config.Disk.VM.Path.State + "/" + vm.Name
 	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
+
 	uvFileExists, err := util.PathExists(uefiVarsFile)
 	if err != nil {
 		return fmt.Errorf("error checking if UEFI state file exists: %w", err)
 	}
+
 	if uvFileExists {
 		if err := os.Remove(uefiVarsFile); err != nil {
 			return fmt.Errorf("error removing UEFI state file: %w", err)

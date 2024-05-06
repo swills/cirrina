@@ -17,7 +17,9 @@ import (
 
 func GetAllIfBridges() ([]string, error) {
 	var err error
+
 	var bridges []string
+
 	cmd := exec.Command("/sbin/ifconfig", "-g", "bridge")
 	defer func(cmd *exec.Cmd) {
 		err = cmd.Wait()
@@ -25,24 +27,31 @@ func GetAllIfBridges() ([]string, error) {
 			slog.Error("ifconfig error", "err", err)
 		}
 	}(cmd)
+
 	var stdout io.ReadCloser
+
 	stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("failed running ifconfig command: %w", err)
 	}
+
 	if err = cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed running ifconfig command: %w", err)
 	}
+
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
 		text := scanner.Text()
+
 		textFields := strings.Fields(text)
 		if len(textFields) != 1 {
 			continue
 		}
+
 		aBridgeName := textFields[0]
 		bridges = append(bridges, aBridgeName)
 	}
+
 	if err = scanner.Err(); err != nil {
 		slog.Error("error scanning ifconfig output", "err", err)
 
@@ -54,8 +63,11 @@ func GetAllIfBridges() ([]string, error) {
 
 func getIfBridgeMembers(name string) ([]string, error) {
 	var members []string
+
 	var err error
+
 	args := []string{name}
+
 	cmd := exec.Command("/sbin/ifconfig", args...)
 	defer func(cmd *exec.Cmd) {
 		err = cmd.Wait()
@@ -63,27 +75,35 @@ func getIfBridgeMembers(name string) ([]string, error) {
 			slog.Error("ifconfig error", "err", err)
 		}
 	}(cmd)
+
 	var stdout io.ReadCloser
+
 	stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("failed running ifconfig command: %w", err)
 	}
+
 	if err = cmd.Start(); err != nil {
 		return nil, fmt.Errorf("failed running ifconfig command: %w", err)
 	}
+
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
 		text := scanner.Text()
+
 		textFields := strings.Fields(text)
 		if len(textFields) != 3 {
 			continue
 		}
+
 		if textFields[0] != "member:" {
 			continue
 		}
+
 		aBridgeMember := textFields[1]
 		members = append(members, aBridgeMember)
 	}
+
 	if err = scanner.Err(); err != nil {
 		slog.Error("error scanning ifconfig output", "err", err)
 
@@ -104,12 +124,14 @@ func createIfBridge(name string) error {
 
 		return errSwitchInvalidBridgeNameIF
 	}
+
 	allIfBridges, err := GetAllIfBridges()
 	if err != nil {
 		slog.Debug("failed to get all if bridges", "err", err)
 
 		return err
 	}
+
 	if util.ContainsStr(allIfBridges, name) {
 		slog.Debug("bridge already exists", "bridge", name)
 
@@ -126,11 +148,14 @@ func createIfBridge(name string) error {
 
 func actualIfBridgeCreate(name string) error {
 	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", name, "create", "group", "cirrinad", "up")
+
 	var out bytes.Buffer
+
 	cmd.Stdout = &out
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed running ifconfig: %w", err)
 	}
+
 	if err := cmd.Wait(); err != nil {
 		slog.Error("failed running ifconfig", "err", err, "out", out)
 
@@ -143,9 +168,11 @@ func actualIfBridgeCreate(name string) error {
 func bridgeIfDeleteAllMembers(name string) error {
 	bridgeMembers, err := getIfBridgeMembers(name)
 	slog.Debug("deleting all if bridge members", "bridge", name, "members", bridgeMembers)
+
 	if err != nil {
 		return err
 	}
+
 	for _, member := range bridgeMembers {
 		err := bridgeIfDeleteMember(name, member)
 		if err != nil {
@@ -158,11 +185,14 @@ func bridgeIfDeleteAllMembers(name string) error {
 
 func bridgeIfDeleteMember(bridgeName string, memberName string) error {
 	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "deletem", memberName)
+
 	var out bytes.Buffer
+
 	cmd.Stdout = &out
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("failed running ifconfig: %w", err)
 	}
+
 	if err := cmd.Wait(); err != nil {
 		slog.Error("failed running ifconfig", "err", err, "out", out)
 
@@ -177,10 +207,12 @@ func CreateIfBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 	if err != nil {
 		return err
 	}
+
 	err = bridgeIfDeleteAllMembers(bridgeName)
 	if err != nil {
 		return err
 	}
+
 	for _, member := range bridgeMembers {
 		// we always learn on the uplink
 		err = BridgeIfAddMember(bridgeName, member)

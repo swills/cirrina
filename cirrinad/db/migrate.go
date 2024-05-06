@@ -52,15 +52,19 @@ func getMetaDB() *gorm.DB {
 			},
 		)
 		metaDB.Preload("Config")
+
 		if err != nil {
 			panic("failed to connect database")
 		}
+
 		sqlDB, err := metaDB.DB()
 		if err != nil {
 			panic("failed to create sqlDB database")
 		}
+
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
+
 		instance.metaDB = metaDB
 	})
 
@@ -69,6 +73,7 @@ func getMetaDB() *gorm.DB {
 
 func AutoMigrate() {
 	db := getMetaDB()
+
 	err := db.AutoMigrate(&meta{})
 	if err != nil {
 		panic("failed to auto-migrate meta")
@@ -77,7 +82,9 @@ func AutoMigrate() {
 
 func getSchemaVersion() uint32 {
 	metaDB := getMetaDB()
+
 	var m meta
+
 	metaDB.Find(&m)
 
 	return m.SchemaVersion
@@ -85,16 +92,20 @@ func getSchemaVersion() uint32 {
 
 func setSchemaVersion(schemaVersion uint32) {
 	metaDB := getMetaDB()
+
 	var metaData meta
 	metaData.ID = 1 // always!
 
 	var res *gorm.DB
+
 	res = metaDB.Delete(&metaData)
 	if res.Error != nil {
 		slog.Error("error saving schema_version", "err", res.Error)
 		panic(res.Error)
 	}
+
 	metaData.SchemaVersion = schemaVersion
+
 	res = metaDB.Create(&metaData)
 	if res.Error != nil {
 		slog.Error("error saving schema_version", "err", res.Error)
@@ -104,6 +115,7 @@ func setSchemaVersion(schemaVersion uint32) {
 
 func CustomMigrate() {
 	slog.Debug("starting custom migration")
+
 	vmNicDB := vmnic.GetVMNicDB()
 	vmDB := vm.GetVMDB()
 	reqDB := requests.GetReqDB()
@@ -125,15 +137,18 @@ func CustomMigrate() {
 
 func migration2024022401(schemaVersion uint32, vmNicDB *gorm.DB, vmDB *gorm.DB) {
 	var err error
+
 	if schemaVersion < 2024022401 {
 		if vmnic.DBInitialized() {
 			if !vmNicDB.Migrator().HasColumn(vmnic.VMNic{}, "config_id") {
 				slog.Debug("migrating config.nics to vm_nics.config_id")
+
 				err = vmNicDB.Migrator().AddColumn(vmnic.VMNic{}, "config_id")
 				if err != nil {
 					slog.Debug("error adding config_id column", "err", err)
 					panic(err)
 				}
+
 				allVMs := vm.GetAllDB()
 				for _, vmInst := range allVMs {
 					type Result struct {
@@ -145,11 +160,14 @@ func migration2024022401(schemaVersion uint32, vmNicDB *gorm.DB, vmDB *gorm.DB) 
 					vmDB.Raw("SELECT nics FROM configs WHERE id = ?", vmInst.Config.ID).Scan(&result)
 
 					var thisVmsNics []vmnic.VMNic
+
 					for _, configValue := range strings.Split(result.Nics, ",") {
 						if configValue == "" {
 							continue
 						}
+
 						var aNic *vmnic.VMNic
+
 						aNic, err = vmnic.GetByID(configValue)
 						if err == nil {
 							thisVmsNics = append(thisVmsNics, *aNic)
@@ -167,6 +185,7 @@ func migration2024022401(schemaVersion uint32, vmNicDB *gorm.DB, vmDB *gorm.DB) 
 						slog.Debug("migrating vm nic", "nicId", vmNic.ID)
 						vmNic.ConfigID = vmInst.Config.ID
 						err = vmNic.Save()
+
 						if err != nil {
 							slog.Error("failure saving nic", "nicId", vmNic.ID, "err", err)
 							panic(err)
@@ -178,6 +197,7 @@ func migration2024022401(schemaVersion uint32, vmNicDB *gorm.DB, vmDB *gorm.DB) 
 				vm.DBReconfig()
 			}
 		}
+
 		setSchemaVersion(2024022401)
 	}
 }
@@ -187,15 +207,18 @@ func migration2024022402(schemaVersion uint32, vmDB *gorm.DB) {
 		if vm.DBInitialized() {
 			if vmDB.Migrator().HasColumn(&vm.Config{}, "nics") {
 				slog.Debug("removing config.nics")
+
 				err := vmDB.Migrator().DropColumn(&vm.Config{}, "nics")
 				if err != nil {
 					slog.Error("failure removing nics column", "err", err)
 					panic(err)
 				}
+
 				slog.Debug("migration complete", "id", "2024022402", "message", "config.nics dropped")
 				vm.DBReconfig()
 			}
 		}
+
 		setSchemaVersion(2024022402)
 	}
 }
@@ -206,14 +229,17 @@ func migration2024022403(schemaVersion uint32, reqDB *gorm.DB) {
 			// sqlite doesn't let you remove a column, so just nuke it, the requests table isn't critical
 			if reqDB.Migrator().HasColumn(&requests.Request{}, "vm_id") {
 				slog.Debug("dropping requests table")
+
 				err := reqDB.Migrator().DropTable("requests")
 				if err != nil {
 					slog.Error("failure dropping requests table", "err", err)
 					panic(err)
 				}
 			}
+
 			requests.DBReconfig()
 		}
+
 		setSchemaVersion(2024022403)
 	}
 }

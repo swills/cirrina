@@ -128,6 +128,7 @@ func checksumWIthProgress(isoProgressWriter progress.Writer, isoSize int64) (str
 	checksumTracker.Start()
 
 	var isoHashFile *os.File
+
 	isoHashFile, err = os.Open(IsoFilePath)
 	if err != nil {
 		checksumTracker.MarkAsErrored()
@@ -138,12 +139,16 @@ func checksumWIthProgress(isoProgressWriter progress.Writer, isoSize int64) (str
 	hasher := sha512.New()
 
 	var complete bool
-	var n int64
+
+	var nBytes int64
+
 	var checksumTotal int64
+
 	for !complete {
-		n, err = io.CopyN(hasher, isoHashFile, 1024*1024)
-		checksumTotal += n
+		nBytes, err = io.CopyN(hasher, isoHashFile, 1024*1024)
+		checksumTotal += nBytes
 		checksumTracker.SetValue(checksumTotal)
+
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				complete = true
@@ -156,12 +161,14 @@ func checksumWIthProgress(isoProgressWriter progress.Writer, isoSize int64) (str
 	}
 
 	isoChecksum := hex.EncodeToString(hasher.Sum(nil))
+
 	err = isoHashFile.Close()
 	if err != nil {
 		checksumTracker.MarkAsErrored()
 
 		return "", fmt.Errorf("error closing file: %w", err)
 	}
+
 	checksumTracker.MarkAsDone()
 
 	return isoChecksum, nil
@@ -182,17 +189,20 @@ func trackIsoUpload(isoProgressWriter progress.Writer, isoSize int64, isoFile *o
 	uploadTracker.Start()
 
 	var upload <-chan rpc.UploadStat
+
 	upload, err = rpc.IsoUpload(IsoID, isoChecksum, uint64(isoSize), isoFile)
 	if err != nil {
 		uploadTracker.MarkAsErrored()
 
 		return
 	}
+
 	for !uploadTracker.IsDone() {
 		uploadStatEvent := <-upload
 		if uploadStatEvent.Err != nil {
 			uploadTracker.MarkAsErrored()
 		}
+
 		if uploadStatEvent.UploadedChunk {
 			newTotal := uploadTracker.Value() + int64(uploadStatEvent.UploadedBytes)
 			if newTotal > isoSize {
@@ -202,8 +212,10 @@ func trackIsoUpload(isoProgressWriter progress.Writer, isoSize int64, isoFile *o
 			if newTotal == isoSize {
 				newTotal--
 			}
+
 			uploadTracker.SetValue(newTotal)
 		}
+
 		if uploadStatEvent.Complete {
 			uploadTracker.MarkAsDone()
 		}
@@ -212,14 +224,18 @@ func trackIsoUpload(isoProgressWriter progress.Writer, isoSize int64, isoFile *o
 
 func uploadIsoWithStatus() error {
 	var err error
+
 	var isoFileInfo os.FileInfo
+
 	isoFileInfo, err = os.Stat(IsoFilePath)
 	if err != nil {
 		return fmt.Errorf("error stating iso: %w", err)
 	}
+
 	isoSize := isoFileInfo.Size()
 
 	var isoFile *os.File
+
 	isoFile, err = os.Open(IsoFilePath)
 	if err != nil {
 		return fmt.Errorf("error opening iso: %w", err)
@@ -228,6 +244,7 @@ func uploadIsoWithStatus() error {
 	isoProgressWriter := progress.NewWriter()
 	isoProgressWriter.SetTrackerPosition(progress.PositionRight)
 	isoProgressWriter.SetStyle(progress.StyleBlocks)
+
 	isoProgressWriter.Style().Visibility.ETA = true
 	isoProgressWriter.Style().Options.ETAPrecision = time.Second
 	isoProgressWriter.Style().Options.SpeedPrecision = time.Second
@@ -250,6 +267,7 @@ func uploadIsoWithStatus() error {
 		if isoProgressWriter.LengthActive() == 0 {
 			isoProgressWriter.Stop()
 		}
+
 		time.Sleep(time.Millisecond * 100)
 	}
 
@@ -258,32 +276,45 @@ func uploadIsoWithStatus() error {
 
 func uploadIsoWithoutStatus() error {
 	var err error
+
 	var isoFileInfo os.FileInfo
+
 	isoFileInfo, err = os.Stat(IsoFilePath)
 	if err != nil {
 		return fmt.Errorf("error stating iso: %w", err)
 	}
+
 	isoSize := isoFileInfo.Size()
+
 	var isoHashFile *os.File
+
 	isoHashFile, err = os.Open(IsoFilePath)
 	if err != nil {
 		return fmt.Errorf("error opening iso: %w", err)
 	}
+
 	hasher := sha512.New()
+
 	fmt.Printf("Calculating iso checksum\n")
+
 	if _, err = io.Copy(hasher, isoHashFile); err != nil {
 		return fmt.Errorf("error copying iso data: %w", err)
 	}
+
 	isoChecksum := hex.EncodeToString(hasher.Sum(nil))
+
 	err = isoHashFile.Close()
 	if err != nil {
 		return fmt.Errorf("error closing iso: %w", err)
 	}
+
 	var isoFile *os.File
+
 	isoFile, err = os.Open(IsoFilePath)
 	if err != nil {
 		return fmt.Errorf("error opening iso: %w", err)
 	}
+
 	fmt.Printf("Uploading iso. file-path=%s, id=%s, size=%d, checksum=%s\n",
 		IsoFilePath,
 		IsoID,
@@ -291,7 +322,9 @@ func uploadIsoWithoutStatus() error {
 		isoChecksum,
 	)
 	fmt.Printf("Streaming: ")
+
 	var upload <-chan rpc.UploadStat
+
 	upload, err = rpc.IsoUpload(IsoID, isoChecksum, uint64(isoSize), isoFile)
 	if err != nil {
 		return fmt.Errorf("error uploading iso: %w", err)

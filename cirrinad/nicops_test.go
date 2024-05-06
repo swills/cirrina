@@ -6,6 +6,7 @@ func Test_nicCloneValidateMac(t *testing.T) {
 	type args struct {
 		newMac string
 	}
+
 	tests := []struct {
 		name    string
 		args    args
@@ -47,11 +48,14 @@ func Test_nicCloneValidateMac(t *testing.T) {
 			wantErr: false,
 		},
 	}
+
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			if err := nicCloneValidateMac(testCase.args.newMac); (err != nil) != testCase.wantErr {
 				t.Errorf("nicCloneValidateMac() error = %v, wantErr %v", err, testCase.wantErr)
 			}

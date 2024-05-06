@@ -59,19 +59,23 @@ func (req *Request) BeforeCreate(_ *gorm.DB) error {
 
 func CreateNicCloneReq(nicID string, newName string) (Request, error) {
 	var err error
+
 	var reqData []byte
+
 	reqData, err = json.Marshal(NicCloneReqData{NicID: nicID, NewNicName: newName})
 	if err != nil {
 		slog.Error("failed parsing NicCloneReqData: %w", err)
 
 		return Request{}, fmt.Errorf("internal error parsing NicClone request: %w", err)
 	}
-	db := GetReqDB()
+
+	reqDB := GetReqDB()
 	newReq := Request{
 		Data: string(reqData),
 		Type: NICCLONE,
 	}
-	res := db.Create(&newReq)
+
+	res := reqDB.Create(&newReq)
 	if res.RowsAffected != 1 {
 		return Request{}, errRequestCreateFailure
 	}
@@ -81,19 +85,23 @@ func CreateNicCloneReq(nicID string, newName string) (Request, error) {
 
 func CreateVMReq(requestType reqType, vmID string) (Request, error) {
 	var err error
+
 	var reqData []byte
+
 	reqData, err = json.Marshal(VMReqData{VMID: vmID})
 	if err != nil {
 		slog.Error("failed parsing CreateVMReq: %w", err)
 
 		return Request{}, fmt.Errorf("internal error parsing CreateVM request: %w", err)
 	}
-	db := GetReqDB()
+
+	reqDB := GetReqDB()
 	newReq := Request{
 		Data: string(reqData),
 		Type: requestType,
 	}
-	res := db.Create(&newReq)
+
+	res := reqDB.Create(&newReq)
 	if res.RowsAffected != 1 {
 		return Request{}, errRequestCreateFailure
 	}
@@ -103,11 +111,14 @@ func CreateVMReq(requestType reqType, vmID string) (Request, error) {
 
 func GetByID(id string) (Request, error) {
 	var request Request
+
 	db := GetReqDB()
+
 	res := db.Model(&Request{}).Limit(1).Find(&request, &Request{ID: id})
 	if res.Error != nil {
 		return Request{}, res.Error
 	}
+
 	if res.RowsAffected != 1 {
 		return Request{}, errRequestNotFound
 	}
@@ -153,10 +164,14 @@ func (req *Request) Failed() {
 // PendingReqExists return pending request IDs for given object ID
 func PendingReqExists(objID string) []string {
 	var reqIDs []string
-	db := GetReqDB()
+
+	reqDB := GetReqDB()
+
 	var err error
+
 	var incompleteRequests []Request
-	db.Where(map[string]interface{}{"complete": false}).Find(&incompleteRequests)
+
+	reqDB.Where(map[string]interface{}{"complete": false}).Find(&incompleteRequests)
 
 	for _, incompleteRequest := range incompleteRequests {
 		switch incompleteRequest.Type {
@@ -166,19 +181,23 @@ func PendingReqExists(objID string) []string {
 			fallthrough
 		case VMDELETE:
 			var reqData VMReqData
+
 			err = json.Unmarshal([]byte(incompleteRequest.Data), &reqData)
 			if err != nil {
 				continue
 			}
+
 			if reqData.VMID == objID {
 				reqIDs = append(reqIDs, incompleteRequest.ID)
 			}
 		case NICCLONE:
 			var reqData VMCloneReqData
+
 			err = json.Unmarshal([]byte(incompleteRequest.Data), &reqData)
 			if err != nil {
 				continue
 			}
+
 			if reqData.VMID == objID {
 				reqIDs = append(reqIDs, incompleteRequest.ID)
 			}

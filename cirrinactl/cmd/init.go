@@ -85,6 +85,7 @@ func initConfig() {
 		viper.SetConfigType("yaml")
 		viper.SetConfigName(".cirrinactl")
 	}
+
 	viper.SetEnvPrefix("CIRRINACTL")
 	viper.AutomaticEnv()
 	_ = viper.ReadInConfig()

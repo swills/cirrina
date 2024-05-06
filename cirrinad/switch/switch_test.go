@@ -101,13 +101,16 @@ func TestGetAll(t *testing.T) {
 			}
 
 			mock.ExpectClose()
+
 			db, err := testDB.DB()
 			if err != nil {
 				t.Error(err)
 			}
+
 			if err = db.Close(); err != nil {
 				t.Error(err)
 			}
+
 			if err = mock.ExpectationsWereMet(); err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
@@ -121,6 +124,7 @@ func TestGetByName(t *testing.T) {
 	type args struct {
 		name string
 	}
+
 	tests := []struct {
 		name        string
 		args        args
@@ -238,13 +242,16 @@ func TestGetByName(t *testing.T) {
 			}
 
 			mock.ExpectClose()
+
 			db, err := testDB.DB()
 			if err != nil {
 				t.Error(err)
 			}
+
 			if err = db.Close(); err != nil {
 				t.Error(err)
 			}
+
 			if err = mock.ExpectationsWereMet(); err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
@@ -262,6 +269,7 @@ func TestGetByID(t *testing.T) {
 	type args struct {
 		switchID string
 	}
+
 	tests := []struct {
 		name        string
 		args        args
@@ -369,13 +377,16 @@ func TestGetByID(t *testing.T) {
 			}
 
 			mock.ExpectClose()
+
 			db, err := testDB.DB()
 			if err != nil {
 				t.Error(err)
 			}
+
 			if err = db.Close(); err != nil {
 				t.Error(err)
 			}
+
 			if err = mock.ExpectationsWereMet(); err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
@@ -391,6 +402,7 @@ func Test_switchNameValid(t *testing.T) {
 	type args struct {
 		switchInst *Switch
 	}
+
 	tests := []struct {
 		name string
 		args args
@@ -457,11 +469,14 @@ func Test_switchNameValid(t *testing.T) {
 			want: false,
 		},
 	}
+
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			if got := switchNameValid(testCase.args.switchInst); got != testCase.want {
 				t.Errorf("switchNameValid() = %v, want %v", got, testCase.want)
 			}

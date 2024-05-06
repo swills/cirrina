@@ -30,11 +30,17 @@ import (
 
 func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string, cmdArgs ...string) error {
 	var emptyBytes []byte
+
 	var outBytes bytes.Buffer
+
 	var errBytes bytes.Buffer
+
 	var exitCode int
+
 	var exitErr *execabs.ExitError
+
 	var cmdString []string
+
 	var err error
 
 	cmdString = append(cmdString, "-S") // ensure no password prompt on tty
@@ -44,6 +50,7 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
+
 	err = checkCmd.Run()
 	if err != nil {
 		// ignore exitErr as we check exit code below
@@ -53,6 +60,7 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 			return fmt.Errorf("failed running command: %w", err)
 		}
 	}
+
 	exitCode = checkCmd.ProcessState.ExitCode()
 	if exitCode != expectedExit {
 		slog.Debug("exitCode mismatch running command",
@@ -60,12 +68,14 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 
 		return errExitCodeMismatch
 	}
+
 	if !strings.HasPrefix(outBytes.String(), expectedStdOut) {
 		slog.Debug("stdout prefix mismatch running command",
 			"command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
 
 		return errSTDOUTMismatch
 	}
+
 	if !strings.HasPrefix(errBytes.String(), expectedStdErr) {
 		slog.Debug("stderr prefix mismatch running command",
 			"command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(),
@@ -80,7 +90,9 @@ func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string
 // getTmpFileName returns the name of a tmp file that doesn't exist or maybe an error
 func getTmpFileName() (string, error) {
 	var tmpFileName string
+
 	var err error
+
 	tmpDir := os.Getenv("TMPDIR")
 	if tmpDir == "" {
 		tmpDir = "/tmp"
@@ -114,8 +126,10 @@ nameLoop:
 
 func kmodLoaded(name string) bool {
 	var loaded bool
+
 	slog.Debug("checking module loaded", "module", name)
 	cmd := execabs.Command("/sbin/kldstat", "-q", "-n", name)
+
 	err := cmd.Run()
 	if err == nil {
 		loaded = true
@@ -126,8 +140,10 @@ func kmodLoaded(name string) bool {
 
 func kmodInited(name string) bool {
 	var inited bool
+
 	slog.Debug("checking module initialized", "module", name)
 	cmd := execabs.Command("/sbin/kldstat", "-q", "-m", name)
+
 	err := cmd.Run()
 	if err == nil {
 		inited = true
@@ -138,6 +154,7 @@ func kmodInited(name string) bool {
 
 func validateKmods() {
 	slog.Debug("validating kernel modules")
+
 	moduleList := []string{"vmm", "nmdm", "if_bridge", "if_epair", "ng_bridge", "ng_ether", "ng_pipe"}
 
 	for _, module := range moduleList {
@@ -146,6 +163,7 @@ func validateKmods() {
 			slog.Error("module not loaded, please load all kernel modules", "module", module)
 			os.Exit(1)
 		}
+
 		inited := kmodInited(module)
 		if !inited {
 			slog.Error("module failed to initialize, please fix", "module", module)
@@ -156,7 +174,9 @@ func validateKmods() {
 
 func validateVirt() {
 	var emptyBytes []byte
+
 	var outBytes bytes.Buffer
+
 	var errBytes bytes.Buffer
 
 	checkCmd := execabs.Command("/sbin/sysctl", "-n", "hw.hv_vendor")
@@ -164,10 +184,12 @@ func validateVirt() {
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
+
 	if err != nil {
 		slog.Error("Failed checking hypervisor", "command", checkCmd.String(), "err", err.Error())
 		os.Exit(1)
 	}
+
 	hvVendor := strings.TrimSpace(outBytes.String())
 	if hvVendor != "" {
 		slog.Error("Refusing to run inside virtualized environment", "hvVendor", hvVendor)
@@ -177,7 +199,9 @@ func validateVirt() {
 
 func validateJailed() {
 	var emptyBytes []byte
+
 	var outBytes bytes.Buffer
+
 	var errBytes bytes.Buffer
 
 	checkCmd := execabs.Command("/sbin/sysctl", "-n", "security.jail.jailed")
@@ -185,12 +209,15 @@ func validateJailed() {
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
+
 	if err != nil {
 		slog.Error("Failed checking jail status", "command", checkCmd.String(), "err", err.Error())
 		os.Exit(1)
 	}
+
 	jailed := strings.TrimSpace(outBytes.String())
 	slog.Debug("validateJailed", "jailed", jailed)
+
 	if jailed != "0" {
 		slog.Error("Refusing to run inside jailed environment")
 		os.Exit(1)
@@ -223,7 +250,9 @@ func validateSudoCommands() {
 
 func getSudoCommandsList() []cmdCheckData {
 	var err error
+
 	var name string
+
 	name, err = getTmpFileName()
 	if err != nil {
 		slog.Error("getTmpFilename failed", "err", err.Error())
@@ -304,6 +333,7 @@ func validateOS() {
 
 func validateOSVersion() {
 	utsname := unix.Utsname{}
+
 	err := unix.Uname(&utsname)
 	if err != nil {
 		slog.Error("Unable to validate OS version")
@@ -311,25 +341,30 @@ func validateOSVersion() {
 	}
 
 	var rBuf []byte
+
 	for _, b := range utsname.Release {
 		if b == 0 {
 			break
 		}
+
 		rBuf = append(rBuf, b)
 	}
 
 	re := regexp.MustCompile("-.*")
 	ov := re.ReplaceAllString(string(rBuf), "")
+
 	ovi, err := version.NewVersion(ov)
 	if err != nil {
 		slog.Error("failed to get OS version", "release", string(utsname.Release[:]))
 		os.Exit(1)
 	}
+
 	ver132, err := version.NewVersion("13.2")
 	if err != nil {
 		slog.Error("failed to create a version for 13.2")
 		os.Exit(1)
 	}
+
 	ver140, err := version.NewVersion("14.0")
 	if err != nil {
 		slog.Error("failed to create a version for 14.0")
@@ -351,11 +386,13 @@ func validateSudoConfig() {
 		slog.Error("failed to get absolute path to sudo")
 		os.Exit(1)
 	}
+
 	sudoFileInfo, err := os.Stat(sudoPath)
 	if err != nil {
 		slog.Error("failed to stat sudo")
 		os.Exit(1)
 	}
+
 	sudoIsDir := sudoFileInfo.IsDir()
 	if sudoIsDir {
 		slog.Error("sudo is a directory?")
@@ -379,9 +416,13 @@ func validateZpoolConf() {
 	if config.Config.Disk.VM.Path.Zpool == "" {
 		return
 	}
+
 	var emptyBytes []byte
+
 	var outBytes bytes.Buffer
+
 	var errBytes bytes.Buffer
+
 	var err error
 
 	checkCmd := execabs.Command("/sbin/zfs", "list", config.Config.Disk.VM.Path.Zpool)
@@ -389,6 +430,7 @@ func validateZpoolConf() {
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
 	err = checkCmd.Run()
+
 	if err != nil {
 		slog.Error("zfs dataset not available, please fix or reconfigure",
 			"checkCmd.String", checkCmd.String(),
@@ -405,39 +447,51 @@ func validateZpoolConf() {
 
 func checkZpoolCapacity(poolName string) {
 	var err error
+
 	var rawCapacity string
+
 	cmd := execabs.Command("/sbin/zpool", "list", "-H", poolName)
+
 	var stdout io.ReadCloser
+
 	stdout, err = cmd.StdoutPipe()
 	if err != nil {
 		slog.Error("error checking zpool", "err", err)
 		os.Exit(1)
 	}
+
 	if err = cmd.Start(); err != nil {
 		slog.Error("error checking zpool", "err", err)
 		os.Exit(1)
 	}
+
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
 		text := scanner.Text()
+
 		textFields := strings.Fields(text)
 		if len(textFields) != 11 {
 			continue
 		}
+
 		if !strings.HasSuffix(textFields[7], "%") {
 			continue
 		}
+
 		rawCapacity = strings.TrimSuffix(textFields[7], "%")
 	}
+
 	if err = scanner.Err(); err != nil {
 		slog.Error("error checking zpool", "err", err)
 		os.Exit(1)
 	}
+
 	capacity, err := strconv.Atoi(rawCapacity)
 	if err != nil {
 		slog.Error("error checking zpool", "err", err)
 		os.Exit(1)
 	}
+
 	switch {
 	case capacity > 99:
 		slog.Error("zpool at critical usage, refusing to run", "capacity", capacity)
@@ -466,6 +520,7 @@ func validateNetworkConf() {
 
 	// is MAC parseable?
 	macTest := config.Config.Network.Mac.Oui + ":ff:ff:ff"
+
 	_, err := vmnic.ParseMac(macTest)
 	if err != nil {
 		slog.Error("Invalid NIC MAC OUI in config, please reconfigure")
@@ -503,11 +558,13 @@ func validateRomConfig() {
 		slog.Error("failed to get absolute path to rom file")
 		os.Exit(1)
 	}
+
 	romFileInfo, err := os.Stat(romPath)
 	if err != nil {
 		slog.Error("rom not installed or path invalid, please install edk2-bhyve (sysutils/edk2) or reconfigure")
 		os.Exit(1)
 	}
+
 	romIsDir := romFileInfo.IsDir()
 	if romIsDir {
 		slog.Error("rom config points to directory, please reconfigure")
@@ -519,12 +576,14 @@ func validateRomConfig() {
 		slog.Error("failed to get absolute path to rom vars template file")
 		os.Exit(1)
 	}
+
 	varTemplateFileInfo, err := os.Stat(varTemplatePath)
 	if err != nil {
 		slog.Error("rom vars template not installed or path invalid, " +
 			"please install edk2-bhyve (sysutils/edk2) or reconfigure")
 		os.Exit(1)
 	}
+
 	varTemplateFileIsDir := varTemplateFileInfo.IsDir()
 	if varTemplateFileIsDir {
 		slog.Error("rom vars template config points to directory, please reconfigure")
@@ -534,26 +593,31 @@ func validateRomConfig() {
 
 func validateLogConfig() {
 	var checkLogPathDirPerms bool
+
 	logFilePath, err := filepath.Abs(config.Config.Log.Path)
 	if err != nil {
 		slog.Error("failed to get absolute path to log")
 		os.Exit(1)
 	}
+
 	logFilePathInfo, err := os.Stat(logFilePath)
 	if err != nil {
 		// if the file doesn't exist, that's OK, we can create it if we have permission
 		checkLogPathDirPerms = true
 	}
+
 	if !checkLogPathDirPerms {
 		if logFilePathInfo.IsDir() {
 			slog.Error("log path is a directory, please reconfigure to point to a file", "logFilePath", logFilePath)
 			os.Exit(1)
 		}
+
 		logFileStat, ok := logFilePathInfo.Sys().(*syscall.Stat_t)
 		if !ok {
 			slog.Error("type failure", "logFilePathInfo", logFilePathInfo, "logFileStat", logFileStat)
 			os.Exit(1)
 		}
+
 		if logFileStat == nil {
 			slog.Error("failed getting log file sys info")
 			os.Exit(1)
@@ -561,6 +625,7 @@ func validateLogConfig() {
 
 		return
 	}
+
 	logDir := filepath.Dir(config.Config.Log.Path)
 	if unix.Access(logDir, unix.W_OK) != nil {
 		errM := fmt.Sprintf("log dir %s not writable", logDir)
@@ -575,11 +640,13 @@ func validatePidFilePathConfig() {
 		slog.Error("failed to get absolute path to pid file")
 		os.Exit(1)
 	}
+
 	pidDir := filepath.Dir(config.Config.Sys.PidFilePath)
 	if pidFilePath == pidDir {
 		slog.Error("pid file path is a directory, please reconfigure to point to a file", "pidFilePath", pidFilePath)
 		os.Exit(1)
 	}
+
 	if unix.Access(pidDir, unix.W_OK) != nil {
 		errM := fmt.Sprintf("pid dir %s not writable", pidDir)
 		slog.Error(errM)
@@ -600,11 +667,13 @@ func validateStatePath() {
 		slog.Error("disk.vm.path.state not set, please reconfigure")
 		os.Exit(1)
 	}
+
 	diskStatePath, err := filepath.Abs(config.Config.Disk.VM.Path.State)
 	if err != nil {
 		slog.Error("failed parsing disk vm path state, please reconfigure")
 		os.Exit(1)
 	}
+
 	if unix.Access(diskStatePath, unix.W_OK) != nil {
 		errM := fmt.Sprintf("disk state dir %s not writable", diskStatePath)
 		slog.Error(errM)
@@ -617,11 +686,13 @@ func validateIsoPath() {
 		slog.Error("disk.vm.path.iso not set, please reconfigure")
 		os.Exit(1)
 	}
+
 	diskIsoPath, err := filepath.Abs(config.Config.Disk.VM.Path.Iso)
 	if err != nil {
 		slog.Error("failed parsing disk vm path iso, please reconfigure")
 		os.Exit(1)
 	}
+
 	if unix.Access(diskIsoPath, unix.W_OK) != nil {
 		errM := fmt.Sprintf("iso dir %s not writable", diskIsoPath)
 		slog.Error(errM)
@@ -634,11 +705,13 @@ func validateDiskFilePath() {
 		slog.Error("disk.vm.path.image not set, please reconfigure")
 		os.Exit(1)
 	}
+
 	diskImagePath, err := filepath.Abs(config.Config.Disk.VM.Path.Image)
 	if err != nil {
 		slog.Error("failed parsing disk vm path image, please reconfigure")
 		os.Exit(1)
 	}
+
 	if unix.Access(diskImagePath, unix.W_OK) != nil {
 		errM := fmt.Sprintf("disk image dir %s not writable", diskImagePath)
 		slog.Error(errM)
@@ -663,7 +736,9 @@ func validateConfig() {
 
 func validateSysctlSeeOtherGIDs() {
 	var emptyBytes []byte
+
 	var outBytes bytes.Buffer
+
 	var errBytes bytes.Buffer
 
 	checkCmd := execabs.Command("/sbin/sysctl", "-n", "security.bsd.see_other_gids")
@@ -671,6 +746,7 @@ func validateSysctlSeeOtherGIDs() {
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
+
 	if err != nil {
 		slog.Error("Failed checking sysctl security.bsd.see_other_gids",
 			"checkCmd.String", checkCmd.String(),
@@ -678,6 +754,7 @@ func validateSysctlSeeOtherGIDs() {
 		)
 		os.Exit(1)
 	}
+
 	seeOtherGids := strings.TrimSpace(outBytes.String())
 	if seeOtherGids != "1" {
 		slog.Error("Unable to run with other GIDs not visible", "security.bsd.see_other_gids", seeOtherGids)
@@ -687,17 +764,22 @@ func validateSysctlSeeOtherGIDs() {
 
 func validateSysctlSeeOtherUIDs() {
 	var emptyBytes []byte
+
 	var outBytes bytes.Buffer
+
 	var errBytes bytes.Buffer
+
 	checkCmd := execabs.Command("/sbin/sysctl", "-n", "security.bsd.see_other_uids")
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
+
 	if err != nil {
 		slog.Error("Failed checking sysctl security.bsd.see_other_uids", "command", checkCmd.String(), "err", err.Error())
 		os.Exit(1)
 	}
+
 	seeOtherUids := strings.TrimSpace(outBytes.String())
 	if seeOtherUids != "1" {
 		slog.Error("Unable to run with other UIDs not visible", "security.bsd.see_other_uids", seeOtherUids)
@@ -707,29 +789,36 @@ func validateSysctlSeeOtherUIDs() {
 
 func validateSysctlSecureLevel() {
 	var emptyBytes []byte
+
 	var outBytes bytes.Buffer
+
 	var errBytes bytes.Buffer
 
 	outBytes.Reset()
 	errBytes.Reset()
+
 	checkCmd := execabs.Command("/sbin/sysctl", "-n", "kern.securelevel")
 	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
 	checkCmd.Stdout = &outBytes
 	checkCmd.Stderr = &errBytes
 	err := checkCmd.Run()
+
 	if err != nil {
 		slog.Error("Failed checking sysctl kern.securelevel", "command", checkCmd.String(), "err", err.Error())
 		os.Exit(1)
 	}
+
 	secureLevelStr := strings.TrimSpace(outBytes.String())
 	if err != nil {
 		slog.Error("Failed checking sysctl kern.securelevel", "secureLevelStr", secureLevelStr)
 		os.Exit(1)
 	}
+
 	secureLevel, err := strconv.ParseInt(secureLevelStr, 10, 8)
 	if err != nil {
 		slog.Error("failed parsing secure level", "secureLevelStr", secureLevelStr)
 	}
+
 	if secureLevel > 0 {
 		slog.Error("Unable to run with kern.securelevel > 0", "kern.securelevel", secureLevel)
 		os.Exit(1)
@@ -742,6 +831,7 @@ func validateMyID() {
 		slog.Error("failed getting my uid/gid")
 		os.Exit(1)
 	}
+
 	if myUID == 0 || myGID == 0 {
 		slog.Error("refusing to run as root/wheel user/group")
 		os.Exit(1)
@@ -752,8 +842,8 @@ func validateMyID() {
 // called after migrations
 func validateDB() {
 	// TODO -- validate the backing (file, zvol, volpath) of every disk/iso exists
-
 	var ifUplinks []string
+
 	var ngUplinks []string
 	// validate every switch's uplink interface exist, check for duplicates
 	allBridges := _switch.GetAll()
@@ -761,12 +851,14 @@ func validateDB() {
 		if bridge.Uplink == "" {
 			continue
 		}
+
 		exists := _switch.CheckInterfaceExists(bridge.Uplink)
 		if !exists {
 			slog.Warn("bridge uplink does not exist, will be ignored", "bridge", bridge.Name, "uplink", bridge.Uplink)
 
 			continue
 		}
+
 		switch bridge.Type {
 		case "IF":
 			if util.ContainsStr(ifUplinks, bridge.Uplink) {

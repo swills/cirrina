@@ -135,6 +135,7 @@ var (
 
 func GetConn() error {
 	var err error
+
 	serverAddr := ServerName + ":" + strconv.FormatInt(int64(ServerPort), 10)
 	serverTimeoutDur := time.Second * time.Duration(ServerTimeout)
 
@@ -165,5 +166,6 @@ func Finish() {
 	if serverConn != nil {
 		_ = serverConn.Close()
 	}
+
 	defaultCancelFunc()
 }

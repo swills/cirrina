@@ -16,6 +16,7 @@ func (s *server) AddSwitch(_ context.Context, switchInfo *cirrina.SwitchInfo) (*
 	if err != nil {
 		return nil, err
 	}
+
 	switchInst := &_switch.Switch{
 		Name:        switchInfo.GetName(),
 		Description: switchInfo.GetDescription(),
@@ -33,11 +34,13 @@ func (s *server) AddSwitch(_ context.Context, switchInfo *cirrina.SwitchInfo) (*
 
 func (s *server) GetSwitches(_ *cirrina.SwitchesQuery, stream cirrina.VMInfo_GetSwitchesServer) error {
 	var switches []*_switch.Switch
+
 	var pSwitchID cirrina.SwitchId
 
 	switches = _switch.GetAll()
 	for e := range switches {
 		pSwitchID.Value = switches[e].ID
+
 		err := stream.Send(&pSwitchID)
 		if err != nil {
 			return fmt.Errorf("error sending to stream: %w", err)
@@ -65,6 +68,7 @@ func (s *server) GetSwitchInfo(_ context.Context, switchID *cirrina.SwitchId) (*
 	switchInfo.Name = &vmSwitch.Name
 	switchInfo.Description = &vmSwitch.Description
 	switchInfo.Uplink = &vmSwitch.Uplink
+
 	switchInfo.SwitchType, err = mapSwitchTypeDBStringToType(vmSwitch.Type)
 	if err != nil {
 		return &cirrina.SwitchInfo{}, err
@@ -113,11 +117,14 @@ func (s *server) RemoveSwitch(_ context.Context, switchID *cirrina.SwitchId) (*c
 	default:
 		return &res, errSwitchInvalidType
 	}
+
 	slog.Debug("RemoveSwitch", "switchid", switchID.GetValue())
+
 	err = _switch.Delete(switchID.GetValue())
 	if err != nil {
 		return &res, fmt.Errorf("error deleting bridge: %w", err)
 	}
+
 	res.Success = true
 
 	return &res, nil
@@ -125,7 +132,9 @@ func (s *server) RemoveSwitch(_ context.Context, switchID *cirrina.SwitchId) (*c
 
 func validateSetSwitchUplinkRequest(switchUplinkReq *cirrina.SwitchUplinkReq) (*_switch.Switch, error) {
 	var err error
+
 	var switchUUID uuid.UUID
+
 	var switchInst *_switch.Switch
 
 	if switchUplinkReq.GetSwitchid() == nil {
@@ -153,8 +162,11 @@ func (s *server) SetSwitchUplink(_ context.Context,
 	switchUplinkReq *cirrina.SwitchUplinkReq,
 ) (*cirrina.ReqBool, error) {
 	var res cirrina.ReqBool
+
 	var err error
+
 	var switchInst *_switch.Switch
+
 	res.Success = false
 
 	switchInst, err = validateSetSwitchUplinkRequest(switchUplinkReq)
@@ -164,13 +176,16 @@ func (s *server) SetSwitchUplink(_ context.Context,
 
 	uplink := switchUplinkReq.GetUplink()
 	slog.Debug("SetSwitchUplink", "switch", switchUplinkReq.GetSwitchid().GetValue(), "uplink", uplink)
+
 	if uplink == "" {
 		if switchInst.Uplink != "" {
 			slog.Debug("SetSwitchUplink", "msg", "unsetting switch uplink", "switchInst", switchInst)
+
 			if err = switchInst.UnsetUplink(); err != nil {
 				return &res, fmt.Errorf("error unsetting swtich uplink: %w", err)
 			}
 		}
+
 		res.Success = true
 
 		return &res, nil
@@ -184,23 +199,28 @@ func (s *server) SetSwitchUplink(_ context.Context,
 
 		return &res, errSwitchUplinkInUse
 	}
+
 	if switchInst.Uplink != uplink {
 		slog.Debug("SetSwitchUplink", "msg", "unsetting switch uplink", "switchInst", switchInst)
 		// ignore error here because it may not be set so removing it can fail
 		_ = switchInst.UnsetUplink()
 		slog.Debug("SetSwitchUplink", "msg", "setting switch uplink", "switchInst", switchInst)
+
 		if err = switchInst.SetUplink(uplink); err != nil {
 			return &res, fmt.Errorf("error setting switch uplink: %w", err)
 		}
 	} else {
 		slog.Debug("SetSwitchUplink", "msg", "re-setting switch uplink", "switchInst", switchInst)
+
 		if err = switchInst.UnsetUplink(); err != nil {
 			return &res, fmt.Errorf("error unsetting switch uplink: %w", err)
 		}
+
 		if err = switchInst.SetUplink(uplink); err != nil {
 			return &res, fmt.Errorf("error setting switch uplink: %w", err)
 		}
 	}
+
 	res.Success = true
 
 	return &res, nil
@@ -234,6 +254,7 @@ func (s *server) SetSwitchInfo(_ context.Context,
 	if err != nil {
 		return &res, errSwitchInternalDB
 	}
+
 	res.Success = true
 
 	return &res, nil
@@ -265,6 +286,7 @@ func mapSwitchTypeTypeToDBString(switchType cirrina.SwitchType) (string, error) 
 func mapSwitchTypeDBStringToType(switchType string) (*cirrina.SwitchType, error) {
 	SwitchTypeIf := cirrina.SwitchType_IF
 	SwitchTypeNg := cirrina.SwitchType_NG
+
 	switch switchType {
 	case "IF":
 		return &SwitchTypeIf, nil

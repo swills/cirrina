@@ -8,10 +8,12 @@ func init() {
 	disableFlagSorting(NicCmd)
 
 	setupNicListCmd()
+
 	err := setupNicCreateCmd()
 	if err != nil {
 		panic(err)
 	}
+
 	setupNicRemoveCmd()
 	setupNicSetSwitchCmd()
 	setupNicCloneCmd()
@@ -74,10 +76,12 @@ func setupNicRemoveCmd() {
 func setupNicCreateCmd() error {
 	disableFlagSorting(NicCreateCmd)
 	NicCreateCmd.Flags().StringVarP(&NicName, "name", "n", NicName, "name of NIC")
+
 	err := NicCreateCmd.MarkFlagRequired("name")
 	if err != nil {
 		return fmt.Errorf("error marking flag required: %w", err)
 	}
+
 	NicCreateCmd.Flags().StringVarP(&NicDescription,
 		"description", "d", NicDescription, "description of NIC",
 	)

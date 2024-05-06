@@ -15,6 +15,7 @@ func Test_parseDiskSizeSuffix(t *testing.T) {
 	type args struct {
 		diskSize string
 	}
+
 	tests := []struct {
 		name            string
 		args            args
@@ -94,15 +95,19 @@ func Test_parseDiskSizeSuffix(t *testing.T) {
 			wantMultiplier:  1,
 		},
 	}
+
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			trimmedSize, multiplier := parseDiskSizeSuffix(testCase.args.diskSize)
 			if trimmedSize != testCase.wantTrimmedsize {
 				t.Errorf("parseDiskSizeSuffix() trimmedSize = %v, want_trimmedSize %v", trimmedSize, testCase.wantTrimmedsize)
 			}
+
 			if multiplier != testCase.wantMultiplier {
 				t.Errorf("parseDiskSizeSuffix() multiplier = %v, want_trimmedSize %v", multiplier, testCase.wantMultiplier)
 			}
@@ -114,6 +119,7 @@ func Test_ParseDiskSize(t *testing.T) {
 	type args struct {
 		diskSize string
 	}
+
 	tests := []struct {
 		name    string
 		args    args
@@ -151,17 +157,21 @@ func Test_ParseDiskSize(t *testing.T) {
 			wantErr: true,
 		},
 	}
+
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			got, err := ParseDiskSize(testCase.args.diskSize)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("ParseDiskSize() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}
+
 			if got != testCase.want {
 				t.Errorf("ParseDiskSize() got = %v, want %v", got, testCase.want)
 			}
@@ -174,6 +184,7 @@ func Test_multiplyWillOverflow(t *testing.T) {
 		xVal uint64
 		yVal uint64
 	}
+
 	tests := []struct {
 		name string
 		args args
@@ -205,11 +216,14 @@ func Test_multiplyWillOverflow(t *testing.T) {
 			want: true,
 		},
 	}
+
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			if got := multiplyWillOverflow(testCase.args.xVal, testCase.args.yVal); got != testCase.want {
 				t.Errorf("multiplyWillOverflow() = %v, want %v", got, testCase.want)
 			}
@@ -221,6 +235,7 @@ func TestMacIsBroadcast(t *testing.T) {
 	type args struct {
 		macAddress string
 	}
+
 	tests := []struct {
 		name    string
 		args    args
@@ -258,17 +273,21 @@ func TestMacIsBroadcast(t *testing.T) {
 			wantErr: false,
 		},
 	}
+
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			got, err := MacIsBroadcast(testCase.args.macAddress)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("MacIsBroadcast() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}
+
 			if got != testCase.want {
 				t.Errorf("MacIsBroadcast() got = %v, want %v", got, testCase.want)
 			}
@@ -280,6 +299,7 @@ func TestMacIsMulticast(t *testing.T) {
 	type args struct {
 		macAddress string
 	}
+
 	tests := []struct {
 		name    string
 		args    args
@@ -323,17 +343,21 @@ func TestMacIsMulticast(t *testing.T) {
 			wantErr: true,
 		},
 	}
+
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			got, err := MacIsMulticast(testCase.args.macAddress)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("MacIsMulticast() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}
+
 			if got != testCase.want {
 				t.Errorf("MacIsMulticast() got = %v, want %v", got, testCase.want)
 			}
@@ -345,6 +369,7 @@ func TestValidVMName(t *testing.T) {
 	type args struct {
 		name string
 	}
+
 	tests := []struct {
 		name string
 		args args
@@ -516,11 +541,14 @@ func TestValidVMName(t *testing.T) {
 			want: false,
 		},
 	}
+
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			if got := ValidVMName(testCase.args.name); got != testCase.want {
 				t.Errorf("ValidVMName() = %v, want %v", got, testCase.want)
 			}
@@ -533,6 +561,7 @@ func TestContainsInt(t *testing.T) {
 		elems []int
 		v     int
 	}
+
 	tests := []struct {
 		name string
 		args args
@@ -574,11 +603,14 @@ func TestContainsInt(t *testing.T) {
 			want: false,
 		},
 	}
+
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			if got := ContainsInt(testCase.args.elems, testCase.args.v); got != testCase.want {
 				t.Errorf("ContainsInt() = %v, want %v", got, testCase.want)
 			}
@@ -591,6 +623,7 @@ func TestContainsStr(t *testing.T) {
 		elems []string
 		v     string
 	}
+
 	tests := []struct {
 		name string
 		args args
@@ -617,11 +650,14 @@ func TestContainsStr(t *testing.T) {
 			want: false,
 		},
 	}
+
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			if got := ContainsStr(testCase.args.elems, testCase.args.v); got != testCase.want {
 				t.Errorf("ContainsStr() = %v, want %v", got, testCase.want)
 			}
@@ -633,6 +669,7 @@ func TestValidNicName(t *testing.T) {
 	type args struct {
 		name string
 	}
+
 	tests := []struct {
 		name string
 		args args
@@ -804,11 +841,14 @@ func TestValidNicName(t *testing.T) {
 			want: false,
 		},
 	}
+
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			if got := ValidNicName(testCase.args.name); got != testCase.want {
 				t.Errorf("ValidNicName() = %v, want %v", got, testCase.want)
 			}
@@ -1211,6 +1251,7 @@ func Test_parseNetstatJSONOutput(t *testing.T) {
 	type args struct {
 		netstatOutput []byte
 	}
+
 	tests := []struct {
 		name    string
 		args    args
@@ -1290,17 +1331,21 @@ func Test_parseNetstatJSONOutput(t *testing.T) {
 			wantErr: false,
 		},
 	}
+
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			got, err := parseNetstatJSONOutput(testCase.args.netstatOutput)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("parseNetstatJSONOutput() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}
+
 			if !reflect.DeepEqual(got, testCase.want) {
 				t.Errorf("parseNetstatJSONOutput() got = %v, want %v", got, testCase.want)
 			}
@@ -1312,6 +1357,7 @@ func TestPidExists(t *testing.T) {
 	type args struct {
 		pid int
 	}
+
 	tests := []struct {
 		name    string
 		args    args
@@ -1339,16 +1385,19 @@ func TestPidExists(t *testing.T) {
 	}
 
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			got, err := PidExists(testCase.args.pid)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("PidExists() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}
+
 			if got != testCase.want {
 				t.Errorf("PidExists() got = %v, want %v", got, testCase.want)
 			}
@@ -1358,16 +1407,20 @@ func TestPidExists(t *testing.T) {
 
 func TestPidExistsSleeping(t *testing.T) {
 	var err error
+
 	sleepCmd := exec.Command("/bin/sleep", "42") // prevents parallel testing
+
 	err = sleepCmd.Start()
 	if err != nil {
 		t.Fail()
 	}
+
 	sleepPid := sleepCmd.Process.Pid
 
 	type args struct {
 		pid int
 	}
+
 	tests := []struct {
 		name    string
 		args    args
@@ -1381,6 +1434,7 @@ func TestPidExistsSleeping(t *testing.T) {
 			wantErr: false,
 		},
 	}
+
 	var got bool
 
 	for _, testCase := range tests {
@@ -1391,29 +1445,35 @@ func TestPidExistsSleeping(t *testing.T) {
 
 				return
 			}
+
 			if got != testCase.want {
 				t.Errorf("PidExists() got = %v, want %v", got, testCase.want)
 			}
 		})
 	}
+
 	err = sleepCmd.Process.Kill()
 	if err != nil {
 		t.Fail()
 	}
+
 	_ = sleepCmd.Wait()
 }
 
 func TestPidExistsSleepingExited(t *testing.T) {
 	sleepCmd := exec.Command("/bin/sleep", "42") // prevents parallel testing
+
 	err := sleepCmd.Start()
 	if err != nil {
 		t.Fail()
 	}
+
 	sleepPid := sleepCmd.Process.Pid
 
 	type args struct {
 		pid int
 	}
+
 	tests := []struct {
 		name    string
 		args    args
@@ -1432,6 +1492,7 @@ func TestPidExistsSleepingExited(t *testing.T) {
 	if err != nil {
 		t.Fail()
 	}
+
 	_ = sleepCmd.Wait()
 
 	for _, testCase := range tests {
@@ -1442,6 +1503,7 @@ func TestPidExistsSleepingExited(t *testing.T) {
 
 				return
 			}
+
 			if got != testCase.want {
 				t.Errorf("PidExists() got = %v, want %v", got, testCase.want)
 			}
@@ -1477,6 +1539,7 @@ func TestPathExists(t *testing.T) {
 	if err != nil {
 		t.Fail()
 	}
+
 	err = os.Mkdir(filepath.Join(testPathExistsNoPermissions, "testdir"), 0o755)
 
 	defer func(path string) {
@@ -1484,13 +1547,16 @@ func TestPathExists(t *testing.T) {
 		if err != nil {
 			t.Fail()
 		}
+
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		err = os.RemoveAll(filepath.Join(testPathExistsNoPermissions, "testdir"))
 		if err != nil {
 			t.Fail()
 		}
+
 		err = os.RemoveAll(path)
 		if err != nil {
 			t.Fail()
@@ -1505,6 +1571,7 @@ func TestPathExists(t *testing.T) {
 	type args struct {
 		path string
 	}
+
 	tests := []struct {
 		name    string
 		args    args
@@ -1544,6 +1611,7 @@ func TestPathExists(t *testing.T) {
 
 				return
 			}
+
 			if got != testCase.want {
 				t.Errorf("PathExists() got = %v, want %v", got, testCase.want)
 			}
@@ -1583,6 +1651,7 @@ func TestOSReadDir(t *testing.T) {
 	type args struct {
 		root string
 	}
+
 	tests := []struct {
 		name    string
 		args    args
@@ -1611,6 +1680,7 @@ func TestOSReadDir(t *testing.T) {
 
 				return
 			}
+
 			if !reflect.DeepEqual(got, testCase.want) {
 				t.Errorf("OSReadDir() got = %v, want %v", got, testCase.want)
 			}
@@ -1622,6 +1692,7 @@ func TestIsValidTCPPort(t *testing.T) {
 	type args struct {
 		tcpPort uint
 	}
+
 	tests := []struct {
 		name string
 		args args
@@ -1640,10 +1711,12 @@ func TestIsValidTCPPort(t *testing.T) {
 	}
 
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			if got := IsValidTCPPort(testCase.args.tcpPort); got != testCase.want {
 				t.Errorf("IsValidTCPPort() = %v, want %v", got, testCase.want)
 			}
@@ -1655,6 +1728,7 @@ func TestIsValidIP(t *testing.T) {
 	type args struct {
 		ipAddress string
 	}
+
 	tests := []struct {
 		name string
 		args args
@@ -1691,11 +1765,14 @@ func TestIsValidIP(t *testing.T) {
 			want: true,
 		},
 	}
+
 	t.Parallel()
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
+
 			if got := IsValidIP(testCase.args.ipAddress); got != testCase.want {
 				t.Errorf("IsValidIP() = %v, want %v", got, testCase.want)
 			}

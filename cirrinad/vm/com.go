@@ -15,14 +15,15 @@ import (
 
 func (vm *VM) killComLoggers() {
 	slog.Debug("killing com loggers")
+
 	var err error
 
 	// change to range when moving to Go 1.22
 	for comNum := 1; comNum <= 4; comNum++ {
 		err = vm.killCom(comNum)
 		if err != nil {
-			slog.Error("com kill error", "comNum", 1, "err", err)
 			// no need to return error here either
+			slog.Error("com kill error", "comNum", 1, "err", err)
 		}
 	}
 }
@@ -34,38 +35,44 @@ func (vm *VM) setupComLoggers() {
 	for comNum := 1; comNum <= 4; comNum++ {
 		err = vm.setupCom(comNum)
 		if err != nil {
-			slog.Error("com setup error", "comNum", comNum, "err", err)
 			// not returning error since we leave the VM running and hope for the best
+			slog.Error("com setup error", "comNum", comNum, "err", err)
 		}
 	}
 }
 
 func comLogger(thisVM *VM, comNum int) {
 	var thisCom *serial.Port
+
 	var thisRChan chan byte
+
 	comChan := make(chan byte, 4096)
 
 	switch comNum {
 	case 1:
 		thisCom = thisVM.Com1
+
 		if thisVM.Config.Com1Log {
 			thisVM.Com1rchan = comChan
 			thisRChan = thisVM.Com1rchan
 		}
 	case 2:
 		thisCom = thisVM.Com2
+
 		if thisVM.Config.Com2Log {
 			thisVM.Com2rchan = comChan
 			thisRChan = thisVM.Com2rchan
 		}
 	case 3:
 		thisCom = thisVM.Com3
+
 		if thisVM.Config.Com3Log {
 			thisVM.Com3rchan = comChan
 			thisRChan = thisVM.Com3rchan
 		}
 	case 4:
 		thisCom = thisVM.Com4
+
 		if thisVM.Config.Com4Log {
 			thisVM.Com4rchan = comChan
 			thisRChan = thisVM.Com4rchan
@@ -97,6 +104,7 @@ func comLogger(thisVM *VM, comNum int) {
 func comLoggerGetLogFile(thisVM *VM, comNum int) (*os.File, error) {
 	logFilePath := config.Config.Disk.VM.Path.State + "/" + thisVM.Name + "/"
 	logFileName := logFilePath + "com" + strconv.Itoa(comNum) + "_out.log"
+
 	err := GetVMLogPath(logFilePath)
 	if err != nil {
 		slog.Error("setupComLoggers", "err", err)
@@ -116,6 +124,7 @@ func comLoggerGetLogFile(thisVM *VM, comNum int) (*os.File, error) {
 
 func (vm *VM) GetComWrite(comNum int) bool {
 	var thisComChanWriteFlag bool
+
 	switch comNum {
 	case 1:
 		thisComChanWriteFlag = vm.Com1write
@@ -132,6 +141,7 @@ func (vm *VM) GetComWrite(comNum int) bool {
 
 func comLoggerRead(thisVM *VM, comNum int, thisCom *serial.Port, logFile *os.File, thisRChan chan byte) bool {
 	var thisComChanWriteFlag bool
+
 	logBuffer := make([]byte, 1)
 	streamBuffer := make([]byte, 1)
 
@@ -144,6 +154,7 @@ func comLoggerRead(thisVM *VM, comNum int, thisCom *serial.Port, logFile *os.Fil
 
 		return true
 	}
+
 	if thisCom == nil {
 		slog.Error("comLogger", "msg", "unable to read nil port")
 
@@ -156,6 +167,7 @@ func comLoggerRead(thisVM *VM, comNum int, thisCom *serial.Port, logFile *os.Fil
 	if nBytes > 1 {
 		slog.Error("comLogger read more than 1 byte", "nBytes", nBytes)
 	}
+
 	if errors.Is(err, io.EOF) && !thisVM.Running() {
 		slog.Debug("comLogger vm not running, exiting",
 			"vm_id", thisVM.ID,
@@ -165,11 +177,13 @@ func comLoggerRead(thisVM *VM, comNum int, thisCom *serial.Port, logFile *os.Fil
 
 		return true
 	}
+
 	if err != nil && !errors.Is(err, io.EOF) {
 		slog.Error("comLogger", "error reading", err)
 
 		return true
 	}
+
 	if nBytes != 0 {
 		// write to log file
 		_, err = logFile.Write(logBuffer)
@@ -200,6 +214,7 @@ func (vm *VM) killCom(comNum int) error {
 			_ = vm.Com1.Close()
 			vm.Com1 = nil
 		}
+
 		if vm.Com1rchan != nil {
 			close(vm.Com1rchan)
 			vm.Com1rchan = nil
@@ -209,6 +224,7 @@ func (vm *VM) killCom(comNum int) error {
 			_ = vm.Com2.Close()
 			vm.Com2 = nil
 		}
+
 		if vm.Com2rchan != nil {
 			close(vm.Com2rchan)
 			vm.Com2rchan = nil
@@ -218,6 +234,7 @@ func (vm *VM) killCom(comNum int) error {
 			_ = vm.Com3.Close()
 			vm.Com3 = nil
 		}
+
 		if vm.Com3rchan != nil {
 			close(vm.Com3rchan)
 			vm.Com3rchan = nil
@@ -227,6 +244,7 @@ func (vm *VM) killCom(comNum int) error {
 			_ = vm.Com4.Close()
 			vm.Com4 = nil
 		}
+
 		if vm.Com4rchan != nil {
 			close(vm.Com4rchan)
 			vm.Com4rchan = nil
@@ -242,9 +260,13 @@ func (vm *VM) killCom(comNum int) error {
 
 func (vm *VM) setupCom(comNum int) error {
 	var comConfig bool
+
 	var comLog bool
+
 	var comDev string
+
 	var comSpeed uint32
+
 	var err error
 
 	comConfig, comLog, comDev, comSpeed, err = comSetupGetVars(comNum, vm)
@@ -257,6 +279,7 @@ func (vm *VM) setupCom(comNum int) error {
 
 		return nil
 	}
+
 	if comDev == "" {
 		slog.Error("com port enabled but com dev not set", "comNum", comNum, "comConfig", comConfig)
 
@@ -265,12 +288,14 @@ func (vm *VM) setupCom(comNum int) error {
 
 	// attach serial port object to VM object
 	slog.Debug("checking com is readable", "comDev", comDev)
+
 	err = ensureComDevReadable(comDev)
 	if err != nil {
 		slog.Error("error checking com readable", "comNum", comNum, "err", err)
 
 		return err
 	}
+
 	serialPort, err := startSerialPort(comDev, uint(comSpeed))
 	if err != nil {
 		slog.Error("error starting com", "comNum", comNum, "err", err)
@@ -303,8 +328,11 @@ func (vm *VM) setupCom(comNum int) error {
 
 func comSetupGetVars(comNum int, aVM *VM) (bool, bool, string, uint32, error) {
 	var comConfig bool
+
 	var comLog bool
+
 	var comDev string
+
 	var comSpeed uint32
 
 	switch comNum {

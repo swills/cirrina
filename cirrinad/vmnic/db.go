@@ -38,7 +38,9 @@ func GetVMNicDB() *gorm.DB {
 		if instance != nil {
 			return
 		}
+
 		instance = &singleton{}
+
 		vmNicDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
 			&gorm.Config{
@@ -49,12 +51,15 @@ func GetVMNicDB() *gorm.DB {
 		if err != nil {
 			panic("failed to connect database")
 		}
+
 		sqlDB, err := vmNicDB.DB()
 		if err != nil {
 			panic("failed to create sqlDB database")
 		}
+
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
+
 		instance.vmNicDB = vmNicDB
 	})
 
@@ -69,6 +74,7 @@ func (d *VMNic) BeforeCreate(_ *gorm.DB) error {
 
 func DBAutoMigrate() {
 	vmNicDB := GetVMNicDB()
+
 	err := vmNicDB.AutoMigrate(&VMNic{})
 	if err != nil {
 		panic("failed to auto-migrate VmNics")

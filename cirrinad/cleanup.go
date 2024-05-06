@@ -24,16 +24,20 @@ func cleanupVms() {
 	for _, aVM := range vmList {
 		vmmPath := "/dev/vmm/" + aVM.Name
 		slog.Debug("checking VM", "name", aVM.Name, "path", vmmPath)
+
 		exists, err := util.PathExists(vmmPath)
 		if err != nil {
 			slog.Error("error checking VM", "err", err)
 
 			continue
 		}
+
 		if !exists {
 			continue
 		}
+
 		slog.Debug("leftover VM exists, checking pid", "name", aVM.Name, "pid", aVM.BhyvePid)
+
 		var pidStat bool
 		// check pid
 		if aVM.BhyvePid > 0 {
@@ -42,10 +46,12 @@ func cleanupVms() {
 				slog.Error("error checking VM", "err", err)
 			}
 		}
+
 		if pidStat {
 			slog.Debug("leftover VM exists", "name", aVM.Name, "pid", aVM.BhyvePid, "maxWait", aVM.Config.MaxWait)
 			killLeftoverVM(aVM)
 		}
+
 		slog.Debug("destroying VM", "name", aVM.Name)
 		aVM.MaybeForceKillVM()
 	}
@@ -53,9 +59,13 @@ func cleanupVms() {
 
 func killLeftoverVM(aVM *vm.VM) {
 	var err error
+
 	var pidStat bool
+
 	var sleptTime time.Duration
+
 	_ = syscall.Kill(int(aVM.BhyvePid), syscall.SIGTERM)
+
 	for {
 		pidStat, err = util.PidExists(int(aVM.BhyvePid))
 		if err != nil {
@@ -63,15 +73,19 @@ func killLeftoverVM(aVM *vm.VM) {
 
 			break
 		}
+
 		if !pidStat {
 			break
 		}
+
 		time.Sleep(10 * time.Millisecond)
+
 		sleptTime += 10 * time.Millisecond
 		if sleptTime > (time.Duration(aVM.Config.MaxWait) * time.Second) {
 			break
 		}
 	}
+
 	pidStillExists, err := util.PidExists(int(aVM.BhyvePid))
 	if err != nil {
 		slog.Error("error checking VM", "err", err)
@@ -98,23 +112,30 @@ func cleanupNet() {
 	if err != nil {
 		panic(err)
 	}
+
 	slog.Debug("cleanupNet", "netInterfaces", netInterfaces)
+
 	for _, inter := range netInterfaces {
 		intGroups, err := util.GetIntGroups(inter.Name)
 		if err != nil {
 			slog.Error("failed to get interface groups", "err", err)
 		}
+
 		if !util.ContainsStr(intGroups, "cirrinad") {
 			continue
 		}
+
 		slog.Debug("leftover interface found, destroying", "name", inter.Name)
 
 		cmd := execabs.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", inter.Name, "destroy")
+
 		var out bytes.Buffer
+
 		cmd.Stdout = &out
 		if err := cmd.Start(); err != nil {
 			slog.Error("failed running ifconfig", "err", err, "out", out)
 		}
+
 		if err := cmd.Wait(); err != nil {
 			slog.Error("failed running ifconfig", "err", err, "out", out)
 		}
@@ -124,12 +145,14 @@ func cleanupNet() {
 func cleanupDB() {
 	rowsCleared := requests.FailAllPending()
 	slog.Debug("cleared failed requests", "rowsCleared", rowsCleared)
+
 	allDisks := disk.GetAllDB()
 	for _, diskInst := range allDisks {
 		if strings.HasSuffix(diskInst.Name, ".img") {
 			newName := strings.TrimSuffix(diskInst.Name, ".img")
 			slog.Debug("renaming disk", "name", diskInst.Name, "newName", newName)
 			diskInst.Name = newName
+
 			err := diskInst.Save()
 			if err != nil {
 				slog.Error("cleanupDB failed saving new disk name", "err", err)

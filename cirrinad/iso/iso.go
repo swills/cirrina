@@ -29,6 +29,7 @@ func Create(isoInst *ISO) error {
 
 		return err
 	}
+
 	if thisIsoExists {
 		slog.Error("iso exists", "iso", isoInst.Name)
 
@@ -41,10 +42,12 @@ func Create(isoInst *ISO) error {
 	}
 
 	db := getIsoDB()
+
 	res := db.Create(&isoInst)
 	if res.RowsAffected != 1 {
 		return fmt.Errorf("incorrect number of rows affected, err: %w", res.Error)
 	}
+
 	if res.Error != nil {
 		return res.Error
 	}
@@ -54,6 +57,7 @@ func Create(isoInst *ISO) error {
 
 func GetAll() []*ISO {
 	var result []*ISO
+
 	db := getIsoDB()
 	db.Find(&result)
 
@@ -62,11 +66,14 @@ func GetAll() []*ISO {
 
 func GetByID(id string) (*ISO, error) {
 	var result *ISO
+
 	db := getIsoDB()
+
 	res := db.Limit(1).Find(&result, "id = ?", id)
 	if res.Error != nil {
 		return nil, res.Error
 	}
+
 	if res.RowsAffected != 1 {
 		return nil, errIsoNotFound
 	}
@@ -76,11 +83,14 @@ func GetByID(id string) (*ISO, error) {
 
 func GetByName(name string) (*ISO, error) {
 	var result *ISO
+
 	db := getIsoDB()
+
 	res := db.Limit(1).Find(&result, "name = ?", name)
 	if res.Error != nil {
 		return nil, res.Error
 	}
+
 	if res.RowsAffected != 1 {
 		return nil, errIsoNotFound
 	}
@@ -108,16 +118,19 @@ func (iso *ISO) Save() error {
 	return nil
 }
 
-func Delete(id string) error {
-	if id == "" {
+func Delete(isoID string) error {
+	if isoID == "" {
 		return errIsoIDEmptyOrInvalid
 	}
-	db := getIsoDB()
-	dDisk, err := GetByID(id)
+
+	isoDB := getIsoDB()
+
+	dDisk, err := GetByID(isoID)
 	if err != nil {
 		return errIsoNotFound
 	}
-	res := db.Limit(1).Unscoped().Delete(&dDisk)
+
+	res := isoDB.Limit(1).Unscoped().Delete(&dDisk)
 	if res.RowsAffected != 1 {
 		slog.Error("iso delete error", "RowsAffected", res.RowsAffected)
 
@@ -164,6 +177,7 @@ func isoExists(isoName string) (bool, error) {
 
 		return false, fmt.Errorf("error checking if iso exists: %w", err)
 	}
+
 	if isoPathExists {
 		slog.Error("iso exists", "iso", isoInst)
 
