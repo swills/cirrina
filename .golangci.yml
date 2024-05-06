@@ -120,6 +120,9 @@ issues:
     - path: 'cirrinad/disk/disk_test.go'
       linters:
         - paralleltest
+    - path: 'cirrinad/vm/db_test.go'
+      linters:
+        - paralleltest
 
 linters-settings:
   cyclop:

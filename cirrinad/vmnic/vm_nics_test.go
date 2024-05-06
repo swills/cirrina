@@ -1,11 +1,11 @@
 package vmnic
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/go-test/deep"
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/cirrinadtest"
@@ -284,8 +284,9 @@ func TestGetByName(t *testing.T) {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 
-			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("GetByName() got = %v, want %v", got, testCase.want)
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}
@@ -421,8 +422,11 @@ func TestGetAll(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("nicTest")
 			testCase.mockClosure(testDB, mock)
 
-			if got := GetAll(); !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("GetAll() = %v, want %v", got, testCase.want)
+			got := GetAll()
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 
 			mock.ExpectClose()
@@ -620,8 +624,9 @@ func TestGetByID(t *testing.T) {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 
-			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("GetByID() got = %v, want %v", got, testCase.want)
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}

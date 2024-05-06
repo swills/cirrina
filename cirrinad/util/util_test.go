@@ -5,9 +5,9 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
+	"github.com/go-test/deep"
 	exec "golang.org/x/sys/execabs"
 )
 
@@ -1346,8 +1346,9 @@ func Test_parseNetstatJSONOutput(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("parseNetstatJSONOutput() got = %v, want %v", got, testCase.want)
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}
@@ -1681,8 +1682,9 @@ func TestOSReadDir(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("OSReadDir() got = %v, want %v", got, testCase.want)
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}

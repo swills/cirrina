@@ -1,11 +1,11 @@
 package iso
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/go-test/deep"
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/cirrinadtest"
@@ -102,8 +102,11 @@ func TestGetAll(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("isoTest")
 			testCase.mockClosure(testDB, mock)
 
-			if got := GetAll(); !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("GetAll() = %v, want %v", got, testCase.want)
+			got := GetAll()
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 
 			mock.ExpectClose()

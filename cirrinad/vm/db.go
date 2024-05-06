@@ -37,6 +37,11 @@ func GetVMDB() *gorm.DB {
 		},
 	)
 
+	// allow override for testing
+	if instance != nil {
+		return instance.vmDB
+	}
+
 	if !dbInitialized {
 		instance = &singleton{}
 		vmDB, err := gorm.Open(

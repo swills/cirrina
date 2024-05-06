@@ -7,6 +7,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/fatih/color v1.16.0
 	github.com/gdamore/tcell/v2 v2.7.4
+	github.com/go-test/deep v1.1.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-version v1.6.0
 	github.com/jedib0t/go-pretty/v6 v6.5.6

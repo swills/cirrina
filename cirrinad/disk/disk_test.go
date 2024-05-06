@@ -2,11 +2,11 @@ package disk
 
 import (
 	"database/sql"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/go-test/deep"
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/cirrinadtest"
@@ -119,8 +119,11 @@ func TestGetAllDB(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("diskTest")
 			testCase.mockClosure(testDB, mock)
 
-			if got := GetAllDB(); !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("GetAllDB() = %v, want %v", got, testCase.want)
+			got := GetAllDB()
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 
 			mock.ExpectClose()
