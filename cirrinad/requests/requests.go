@@ -109,12 +109,16 @@ func CreateVMReq(requestType reqType, vmID string) (Request, error) {
 	return newReq, nil
 }
 
-func GetByID(id string) (Request, error) {
+func GetByID(requestID string) (Request, error) {
 	var request Request
+
+	if requestID == "" {
+		return Request{}, errRequestNotFound
+	}
 
 	db := GetReqDB()
 
-	res := db.Model(&Request{}).Limit(1).Find(&request, &Request{ID: id})
+	res := db.Model(&Request{}).Limit(1).Find(&request, &Request{ID: requestID})
 	if res.Error != nil {
 		return Request{}, res.Error
 	}

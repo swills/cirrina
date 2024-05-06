@@ -123,6 +123,9 @@ issues:
     - path: 'cirrinad/vm/db_test.go'
       linters:
         - paralleltest
+    - path: 'cirrinad/requests/requests_test.go'
+      linters:
+        - paralleltest
 
 linters-settings:
   cyclop:

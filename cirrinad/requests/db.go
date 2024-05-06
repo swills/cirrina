@@ -35,6 +35,11 @@ func GetReqDB() *gorm.DB {
 		},
 	)
 
+	// allow override for testing
+	if instance != nil {
+		return instance.reqDB
+	}
+
 	if !dbInitialized {
 		instance = &singleton{}
 
