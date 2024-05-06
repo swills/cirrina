@@ -73,9 +73,12 @@ func Create(vmNicInst *VMNic) error {
 }
 
 func GetByName(name string) (*VMNic, error) {
-	var vmNic *VMNic
+	if name == "" {
+		return nil, errNicNotFound
+	}
+	var aNic *VMNic
 	db := GetVMNicDB()
-	res := db.Limit(1).Find(&vmNic, "name = ?", name)
+	res := db.Limit(1).Find(&aNic, "name = ?", name)
 	if res.Error != nil {
 		return nil, res.Error
 	}
@@ -83,13 +86,16 @@ func GetByName(name string) (*VMNic, error) {
 		return nil, errNicNotFound
 	}
 
-	return vmNic, nil
+	return aNic, nil
 }
 
-func GetByID(id string) (*VMNic, error) {
+func GetByID(nicID string) (*VMNic, error) {
+	if nicID == "" {
+		return nil, errNicNotFound
+	}
 	var vmNic *VMNic
 	db := GetVMNicDB()
-	res := db.Limit(1).Find(&vmNic, "id = ?", id)
+	res := db.Limit(1).Find(&vmNic, "id = ?", nicID)
 	if res.Error != nil {
 		return nil, res.Error
 	}

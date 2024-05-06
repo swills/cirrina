@@ -1433,11 +1433,40 @@ func TestPathExists(t *testing.T) {
 		log.Fatal(err)
 	}
 	defer func(path string) {
-		err := os.RemoveAll(path)
+		err = os.RemoveAll(path)
 		if err != nil {
 			t.Fail()
 		}
 	}(testPathExistsTmpDir) // clean up
+
+	testPathExistsNoPermissions, err := os.MkdirTemp("/tmp/", "cirrinaTestPathNoPerms")
+	if err != nil {
+		t.Fail()
+	}
+	err = os.Mkdir(filepath.Join(testPathExistsNoPermissions, "testdir"), 0o755)
+
+	defer func(path string) {
+		err = os.Chmod(testPathExistsNoPermissions, 0o755)
+		if err != nil {
+			t.Fail()
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = os.RemoveAll(filepath.Join(testPathExistsNoPermissions, "testdir"))
+		if err != nil {
+			t.Fail()
+		}
+		err = os.RemoveAll(path)
+		if err != nil {
+			t.Fail()
+		}
+	}(testPathExistsNoPermissions) // clean up
+
+	err = os.Chmod(testPathExistsNoPermissions, 0o000)
+	if err != nil {
+		t.Fail()
+	}
 
 	type args struct {
 		path string
@@ -1465,6 +1494,12 @@ func TestPathExists(t *testing.T) {
 			args:    args{path: "/tmp/" + RandomString(10)},
 			want:    false,
 			wantErr: false,
+		},
+		{
+			name:    "generateError",
+			args:    args{path: filepath.Join(testPathExistsNoPermissions, "testdir")},
+			want:    false,
+			wantErr: true,
 		},
 	}
 	for _, testCase := range tests {

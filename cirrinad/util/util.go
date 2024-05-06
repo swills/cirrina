@@ -28,9 +28,9 @@ import (
 )
 
 func PathExists(path string) (bool, error) {
-	statInfo, err := os.Stat(path)
+	_, err := os.Stat(path)
 	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) || statInfo == nil {
+		if errors.Is(err, fs.ErrNotExist) {
 			return false, nil
 		}
 

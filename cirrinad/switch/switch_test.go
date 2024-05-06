@@ -1,43 +1,18 @@
 package vmswitch
 
 import (
-	"log"
 	"reflect"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+
+	"cirrina/cirrinad/cirrinadtest"
 )
 
-func NewMockDB() (*gorm.DB, sqlmock.Sqlmock) {
-	testDB, mock, err := sqlmock.New()
-	if err != nil {
-		log.Fatalf("An error '%s' was not expected when opening a stub database connection", err)
-	}
-
-	mock.ExpectQuery("select sqlite_version()").
-		WillReturnRows(sqlmock.NewRows([]string{"sqlite_version()"}).AddRow("3.40.1"))
-
-	gormDB, err := gorm.Open(
-		&sqlite.Dialector{
-			DSN:  "testDB",
-			Conn: testDB,
-		},
-		&gorm.Config{
-			DisableAutomaticPing: true,
-		},
-	)
-	if err != nil {
-		log.Fatalf("An error '%s' was not expected when opening gorm database", err)
-	}
-
-	return gormDB, mock
-}
-
 func TestGetAll(t *testing.T) {
-	testDB, mock := NewMockDB()
+	testDB, mock := cirrinadtest.NewMockDB("switchTest")
 
 	defer func(gormdb *gorm.DB) {
 		db, err := gormdb.DB()
@@ -133,7 +108,7 @@ func TestGetAll(t *testing.T) {
 }
 
 func TestGetByName(t *testing.T) {
-	testDB, mock := NewMockDB()
+	testDB, mock := cirrinadtest.NewMockDB("switchTest")
 
 	defer func(gormdb *gorm.DB) {
 		db, err := gormdb.DB()
@@ -250,7 +225,7 @@ func TestGetByName(t *testing.T) {
 }
 
 func TestGetByID(t *testing.T) {
-	testDB, mock := NewMockDB()
+	testDB, mock := cirrinadtest.NewMockDB("switchTest")
 
 	defer func(gormdb *gorm.DB) {
 		db, err := gormdb.DB()
@@ -277,7 +252,8 @@ func TestGetByID(t *testing.T) {
 					"description",
 					"type",
 					"uplink",
-				}).
+				},
+			).
 				AddRow(
 					"0cb98661-6470-432d-8fa4-5eca3668b494",
 					createUpdateTime,

@@ -34,6 +34,10 @@ func GetVMNicDB() *gorm.DB {
 	)
 
 	once.Do(func() {
+		// allow override for testing
+		if instance != nil {
+			return
+		}
 		instance = &singleton{}
 		vmNicDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
