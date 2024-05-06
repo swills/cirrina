@@ -35,6 +35,11 @@ func getDiskDB() *gorm.DB {
 	)
 
 	once.Do(func() {
+		// allow override for testing
+		if instance != nil {
+			return
+		}
+
 		instance = &singleton{}
 
 		diskDB, err := gorm.Open(
