@@ -21,12 +21,14 @@ const (
 )
 
 type Request struct {
-	gorm.Model
-	ID         string       `gorm:"uniqueIndex;not null;default:null"`
-	StartedAt  sql.NullTime `gorm:"index"`
-	Successful bool         `gorm:"default:False;check:successful IN (0,1)"`
-	Complete   bool         `gorm:"default:False;check:complete IN (0,1)"`
-	Type       reqType      `gorm:"type:req_type"`
+	ID         string `gorm:"primaryKey;uniqueIndex;not null;default:null"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  gorm.DeletedAt `gorm:"index"`
+	StartedAt  sql.NullTime   `gorm:"index"`
+	Successful bool           `gorm:"default:False;check:successful IN (0,1)"`
+	Complete   bool           `gorm:"default:False;check:complete IN (0,1)"`
+	Type       reqType        `gorm:"type:req_type"`
 	Data       string
 }
 
@@ -52,7 +54,16 @@ type VMCloneReqData struct {
 }
 
 func (req *Request) BeforeCreate(_ *gorm.DB) error {
-	req.ID = uuid.NewString()
+	var err error
+
+	var newUUID uuid.UUID
+
+	newUUID, err = uuid.NewV7()
+	if err != nil {
+		return fmt.Errorf("error creating request: %w", err)
+	}
+
+	req.ID = newUUID.String()
 
 	return nil
 }
@@ -83,8 +94,31 @@ func CreateNicCloneReq(nicID string, newName string) (Request, error) {
 	return newReq, nil
 }
 
+func validVMReqType(aReqType reqType) bool {
+	switch aReqType {
+	case VMSTART:
+		return true
+	case VMSTOP:
+		return true
+	case VMDELETE:
+		return true
+	case NICCLONE:
+		return false
+	default:
+		return false
+	}
+}
+
 func CreateVMReq(requestType reqType, vmID string) (Request, error) {
 	var err error
+
+	if vmID == "" {
+		return Request{}, errInvalidRequest
+	}
+
+	if !validVMReqType(requestType) {
+		return Request{}, errInvalidRequest
+	}
 
 	var reqData []byte
 
@@ -102,6 +136,10 @@ func CreateVMReq(requestType reqType, vmID string) (Request, error) {
 	}
 
 	res := reqDB.Create(&newReq)
+	if res.Error != nil {
+		return Request{}, res.Error
+	}
+
 	if res.RowsAffected != 1 {
 		return Request{}, errRequestCreateFailure
 	}
