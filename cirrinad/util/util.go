@@ -414,6 +414,7 @@ func GetIntGroups(interfaceName string) ([]string, error) {
 	return intGroups, nil
 }
 
+// ValidVMName check if a name is a valid name for a VM
 func ValidVMName(name string) bool {
 	if name == "" {
 		return false
@@ -474,6 +475,7 @@ func ValidIsoName(name string) bool {
 	return CheckInRange(name, myRT)
 }
 
+// ValidNicName check if a name is valid for a NIC
 func ValidNicName(name string) bool {
 	if name == "" {
 		return false
@@ -494,6 +496,7 @@ func ValidNicName(name string) bool {
 	return CheckInRange(name, myRT)
 }
 
+// CheckInRange check if a name contains any characters not in the unicode range table provided
 func CheckInRange(name string, myRT *unicode.RangeTable) bool {
 	for _, i := range name {
 		if !unicode.In(i, myRT) {
@@ -504,6 +507,7 @@ func CheckInRange(name string, myRT *unicode.RangeTable) bool {
 	return true
 }
 
+// MacIsBroadcast check if a MAC address is a broadcast MAC
 func MacIsBroadcast(macAddress string) (bool, error) {
 	newMac, err := net.ParseMAC(macAddress)
 	if err != nil {
@@ -521,6 +525,7 @@ func MacIsBroadcast(macAddress string) (bool, error) {
 	return false, nil
 }
 
+// MacIsMulticast check if a MAC is a multicast MAC
 func MacIsMulticast(macAddress string) (bool, error) {
 	newMac, err := net.ParseMAC(macAddress)
 	if err != nil {
@@ -545,6 +550,7 @@ func IsValidIP(ipAddress string) bool {
 	return parsedIP != nil
 }
 
+// IsValidTCPPort check if a number is a valid TCP port
 func IsValidTCPPort(tcpPort uint) bool {
 	return tcpPort <= 65535
 }

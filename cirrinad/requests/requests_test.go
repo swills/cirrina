@@ -9,6 +9,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-test/deep"
+	"github.com/mattn/go-sqlite3"
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/cirrinadtest"
@@ -176,7 +177,7 @@ func TestGetByID(t *testing.T) {
 	}
 }
 
-func TestCreateVMReq(t *testing.T) {
+func TestCreateVMReq(t *testing.T) { //nolint:maintidx
 	type args struct {
 		requestType reqType
 		vmID        string
@@ -351,6 +352,38 @@ func TestCreateVMReq(t *testing.T) {
 			checkErrType: true,
 			wantErrType:  errInvalidRequest,
 		},
+		{
+			name: "testRequestVMStartDupe",
+			args: args{requestType: VMSTART, vmID: "f2d857d8-7625-47da-9545-e339f0468856"},
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `requests` (`created_at`,`updated_at`,`deleted_at`,`started_at`,`successful`,`complete`,`type`,`data`,`id`) VALUES (?,?,?,?,?,?,?,?,?) RETURNING `id`")). //nolint:lll
+					WithArgs(
+						sqlmock.AnyArg(), sqlmock.AnyArg(), nil, nil, false,
+						false, "VMSTART", "{\"vm_id\":\"f2d857d8-7625-47da-9545-e339f0468856\"}", sqlmock.AnyArg(),
+					).
+					WillReturnError(sqlite3.ErrConstraintUnique)
+				mock.ExpectRollback()
+			},
+			want:    Request{},
+			wantErr: true,
+		},
+		{
+			name: "testRequestInvalidVMID",
+			args: args{vmID: "somegarbage"},
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+			},
+			want:    Request{},
+			wantErr: true,
+		},
 	}
 
 	for _, testCase := range tests {
@@ -372,6 +405,205 @@ func TestCreateVMReq(t *testing.T) {
 				}
 			}
 
+			// zero out the time since we know it's going to vary and don't care
+			got.CreatedAt = time.Time{}
+			got.UpdatedAt = time.Time{}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+func Test_validVMReqType(t *testing.T) {
+	type args struct {
+		aReqType reqType
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "validVMReqTypeVMStart",
+			args: args{aReqType: VMSTART},
+			want: true,
+		},
+		{
+			name: "validVMReqTypeVMStop",
+			args: args{aReqType: VMSTOP},
+			want: true,
+		},
+		{
+			name: "validVMReqTypeVMStart",
+			args: args{aReqType: VMDELETE},
+			want: true,
+		},
+		{
+			name: "validVMReqTypeVMStart",
+			args: args{aReqType: NICCLONE},
+			want: false,
+		},
+		{
+			name: "validVMReqTypeVMStart",
+			args: args{aReqType: "somegarbage"},
+			want: false,
+		},
+		{
+			name: "validVMReqTypeVMStart",
+			args: args{aReqType: VMSTART},
+			want: true,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := validVMReqType(testCase.args.aReqType); got != testCase.want {
+				t.Errorf("validVMReqType() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestCreateNicCloneReq(t *testing.T) {
+	type args struct {
+		nicID   string
+		newName string
+	}
+
+	tests := []struct {
+		name        string
+		args        args
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		want        Request
+		wantErr     bool
+	}{
+		{
+			name: "testRequestNICCloneSuccess",
+			args: args{nicID: "f2d857d8-7625-47da-9545-e339f0468856", newName: "somenic"},
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `requests` (`created_at`,`updated_at`,`deleted_at`,`started_at`,`successful`,`complete`,`type`,`data`,`id`) VALUES (?,?,?,?,?,?,?,?,?) RETURNING `id`")). //nolint:lll
+					WithArgs(
+						sqlmock.AnyArg(), sqlmock.AnyArg(), nil, nil, false,
+						false, "NICCLONE", "{\"nic_id\":\"f2d857d8-7625-47da-9545-e339f0468856\",\"new_nic_name\":\"somenic\"}", sqlmock.AnyArg(), //nolint:lll
+					).
+					// gorm asks the db to return the id but does not check that it matches what gorm set it
+					// to, so we can fake it and return any value we like
+					WillReturnRows(sqlmock.NewRows([]string{"id"}).
+						AddRow("f2943275-2b6d-48a0-9e85-7ee6baa64c37"))
+				mock.ExpectCommit()
+			},
+			want: Request{
+				ID:         "f2943275-2b6d-48a0-9e85-7ee6baa64c37",
+				CreatedAt:  time.Time{},
+				UpdatedAt:  time.Time{},
+				DeletedAt:  gorm.DeletedAt{},
+				StartedAt:  sql.NullTime{},
+				Successful: false,
+				Complete:   false,
+				Type:       "NICCLONE",
+				Data:       "{\"nic_id\":\"f2d857d8-7625-47da-9545-e339f0468856\",\"new_nic_name\":\"somenic\"}",
+			},
+			wantErr: false,
+		},
+		{
+			name: "testRequestNICCloneEmptyNICID",
+			args: args{nicID: "", newName: "somenic"},
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+			},
+			want:    Request{},
+			wantErr: true,
+		},
+		{
+			name: "testRequestNICCloneEmptyNewNICName",
+			args: args{nicID: "f2d857d8-7625-47da-9545-e339f0468856", newName: ""},
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+			},
+			want:    Request{},
+			wantErr: true,
+		},
+		{
+			name: "testRequestNICCloneInvalidVMID",
+			args: args{nicID: "moregarbage", newName: "somenic"},
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+			},
+			want:    Request{},
+			wantErr: true,
+		},
+		{name: "testRequestNICCloneWrongNumberOfRows",
+			args: args{nicID: "f2d857d8-7625-47da-9545-e339f0468856", newName: "somenic"},
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `requests` (`created_at`,`updated_at`,`deleted_at`,`started_at`,`successful`,`complete`,`type`,`data`,`id`) VALUES (?,?,?,?,?,?,?,?,?) RETURNING `id`")). //nolint:lll
+					WithArgs(
+						sqlmock.AnyArg(), sqlmock.AnyArg(), nil, nil, false,
+						false, "NICCLONE", "{\"nic_id\":\"f2d857d8-7625-47da-9545-e339f0468856\",\"new_nic_name\":\"somenic\"}", sqlmock.AnyArg(), //nolint:lll
+					).
+					// gorm asks the db to return the id but does not check that it matches what gorm set it
+					// to, so we can fake it and return any value we like
+					WillReturnRows(sqlmock.NewRows([]string{"id"}))
+
+				mock.ExpectCommit()
+			},
+			want:    Request{},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testCase.mockClosure(testDB, mock)
+			got, err := CreateNicCloneReq(testCase.args.nicID, testCase.args.newName)
+
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("CreateNicCloneReq() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
 			// zero out the time since we know it's going to vary and don't care
 			got.CreatedAt = time.Time{}
 			got.UpdatedAt = time.Time{}

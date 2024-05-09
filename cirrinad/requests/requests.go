@@ -9,6 +9,8 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+
+	"cirrina/cirrinad/util"
 )
 
 type reqType string
@@ -71,6 +73,19 @@ func (req *Request) BeforeCreate(_ *gorm.DB) error {
 func CreateNicCloneReq(nicID string, newName string) (Request, error) {
 	var err error
 
+	if nicID == "" {
+		return Request{}, errInvalidRequest
+	}
+
+	_, err = uuid.Parse(nicID)
+	if err != nil {
+		return Request{}, errInvalidRequest
+	}
+
+	if newName == "" || !util.ValidNicName(newName) {
+		return Request{}, errInvalidRequest
+	}
+
 	var reqData []byte
 
 	reqData, err = json.Marshal(NicCloneReqData{NicID: nicID, NewNicName: newName})
@@ -94,6 +109,7 @@ func CreateNicCloneReq(nicID string, newName string) (Request, error) {
 	return newReq, nil
 }
 
+// validVMReqType Check if Request type is valid for VMs
 func validVMReqType(aReqType reqType) bool {
 	switch aReqType {
 	case VMSTART:
@@ -109,10 +125,16 @@ func validVMReqType(aReqType reqType) bool {
 	}
 }
 
+// CreateVMReq create Request for a VM type operation only
 func CreateVMReq(requestType reqType, vmID string) (Request, error) {
 	var err error
 
 	if vmID == "" {
+		return Request{}, errInvalidRequest
+	}
+
+	_, err = uuid.Parse(vmID)
+	if err != nil {
 		return Request{}, errInvalidRequest
 	}
 
@@ -147,6 +169,7 @@ func CreateVMReq(requestType reqType, vmID string) (Request, error) {
 	return newReq, nil
 }
 
+// GetByID Request lookup by ID
 func GetByID(requestID string) (Request, error) {
 	var request Request
 
