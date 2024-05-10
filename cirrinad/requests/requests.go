@@ -191,6 +191,7 @@ func GetByID(requestID string) (Request, error) {
 	return request, nil
 }
 
+// GetUnStarted returns all requests which have not been started
 func GetUnStarted() Request {
 	db := GetReqDB()
 	rs := Request{}
@@ -199,6 +200,7 @@ func GetUnStarted() Request {
 	return rs
 }
 
+// Start marks a request as started
 func (req *Request) Start() {
 	db := GetReqDB()
 	req.StartedAt.Time = time.Now()
@@ -206,6 +208,7 @@ func (req *Request) Start() {
 	db.Model(&req).Limit(1).Updates(req)
 }
 
+// Succeeded marks a request as completed successfully
 func (req *Request) Succeeded() {
 	db := GetReqDB()
 	db.Model(&req).Limit(1).Updates(
@@ -216,6 +219,7 @@ func (req *Request) Succeeded() {
 	)
 }
 
+// Failed marks a request as having completed with failure
 func (req *Request) Failed() {
 	db := GetReqDB()
 	db.Model(&req).Limit(1).Updates(

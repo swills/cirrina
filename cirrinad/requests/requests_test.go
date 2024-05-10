@@ -783,3 +783,181 @@ func TestRequest_Start(t *testing.T) {
 		})
 	}
 }
+
+func TestRequest_Succeeded(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type fields struct {
+		ID         string
+		CreatedAt  time.Time
+		UpdatedAt  time.Time
+		DeletedAt  gorm.DeletedAt
+		StartedAt  sql.NullTime
+		Successful bool
+		Complete   bool
+		Type       reqType
+		Data       string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		fields      fields
+	}{
+		{
+			name: "TestRequestSucceededSuccessful",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `requests` SET `updated_at`=?,`successful`=?,`complete`=? WHERE `requests`.`deleted_at` IS NULL AND `id` = ?")). //nolint:lll
+					WithArgs(sqlmock.AnyArg(), true, true, "7a691194-64e7-45d1-ae2a-a064271d7c24").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			fields: fields{
+				ID:        "7a691194-64e7-45d1-ae2a-a064271d7c24",
+				CreatedAt: createUpdateTime,
+				UpdatedAt: createUpdateTime,
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
+				},
+				StartedAt:  sql.NullTime{},
+				Successful: false,
+				Complete:   false,
+				Type:       "VMSTART",
+				Data:       "{\"vm_id\":\"f5b761a1-8193-4db3-a914-b37edc848d29\"}",
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testCase.mockClosure(testDB, mock)
+
+			req := &Request{
+				ID:         testCase.fields.ID,
+				CreatedAt:  testCase.fields.CreatedAt,
+				UpdatedAt:  testCase.fields.UpdatedAt,
+				DeletedAt:  testCase.fields.DeletedAt,
+				StartedAt:  testCase.fields.StartedAt,
+				Successful: testCase.fields.Successful,
+				Complete:   testCase.fields.Complete,
+				Type:       testCase.fields.Type,
+				Data:       testCase.fields.Data,
+			}
+
+			req.Succeeded()
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+func TestRequest_Failed(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type fields struct {
+		ID         string
+		CreatedAt  time.Time
+		UpdatedAt  time.Time
+		DeletedAt  gorm.DeletedAt
+		StartedAt  sql.NullTime
+		Successful bool
+		Complete   bool
+		Type       reqType
+		Data       string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		fields      fields
+	}{
+		{
+			name: "TestRequestFailedSuccessful",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `requests` SET `updated_at`=?,`complete`=? WHERE `requests`.`deleted_at` IS NULL AND `id` = ?")). //nolint:lll
+					WithArgs(sqlmock.AnyArg(), true, "7a691194-64e7-45d1-ae2a-a064271d7c24").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			fields: fields{
+				ID:        "7a691194-64e7-45d1-ae2a-a064271d7c24",
+				CreatedAt: createUpdateTime,
+				UpdatedAt: createUpdateTime,
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
+				},
+				StartedAt:  sql.NullTime{},
+				Successful: false,
+				Complete:   false,
+				Type:       "VMSTART",
+				Data:       "{\"vm_id\":\"f5b761a1-8193-4db3-a914-b37edc848d29\"}",
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testCase.mockClosure(testDB, mock)
+
+			req := &Request{
+				ID:         testCase.fields.ID,
+				CreatedAt:  testCase.fields.CreatedAt,
+				UpdatedAt:  testCase.fields.UpdatedAt,
+				DeletedAt:  testCase.fields.DeletedAt,
+				StartedAt:  testCase.fields.StartedAt,
+				Successful: testCase.fields.Successful,
+				Complete:   testCase.fields.Complete,
+				Type:       testCase.fields.Type,
+				Data:       testCase.fields.Data,
+			}
+
+			req.Failed()
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
