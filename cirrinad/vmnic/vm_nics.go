@@ -79,7 +79,7 @@ func Create(vmNicInst *VMNic) error {
 
 func GetByName(name string) (*VMNic, error) {
 	if name == "" {
-		return nil, errNicNotFound
+		return nil, ErrNicNotFound
 	}
 
 	var aNic *VMNic
@@ -92,7 +92,7 @@ func GetByName(name string) (*VMNic, error) {
 	}
 
 	if res.RowsAffected != 1 {
-		return nil, errNicNotFound
+		return nil, ErrNicNotFound
 	}
 
 	return aNic, nil
@@ -100,7 +100,7 @@ func GetByName(name string) (*VMNic, error) {
 
 func GetByID(nicID string) (*VMNic, error) {
 	if nicID == "" {
-		return nil, errNicNotFound
+		return nil, ErrNicNotFound
 	}
 
 	var vmNic *VMNic
@@ -113,7 +113,7 @@ func GetByID(nicID string) (*VMNic, error) {
 	}
 
 	if res.RowsAffected != 1 {
-		return nil, errNicNotFound
+		return nil, ErrNicNotFound
 	}
 
 	return vmNic, nil
@@ -311,7 +311,7 @@ func nicExists(nicName string) (bool, error) {
 
 	_, err = GetByName(nicName)
 	if err != nil {
-		if !errors.Is(err, errNicNotFound) {
+		if !errors.Is(err, ErrNicNotFound) {
 			return false, err
 		}
 

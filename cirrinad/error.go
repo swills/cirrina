@@ -22,8 +22,6 @@ var (
 	errNicInUseByMultipleVMs = errors.New("nic in use by more than one VM")
 	errNicInUse              = errors.New("nic in use")
 	errNicExists             = errors.New("nic already exists")
-	errNicMacIsBroadcast     = errors.New("MAC is broadcast")
-	errNicMacIsMulticast     = errors.New("MAC is multicast")
 )
 
 var (

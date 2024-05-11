@@ -961,3 +961,325 @@ func TestRequest_Failed(t *testing.T) {
 		})
 	}
 }
+
+func TestPendingReqExists(t *testing.T) { //nolint:maintidx
+	createUpdateTime := time.Now()
+
+	type args struct {
+		objID string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		want        []string
+	}{
+		{
+			name: "TestPendingReqExistsVMStartSuccess",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `requests` WHERE `complete` = ? AND `requests`.`deleted_at` IS NULL")).
+					WithArgs(false).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"started_at",
+								"successful",
+								"complete",
+								"type",
+								"data",
+							},
+						).
+							AddRow(
+								"60284e9f-69c0-4db8-868d-7a8e24070025",
+								createUpdateTime,
+								createUpdateTime,
+								gorm.DeletedAt{
+									Time:  time.Time{},
+									Valid: false,
+								},
+								sql.NullTime{
+									Time:  createUpdateTime,
+									Valid: true,
+								},
+								0,
+								0,
+								"VMSTART",
+								"{\"vm_id\":\"a4d76261-c8e0-4310-8a26-c34819e939fa\"}",
+							),
+					)
+			},
+			args: args{objID: "a4d76261-c8e0-4310-8a26-c34819e939fa"},
+			want: []string{"60284e9f-69c0-4db8-868d-7a8e24070025"},
+		},
+		{
+			name: "TestPendingReqExistsVMStopSuccess",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `requests` WHERE `complete` = ? AND `requests`.`deleted_at` IS NULL")).
+					WithArgs(false).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"started_at",
+								"successful",
+								"complete",
+								"type",
+								"data",
+							},
+						).
+							AddRow(
+								"60284e9f-69c0-4db8-868d-7a8e24070025",
+								createUpdateTime,
+								createUpdateTime,
+								gorm.DeletedAt{
+									Time:  time.Time{},
+									Valid: false,
+								},
+								sql.NullTime{
+									Time:  createUpdateTime,
+									Valid: true,
+								},
+								0,
+								0,
+								"VMSTOP",
+								"{\"vm_id\":\"a4d76261-c8e0-4310-8a26-c34819e939fa\"}",
+							),
+					)
+			},
+			args: args{objID: "a4d76261-c8e0-4310-8a26-c34819e939fa"},
+			want: []string{"60284e9f-69c0-4db8-868d-7a8e24070025"},
+		},
+		{
+			name: "TestPendingReqExistsVMDeleteSuccess",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `requests` WHERE `complete` = ? AND `requests`.`deleted_at` IS NULL")).
+					WithArgs(false).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"started_at",
+								"successful",
+								"complete",
+								"type",
+								"data",
+							},
+						).
+							AddRow(
+								"60284e9f-69c0-4db8-868d-7a8e24070025",
+								createUpdateTime,
+								createUpdateTime,
+								gorm.DeletedAt{
+									Time:  time.Time{},
+									Valid: false,
+								},
+								sql.NullTime{
+									Time:  createUpdateTime,
+									Valid: true,
+								},
+								0,
+								0,
+								"VMDELETE",
+								"{\"vm_id\":\"a4d76261-c8e0-4310-8a26-c34819e939fa\"}",
+							),
+					)
+			},
+			args: args{objID: "a4d76261-c8e0-4310-8a26-c34819e939fa"},
+			want: []string{"60284e9f-69c0-4db8-868d-7a8e24070025"},
+		},
+		{
+			name: "TestPendingReqExistsVMStartBadJSON",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `requests` WHERE `complete` = ? AND `requests`.`deleted_at` IS NULL")).
+					WithArgs(false).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"started_at",
+								"successful",
+								"complete",
+								"type",
+								"data",
+							},
+						).
+							AddRow(
+								"60284e9f-69c0-4db8-868d-7a8e24070025",
+								createUpdateTime,
+								createUpdateTime,
+								gorm.DeletedAt{
+									Time:  time.Time{},
+									Valid: false,
+								},
+								sql.NullTime{
+									Time:  createUpdateTime,
+									Valid: true,
+								},
+								0,
+								0,
+								"VMSTART",
+								"junk",
+							),
+					)
+			},
+			args: args{objID: "a4d76261-c8e0-4310-8a26-c34819e939fa"},
+			want: nil,
+		},
+		{
+			name: "TestPendingReqExistsNICCloneSuccess",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `requests` WHERE `complete` = ? AND `requests`.`deleted_at` IS NULL")).
+					WithArgs(false).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"started_at",
+								"successful",
+								"complete",
+								"type",
+								"data",
+							},
+						).
+							AddRow(
+								"60284e9f-69c0-4db8-868d-7a8e24070025",
+								createUpdateTime,
+								createUpdateTime,
+								gorm.DeletedAt{
+									Time:  time.Time{},
+									Valid: false,
+								},
+								sql.NullTime{
+									Time:  createUpdateTime,
+									Valid: true,
+								},
+								0,
+								0,
+								"NICCLONE",
+								"{\"nic_id\":\"b0dd54ed-d905-4b7f-a5d9-9ace4c99c302\",\"new_nic_name\":\"test2023102401_int0_clone0\"}",
+							),
+					)
+			},
+			args: args{objID: "b0dd54ed-d905-4b7f-a5d9-9ace4c99c302"},
+			want: []string{"60284e9f-69c0-4db8-868d-7a8e24070025"},
+		},
+		{
+			name: "TestPendingReqExistsNICCloneBadJSON",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `requests` WHERE `complete` = ? AND `requests`.`deleted_at` IS NULL")).
+					WithArgs(false).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"started_at",
+								"successful",
+								"complete",
+								"type",
+								"data",
+							},
+						).
+							AddRow(
+								"60284e9f-69c0-4db8-868d-7a8e24070025",
+								createUpdateTime,
+								createUpdateTime,
+								gorm.DeletedAt{
+									Time:  time.Time{},
+									Valid: false,
+								},
+								sql.NullTime{
+									Time:  createUpdateTime,
+									Valid: true,
+								},
+								0,
+								0,
+								"NICCLONE",
+								"junk",
+							),
+					)
+			},
+			args: args{objID: "b0dd54ed-d905-4b7f-a5d9-9ace4c99c302"},
+			want: nil,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testCase.mockClosure(testDB, mock)
+
+			got := PendingReqExists(testCase.args.objID)
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}

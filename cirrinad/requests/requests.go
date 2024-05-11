@@ -70,6 +70,7 @@ func (req *Request) BeforeCreate(_ *gorm.DB) error {
 	return nil
 }
 
+// CreateNicCloneReq creates a request to clone a NIC
 func CreateNicCloneReq(nicID string, newName string) (Request, error) {
 	var err error
 
@@ -260,14 +261,14 @@ func PendingReqExists(objID string) []string {
 				reqIDs = append(reqIDs, incompleteRequest.ID)
 			}
 		case NICCLONE:
-			var reqData VMCloneReqData
+			var reqData NicCloneReqData
 
 			err = json.Unmarshal([]byte(incompleteRequest.Data), &reqData)
 			if err != nil {
 				continue
 			}
 
-			if reqData.VMID == objID {
+			if reqData.NicID == objID {
 				reqIDs = append(reqIDs, incompleteRequest.ID)
 			}
 		}
