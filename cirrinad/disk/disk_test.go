@@ -11,6 +11,7 @@ import (
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/cirrinadtest"
+	"cirrina/cirrinad/config"
 )
 
 func TestGetAllDB(t *testing.T) {
@@ -526,6 +527,67 @@ func TestGetByName(t *testing.T) {
 
 			if !reflect.DeepEqual(got, testCase.want) {
 				t.Errorf("GetByName() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestDisk_GetPath(t *testing.T) {
+	type fields struct {
+		Name    string
+		DevType string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func()
+		fields      fields
+		want        string
+	}{
+		{
+			name: "Valid1",
+			mockClosure: func() {
+				config.Config.Disk.VM.Path.Image = "/some/path"
+			},
+			fields: fields{
+				Name:    "someDisk",
+				DevType: "FILE",
+			},
+			want: "/some/path/someDisk.img",
+		},
+		{
+			name: "Valid2",
+			mockClosure: func() {
+				config.Config.Disk.VM.Path.Zpool = "somePool/dataSet"
+			},
+			fields: fields{
+				Name:    "someDisk",
+				DevType: "ZVOL",
+			},
+			want: "somePool/dataSet/someDisk",
+		},
+		{
+			name: "Invalid1",
+			mockClosure: func() {
+			},
+			fields: fields{
+				DevType: "",
+			},
+			want: "",
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mockClosure()
+			d := &Disk{
+				Name:    testCase.fields.Name,
+				DevType: testCase.fields.DevType,
+			}
+
+			if got := d.GetPath(); got != testCase.want {
+				t.Errorf("GetPath() = %v, want %v", got, testCase.want)
 			}
 		})
 	}

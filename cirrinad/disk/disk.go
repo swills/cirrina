@@ -299,6 +299,8 @@ func Delete(diskID string) error {
 	return nil
 }
 
+// GetPath return path to disk to use with bhyve -- either full disk path for file
+// or zvol name
 func (d *Disk) GetPath() string {
 	var diskPath string
 
