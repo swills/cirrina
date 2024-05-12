@@ -2,6 +2,7 @@ package disk
 
 import (
 	"database/sql"
+	"reflect"
 	"testing"
 	"time"
 
@@ -350,7 +351,7 @@ func TestGetByID(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name: "testDiskGetByIDValid1",
+			name: "Valid1",
 			mockClosure: func() {
 				diskInst := &Disk{
 					ID:          "0d4a0338-0b68-4645-b99d-9cbb30df272d",
@@ -388,7 +389,7 @@ func TestGetByID(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "testDiskGetByIDInvalid1",
+			name: "Invalid1",
 			mockClosure: func() {
 				diskInst := &Disk{
 					ID:          "0d4a0338-0b68-4645-b99d-9cbb30df272d",
@@ -412,7 +413,7 @@ func TestGetByID(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "testDiskGetByIDInvalid2",
+			name:        "Invalid2",
 			mockClosure: func() {},
 			args:        args{diskID: ""},
 			want:        nil,
@@ -451,6 +452,80 @@ func TestGetByID(t *testing.T) {
 			diff := deep.Equal(got, testCase.want)
 			if diff != nil {
 				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func TestGetByName(t *testing.T) {
+	type args struct {
+		name string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func()
+		args        args
+		want        *Disk
+		wantErr     bool
+	}{
+		{
+			name: "Valid1",
+			mockClosure: func() {
+				diskInst := &Disk{
+					ID:          "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				List.DiskList[diskInst.ID] = diskInst
+			},
+			args: args{name: "aDisk"},
+			want: &Disk{
+				ID:          "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+				Name:        "aDisk",
+				Description: "a description",
+				Type:        "NVME",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:        "Invalid1",
+			mockClosure: func() {},
+			args:        args{name: "blah"},
+			want:        nil,
+			wantErr:     true,
+		},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			got, err := GetByName(testCase.args.name)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetByName() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if !reflect.DeepEqual(got, testCase.want) {
+				t.Errorf("GetByName() got = %v, want %v", got, testCase.want)
 			}
 		})
 	}

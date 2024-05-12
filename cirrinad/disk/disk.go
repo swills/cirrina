@@ -244,6 +244,7 @@ func GetByID(diskID string) (*Disk, error) {
 	return nil, errDiskNotFound
 }
 
+// GetByName lookup disk by name from in memory disk list
 func GetByName(name string) (*Disk, error) {
 	for _, diskInst := range List.DiskList {
 		if diskInst.Name == name {
