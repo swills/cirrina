@@ -56,7 +56,10 @@ func TestGetByID(t *testing.T) {
 								"4aecbcd1-c39c-48e6-9a45-4a1abe06821f",
 								createUpdateTime,
 								createUpdateTime,
-								nil,
+								gorm.DeletedAt{
+									Time:  time.Time{},
+									Valid: false,
+								},
 								sql.NullTime{
 									Time:  createUpdateTime,
 									Valid: true,
@@ -723,8 +726,7 @@ func TestRequest_Start(t *testing.T) {
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
-					regexp.QuoteMeta(
-																																"UPDATE `requests` SET `id`=?,`created_at`=?,`updated_at`=?,`started_at`=?,`type`=?,`data`=? WHERE `requests`.`deleted_at` IS NULL AND `id` = ?")). //nolint:lll
+					regexp.QuoteMeta("UPDATE `requests` SET `id`=?,`created_at`=?,`updated_at`=?,`started_at`=?,`type`=?,`data`=? WHERE `requests`.`deleted_at` IS NULL AND `id` = ?")).                                               //nolint:lll
 					WithArgs("7a691194-64e7-45d1-ae2a-a064271d7c24", createUpdateTime, sqlmock.AnyArg(), sqlmock.AnyArg(), "VMSTART", "{\"vm_id\":\"f5b761a1-8193-4db3-a914-b37edc848d29\"}", "7a691194-64e7-45d1-ae2a-a064271d7c24"). //nolint:lll
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
@@ -1260,6 +1262,142 @@ func TestPendingReqExists(t *testing.T) { //nolint:maintidx
 			testCase.mockClosure(testDB, mock)
 
 			got := PendingReqExists(testCase.args.objID)
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func TestFailAllPending(t *testing.T) {
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		want        int64
+	}{
+		{
+			name: "FailAllPendingNoRows",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `requests` SET `updated_at`=?,`complete`=? WHERE `complete` = ? AND `requests`.`deleted_at` IS NULL")). //nolint:lll
+					WithArgs(sqlmock.AnyArg(), true, false).
+					WillReturnResult(sqlmock.NewResult(0, 0))
+				mock.ExpectCommit()
+			},
+			want: 0,
+		},
+		{
+			name: "FailAllPendingOneRow",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `requests` SET `updated_at`=?,`complete`=? WHERE `complete` = ? AND `requests`.`deleted_at` IS NULL")). //nolint:lll
+					WithArgs(sqlmock.AnyArg(), true, false).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			want: 1,
+		},
+	}
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testCase.mockClosure(testDB, mock)
+
+			got := FailAllPending()
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func TestDBInitialized(t *testing.T) {
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		want        bool
+	}{
+		{
+			name: "DBInitializedTrue",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT count(*) FROM sqlite_master WHERE type = ? AND tbl_name = ? AND (sql LIKE ? OR sql LIKE ? OR sql LIKE ? OR sql LIKE ? OR sql LIKE ?)")). //nolint:lll
+					WithArgs("table", "requests", `%"id" %`, `%id %`, "%`id`%", "%[id]%", "%\tid\t%").
+					WillReturnRows(sqlmock.NewRows([]string{"count(*)"}).AddRow(1))
+			},
+			want: true,
+		},
+		{
+			name: "DBInitializedFalse",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					reqDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT count(*) FROM sqlite_master WHERE type = ? AND tbl_name = ? AND (sql LIKE ? OR sql LIKE ? OR sql LIKE ? OR sql LIKE ? OR sql LIKE ?)")). //nolint:lll
+					WithArgs("table", "requests", `%"id" %`, `%id %`, "%`id`%", "%[id]%", "%\tid\t%").
+					WillReturnRows(sqlmock.NewRows([]string{"count(*)"}).AddRow(0))
+			},
+			want: false,
+		},
+	}
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testCase.mockClosure(testDB, mock)
+
+			got := DBInitialized()
 
 			mock.ExpectClose()
 

@@ -277,9 +277,10 @@ func PendingReqExists(objID string) []string {
 	return reqIDs
 }
 
+// FailAllPending marks all requests which are not complete as failed
 func FailAllPending() int64 {
-	db := GetReqDB()
-	res := db.Where(map[string]interface{}{"complete": false}).Updates(
+	reqDB := GetReqDB()
+	res := reqDB.Where(map[string]interface{}{"complete": false}).Updates(
 		Request{
 			Complete: true,
 		},
@@ -288,6 +289,7 @@ func FailAllPending() int64 {
 	return res.RowsAffected
 }
 
+// DBInitialized checks if the requests database has been initialized
 func DBInitialized() bool {
 	db := GetReqDB()
 
