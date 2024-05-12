@@ -4,6 +4,10 @@ repos:
     rev: v0.5.1
     hooks:
       - id: go-build
+        require_serial: true
       - id: go-mod-tidy
+        require_serial: true
       - id: go-unit-tests
+        require_serial: true
       - id: golangci-lint
+        require_serial: true

@@ -228,6 +228,7 @@ func GetAllDB() []*Disk {
 	return result
 }
 
+// GetByID lookup disk by ID from in memory disk list
 func GetByID(diskID string) (*Disk, error) {
 	if diskID == "" {
 		return nil, errDiskIDEmptyOrInvalid
@@ -352,16 +353,16 @@ func validateDisk(diskInst *Disk) error {
 		return errDiskInvalidName
 	}
 
-	if diskInst.DevType == "ZVOL" && config.Config.Disk.VM.Path.Zpool == "" {
-		return errDiskZPoolNotConfigured
-	}
-
 	if !diskTypeValid(diskInst.Type) {
 		return errDiskInvalidType
 	}
 
 	if !diskDevTypeValid(diskInst.DevType) {
 		return errDiskInvalidDevType
+	}
+
+	if diskInst.DevType == "ZVOL" && config.Config.Disk.VM.Path.Zpool == "" {
+		return errDiskZPoolNotConfigured
 	}
 
 	return nil

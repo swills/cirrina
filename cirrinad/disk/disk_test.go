@@ -143,3 +143,315 @@ func TestGetAllDB(t *testing.T) {
 		})
 	}
 }
+
+func Test_diskTypeValid(t *testing.T) {
+	type args struct {
+		diskType string
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "diskTypeValidNVME",
+			args: args{diskType: "NVME"},
+			want: true,
+		},
+		{
+			name: "diskTypeValidAHCIHD",
+			args: args{diskType: "AHCI-HD"},
+			want: true,
+		},
+		{
+			name: "diskTypeValidVIRTIOBLK",
+			args: args{diskType: "VIRTIO-BLK"},
+			want: true,
+		},
+		{
+			name: "diskTypeInvalidJunk",
+			args: args{diskType: "something"},
+			want: false,
+		},
+		{
+			name: "diskTypeInvalidEmpty",
+			args: args{diskType: "something"},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := diskTypeValid(tt.args.diskType); got != tt.want {
+				t.Errorf("diskTypeValid() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_diskDevTypeValid(t *testing.T) {
+	type args struct {
+		diskDevType string
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "diskDevTypeValidFile",
+			args: args{diskDevType: "FILE"},
+			want: true,
+		},
+		{
+			name: "diskDevTypeValidZVOL",
+			args: args{diskDevType: "ZVOL"},
+			want: true,
+		},
+		{
+			name: "diskDevTypeInvalidJunk",
+			args: args{diskDevType: "junk"},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := diskDevTypeValid(tt.args.diskDevType); got != tt.want {
+				t.Errorf("diskDevTypeValid() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_validateDisk(t *testing.T) {
+	type args struct {
+		diskInst *Disk
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "validateDiskValid1",
+			args: args{diskInst: &Disk{
+				Name:        "someCoolDisk1",
+				Description: "a totally cool test disk",
+				Type:        "NVME",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			}},
+			wantErr: false,
+		},
+		{
+			name: "validateDiskInvalid0",
+			args: args{diskInst: &Disk{
+				Name:        "someCoolDisk1",
+				Description: "a totally cool test disk",
+				Type:        "NVME",
+				DevType:     "ZVOL",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			}},
+			wantErr: true,
+		},
+		{
+			name: "validateDiskInvalid1",
+			args: args{diskInst: &Disk{
+				Name:        ".someCoolDisk1",
+				Description: "a totally cool test disk",
+				Type:        "NVME",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			}},
+			wantErr: true,
+		},
+		{
+			name: "validateDiskInvalid2",
+			args: args{diskInst: &Disk{
+				Name:        "someCoolDisk1",
+				Description: "a totally cool test disk",
+				Type:        "junk",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			}},
+			wantErr: true,
+		},
+		{
+			name: "validateDiskInvalid3",
+			args: args{diskInst: &Disk{
+				Name:        "someCoolDisk1",
+				Description: "a totally cool test disk",
+				Type:        "NVME",
+				DevType:     "junk",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			}},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := validateDisk(tt.args.diskInst); (err != nil) != tt.wantErr {
+				t.Errorf("validateDisk() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestGetByID(t *testing.T) {
+	type args struct {
+		diskID string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func()
+		args        args
+		want        *Disk
+		wantErr     bool
+	}{
+		{
+			name: "testDiskGetByIDValid1",
+			mockClosure: func() {
+				diskInst := &Disk{
+					ID:          "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				List.DiskList[diskInst.ID] = diskInst
+			},
+			args: args{diskID: "0d4a0338-0b68-4645-b99d-9cbb30df272d"},
+			want: &Disk{
+				ID:          "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+				Name:        "aDisk",
+				Description: "a description",
+				Type:        "NVME",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "testDiskGetByIDInvalid1",
+			mockClosure: func() {
+				diskInst := &Disk{
+					ID:          "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				List.DiskList[diskInst.ID] = diskInst
+			},
+			args:    args{diskID: "a3f817df-26d4-4955-97e6-6e7732b03c5d"},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:        "testDiskGetByIDInvalid2",
+			mockClosure: func() {},
+			args:        args{diskID: ""},
+			want:        nil,
+			wantErr:     true,
+		},
+	}
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+
+			testCase.mockClosure()
+
+			got, err := GetByID(testCase.args.diskID)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetByID() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
