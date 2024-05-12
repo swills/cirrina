@@ -1,7 +1,9 @@
 
 # TODO
 
+* arm64 support: kern.osreldate 1500018 -- need to wait for 1500019 and test for that or higher
 * Fix zvol ownership!
+* Fix cirrinactl over IPv6
 * Add a force kill function for OSs that won't shut down properly and when you don't want to wait
 * Add feature to remove CD after first boot
 * have all cirrinactl commands which use server make a call to hostPing() before doing anything with the server
@@ -11,13 +13,17 @@
   * switch, bridge -> always use switch?
   * nic, vmnic -> always use nic?
   * iso, ISO -> always use ISO in messages? something else?
-* Allow `.` in disk file name, if it's not at the start of the file name and if it's not followed by another `.`
+  * Convert disk/iso on disk file name from actual disk/iso name to uuid, maybe
 * Add option to cirrinactl com stream to:
   * Avoid quit info message and pause on startup
   * Avoid clearing screen
   * If logging, fetch last N bytes from log and play them back
   * Remain running on VM shutdown, either just displaying what was there, or polling the VM for startup
-* In cirrinactl useCom, add features from cu(1) such as sending break and sending and receiving local files
+* In cirrinactl useCom, add features from cu(1) such as
+  * Sending break
+    * from src/usr.bin/tip/tip/cmds.c:
+      * `ioctl(FD, TIOCSBRK, NULL); sleep(1); ioctl(FD, TIOCCBRK, NULL);`
+  * Sending/receiving from/to local file
 * Disk resize -- include force flag to allow reducing disk size which includes data loss
 * Fix setting the switch on a NIC while a VM is running
   * Currently, it won't work until you stop then start the VM
@@ -25,6 +31,10 @@
 * Convert all UUIDs from strings to UUID type
 * Convert all paths from strings to path/filepath
 * Convert all bool in database to `sql.NullBool`
+* Add error checking and result count checking if applicable to all db queries, as was done in cirrinad/switch/switch.go
+* Return nil instead of empty value whenever possible (pointers)
+* Ensure all error returns return no value(s), nil if possible
+* Eliminate `map[string]...` things due to returning in random order
 * Add disk update to server/client
 * Add zvol support to GUI - including listing dev type in disk list
 * Add vm priority (nice) stuff to GUI
@@ -94,6 +104,7 @@
           * Monitor VMs, similar to "cirrinactl vm list" in a loop
           * Add top/htop like interface, with VM list and resource usage
         * Build Web UI -- maybe [awesome-grpc](https://github.com/grpc-ecosystem/awesome-grpc) has suggestions
+          * Use [this](https://github.com/kuba2k2/firefox-webserial) as a way to get serial stuff
     * Have GUI manage config for and automatically start daemon for a purely local mode
     * User/password auth - perhaps [spiffe](https://spiffe.io/) or [dapr](https://dapr.io/) could help here
     * VM grouping

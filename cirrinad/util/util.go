@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -414,7 +415,7 @@ func GetIntGroups(interfaceName string) ([]string, error) {
 	return intGroups, nil
 }
 
-// ValidVMName check if a name is a valid name for a VM
+// ValidVMName checks if a name is a valid name for a VM
 func ValidVMName(name string) bool {
 	if name == "" {
 		return false
@@ -435,6 +436,7 @@ func ValidVMName(name string) bool {
 	return CheckInRange(name, myRT)
 }
 
+// ValidDiskName checks if a name is a valid name for a disk
 func ValidDiskName(name string) bool {
 	if name == "" {
 		return false
@@ -443,7 +445,7 @@ func ValidDiskName(name string) bool {
 	// values must be kept sorted
 	myRT := &unicode.RangeTable{
 		R16: []unicode.Range16{
-			{0x002d, 0x002d, 1}, // -
+			{0x002d, 0x002e, 1}, // - and .
 			{0x0030, 0x0039, 1}, // numbers
 			{0x0041, 0x005a, 1}, // upper case letters
 			{0x005f, 0x005f, 1}, // _
@@ -452,9 +454,33 @@ func ValidDiskName(name string) bool {
 		LatinOffset: 0,
 	}
 
-	return CheckInRange(name, myRT)
+	inRange := CheckInRange(name, myRT)
+	if !inRange {
+		return false
+	}
+
+	matchesDoubleDot, err := regexp.MatchString(`\.\.`, name)
+	if err != nil {
+		return false
+	}
+
+	if matchesDoubleDot {
+		return false
+	}
+
+	matchesLeadingDot, err := regexp.MatchString(`^\.`, name)
+	if err != nil {
+		return false
+	}
+
+	if matchesLeadingDot {
+		return false
+	}
+
+	return true
 }
 
+// ValidIsoName checks if a name is a valid name for an ISO
 func ValidIsoName(name string) bool {
 	if name == "" {
 		return false
