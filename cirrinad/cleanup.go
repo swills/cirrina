@@ -1,14 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"log/slog"
 	"net"
 	"strings"
 	"syscall"
 	"time"
-
-	"golang.org/x/sys/execabs"
 
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
@@ -127,17 +124,10 @@ func cleanupNet() {
 
 		slog.Debug("leftover interface found, destroying", "name", inter.Name)
 
-		cmd := execabs.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", inter.Name, "destroy")
-
-		var out bytes.Buffer
-
-		cmd.Stdout = &out
-		if err := cmd.Start(); err != nil {
-			slog.Error("failed running ifconfig", "err", err, "out", out)
-		}
-
-		if err := cmd.Wait(); err != nil {
-			slog.Error("failed running ifconfig", "err", err, "out", out)
+		stdOutBytes, stdErrBytes, rc, err := util.RunCmd(
+			config.Config.Sys.Sudo, []string{"/sbin/ifconfig", inter.Name, "destroy"})
+		if string(stdErrBytes) != "" || rc != 0 || err != nil {
+			slog.Error("error running command", "stdOutBytes", stdOutBytes, "stdErrBytes", stdErrBytes, "rc", rc, "err", err)
 		}
 	}
 }

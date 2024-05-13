@@ -14,7 +14,6 @@ var (
 	errInvalidPort     = errors.New("tcp port failed to convert to int")
 	errPortNotFound    = errors.New("tcp port not found")
 	errPortNotParsable = errors.New("tcp port not parsable")
-	errSTDERRNotEmpty  = errors.New("stderr is not empty")
 	errInvalidPid      = errors.New("invalid PID")
 	errInvalidDiskSize = errors.New("invalid disk size")
 	errUserNotFound    = errors.New("user not found")

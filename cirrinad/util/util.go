@@ -1,7 +1,6 @@
 package util
 
 import (
-	"bufio"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -144,9 +143,11 @@ func captureReader(ioReader io.Reader) ([]byte, error) {
 	}
 }
 
-// runCommandAndCaptureOutput does what it says on the tin. maybe I should make a version that takes a string to pass
-// in on standard input. also maybe I should make this public here. perhaps pointer args would be better
-func runCommandAndCaptureOutput(cmdName string, cmdArgs []string) ([]byte, error) {
+// RunCmd execute a system command and return stdout, stderr, return code and any internal errors
+// encountered running the command
+func RunCmd(cmdName string, cmdArgs []string) ([]byte, []byte, int, error) {
+	var err error
+
 	var outResult []byte
 
 	var errResult []byte
@@ -155,18 +156,19 @@ func runCommandAndCaptureOutput(cmdName string, cmdArgs []string) ([]byte, error
 
 	cmd := exec.Command(cmdName, cmdArgs...)
 
-	stdoutIn, err := cmd.StdoutPipe()
+	stdOutReader, err := cmd.StdoutPipe()
 	if err != nil {
-		return []byte{}, fmt.Errorf("error running command: %w", err)
+		return []byte{}, []byte{}, 0, fmt.Errorf("error running command: %w", err)
 	}
 
-	stderrIn, err := cmd.StderrPipe()
+	stdErrReader, err := cmd.StderrPipe()
 	if err != nil {
-		return []byte{}, fmt.Errorf("error running command: %w", err)
+		return []byte{}, []byte{}, 0, fmt.Errorf("error running command: %w", err)
 	}
 
-	if err := cmd.Start(); err != nil {
-		return []byte{}, fmt.Errorf("error running command: %w", err)
+	err = cmd.Start()
+	if err != nil {
+		return []byte{}, []byte{}, 0, fmt.Errorf("error running command: %w", err)
 	}
 
 	var runCmdWaitGroup sync.WaitGroup
@@ -174,36 +176,36 @@ func runCommandAndCaptureOutput(cmdName string, cmdArgs []string) ([]byte, error
 	runCmdWaitGroup.Add(1)
 
 	go func() {
-		outResult, errStdout = captureReader(stdoutIn)
+		outResult, errStdout = captureReader(stdOutReader)
 
 		runCmdWaitGroup.Done()
 	}()
 
-	errResult, errStderr = captureReader(stderrIn)
+	errResult, errStderr = captureReader(stdErrReader)
 
 	runCmdWaitGroup.Wait()
 
 	if errStdout != nil {
-		return []byte{}, errStderr
+		return []byte{}, []byte{}, 0, errStdout
 	}
 
 	if errStderr != nil {
-		return []byte{}, errStderr
+		return []byte{}, []byte{}, 0, errStderr
 	}
 
-	if len(errResult) > 0 {
-		return []byte{}, errSTDERRNotEmpty
+	returnCode := 0
+
+	err = cmd.Wait()
+	if err != nil {
+		var exiterr *exec.ExitError
+		if errors.As(err, &exiterr) {
+			returnCode = cmd.ProcessState.ExitCode()
+		}
+
+		return outResult, errResult, returnCode, fmt.Errorf("error running command: %w", err)
 	}
 
-	if err := cmd.Wait(); err != nil {
-		return []byte{}, fmt.Errorf("error running command: %w", err)
-	}
-
-	return outResult, nil
-}
-
-func getNetstatJSONOutput() ([]byte, error) {
-	return runCommandAndCaptureOutput("/usr/bin/netstat", []string{"-an", "--libxo", "json"})
+	return outResult, errResult, returnCode, nil
 }
 
 func parseNetstatSocket(socket map[string]interface{}) (int, error) {
@@ -290,12 +292,14 @@ func parseNetstatJSONOutput(netstatOutput []byte) ([]int, error) {
 func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (int, error) {
 	var err error
 	// get and parse netstat output
-	netstatJSON, err := getNetstatJSONOutput()
-	if err != nil {
-		return 0, err
+	stdOutBytes, stdErrBytes, rc, err := RunCmd("/usr/bin/netstat", []string{"-an", "--libxo", "json"})
+	if string(stdErrBytes) != "" || rc != 0 || err != nil {
+		slog.Error("error running command", "stdOutBytes", stdOutBytes, "stdErrBytes", stdErrBytes, "rc", rc, "err", err)
+
+		return 0, fmt.Errorf("error running sysctl: stderr: %s, rc: %d, err: %w", string(stdErrBytes), rc, err)
 	}
 
-	uniqueLocalListenPorts, err := parseNetstatJSONOutput(netstatJSON)
+	uniqueLocalListenPorts, err := parseNetstatJSONOutput(stdOutBytes)
 	if err != nil {
 		return 0, err
 	}
@@ -371,34 +375,20 @@ func CopyFile(in, out string) (int64, error) {
 	return n, nil
 }
 
+// GetIntGroups returns the list of groups the interface is in
 func GetIntGroups(interfaceName string) ([]string, error) {
 	var intGroups []string
 
-	var err error
+	stdOutBytes, stdErrBytes, rc, err := RunCmd("/sbin/ifconfig", []string{interfaceName})
+	if string(stdErrBytes) != "" || rc != 0 || err != nil {
+		slog.Error("error running command", "stdOutBytes", stdOutBytes, "stdErrBytes", stdErrBytes, "rc", rc, "err", err)
 
-	cmd := exec.Command("/sbin/ifconfig", interfaceName)
-	defer func(cmd *exec.Cmd) {
-		err = cmd.Wait()
-		if err != nil {
-			slog.Error("ifconfig error", "err", err)
-		}
-	}(cmd)
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return []string{}, fmt.Errorf("error running ifconfig: %w", err)
+		return []string{}, fmt.Errorf("error running sysctl: stderr: %s, rc: %d, err: %w", string(stdErrBytes), rc, err)
 	}
 
-	if err := cmd.Start(); err != nil {
-		return []string{}, fmt.Errorf("error running ifconfig: %w", err)
-	}
-
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		text := scanner.Text()
-
-		textFields := strings.Fields(text)
-		if !strings.HasPrefix(textFields[0], "groups:") {
+	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+		textFields := strings.Fields(line)
+		if len(textFields) < 1 || !strings.HasPrefix(textFields[0], "groups:") {
 			continue
 		}
 
@@ -406,10 +396,6 @@ func GetIntGroups(interfaceName string) ([]string, error) {
 		for f := 1; f < fl; f++ {
 			intGroups = append(intGroups, textFields[f])
 		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return []string{}, fmt.Errorf("error parsing ifconfig output: %w", err)
 	}
 
 	return intGroups, nil
@@ -720,25 +706,14 @@ func parseDiskSizeSuffix(diskSize string) (string, uint64) {
 }
 
 func GetHostMaxVMCpus() (uint16, error) {
-	var emptyBytes []byte
+	stdOutBytes, stdErrBytes, rc, err := RunCmd("/sbin/sysctl", []string{"-n", "hw.vmm.maxcpu"})
+	if string(stdErrBytes) != "" || rc != 0 || err != nil {
+		slog.Error("error running command", "stdOutBytes", stdOutBytes, "stdErrBytes", stdErrBytes, "rc", rc, "err", err)
 
-	var outBytes bytes.Buffer
-
-	var errBytes bytes.Buffer
-
-	checkCmd := exec.Command("/sbin/sysctl", "-n", "hw.vmm.maxcpu")
-	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
-	checkCmd.Stdout = &outBytes
-	checkCmd.Stderr = &errBytes
-	err := checkCmd.Run()
-
-	if err != nil {
-		slog.Error("Failed getting max vm cpus", "command", checkCmd.String(), "err", err.Error())
-
-		return 0, fmt.Errorf("error running sysctl: %w", err)
+		return 0, fmt.Errorf("error running sysctl: stderr: %s, rc: %d, err: %w", string(stdErrBytes), rc, err)
 	}
 
-	maxCPUStr := strings.TrimSpace(outBytes.String())
+	maxCPUStr := strings.TrimSpace(string(stdOutBytes))
 
 	maxCPU, err := strconv.Atoi(maxCPUStr)
 	if err != nil {

@@ -29,57 +29,33 @@ import (
 )
 
 func checkSudoCmd(expectedExit int, expectedStdOut string, expectedStdErr string, cmdArgs ...string) error {
-	var emptyBytes []byte
+	var runCmdStrArgs []string
 
-	var outBytes bytes.Buffer
+	// "-S" to ensure no password prompt on tty
+	runCmdStrArgs = append(runCmdStrArgs, "-S")
+	runCmdStrArgs = append(runCmdStrArgs, cmdArgs...)
 
-	var errBytes bytes.Buffer
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(config.Config.Sys.Sudo, runCmdStrArgs)
+	// we don't check err here because we get err if returnCode != 0 which is sometimes what we expect, so instead
+	// we check returnCode
 
-	var exitCode int
-
-	var exitErr *execabs.ExitError
-
-	var cmdString []string
-
-	var err error
-
-	cmdString = append(cmdString, "-S") // ensure no password prompt on tty
-	cmdString = append(cmdString, cmdArgs...)
-
-	checkCmd := execabs.Command(config.Config.Sys.Sudo, cmdString...)
-	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
-	checkCmd.Stdout = &outBytes
-	checkCmd.Stderr = &errBytes
-
-	err = checkCmd.Run()
-	if err != nil {
-		// ignore exitErr as we check exit code below
-		if !errors.As(err, &exitErr) {
-			slog.Debug("checkSudoCmd failed starting command", "command", checkCmd.String(), "err", err.Error())
-
-			return fmt.Errorf("failed running command: %w", err)
-		}
-	}
-
-	exitCode = checkCmd.ProcessState.ExitCode()
-	if exitCode != expectedExit {
+	if returnCode != expectedExit {
 		slog.Debug("exitCode mismatch running command",
-			"command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
+			"command", cmdArgs, "out", stdOutBytes, "err", stdErrBytes, "returnCode", returnCode, "err", err)
 
 		return errExitCodeMismatch
 	}
 
-	if !strings.HasPrefix(outBytes.String(), expectedStdOut) {
+	if !strings.HasPrefix(string(stdOutBytes), expectedStdOut) {
 		slog.Debug("stdout prefix mismatch running command",
-			"command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(), "exitCode", exitCode)
+			"command", cmdArgs, "out", stdOutBytes, "err", stdErrBytes, "returnCode", returnCode, "err", err)
 
 		return errSTDOUTMismatch
 	}
 
-	if !strings.HasPrefix(errBytes.String(), expectedStdErr) {
+	if !strings.HasPrefix(string(stdErrBytes), expectedStdErr) {
 		slog.Debug("stderr prefix mismatch running command",
-			"command", cmdArgs, "err", err, "out", outBytes.String(), "err", errBytes.String(),
-			"exitCode", exitCode)
+			"command", cmdArgs, "out", stdOutBytes, "err", stdErrBytes, "returnCode", returnCode, "err", err)
 
 		return errSTDERRMismatch
 	}
@@ -125,31 +101,17 @@ nameLoop:
 }
 
 func kmodLoaded(name string) bool {
-	var loaded bool
+	stdOutBytes, stdErrBytes, rc, err := util.RunCmd("/sbin/kldstat", []string{"-q", "-n", name})
+	slog.Debug("kldstat -q -n", "name", name, "stdOutBytes", stdOutBytes, "stdErrBytes", stdErrBytes, "rc", rc, "err", err)
 
-	slog.Debug("checking module loaded", "module", name)
-	cmd := execabs.Command("/sbin/kldstat", "-q", "-n", name)
-
-	err := cmd.Run()
-	if err == nil {
-		loaded = true
-	}
-
-	return loaded
+	return rc == 0 && err == nil
 }
 
 func kmodInited(name string) bool {
-	var inited bool
+	stdOutBytes, stdErrBytes, rc, err := util.RunCmd("/sbin/kldstat", []string{"-q", "-m", name})
+	slog.Debug("kldstat -q -m", "name", name, "stdOutBytes", stdOutBytes, "stdErrBytes", stdErrBytes, "rc", rc, "err", err)
 
-	slog.Debug("checking module initialized", "module", name)
-	cmd := execabs.Command("/sbin/kldstat", "-q", "-m", name)
-
-	err := cmd.Run()
-	if err == nil {
-		inited = true
-	}
-
-	return inited
+	return rc == 0 && err == nil
 }
 
 func validateKmods() {
@@ -173,24 +135,13 @@ func validateKmods() {
 }
 
 func validateVirt() {
-	var emptyBytes []byte
-
-	var outBytes bytes.Buffer
-
-	var errBytes bytes.Buffer
-
-	checkCmd := execabs.Command("/sbin/sysctl", "-n", "hw.hv_vendor")
-	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
-	checkCmd.Stdout = &outBytes
-	checkCmd.Stderr = &errBytes
-	err := checkCmd.Run()
-
-	if err != nil {
-		slog.Error("Failed checking hypervisor", "command", checkCmd.String(), "err", err.Error())
+	stdOutBytes, stdErrBytes, rc, err := util.RunCmd("/sbin/sysctl", []string{"-n", "hw.hv_vendor"})
+	if string(stdErrBytes) != "" || rc != 0 || err != nil {
+		slog.Error("error running command", "stdOutBytes", stdOutBytes, "stdErrBytes", stdErrBytes, "rc", rc, "err", err)
 		os.Exit(1)
 	}
 
-	hvVendor := strings.TrimSpace(outBytes.String())
+	hvVendor := strings.TrimSpace(string(stdOutBytes))
 	if hvVendor != "" {
 		slog.Error("Refusing to run inside virtualized environment", "hvVendor", hvVendor)
 		os.Exit(1)
@@ -198,24 +149,14 @@ func validateVirt() {
 }
 
 func validateJailed() {
-	var emptyBytes []byte
-
-	var outBytes bytes.Buffer
-
-	var errBytes bytes.Buffer
-
-	checkCmd := execabs.Command("/sbin/sysctl", "-n", "security.jail.jailed")
-	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
-	checkCmd.Stdout = &outBytes
-	checkCmd.Stderr = &errBytes
-	err := checkCmd.Run()
-
-	if err != nil {
-		slog.Error("Failed checking jail status", "command", checkCmd.String(), "err", err.Error())
+	stdOutBytes, stdErrBytes, rc, err := util.RunCmd(
+		"/sbin/sysctl", []string{"-n", "security.jail.jailed"})
+	if string(stdErrBytes) != "" || rc != 0 || err != nil {
+		slog.Error("error running command", "stdOutBytes", stdOutBytes, "stdErrBytes", stdErrBytes, "rc", rc, "err", err)
 		os.Exit(1)
 	}
 
-	jailed := strings.TrimSpace(outBytes.String())
+	jailed := strings.TrimSpace(string(stdOutBytes))
 	slog.Debug("validateJailed", "jailed", jailed)
 
 	if jailed != "0" {
