@@ -1,11 +1,8 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"log/slog"
 	"math/rand"
@@ -19,7 +16,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-version"
-	"golang.org/x/sys/execabs"
 	"golang.org/x/sys/unix"
 
 	"cirrina/cirrinad/config"
@@ -360,23 +356,12 @@ func validateZpoolConf() {
 		return
 	}
 
-	var emptyBytes []byte
-
-	var outBytes bytes.Buffer
-
-	var errBytes bytes.Buffer
-
-	var err error
-
-	checkCmd := execabs.Command("/sbin/zfs", "list", config.Config.Disk.VM.Path.Zpool)
-	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
-	checkCmd.Stdout = &outBytes
-	checkCmd.Stderr = &errBytes
-	err = checkCmd.Run()
-
-	if err != nil {
+	stdOutBytes, stdErrBytes, rc, err := util.RunCmd("/sbin/zfs", []string{"list", config.Config.Disk.VM.Path.Zpool})
+	if string(stdErrBytes) != "" || rc != 0 || err != nil {
 		slog.Error("zfs dataset not available, please fix or reconfigure",
-			"checkCmd.String", checkCmd.String(),
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"rc", rc,
 			"err", err.Error(),
 		)
 		os.Exit(1)
@@ -389,30 +374,21 @@ func validateZpoolConf() {
 }
 
 func checkZpoolCapacity(poolName string) {
-	var err error
-
 	var rawCapacity string
 
-	cmd := execabs.Command("/sbin/zpool", "list", "-H", poolName)
-
-	var stdout io.ReadCloser
-
-	stdout, err = cmd.StdoutPipe()
-	if err != nil {
-		slog.Error("error checking zpool", "err", err)
+	stdOutBytes, stdErrBytes, rc, err := util.RunCmd("/sbin/zpool", []string{"list", "-H", poolName})
+	if string(stdErrBytes) != "" || rc != 0 || err != nil {
+		slog.Error("error checking zpool",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"rc", rc,
+			"err", err.Error(),
+		)
 		os.Exit(1)
 	}
 
-	if err = cmd.Start(); err != nil {
-		slog.Error("error checking zpool", "err", err)
-		os.Exit(1)
-	}
-
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		text := scanner.Text()
-
-		textFields := strings.Fields(text)
+	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+		textFields := strings.Fields(line)
 		if len(textFields) != 11 {
 			continue
 		}
@@ -422,11 +398,6 @@ func checkZpoolCapacity(poolName string) {
 		}
 
 		rawCapacity = strings.TrimSuffix(textFields[7], "%")
-	}
-
-	if err = scanner.Err(); err != nil {
-		slog.Error("error checking zpool", "err", err)
-		os.Exit(1)
 	}
 
 	capacity, err := strconv.Atoi(rawCapacity)
@@ -678,27 +649,18 @@ func validateConfig() {
 }
 
 func validateSysctlSeeOtherGIDs() {
-	var emptyBytes []byte
-
-	var outBytes bytes.Buffer
-
-	var errBytes bytes.Buffer
-
-	checkCmd := execabs.Command("/sbin/sysctl", "-n", "security.bsd.see_other_gids")
-	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
-	checkCmd.Stdout = &outBytes
-	checkCmd.Stderr = &errBytes
-	err := checkCmd.Run()
-
-	if err != nil {
+	stdOutBytes, stdErrBytes, rc, err := util.RunCmd("/sbin/sysctl", []string{"-n", "security.bsd.see_other_gids"})
+	if string(stdErrBytes) != "" || rc != 0 || err != nil {
 		slog.Error("Failed checking sysctl security.bsd.see_other_gids",
-			"checkCmd.String", checkCmd.String(),
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"rc", rc,
 			"err", err.Error(),
 		)
 		os.Exit(1)
 	}
 
-	seeOtherGids := strings.TrimSpace(outBytes.String())
+	seeOtherGids := strings.TrimSpace(string(stdOutBytes))
 	if seeOtherGids != "1" {
 		slog.Error("Unable to run with other GIDs not visible", "security.bsd.see_other_gids", seeOtherGids)
 		os.Exit(1)
@@ -706,24 +668,18 @@ func validateSysctlSeeOtherGIDs() {
 }
 
 func validateSysctlSeeOtherUIDs() {
-	var emptyBytes []byte
-
-	var outBytes bytes.Buffer
-
-	var errBytes bytes.Buffer
-
-	checkCmd := execabs.Command("/sbin/sysctl", "-n", "security.bsd.see_other_uids")
-	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
-	checkCmd.Stdout = &outBytes
-	checkCmd.Stderr = &errBytes
-	err := checkCmd.Run()
-
-	if err != nil {
-		slog.Error("Failed checking sysctl security.bsd.see_other_uids", "command", checkCmd.String(), "err", err.Error())
+	stdOutBytes, stdErrBytes, rc, err := util.RunCmd("/sbin/sysctl", []string{"-n", "security.bsd.see_other_uids"})
+	if string(stdErrBytes) != "" || rc != 0 || err != nil {
+		slog.Error("Failed checking sysctl security.bsd.see_other_uids",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"rc", rc,
+			"err", err.Error(),
+		)
 		os.Exit(1)
 	}
 
-	seeOtherUids := strings.TrimSpace(outBytes.String())
+	seeOtherUids := strings.TrimSpace(string(stdOutBytes))
 	if seeOtherUids != "1" {
 		slog.Error("Unable to run with other UIDs not visible", "security.bsd.see_other_uids", seeOtherUids)
 		os.Exit(1)
@@ -731,27 +687,18 @@ func validateSysctlSeeOtherUIDs() {
 }
 
 func validateSysctlSecureLevel() {
-	var emptyBytes []byte
-
-	var outBytes bytes.Buffer
-
-	var errBytes bytes.Buffer
-
-	outBytes.Reset()
-	errBytes.Reset()
-
-	checkCmd := execabs.Command("/sbin/sysctl", "-n", "kern.securelevel")
-	checkCmd.Stdin = bytes.NewBuffer(emptyBytes)
-	checkCmd.Stdout = &outBytes
-	checkCmd.Stderr = &errBytes
-	err := checkCmd.Run()
-
-	if err != nil {
-		slog.Error("Failed checking sysctl kern.securelevel", "command", checkCmd.String(), "err", err.Error())
+	stdOutBytes, stdErrBytes, rc, err := util.RunCmd("/sbin/sysctl", []string{"-n", "kern.securelevel"})
+	if string(stdErrBytes) != "" || rc != 0 || err != nil {
+		slog.Error("Failed checking sysctl kern.securelevel",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"rc", rc,
+			"err", err.Error(),
+		)
 		os.Exit(1)
 	}
 
-	secureLevelStr := strings.TrimSpace(outBytes.String())
+	secureLevelStr := strings.TrimSpace(string(stdOutBytes))
 	if err != nil {
 		slog.Error("Failed checking sysctl kern.securelevel", "secureLevelStr", secureLevelStr)
 		os.Exit(1)
