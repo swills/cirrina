@@ -5,22 +5,26 @@ import (
 	"log/slog"
 
 	"github.com/google/uuid"
-	"golang.org/x/sys/execabs"
 
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/epair"
 	vmswitch "cirrina/cirrinad/switch"
+	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vmnic"
 )
 
 func netStartupIf(vmNic vmnic.VMNic) error {
 	// Create interface
-	args := []string{"/sbin/ifconfig", vmNic.NetDev, "create", "group", "cirrinad"}
-	cmd := execabs.Command(config.Config.Sys.Sudo, args...)
-
-	err := cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo, []string{"/sbin/ifconfig", vmNic.NetDev, "create", "group", "cirrinad"},
+	)
 	if err != nil {
-		slog.Error("failed to create tap", "err", err)
+		slog.Error("failed to create tap",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
 		return fmt.Errorf("error running ifconfig command: %w", err)
 	}
@@ -353,15 +357,25 @@ func removeAllNicsFromVM(thisVM *VM) error {
 
 // cleanup tap/vmnet type nic
 func cleanupIfNic(vmNic vmnic.VMNic) error {
+	var stdOutBytes []byte
+
+	var stdErrBytes []byte
+
+	var returnCode int
+
 	var err error
 
 	if vmNic.NetDev != "" {
-		args := []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"}
-		cmd := execabs.Command(config.Config.Sys.Sudo, args...)
-
-		err = cmd.Run()
+		stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
+			config.Config.Sys.Sudo, []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"},
+		)
 		if err != nil {
-			slog.Error("failed to destroy network interface", "err", err)
+			slog.Error("failed to destroy network interface",
+				"stdOutBytes", stdOutBytes,
+				"stdErrBytes", stdErrBytes,
+				"returnCode", returnCode,
+				"err", err,
+			)
 		}
 	}
 
