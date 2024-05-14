@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"sync"
 	"time"
 
@@ -436,8 +435,13 @@ func vmDaemon(events chan supervisor.Event, thisVM *VM) {
 			switch event.Code {
 			case "ProcessStart":
 				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
-				thisVM.SetRunning(thisVM.proc.Pid())
-				vmPid := strconv.FormatInt(int64(findChildPid(uint32(thisVM.proc.Pid()))), 10)
+				vmPid := findChildProcName(uint32(thisVM.proc.Pid()), "bhyve")
+
+				if vmPid == 0 {
+					slog.Error("failed to find vm PID, continuing anyway")
+				}
+
+				thisVM.SetRunning(int(vmPid))
 				slog.Debug("vmDaemon ProcessStart", "bhyvePid", thisVM.BhyvePid, "sudoPid", thisVM.proc.Pid(), "realPid", vmPid)
 				thisVM.setupComLoggers()
 				thisVM.applyResourceLimits(vmPid)

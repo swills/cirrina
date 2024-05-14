@@ -4,7 +4,7 @@ import "errors"
 
 var (
 	errSocketNotFound  = errors.New("failed parsing output, socket not found")
-	errFailedParsing   = errors.New("failed parsing output, statistics not found")
+	errFailedParsing   = errors.New("failed parsing output")
 	errInvalidMac      = errors.New("invalid MAC address")
 	errInvalidNumCPUs  = errors.New("invalid max number of CPUs")
 	errMissingTCPStat  = errors.New("missing tcp-stat")

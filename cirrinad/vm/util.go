@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -358,7 +359,11 @@ func findChildPid(findPid uint32) uint32 {
 		textFields := strings.Fields(line)
 
 		fl := len(textFields)
-		if fl != 1 {
+		if fl <= 0 {
+			continue
+		}
+
+		if fl > 1 {
 			slog.Debug("FindChildPid pgrep extra fields", "line", line)
 		}
 
@@ -384,6 +389,110 @@ func findChildPid(findPid uint32) uint32 {
 	slog.Debug("FindChildPid returning childPid", "childPid", childPid)
 
 	return childPid
+}
+
+func findChildProcName(startPid uint32, procName string) uint32 {
+	// dig around to get the child (bhyve) pid -- life would be so much easier if we could run bhyve as non-root
+	// should fix supervisor to use int32
+	slog.Debug("looking for process with name starting with pid", "procName", procName, "startPid", startPid)
+
+	maxDepth := 4
+
+	count := 0
+
+	childPid := startPid
+
+	foundProcName := findProcName(childPid)
+	// might be "/usr/sbin/bhyve", might be "bhyve:"
+	for !strings.Contains(foundProcName, procName) && count <= maxDepth {
+		count++
+		childPid = findChildPid(childPid)
+
+		if childPid == 0 {
+			return 0
+		}
+
+		foundProcName = findProcName(childPid)
+	}
+	slog.Debug("findChildProcName got process name", "foundProcName", foundProcName)
+
+	return childPid
+}
+
+func findProcName(pid uint32) string {
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		"/bin/ps",
+		[]string{"--libxo", "json", "-p", strconv.FormatInt(int64(pid), 10)},
+	)
+	if err != nil {
+		slog.Error("failed to search for pid",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return ""
+	}
+
+	procName, err := parsePsJSONOutput(stdOutBytes)
+	if err != nil {
+		return ""
+	}
+
+	return procName
+}
+
+func parsePsJSONOutput(psJSONOutput []byte) (string, error) {
+	var result map[string]interface{}
+
+	err := json.Unmarshal(psJSONOutput, &result)
+	if err != nil {
+		return "", fmt.Errorf("failed parsing netstat json output: %w", err)
+	}
+
+	procInfo, valid := result["process-information"].(map[string]interface{})
+	if !valid {
+		return "", errFailedParsing
+	}
+
+	processes, valid := procInfo["process"].([]interface{})
+
+	if !valid {
+		return "", errFailedParsing
+	}
+
+	if len(processes) != 1 {
+		return "", errFailedParsing
+	}
+
+	thisProcInfo := processes[0]
+	procCommand, valid := thisProcInfo.(map[string]interface{})
+
+	if !valid {
+		return "", errFailedParsing
+	}
+
+	procNameFullI, valid := procCommand["command"]
+	if !valid {
+		return "", errFailedParsing
+	}
+
+	procNameFull, valid := procNameFullI.(string)
+
+	if !valid {
+		return "", errFailedParsing
+	}
+
+	procArgList := strings.Split(procNameFull, " ")
+
+	procName := procArgList[0]
+
+	if len(procName) < 1 {
+		return "", errFailedParsing
+	}
+
+	return procName, nil
 }
 
 func startSerialPort(comDev string, comSpeed uint) (*serial.Port, error) {

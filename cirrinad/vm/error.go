@@ -8,6 +8,7 @@ var (
 	errVMUnknownNetDevType = errors.New("unknown net dev type")
 	errVMNotFound          = errors.New("not found")
 	errVMDupe              = errors.New("VM already exists")
+	errFailedParsing       = errors.New("failed parsing output")
 )
 
 var (
