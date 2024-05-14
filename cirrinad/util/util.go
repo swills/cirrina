@@ -154,6 +154,11 @@ func RunCmd(cmdName string, cmdArgs []string) ([]byte, []byte, int, error) {
 
 	var errStdout, errStderr error
 
+	slog.Debug("RunCmd running",
+		"cmdName", cmdName,
+		"cmdArgs", cmdArgs,
+	)
+
 	cmd := exec.Command(cmdName, cmdArgs...)
 
 	stdOutReader, err := cmd.StdoutPipe()
