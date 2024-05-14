@@ -9,7 +9,6 @@ import (
 
 	"github.com/kontera-technologies/go-supervisor/v2"
 	"github.com/tarm/serial"
-	exec "golang.org/x/sys/execabs"
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/config"
@@ -420,8 +419,19 @@ func (vm *VM) MaybeForceKillVM() {
 
 	args := []string{"/usr/sbin/bhyvectl", "--destroy"}
 	args = append(args, "--vm="+vm.Name)
-	cmd := exec.Command(config.Config.Sys.Sudo, args...)
-	_ = cmd.Run()
+
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		args,
+	)
+	if string(stdErrBytes) != "" || returnCode != 0 || err != nil {
+		slog.Error("error running command",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+	}
 }
 
 func vmDaemon(events chan supervisor.Event, thisVM *VM) {
