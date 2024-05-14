@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"bufio"
 	"fmt"
 	"log/slog"
 	"os"
@@ -12,7 +11,6 @@ import (
 	"time"
 
 	"github.com/tarm/serial"
-	"golang.org/x/sys/execabs"
 
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
@@ -312,12 +310,20 @@ func ensureComDevReadable(comDev string) error {
 		return fmt.Errorf("error checking vm com dev: %w", err)
 	}
 
-	args := []string{"/usr/sbin/chown", myUser.Username, comReadDev}
-	cmd := execabs.Command(config.Config.Sys.Sudo, args...)
-
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/chown", myUser.Username, comReadDev},
+	)
 	if err != nil {
-		return fmt.Errorf("failed to fix ownership of comReadDev %s: %w", comReadDev, err)
+		slog.Error("failed to fix ownership of comReadDev",
+			"comReadDev", comReadDev,
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return fmt.Errorf("failed to fix ownership of: comReadDev: %s err: %w", comReadDev, err)
 	}
 
 	slog.Debug("ensureComDevReadable user mismatch fixed")
@@ -331,39 +337,29 @@ func findChildPid(findPid uint32) uint32 {
 	slog.Debug("FindChildPid finding child proc")
 
 	pidString := strconv.FormatUint(uint64(findPid), 10)
-	args := []string{"/bin/pgrep", "-P", pidString}
 
-	cmd := execabs.Command(config.Config.Sys.Sudo, args...)
-	defer func(cmd *execabs.Cmd) {
-		err := cmd.Wait()
-		if err != nil {
-			slog.Error("FindChildPid error", "err", err)
-		}
-	}(cmd)
-
-	stdout, err := cmd.StdoutPipe()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/bin/pgrep", "-P", pidString},
+	)
 	if err != nil {
-		slog.Error("FindChildPid error", "err", err)
-
-		return 0
-	}
-
-	if err = cmd.Start(); err != nil {
-		slog.Error("FindChildPid error", "err", err)
-
-		return 0
+		slog.Error("FindChildPid error",
+			"pidString", pidString,
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 	}
 
 	found := false
 
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		text := scanner.Text()
-		textFields := strings.Fields(text)
+	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+		textFields := strings.Fields(line)
 
 		fl := len(textFields)
 		if fl != 1 {
-			slog.Debug("FindChildPid pgrep extra fields", "text", text)
+			slog.Debug("FindChildPid pgrep extra fields", "line", line)
 		}
 
 		var tempPid1 uint64
@@ -383,10 +379,6 @@ func findChildPid(findPid uint32) uint32 {
 		} else {
 			slog.Debug("FindChildPid found too many child procs")
 		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		slog.Error("FindChildPid error", "err", err)
 	}
 
 	slog.Debug("FindChildPid returning childPid", "childPid", childPid)
