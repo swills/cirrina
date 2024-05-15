@@ -1,15 +1,10 @@
 package vmswitch
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
-	"io"
 	"log/slog"
 	"strconv"
 	"strings"
-
-	exec "golang.org/x/sys/execabs"
 
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
@@ -20,42 +15,30 @@ func GetAllIfBridges() ([]string, error) {
 
 	var bridges []string
 
-	cmd := exec.Command("/sbin/ifconfig", "-g", "bridge")
-	defer func(cmd *exec.Cmd) {
-		err = cmd.Wait()
-		if err != nil {
-			slog.Error("ifconfig error", "err", err)
-		}
-	}(cmd)
-
-	var stdout io.ReadCloser
-
-	stdout, err = cmd.StdoutPipe()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd("/sbin/ifconfig", []string{"-g", "bridge"})
 	if err != nil {
-		return nil, fmt.Errorf("failed running ifconfig command: %w", err)
+		slog.Error("ifconfig error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return nil, fmt.Errorf("ifconfig error: %w", err)
 	}
 
-	if err = cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed running ifconfig command: %w", err)
-	}
+	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+		if len(line) == 0 {
+			continue
+		}
 
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		text := scanner.Text()
-
-		textFields := strings.Fields(text)
+		textFields := strings.Fields(line)
 		if len(textFields) != 1 {
 			continue
 		}
 
 		aBridgeName := textFields[0]
 		bridges = append(bridges, aBridgeName)
-	}
-
-	if err = scanner.Err(); err != nil {
-		slog.Error("error scanning ifconfig output", "err", err)
-
-		return []string{}, fmt.Errorf("failed parsing ifconfig output: %w", err)
 	}
 
 	return bridges, nil
@@ -66,32 +49,24 @@ func getIfBridgeMembers(name string) ([]string, error) {
 
 	var err error
 
-	args := []string{name}
-
-	cmd := exec.Command("/sbin/ifconfig", args...)
-	defer func(cmd *exec.Cmd) {
-		err = cmd.Wait()
-		if err != nil {
-			slog.Error("ifconfig error", "err", err)
-		}
-	}(cmd)
-
-	var stdout io.ReadCloser
-
-	stdout, err = cmd.StdoutPipe()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd("/sbin/ifconfig", []string{name})
 	if err != nil {
-		return nil, fmt.Errorf("failed running ifconfig command: %w", err)
+		slog.Error("ifconfig error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return nil, fmt.Errorf("ifconfig error: %w", err)
 	}
 
-	if err = cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed running ifconfig command: %w", err)
-	}
+	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+		if len(line) == 0 {
+			continue
+		}
 
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		text := scanner.Text()
-
-		textFields := strings.Fields(text)
+		textFields := strings.Fields(line)
 		if len(textFields) != 3 {
 			continue
 		}
@@ -102,12 +77,6 @@ func getIfBridgeMembers(name string) ([]string, error) {
 
 		aBridgeMember := textFields[1]
 		members = append(members, aBridgeMember)
-	}
-
-	if err = scanner.Err(); err != nil {
-		slog.Error("error scanning ifconfig output", "err", err)
-
-		return []string{}, fmt.Errorf("failed parsing ifconfig output: %w", err)
 	}
 
 	return members, nil
@@ -147,19 +116,19 @@ func createIfBridge(name string) error {
 }
 
 func actualIfBridgeCreate(name string) error {
-	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", name, "create", "group", "cirrinad", "up")
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/sbin/ifconfig", name, "create", "group", "cirrinad", "up"},
+	)
+	if err != nil {
+		slog.Error("ifconfig error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-	var out bytes.Buffer
-
-	cmd.Stdout = &out
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed running ifconfig: %w", err)
-	}
-
-	if err := cmd.Wait(); err != nil {
-		slog.Error("failed running ifconfig", "err", err, "out", out)
-
-		return fmt.Errorf("failed running ifconfig: %w", err)
+		return fmt.Errorf("ifconfig error: %w", err)
 	}
 
 	return nil
@@ -184,19 +153,19 @@ func bridgeIfDeleteAllMembers(name string) error {
 }
 
 func bridgeIfDeleteMember(bridgeName string, memberName string) error {
-	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "deletem", memberName)
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/sbin/ifconfig", bridgeName, "deletem", memberName},
+	)
+	if err != nil {
+		slog.Error("ifconfig error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-	var out bytes.Buffer
-
-	cmd.Stdout = &out
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("failed running ifconfig: %w", err)
-	}
-
-	if err := cmd.Wait(); err != nil {
-		slog.Error("failed running ifconfig", "err", err, "out", out)
-
-		return fmt.Errorf("failed running ifconfig: %w", err)
+		return fmt.Errorf("ifconfig error: %w", err)
 	}
 
 	return nil

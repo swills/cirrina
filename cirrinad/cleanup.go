@@ -3,8 +3,8 @@ package main
 import (
 	"log/slog"
 	"net"
+	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	"cirrina/cirrinad/config"
@@ -45,12 +45,18 @@ func cleanupVms() {
 		}
 
 		if pidStat {
-			slog.Debug("leftover VM exists", "name", aVM.Name, "pid", aVM.BhyvePid, "maxWait", aVM.Config.MaxWait)
+			slog.Debug("leftover VM process running, stopping",
+				"name", aVM.Name,
+				"pid", aVM.BhyvePid,
+				"maxWait", aVM.Config.MaxWait,
+			)
+			aVM.SetStopping()
 			killLeftoverVM(aVM)
 		}
 
 		slog.Debug("destroying VM", "name", aVM.Name)
 		aVM.MaybeForceKillVM()
+		aVM.SetStopped()
 	}
 }
 
@@ -61,7 +67,20 @@ func killLeftoverVM(aVM *vm.VM) {
 
 	var sleptTime time.Duration
 
-	_ = syscall.Kill(int(aVM.BhyvePid), syscall.SIGTERM)
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/bin/kill", strconv.FormatUint(uint64(aVM.BhyvePid), 10)},
+	)
+	if err != nil {
+		slog.Error("ifconfig error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return
+	}
 
 	for {
 		pidStat, err = util.PidExists(int(aVM.BhyvePid))
