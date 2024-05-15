@@ -1,16 +1,13 @@
 package disk
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"log/slog"
 	"strconv"
 	"strings"
 
-	exec "golang.org/x/sys/execabs"
-
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/util"
 )
 
 func GetAllZfsVolumes() ([]string, error) {
@@ -18,39 +15,33 @@ func GetAllZfsVolumes() ([]string, error) {
 
 	var err error
 
-	cmd := exec.Command("/sbin/zfs", "list", "-t", "volume", "-o", "name", "-H")
-	defer func(cmd *exec.Cmd) {
-		err = cmd.Wait()
-		if err != nil {
-			slog.Error("zfs error", "err", err)
-		}
-	}(cmd)
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		"/sbin/zfs",
+		[]string{"list", "-t", "volume", "-o", "name", "-H"},
+	)
 
-	var stdout io.ReadCloser
-
-	stdout, err = cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("failed running zfs command: %w", err)
+		slog.Error("failed to list zfs volumes",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return nil, fmt.Errorf("failed to list zfs volumes: %w", err)
 	}
 
-	if err = cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed running zfs command: %w", err)
-	}
+	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+		if len(line) == 0 {
+			continue
+		}
 
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		text := scanner.Text()
-
-		textFields := strings.Fields(text)
+		textFields := strings.Fields(line)
 		if len(textFields) != 1 {
 			continue
 		}
 
 		allVolumes = append(allVolumes, textFields[0])
-	}
-
-	if err = scanner.Err(); err != nil {
-		return nil, fmt.Errorf("failed parsing zfs output: %w", err)
 	}
 
 	return allVolumes, nil
@@ -63,43 +54,37 @@ func GetZfsVolumeSize(volumeName string) (uint64, error) {
 
 	found := false
 
-	cmd := exec.Command("/sbin/zfs", "list", "-H", "-p", "-t", "volume", "-o", "volsize", volumeName)
-	defer func(cmd *exec.Cmd) {
-		err = cmd.Wait()
-		if err != nil {
-			slog.Error("zfs error", "err", err)
-		}
-	}(cmd)
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		"/sbin/zfs",
+		[]string{"list", "-H", "-p", "-t", "volume", "-o", "volsize", volumeName},
+	)
 
-	var stdout io.ReadCloser
-
-	stdout, err = cmd.StdoutPipe()
 	if err != nil {
-		return 0, fmt.Errorf("failed running zfs command: %w", err)
-	}
+		slog.Error("failed to get zfs volume size",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-	if err = cmd.Start(); err != nil {
-		return 0, fmt.Errorf("failed running zfs command: %w", err)
+		return 0, fmt.Errorf("failed to get zfs volume size: %w", err)
 	}
-
-	scanner := bufio.NewScanner(stdout)
 
 	var volSizeStr string
 
-	for scanner.Scan() {
-		text := scanner.Text()
+	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+		if len(line) == 0 {
+			continue
+		}
 
-		textFields := strings.Fields(text)
+		textFields := strings.Fields(line)
+
 		if len(textFields) != 1 {
 			continue
 		}
 
 		volSizeStr = textFields[0]
 		found = true
-	}
-
-	if err = scanner.Err(); err != nil {
-		return 0, fmt.Errorf("failed parsing zfs output: %w", err)
 	}
 
 	if !found {
@@ -115,47 +100,41 @@ func GetZfsVolumeSize(volumeName string) (uint64, error) {
 }
 
 func getZfsVolBlockSize(volumeName string) (uint64, error) {
-	found := false
-
-	cmd := exec.Command("/sbin/zfs", "get", "-H", "-p", "volblocksize", volumeName)
-	defer func(cmd *exec.Cmd) {
-		err := cmd.Wait()
-		if err != nil {
-			slog.Error("zfs error", "err", err)
-		}
-	}(cmd)
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return 0, fmt.Errorf("failed running zfs command: %w", err)
-	}
-
-	if err = cmd.Start(); err != nil {
-		return 0, fmt.Errorf("failed running zfs command: %w", err)
-	}
-
-	scanner := bufio.NewScanner(stdout)
-
 	var volSizeStr string
 
-	for scanner.Scan() {
+	found := false
+
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		"/sbin/zfs",
+		[]string{"get", "-H", "-p", "volblocksize", volumeName},
+	)
+	if err != nil {
+		slog.Error("failed to get zfs volume block size",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return 0, fmt.Errorf("failed to get zfs volume block size: %w", err)
+	}
+
+	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+		if len(line) == 0 {
+			continue
+		}
+
 		if found {
 			return 0, errDiskDupe
 		}
 
-		text := scanner.Text()
-
-		textFields := strings.Fields(text)
+		textFields := strings.Fields(line)
 		if len(textFields) != 4 {
 			continue
 		}
 
 		volSizeStr = textFields[2]
 		found = true
-	}
-
-	if err = scanner.Err(); err != nil {
-		return 0, fmt.Errorf("failed parsing zfs output: %w", err)
 	}
 
 	if !found {
@@ -216,7 +195,7 @@ func SetZfsVolumeSize(volumeName string, volSize uint64) error {
 	}
 
 	if volSize < currentVolSize {
-		// maybe I don't care when uploading new disk image -- will care on disk expand, adjust this later so
+		// maybe I don't care when uploading new disk image -- will care on disk expand, adjust this later, so
 		// we can force it if the user accepts data loss
 		slog.Error("SetZfsVolumeSize", "error", "new disk smaller than current disk")
 
@@ -224,65 +203,53 @@ func SetZfsVolumeSize(volumeName string, volSize uint64) error {
 	}
 
 	volSizeStr := fmt.Sprintf("volsize=%d", volSize)
-	args := []string{"/sbin/zfs", "set", volSizeStr, volumeName}
-	slog.Debug("setting disk size", "volName", volumeName, "size", volSize)
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/sbin/zfs", "set", volSizeStr, volumeName},
+	)
 
-	cmd := exec.Command(config.Config.Sys.Sudo, args...)
-
-	err = cmd.Run()
 	if err != nil {
-		slog.Error("failed to set disk size", "err", err)
+		slog.Error("failed to set zfs volume size",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-		return fmt.Errorf("failed running zfs command: %w", err)
+		return fmt.Errorf("failed to set zfs volume size: %w", err)
 	}
 
 	return nil
 }
 
 func GetZfsVolumeUsage(volumeName string) (uint64, error) {
-	var volUsage uint64
+	var volSizeStr string
 
-	var err error
+	var volUsage uint64
 
 	found := false
 
-	cmd := exec.Command("/sbin/zfs", "list", "-H", "-p", "-t", "volume", "-o", "refer", volumeName)
-	defer func(cmd *exec.Cmd) {
-		err = cmd.Wait()
-		if err != nil {
-			slog.Error("zfs error", "err", err)
-		}
-	}(cmd)
-
-	var stdout io.ReadCloser
-
-	stdout, err = cmd.StdoutPipe()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		"/sbin/zfs",
+		[]string{"list", "-H", "-p", "-t", "volume", "-o", "refer", volumeName},
+	)
 	if err != nil {
-		return 0, fmt.Errorf("failed running zfs command: %w", err)
+		slog.Error("failed to get zfs volume usage",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 	}
 
-	if err = cmd.Start(); err != nil {
-		return 0, fmt.Errorf("failed running zfs command: %w", err)
-	}
-
-	scanner := bufio.NewScanner(stdout)
-
-	var volSizeStr string
-
-	for scanner.Scan() {
-		text := scanner.Text()
-
-		textFields := strings.Fields(text)
+	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+		textFields := strings.Fields(line)
 		if len(textFields) != 1 {
 			continue
 		}
 
 		volSizeStr = textFields[0]
 		found = true
-	}
-
-	if err = scanner.Err(); err != nil {
-		return 0, fmt.Errorf("failed parsing zfs output: %w", err)
 	}
 
 	if !found {

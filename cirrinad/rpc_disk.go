@@ -487,6 +487,7 @@ func validateDiskReq(diskUploadReq *cirrina.DiskUploadInfo) (*disk.Disk, error) 
 			return nil, errInvalidVMStateDiskUpload
 		}
 	}
+
 	// not technically "validation" per se, but it needs to be done
 	if diskInst.DevType == "ZVOL" {
 		err = disk.SetZfsVolumeSize(config.Config.Disk.VM.Path.Zpool+"/"+diskInst.Name, diskUploadReq.GetSize())

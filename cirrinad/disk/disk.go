@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"sync"
 
-	exec "golang.org/x/sys/execabs"
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/config"
@@ -44,7 +43,7 @@ func Create(diskInst *Disk, size string) error {
 	var diskSize uint64
 
 	// check db for existing disk
-	diskAlreadyExists, err := diskExists(diskInst.Name)
+	diskAlreadyExists, err := diskExists(diskInst)
 	if err != nil {
 		slog.Error("error checking db for disk", "name", diskInst.Name, "err", err)
 
@@ -124,94 +123,110 @@ func diskTypeValid(diskType string) bool {
 	}
 }
 
-func checkDiskExistsZvolType(name string, volName string) error {
+func checkDiskExistsZvolType(name string, volName string) (bool, error) {
 	// for zvols, check both the volName and the volume name in zfs list
 	allVolumes, err := GetAllZfsVolumes()
 	if err != nil {
 		slog.Error("error checking if disk exists", "err", err)
 
-		return fmt.Errorf("error checking if disk exists: %w", err)
+		// assume disks exists if there's an error checking to be on safe side
+		return true, fmt.Errorf("error checking if disk exists: %w", err)
 	}
 
 	if util.ContainsStr(allVolumes, volName) {
 		slog.Error("disk volume exists", "disk", name, "volName", volName)
 
-		return errDiskExists
+		return true, nil
 	}
 
 	diskExists, err := util.PathExists("/dev/zvol/" + volName)
 	if err != nil {
 		slog.Error("error checking if disk exists", "volName", volName, "err", err)
 
-		return fmt.Errorf("error checking if disk exists: %w", err)
+		// assume disks exists if there's an error checking to be on safe side
+		return true, fmt.Errorf("error checking if disk exists: %w", err)
 	}
 
 	if diskExists {
 		slog.Error("disk vol path exists", "disk", name, "volName", volName)
 
-		return errDiskExists
+		return true, nil
 	}
 
-	return nil
+	return false, nil
 }
 
-func checkDiskExistsFileType(name string, filePath string) error {
+func checkDiskExistsFileType(name string, filePath string) (bool, error) {
 	// for files, just check the filePath
 	diskPathExists, err := util.PathExists(filePath)
 	if err != nil {
 		slog.Error("error checking if disk exists", "filePath", filePath, "err", err)
 
-		return fmt.Errorf("error checking if disk exists: %w", err)
+		// assume disks exists if there's an error checking to be on safe side
+		return true, fmt.Errorf("error checking if disk exists: %w", err)
 	}
 
 	if diskPathExists {
 		slog.Error("disk file exists", "disk", name, "filePath", filePath)
 
-		return errDiskExists
+		return true, nil
 	}
 
-	return nil
+	return false, nil
 }
 
 func createDiskFile(filePath string, diskSize uint64) error {
-	args := []string{"/usr/bin/truncate", "-s", strconv.FormatUint(diskSize, 10), filePath}
-	slog.Debug("creating disk", "filePath", filePath, "size", diskSize, "args", args)
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/bin/truncate", "-s", strconv.FormatUint(diskSize, 10), filePath},
+	)
+	if err != nil {
+		slog.Error("failed to create disk",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return fmt.Errorf("error creating disk: %w", err)
+	}
 
 	myUser, err := user.Current()
 	if err != nil {
 		return fmt.Errorf("error creating disk: %w", err)
 	}
 
-	cmd := exec.Command(config.Config.Sys.Sudo, args...)
-
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/chown", myUser.Username, filePath},
+	)
 	if err != nil {
-		slog.Error("failed to create disk", "err", err)
+		slog.Error("failed to fix ownership of disk file",
+			"filePath", filePath,
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-		return fmt.Errorf("error creating disk: %w", err)
-	}
-
-	args = []string{"/usr/sbin/chown", myUser.Username, filePath}
-	cmd = exec.Command(config.Config.Sys.Sudo, args...)
-
-	err = cmd.Run()
-	if err != nil {
 		return fmt.Errorf("failed to fix ownership of disk file %s: %w", filePath, err)
 	}
-
-	slog.Debug("disk.Create user mismatch fixed")
 
 	return nil
 }
 
 func createDiskZvol(volName string, size uint64) error {
-	args := []string{"/sbin/zfs", "create", "-o", "volmode=dev", "-V", strconv.FormatUint(size, 10), "-s", volName}
-	slog.Debug("creating disk", "args", args)
-	cmd := exec.Command(config.Config.Sys.Sudo, args...)
-
-	err := cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/sbin/zfs", "create", "-o", "volmode=dev", "-V", strconv.FormatUint(size, 10), "-s", volName},
+	)
 	if err != nil {
-		slog.Error("failed to create disk", "err", err)
+		slog.Error("failed to create disk",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
 		return fmt.Errorf("error creating disk: %w", err)
 	}
@@ -371,45 +386,52 @@ func validateDisk(diskInst *Disk) error {
 	return nil
 }
 
-func diskExists(diskName string) (bool, error) {
+func diskExists(diskInst *Disk) (bool, error) {
 	var err error
-	memDiskInst, err := GetByName(diskName)
+
+	// check in memory for disk
+	memDiskInst, err := GetByName(diskInst.Name)
 
 	if err != nil {
+		// if errDiskNotFound, check other places just to be sure
+		// if not errDiskNotFound, there must be some internal issue, play it safe
 		if !errors.Is(err, errDiskNotFound) {
-			slog.Error("error checking db for disk", "name", diskName, "err", err)
+			slog.Error("error checking db for disk", "name", diskInst.Name, "err", err)
 
-			return false, err
+			// assume disks exists if there's an error checking to be on safe side
+			return true, err
 		}
-
-		return false, nil
 	}
 
+	// check db for disk
 	if memDiskInst != nil && memDiskInst.Name != "" {
 		return true, nil
 	}
 
 	allDisks := GetAllDB()
 	for _, dbDiskInst := range allDisks {
-		if dbDiskInst.Name == diskName {
+		if dbDiskInst.Name == diskInst.Name {
 			return true, nil
 		}
 	}
 
-	// check system for existing disk
-	switch memDiskInst.DevType {
-	case "FILE":
-		err := checkDiskExistsFileType(memDiskInst.Name, memDiskInst.GetPath())
-		if err != nil {
-			return false, err
-		}
-	case "ZVOL":
-		err := checkDiskExistsZvolType(memDiskInst.Name, memDiskInst.GetPath())
-		if err != nil {
-			return false, err
-		}
-	default:
-		return false, errDiskInvalidDevType
+	// check file system/zpool for disk
+	diskFileExists, err := checkDiskExistsFileType(diskInst.Name, diskInst.GetPath())
+	if err != nil {
+		return true, err
+	}
+
+	if diskFileExists {
+		return true, nil
+	}
+
+	diskZvolExists, err := checkDiskExistsZvolType(diskInst.Name, diskInst.GetPath())
+	if err != nil {
+		return true, err
+	}
+
+	if diskZvolExists {
+		return true, nil
 	}
 
 	return false, nil
