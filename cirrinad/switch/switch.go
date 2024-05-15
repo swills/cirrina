@@ -1,7 +1,6 @@
 package vmswitch
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -10,7 +9,6 @@ import (
 	"unicode"
 
 	"github.com/google/uuid"
-	exec "golang.org/x/sys/execabs"
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/config"
@@ -326,17 +324,19 @@ func DestroyBridges() {
 
 func BridgeIfAddMember(bridgeName string, memberName string) error {
 	// TODO - check that the member name is a host interface or a VM nic interface
-	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", bridgeName, "addm", memberName)
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/sbin/ifconfig", bridgeName, "addm", memberName},
+	)
+	if err != nil {
+		slog.Error("ifconfig error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-	var out bytes.Buffer
-
-	cmd.Stdout = &out
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("error running ifconfig command: %w", err)
-	}
-
-	if err := cmd.Wait(); err != nil {
-		return fmt.Errorf("error running ifconfig: %w", err)
+		return fmt.Errorf("ifconfig error: %w", err)
 	}
 
 	return nil
@@ -649,14 +649,19 @@ func BridgeNgAddMember(bridgeName string, memberName string) error {
 		return err
 	}
 
-	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "connect",
-		memberName+":", bridgeName+":", "lower", link)
-
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "connect", memberName + ":", bridgeName + ":", "lower", link},
+	)
 	if err != nil {
-		slog.Error("ngctl connect error", "err", err)
+		slog.Error("ngctl connect error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-		return fmt.Errorf("error running ngctl command: %w", err)
+		return fmt.Errorf("ngctl connect error: %w", err)
 	}
 
 	link, err = ngGetBridgeNextLink(bridgeName)
@@ -664,14 +669,19 @@ func BridgeNgAddMember(bridgeName string, memberName string) error {
 		return err
 	}
 
-	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "connect",
-		memberName+":", bridgeName+":", "upper", link)
-
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "connect", memberName + ":", bridgeName + ":", "upper", link},
+	)
 	if err != nil {
-		slog.Error("ngctl connect error", "err", err)
+		slog.Error("ngctl connect error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-		return fmt.Errorf("error running ngctl command: %w", err)
+		return fmt.Errorf("ngctl connect error: %w", err)
 	}
 
 	return nil
@@ -692,19 +702,19 @@ func DestroyIfBridge(name string, cleanup bool) error {
 		}
 	}
 
-	cmd := exec.Command(config.Config.Sys.Sudo, "/sbin/ifconfig", name, "destroy")
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/sbin/ifconfig", name, "destroy"},
+	)
+	if err != nil {
+		slog.Error("ifconfig destroy error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-	var out bytes.Buffer
-
-	cmd.Stdout = &out
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("error running ifconfig command: %w", err)
-	}
-
-	if err := cmd.Wait(); err != nil {
-		slog.Error("failed running ifconfig", "err", err, "out", out)
-
-		return fmt.Errorf("error running ifconfig command: %w", err)
+		return fmt.Errorf("ifconfig destroy error: %w", err)
 	}
 
 	return nil
@@ -717,14 +727,19 @@ func DestroyNgBridge(netDev string) error {
 		return errSwitchInvalidNetDevEmpty
 	}
 
-	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
-		netDev+":", "shutdown")
-
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "msg", netDev + ":", "shutdown"},
+	)
 	if err != nil {
-		slog.Error("ngctl msg shutdown error", "err", err)
+		slog.Error("ngctl msg shutdown error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-		return fmt.Errorf("error running ngctl command: %w", err)
+		return fmt.Errorf("ngctl msg shutdown error: %w", err)
 	}
 
 	return nil
