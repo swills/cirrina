@@ -2409,3 +2409,52 @@ func TestGetHostMaxVMCpusWrapperSuccess1(t *testing.T) {
 		})
 	}
 }
+
+func TestNumCpusValid(t *testing.T) {
+	type args struct {
+		numCpus uint16
+	}
+
+	tests := []struct {
+		name                 string
+		args                 args
+		mockGetHostMaxVMCpus func() (uint16, error)
+		want                 bool
+	}{
+		{
+			name: "success1",
+			args: args{numCpus: 92},
+			mockGetHostMaxVMCpus: func() (uint16, error) {
+				return 128, nil
+			},
+			want: true,
+		},
+		{
+			name: "fail1",
+			args: args{numCpus: 92},
+			mockGetHostMaxVMCpus: func() (uint16, error) {
+				return 12, nil
+			},
+			want: false,
+		},
+		{
+			name: "fail2",
+			args: args{numCpus: 2},
+			mockGetHostMaxVMCpus: func() (uint16, error) {
+				return 12, errInvalidNumCPUs
+			},
+			want: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			GetHostMaxVMCpusFunc = testCase.mockGetHostMaxVMCpus
+
+			if got := NumCpusValid(testCase.args.numCpus); got != testCase.want {
+				t.Errorf("NumCpusValid() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}

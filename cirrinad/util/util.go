@@ -144,6 +144,7 @@ func captureReader(ioReader io.Reader) ([]byte, error) {
 }
 
 var execute = exec.Command
+var GetHostMaxVMCpusFunc = GetHostMaxVMCpus
 
 // RunCmd execute a system command and return stdout, stderr, return code and any internal errors
 // encountered running the command
@@ -452,25 +453,15 @@ func ValidDiskName(name string) bool {
 		return false
 	}
 
-	matchesDoubleDot, err := regexp.MatchString(`\.\.`, name)
-	if err != nil {
-		return false
-	}
+	matchesDoubleDot, _ := regexp.MatchString(`\.\.`, name)
 
 	if matchesDoubleDot {
 		return false
 	}
 
-	matchesLeadingDot, err := regexp.MatchString(`^\.`, name)
-	if err != nil {
-		return false
-	}
+	matchesLeadingDot, _ := regexp.MatchString(`^\.`, name)
 
-	if matchesLeadingDot {
-		return false
-	}
-
-	return true
+	return !matchesLeadingDot
 }
 
 // ValidIsoName checks if a name is a valid name for an ISO
@@ -747,7 +738,7 @@ func multiplyWillOverflow(xVal, yVal uint64) bool {
 }
 
 func NumCpusValid(numCpus uint16) bool {
-	hostCpus, err := GetHostMaxVMCpus()
+	hostCpus, err := GetHostMaxVMCpusFunc()
 	if err != nil {
 		slog.Error("error getting number of host cpus", "err", err)
 
@@ -762,6 +753,8 @@ func NumCpusValid(numCpus uint16) bool {
 }
 
 // SetupTestCmd replaces the executing command to the fake function implemented by Go lang
+// from https://github.com/shadow3x3x3/go-mock-exec-command-example
+// which is based on https://github.com/golang/go/blob/master/src/os/exec/exec_test.go
 func SetupTestCmd(fakeExecute func(command string, args ...string) *exec.Cmd) {
 	execute = fakeExecute
 }
