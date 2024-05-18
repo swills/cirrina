@@ -1,0 +1,48 @@
+{
+  "statistics": {
+    "socket": [
+      {
+        "protocol": "tcp4",
+        "receive-bytes-waiting": 0,
+        "send-bytes-waiting": 0,
+        "local": {
+          "address": "*",
+          "port": "7900"
+        },
+        "remote": {
+          "address": "*",
+          "port": "*"
+        },
+        "tcp-state": "LISTEN     "
+      },
+      {
+        "protocol": "tcp4",
+        "receive-bytes-waiting": 0,
+        "send-bytes-waiting": 0,
+        "local": {
+          "address": "*",
+          "port": "7901"
+        },
+        "remote": {
+          "address": "*",
+          "port": "*"
+        },
+        "tcp-state": "LISTEN     "
+      },
+      {
+        "protocol": "tcp4",
+        "receive-bytes-waiting": 0,
+        "send-bytes-waiting": 0,
+        "local": {
+          "address": "*",
+          "port": "7902"
+        },
+        "remote": {
+          "address": "*",
+          "port": "*"
+        },
+        "tcp-state": "LISTEN     "
+      }
+    ]
+  }
+}
