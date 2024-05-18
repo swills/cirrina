@@ -97,8 +97,13 @@ fabric.properties
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
+# Python Virtual Environment
+.venv
+venv.bak/
+
 # Go workspace file
 go.work
+
 /cirrinad/cirrinad
 /cirrinactl/cirrinactl
 /cirrinad/cirrina.sqlite
