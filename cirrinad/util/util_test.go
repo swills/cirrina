@@ -2471,6 +2471,10 @@ func StubGetIntGroupSuccess1(intName string) ([]string, error) {
 	}
 }
 
+func StubGetIntGroupError1(_ string) ([]string, error) {
+	return []string{}, fmt.Errorf("some getIntGroup error: %w", errFailedParsing)
+}
+
 func TestGetHostInterfaces(t *testing.T) {
 	tests := []struct {
 		name                string
@@ -2485,6 +2489,13 @@ func TestGetHostInterfaces(t *testing.T) {
 			getIntGroupStubFunc: StubGetIntGroupSuccess1,
 			want:                []string{"def0"},
 			wantErr:             false,
+		},
+		{
+			name:                "error1",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetIntGroupError1,
+			want:                []string{},
+			wantErr:             true,
 		},
 	}
 
