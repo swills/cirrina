@@ -2,8 +2,10 @@ package util
 
 import (
 	"fmt"
+	"io/fs"
 	"log"
 	"math/rand"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -2389,13 +2391,9 @@ func TestGetHostMaxVMCpusWrapperSuccess1(t *testing.T) {
 		},
 	}
 
-	t.Parallel()
-
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
 			got, err := GetHostMaxVMCpus()
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("GetHostMaxVMCpus() error = %v, wantErr %v", err, testCase.wantErr)
@@ -2450,10 +2448,283 @@ func TestNumCpusValid(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			GetHostMaxVMCpusFunc = testCase.mockGetHostMaxVMCpus
+			getHostMaxVMCpusFunc = testCase.mockGetHostMaxVMCpus
+
+			t.Cleanup(func() { getHostMaxVMCpusFunc = GetHostMaxVMCpus })
 
 			if got := NumCpusValid(testCase.args.numCpus); got != testCase.want {
 				t.Errorf("NumCpusValid() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestGetMyUIDGID(t *testing.T) {
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{
+			name:    "success1",
+			wantErr: false,
+		},
+	}
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			_, _, err := GetMyUIDGID()
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetMyUIDGID() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+		})
+	}
+}
+
+func TestModeIsExecOther(t *testing.T) {
+	type args struct {
+		mode os.FileMode
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "success1",
+			args: args{mode: 0o001},
+			want: true,
+		},
+		{
+			name: "fail1",
+			args: args{mode: 0o002},
+			want: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			if got := ModeIsExecOther(testCase.args.mode); got != testCase.want {
+				t.Errorf("ModeIsExecOther() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestModeIsSuid(t *testing.T) {
+	type args struct {
+		mode fs.FileMode
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "success1",
+			args: args{mode: fs.ModeSetuid},
+			want: true,
+		},
+		{
+			name: "fail1",
+			args: args{mode: fs.ModeDevice},
+			want: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			if got := ModeIsSuid(testCase.args.mode); got != testCase.want {
+				t.Errorf("ModeIsSuid() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func StubHostInterfacesSuccess1() ([]net.Interface, error) {
+	someInterfaces := []net.Interface{
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "abc0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "def0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+	}
+
+	return someInterfaces, nil
+}
+
+func StubGetIntGroupSuccess1(intName string) ([]string, error) {
+	switch intName {
+	case "abc0":
+		return []string{"cirrinad"}, nil
+	case "lo0":
+		return []string{"lo"}, nil
+	default:
+		return nil, nil
+	}
+}
+
+func TestGetHostInterfaces(t *testing.T) {
+	tests := []struct {
+		name                string
+		hostIntStubFunc     func() ([]net.Interface, error)
+		getIntGroupStubFunc func(string) ([]string, error)
+		want                []string
+		wantErr             bool
+	}{
+		{
+			name:                "success1",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetIntGroupSuccess1,
+			want:                []string{"def0"},
+			wantErr:             false,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			netInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { netInterfacesFunc = net.Interfaces })
+
+			getIntGroupsFunc = testCase.getIntGroupStubFunc
+
+			t.Cleanup(func() { getIntGroupsFunc = GetIntGroups })
+
+			got := GetHostInterfaces()
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func TestGetIntGroupsLoZero(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	lo0Stdout := `lo0: flags=1008049<UP,LOOPBACK,RUNNING,MULTICAST,LOWER_UP> metric 0 mtu 16384
+	options=680003<RXCSUM,TXCSUM,LINKSTATE,RXCSUM_IPV6,TXCSUM_IPV6>
+		inet 127.0.0.1 netmask 0xff000000
+inet6 ::1 prefixlen 128
+	inet6 fe80::1%lo0 prefixlen 64 scopeid 0x3
+groups: lo
+	nd6 options=21<PERFORMNUD,AUTO_LINKLOCAL>
+`
+	_, _ = fmt.Print(lo0Stdout) //nolint:forbidigo
+
+	os.Exit(0)
+}
+
+func TestGetIntGroupsIXZero(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	//nolint:lll
+	ix0Stdout := `ix0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=4e53fbb<RXCSUM,TXCSUM,VLAN_MTU,VLAN_HWTAGGING,JUMBO_MTU,VLAN_HWCSUM,TSO4,TSO6,LRO,WOL_UCAST,WOL_MCAST,WOL_MAGIC,VLAN_HWFILTER,VLAN_HWTSO,RXCSUM_IPV6,TXCSUM_IPV6,HWSTATS,MEXTPG>
+        ether a0:36:9f:87:6e:06
+        media: Ethernet autoselect (1000baseT <full-duplex,rxpause,txpause>)
+        status: active
+        nd6 options=29<PERFORMNUD,IFDISABLED,AUTO_LINKLOCAL>
+`
+	_, _ = fmt.Print(ix0Stdout) //nolint:forbidigo
+
+	os.Exit(0)
+}
+
+func TestGetIntGroupsError1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(1)
+}
+
+func TestGetIntGroupsWrapper(t *testing.T) {
+	type args struct {
+		interfaceName string
+	}
+
+	tests := []struct {
+		name        string
+		args        args
+		mockCmdFunc string
+		want        []string
+		wantErr     bool
+	}{
+		{
+			name:        "lo0",
+			args:        args{interfaceName: "lo0"},
+			mockCmdFunc: "TestGetIntGroupsLoZero",
+			want:        []string{"lo"},
+			wantErr:     false,
+		},
+		{
+			name:        "ix0",
+			args:        args{interfaceName: "ix0"},
+			mockCmdFunc: "TestGetIntGroupsIXZero",
+			want:        nil,
+			wantErr:     false,
+		},
+		{
+			name:        "error1",
+			args:        args{interfaceName: "ab0"},
+			mockCmdFunc: "TestGetIntGroupsError1",
+			want:        []string{},
+			wantErr:     true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc) // prevents parallel testing
+
+			SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { TearDownTestCmd() })
+
+			got, err := GetIntGroups(testCase.args.interfaceName)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetIntGroups() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}

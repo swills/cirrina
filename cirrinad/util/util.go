@@ -27,6 +27,12 @@ import (
 	"cirrina/cirrinad/config"
 )
 
+// to allow testing
+var execute = exec.Command
+var getHostMaxVMCpusFunc = GetHostMaxVMCpus
+var getIntGroupsFunc = GetIntGroups
+var netInterfacesFunc = net.Interfaces
+
 func PathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err != nil {
@@ -142,9 +148,6 @@ func captureReader(ioReader io.Reader) ([]byte, error) {
 		}
 	}
 }
-
-var execute = exec.Command
-var GetHostMaxVMCpusFunc = GetHostMaxVMCpus
 
 // RunCmd execute a system command and return stdout, stderr, return code and any internal errors
 // encountered running the command
@@ -329,15 +332,10 @@ func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (int, error) {
 func GetHostInterfaces() []string {
 	var netDevs []string
 
-	netInterfaces, err := net.Interfaces()
-	if err != nil {
-		panic(err)
-	}
-
-	slog.Debug("GetHostInterfaces", "netInterfaces", netInterfaces)
+	netInterfaces, _ := netInterfacesFunc()
 
 	for _, inter := range netInterfaces {
-		intGroups, err := GetIntGroups(inter.Name)
+		intGroups, err := getIntGroupsFunc(inter.Name)
 		if err != nil {
 			slog.Error("failed to get interface groups", "err", err)
 
@@ -391,7 +389,7 @@ func GetIntGroups(interfaceName string) ([]string, error) {
 	if string(stdErrBytes) != "" || rc != 0 || err != nil {
 		slog.Error("error running command", "stdOutBytes", stdOutBytes, "stdErrBytes", stdErrBytes, "rc", rc, "err", err)
 
-		return []string{}, fmt.Errorf("error running sysctl: stderr: %s, rc: %d, err: %w", string(stdErrBytes), rc, err)
+		return []string{}, fmt.Errorf("error running ifconfig: stderr: %s, rc: %d, err: %w", string(stdErrBytes), rc, err)
 	}
 
 	for _, line := range strings.Split(string(stdOutBytes), "\n") {
@@ -738,7 +736,7 @@ func multiplyWillOverflow(xVal, yVal uint64) bool {
 }
 
 func NumCpusValid(numCpus uint16) bool {
-	hostCpus, err := GetHostMaxVMCpusFunc()
+	hostCpus, err := getHostMaxVMCpusFunc()
 	if err != nil {
 		slog.Error("error getting number of host cpus", "err", err)
 
