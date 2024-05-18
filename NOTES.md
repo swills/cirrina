@@ -1,9 +1,14 @@
 
 # TODO
 
+* Finish writing tests
+* Finish cloning -- NICs are done, need to do switches, disks and VMs
+* Do templating
+* Switch to using Netlink
 * arm64 support: kern.osreldate 1500018 -- need to wait for 1500019 and test for that or higher
 * Fix zvol ownership!
 * Fix cirrinactl over IPv6
+* Actually delete disks from the database
 * Add a force kill function for OSs that won't shut down properly and when you don't want to wait
 * Add feature to remove CD after first boot
 * have all cirrinactl commands which use server make a call to hostPing() before doing anything with the server
@@ -41,7 +46,7 @@
 * Add check for disk size reduction in file based image uploads
 * Disk cloning
 * VM cloning
-* Auto decompress isos/disk images
+* Auto decompress isos/disk images - delete compression type
 * Update max vnc screen size, see src fb51ddb20d57a43d666508e600af1bc7ac85c4e8
   * use kern.osreldate: 1500017 and earlier, 1920x1200 is the max, for 15 or later, 3840x2160
 * Cope with changes to ng_bridge in src 86a6393a7d6766875a9e03daa0273a2e55faacdd
@@ -119,7 +124,7 @@
     * VM Logs in GUI
     * Set CDSR_OFLOW ("stty dsrflow") on nmdm devs to enforce port speed
     * AWS and/or other cloud import/export/interoperability
-    * Add cloud-init
+    * Add cloud-init support
       style [meta-data](https://docs.openstack.org/nova/train/admin/metadata-service.html)
       [server](https://docs.tinkerbell.org/services/hegel/)
     * Test cloud-init with FreeBSD see [commit](https://cgit.freebsd.org/src/commit/?id=1f4ce7a39f0f4b0621ff55d228014ccddb366d37)

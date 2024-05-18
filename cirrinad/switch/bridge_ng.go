@@ -1,14 +1,10 @@
 package vmswitch
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
 	"log/slog"
 	"strconv"
 	"strings"
-
-	exec "golang.org/x/sys/execabs"
 
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
@@ -30,32 +26,31 @@ type ngPeer struct {
 }
 
 func ngGetNodes() ([]NgNode, error) {
-	var ngNodes []NgNode
-
 	var err error
 
-	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "list")
-	defer func(cmd *exec.Cmd) {
-		err = cmd.Wait()
-		if err != nil {
-			slog.Error("ngctl error", "err", err)
-		}
-	}(cmd)
+	var ngNodes []NgNode
 
-	stdout, err := cmd.StdoutPipe()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "list"},
+	)
 	if err != nil {
-		return nil, fmt.Errorf("failed running ngctl: %w", err)
+		slog.Error("ngctl error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return nil, fmt.Errorf("ngctl error: %w", err)
 	}
 
-	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("failed running ngctl: %w", err)
-	}
+	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+		if len(line) == 0 {
+			continue
+		}
 
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		text := scanner.Text()
-
-		textFields := strings.Fields(text)
+		textFields := strings.Fields(line)
 		if len(textFields) != 9 {
 			continue
 		}
@@ -91,12 +86,6 @@ func ngGetNodes() ([]NgNode, error) {
 		})
 	}
 
-	if err := scanner.Err(); err != nil {
-		slog.Error("error scanning ngctl output", "err", err)
-
-		return []NgNode{}, fmt.Errorf("error parsing ngctl output: %w", err)
-	}
-
 	return ngNodes, nil
 }
 
@@ -122,36 +111,35 @@ func getNgBridgeMembers(bridge string) ([]ngPeer, error) {
 
 	var peers []ngPeer
 
-	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "show",
-		bridge+":")
-	defer func(cmd *exec.Cmd) {
-		err = cmd.Wait()
-		if err != nil {
-			slog.Error("ngctl show error", "err", err)
-		}
-	}(cmd)
-
-	stdout, err := cmd.StdoutPipe()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "show", bridge + ":"},
+	)
 	if err != nil {
-		return nil, fmt.Errorf("error running ngctl command: %w", err)
+		slog.Error("ngctl error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return nil, fmt.Errorf("ngctl error: %w", err)
 	}
 
-	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("error running ngctl command: %w", err)
-	}
-
-	scanner := bufio.NewScanner(stdout)
 	lineNo := 0
 
-	for scanner.Scan() {
-		text := scanner.Text()
+	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+		if len(line) == 0 {
+			continue
+		}
 
 		lineNo++
+
 		if lineNo < 4 {
 			continue
 		}
 
-		textFields := strings.Fields(text)
+		textFields := strings.Fields(line)
 		if len(textFields) != 5 {
 			continue
 		}
@@ -241,45 +229,66 @@ func actualNgBridgeCreate(netDev string) error {
 		return err
 	}
 
-	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "mkpeer",
-		dummyIfBridgeName+":", "bridge", "lower", "link0")
-
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "mkpeer", dummyIfBridgeName + ":", "bridge", "lower", "link0"},
+	)
 	if err != nil {
-		slog.Error("ngctl mkpeer error", "err", err)
+		slog.Error("ngctl error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-		return fmt.Errorf("error running ngctl command: %w", err)
+		return fmt.Errorf("ngctl error: %w", err)
 	}
 
-	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "name",
-		dummyIfBridgeName+":lower", netDev)
-
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "name", dummyIfBridgeName + ":lower", netDev},
+	)
 	if err != nil {
-		slog.Error("ngctl name err", "err", err)
+		slog.Error("ngctl error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-		return fmt.Errorf("error running ngctl command: %w", err)
+		return fmt.Errorf("ngctl error: %w", err)
 	}
 
 	upper := "uplink"
-	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "connect",
-		dummyIfBridgeName+":", netDev+":", "upper", upper+"1")
 
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "connect", dummyIfBridgeName + ":", netDev + ":", "upper", upper + "1"},
+	)
 	if err != nil {
-		slog.Error("ngctl connect error", "err", err)
+		slog.Error("ngctl error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-		return fmt.Errorf("failed running ngctl command: %w", err)
+		return fmt.Errorf("ngctl error: %w", err)
 	}
 
-	cmd = exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "msg",
-		netDev+":", "setpersistent")
-
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "msg", netDev + ":", "setpersistent"},
+	)
 	if err != nil {
-		slog.Error("ngctl msg setpersistent error", "err", err)
+		slog.Error("ngctl error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-		return fmt.Errorf("failed running ngctl command: %w", err)
+		return fmt.Errorf("ngctl error: %w", err)
 	}
 
 	// and delete our dummy if_bridge
@@ -358,19 +367,19 @@ func bridgeNgDeleteAllPeers(name string) error {
 }
 
 func bridgeNgDeletePeer(bridgeName string, hook string) error {
-	var out bytes.Buffer
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "rmhook", bridgeName + ":", hook},
+	)
+	if err != nil {
+		slog.Error("ngctl error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-	cmd := exec.Command(config.Config.Sys.Sudo, "/usr/sbin/ngctl", "rmhook", bridgeName+":", hook)
-	cmd.Stdout = &out
-
-	if err := cmd.Start(); err != nil {
-		return fmt.Errorf("error running ngctl: %w", err)
-	}
-
-	if err := cmd.Wait(); err != nil {
-		slog.Error("failed running ngctl", "err", err, "out", out)
-
-		return fmt.Errorf("error running ngctl: %w", err)
+		return fmt.Errorf("ngctl error: %w", err)
 	}
 
 	return nil

@@ -1,48 +1,40 @@
 package epair
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"log/slog"
 	"strconv"
 	"strings"
-
-	exec "golang.org/x/sys/execabs"
 
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
 )
 
 func getAllEpair() ([]string, error) {
-	var err error
-
 	var epairs []string
 
-	cmd := exec.Command("/sbin/ifconfig", "-g", "epair")
-	defer func(cmd *exec.Cmd) {
-		err = cmd.Wait()
-		if err != nil {
-			slog.Error("ifconfig error", "err", err)
-		}
-	}(cmd)
-
-	var stdout io.ReadCloser
-
-	stdout, err = cmd.StdoutPipe()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		"/sbin/ifconfig",
+		[]string{"-g", "epair"},
+	)
 	if err != nil {
-		return []string{}, fmt.Errorf("error running ifconfig: %w", err)
+		slog.Error("ifconfig error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return []string{}, fmt.Errorf("ifconfig error: %w", err)
 	}
 
-	if err = cmd.Start(); err != nil {
-		return []string{}, fmt.Errorf("error running ifconfig: %w", err)
-	}
+	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+		if len(line) == 0 {
+			continue
+		}
 
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		text := scanner.Text()
+		textFields := strings.Fields(line)
 
-		textFields := strings.Fields(text)
 		if len(textFields) != 1 {
 			continue
 		}
@@ -53,12 +45,6 @@ func getAllEpair() ([]string, error) {
 
 		aPairName := strings.TrimSuffix(textFields[0], "a")
 		epairs = append(epairs, aPairName)
-	}
-
-	if err := scanner.Err(); err != nil {
-		slog.Error("error scanning ifconfig output", "err", err)
-
-		return []string{}, fmt.Errorf("error parsing ifconfig output: %w", err)
 	}
 
 	return epairs, nil
@@ -86,38 +72,51 @@ func GetDummyEpairName() string {
 }
 
 func CreateEpair(name string) error {
-	var err error
-
 	if name == "" {
 		return errEpairNameEmpty
 	}
 
-	args := []string{"/sbin/ifconfig", name, "create", "group", "cirrinad"}
-	cmd := exec.Command(config.Config.Sys.Sudo, args...)
-
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/sbin/ifconfig", name, "create", "group", "cirrinad"},
+	)
 	if err != nil {
-		slog.Error("failed to create epair", "name", name, "err", err)
+		slog.Error("ifconfig error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-		return fmt.Errorf("failed running ifconfig: %w", err)
+		return fmt.Errorf("ifconfig error: %w", err)
 	}
 
-	args = []string{"/sbin/ifconfig", name + "a", "up", "group", "cirrinad"}
-	cmd = exec.Command(config.Config.Sys.Sudo, args...)
-
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/sbin/ifconfig", name + "a", "up", "group", "cirrinad"},
+	)
 	if err != nil {
-		slog.Error("failed to up epair", "name", name+"a", "err", err)
+		slog.Error("ifconfig error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-		return fmt.Errorf("failed running ifconfig: %w", err)
+		return fmt.Errorf("ifconfig error: %w", err)
 	}
 
-	args = []string{"/sbin/ifconfig", name + "b", "up", "group", "cirrinad"}
-	cmd = exec.Command(config.Config.Sys.Sudo, args...)
-
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/sbin/ifconfig", name + "b", "up", "group", "cirrinad"},
+	)
 	if err != nil {
-		slog.Error("failed to up epair", "name", name+"b", "err", err)
+		slog.Error("ifconfig error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
 		return fmt.Errorf("failed running ifconfig: %w", err)
 	}
@@ -126,20 +125,23 @@ func CreateEpair(name string) error {
 }
 
 func DestroyEpair(name string) error {
-	var err error
-
 	if name == "" {
 		return errEpairNameEmpty
 	}
 
-	args := []string{"/sbin/ifconfig", name + "a", "destroy"}
-	cmd := exec.Command(config.Config.Sys.Sudo, args...)
-
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/sbin/ifconfig", name + "a", "destroy"},
+	)
 	if err != nil {
-		slog.Error("failed to destroy epair", "name", name+"a", "err", err)
+		slog.Error("ifconfig error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
 
-		return fmt.Errorf("failed running ifconfig: %w", err)
+		return fmt.Errorf("ifconfig error: %w", err)
 	}
 
 	return nil
@@ -180,61 +182,65 @@ func SetRateLimit(name string, rateIn uint64, rateOut uint64) error {
 func NgCreatePipeWithRateLimit(name string, rate uint64) error {
 	var err error
 
-	cmd := exec.Command(config.Config.Sys.Sudo,
-		"/usr/sbin/ngctl", "mkpeer", name+":", "pipe", "lower", "lower")
-
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "mkpeer", name + ":", "pipe", "lower", "lower"},
+	)
 	if err != nil {
-		slog.Error("ngctl mkpeer error ng pipe peer",
-			"name", name,
+		slog.Error("ngctl error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
 			"err", err,
 		)
 
-		return fmt.Errorf("failed running ngctl: %w", err)
+		return fmt.Errorf("ngctl error: %w", err)
 	}
 
-	cmd = exec.Command(config.Config.Sys.Sudo,
-		"/usr/sbin/ngctl", "name", name+":lower", name+"_pipe")
-
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "name", name + ":lower", name + "_pipe"},
+	)
 	if err != nil {
-		slog.Error("ngctl setting pipe name",
-			"name", name,
+		slog.Error("ngctl error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
 			"err", err,
 		)
 
-		return fmt.Errorf("failed running ngctl: %w", err)
+		return fmt.Errorf("ngctl error: %w", err)
 	}
 
-	cmd = exec.Command(config.Config.Sys.Sudo,
-		"/usr/sbin/ngctl", "connect", name+":", name+"_pipe:", "upper", "upper")
-
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "connect", name + ":", name + "_pipe:", "upper", "upper"},
+	)
 	if err != nil {
-		slog.Error("ngctl setting pipe name",
-			"name", name,
+		slog.Error("ngctl error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
 			"err", err,
 		)
 
-		return fmt.Errorf("failed running ngctl: %w", err)
+		return fmt.Errorf("ngctl error: %w", err)
 	}
 
 	if rate != 0 {
-		cmd = exec.Command(config.Config.Sys.Sudo,
-			"/usr/sbin/ngctl", "msg",
-			name+"_pipe:",
-			"setcfg", "{", "upstream={", "bandwidth="+strconv.Itoa(int(rate)), "fifo=1", "}", "}",
+		stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
+			config.Config.Sys.Sudo,
+			[]string{"/usr/sbin/ngctl", "msg", name + "_pipe:", "setcfg", "{", "upstream={", "bandwidth=" + strconv.Itoa(int(rate)), "fifo=1", "}", "}"}, //nolint:lll
 		)
-
-		err = cmd.Run()
 		if err != nil {
-			slog.Error("ngctl setting pipe rate",
-				"name", name,
-				"rate", rate,
+			slog.Error("ngctl error",
+				"stdOutBytes", stdOutBytes,
+				"stdErrBytes", stdErrBytes,
+				"returnCode", returnCode,
 				"err", err,
 			)
 
-			return fmt.Errorf("failed running ngctl: %w", err)
+			return fmt.Errorf("ngctl error: %w", err)
 		}
 	}
 
@@ -242,19 +248,19 @@ func NgCreatePipeWithRateLimit(name string, rate uint64) error {
 }
 
 func NgDestroyPipe(name string) error {
-	var err error
-
-	cmd := exec.Command(config.Config.Sys.Sudo,
-		"/usr/sbin/ngctl", "shutdown", name+"_pipe"+":")
-
-	err = cmd.Run()
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "shutdown", name + "_pipe" + ":"},
+	)
 	if err != nil {
-		slog.Error("ngctl mkpeer error ng pipe peer",
-			"name", name,
+		slog.Error("ngctl error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
 			"err", err,
 		)
 
-		return fmt.Errorf("failed running ngctl: %w", err)
+		return fmt.Errorf("ngctl error: %w", err)
 	}
 
 	return nil
