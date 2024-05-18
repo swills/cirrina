@@ -43,7 +43,7 @@ Run (as `root`):
 ```
 echo kern.racct.enable=1 >> /boot/loader.conf
 reboot
-sysrc kld_list="vmm nmdm if_bridge if_epair ng_bridge ng_ether ng_pipe"
+sysrc kld_list+="vmm nmdm if_bridge if_epair ng_bridge ng_ether ng_pipe"
 service kld restart
 ```
 
