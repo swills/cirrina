@@ -1,14 +1,18 @@
 package util
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/go-test/deep"
 	exec "golang.org/x/sys/execabs"
+
+	"cirrina/cirrinad/cirrinadtest"
 )
 
 func Test_parseDiskSizeSuffix(t *testing.T) {
@@ -2169,6 +2173,238 @@ func TestIsValidIP(t *testing.T) {
 
 			if got := IsValidIP(testCase.args.ipAddress); got != testCase.want {
 				t.Errorf("IsValidIP() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestGetHostMaxVMCpusError4(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	_, _ = fmt.Fprintf(os.Stdout, "65535")
+	os.Exit(0)
+}
+
+func TestGetHostMaxVMCpusWrapperError4(t *testing.T) {
+	fakeCommand := cirrinadtest.MakeFakeCommand("TestGetHostMaxVMCpusError4")
+	SetupTestCmd(fakeCommand)
+
+	t.Cleanup(func() { TearDownTestCmd() }) // prevents parallel testing
+
+	tests := []struct {
+		name    string
+		want    uint16
+		wantErr bool
+	}{
+		{
+			name:    "error4",
+			want:    0,
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			got, err := GetHostMaxVMCpus()
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetHostMaxVMCpus() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("GetHostMaxVMCpus() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestGetHostMaxVMCpusError3(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	_, _ = fmt.Fprintf(os.Stdout, "-1")
+	os.Exit(0)
+}
+
+func TestGetHostMaxVMCpusWrapperError3(t *testing.T) {
+	fakeCommand := cirrinadtest.MakeFakeCommand("TestGetHostMaxVMCpusError3")
+	SetupTestCmd(fakeCommand)
+
+	t.Cleanup(func() { TearDownTestCmd() }) // prevents parallel testing
+
+	tests := []struct {
+		name    string
+		want    uint16
+		wantErr bool
+	}{
+		{
+			name:    "error3",
+			want:    0,
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			got, err := GetHostMaxVMCpus()
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetHostMaxVMCpus() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("GetHostMaxVMCpus() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestGetHostMaxVMCpusError2(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	_, _ = fmt.Fprintf(os.Stdout, "thirtytwo")
+	os.Exit(0)
+}
+
+func TestGetHostMaxVMCpusWrapperError2(t *testing.T) {
+	fakeCommand := cirrinadtest.MakeFakeCommand("TestGetHostMaxVMCpusError2")
+	SetupTestCmd(fakeCommand)
+
+	t.Cleanup(func() { TearDownTestCmd() }) // prevents parallel testing
+
+	tests := []struct {
+		name    string
+		want    uint16
+		wantErr bool
+	}{
+		{
+			name:    "error2",
+			want:    0,
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			got, err := GetHostMaxVMCpus()
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetHostMaxVMCpus() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("GetHostMaxVMCpus() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestGetHostMaxVMCpusError1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(1)
+}
+
+func TestGetHostMaxVMCpusWrapperError1(t *testing.T) {
+	fakeCommand := cirrinadtest.MakeFakeCommand("TestGetHostMaxVMCpusError1")
+	SetupTestCmd(fakeCommand)
+
+	t.Cleanup(func() { TearDownTestCmd() }) // prevents parallel testing
+
+	tests := []struct {
+		name    string
+		want    uint16
+		wantErr bool
+	}{
+		{
+			name:    "error1",
+			want:    0,
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			got, err := GetHostMaxVMCpus()
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetHostMaxVMCpus() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("GetHostMaxVMCpus() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestGetHostMaxVMCpusSuccess1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	// cmdWithParams gets []string{"/usr/sbin/sysctl", "-n", "hw.vmm.maxcpu"}
+	cmdWithParams := strings.Split(os.Args[len(os.Args)-3], " ")
+
+	cmd := cmdWithParams[0]
+	if cmd != "/sbin/sysctl" {
+		os.Exit(1)
+	}
+
+	_, _ = fmt.Fprintf(os.Stdout, "32")
+
+	os.Exit(0)
+}
+
+func TestGetHostMaxVMCpusWrapperSuccess1(t *testing.T) {
+	fakeCommand := cirrinadtest.MakeFakeCommand("TestGetHostMaxVMCpusSuccess1")
+	SetupTestCmd(fakeCommand)
+
+	t.Cleanup(func() { TearDownTestCmd() }) // prevents parallel testing
+
+	tests := []struct {
+		name    string
+		want    uint16
+		wantErr bool
+	}{
+		{
+			name:    "success1",
+			want:    32,
+			wantErr: false,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := GetHostMaxVMCpus()
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetHostMaxVMCpus() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("GetHostMaxVMCpus() got = %v, want %v", got, testCase.want)
 			}
 		})
 	}

@@ -143,6 +143,8 @@ func captureReader(ioReader io.Reader) ([]byte, error) {
 	}
 }
 
+var execute = exec.Command
+
 // RunCmd execute a system command and return stdout, stderr, return code and any internal errors
 // encountered running the command
 func RunCmd(cmdName string, cmdArgs []string) ([]byte, []byte, int, error) {
@@ -159,7 +161,7 @@ func RunCmd(cmdName string, cmdArgs []string) ([]byte, []byte, int, error) {
 		"cmdArgs", cmdArgs,
 	)
 
-	cmd := exec.Command(cmdName, cmdArgs...)
+	cmd := execute(cmdName, cmdArgs...)
 
 	stdOutReader, err := cmd.StdoutPipe()
 	if err != nil {
@@ -713,8 +715,6 @@ func parseDiskSizeSuffix(diskSize string) (string, uint64) {
 func GetHostMaxVMCpus() (uint16, error) {
 	stdOutBytes, stdErrBytes, rc, err := RunCmd("/sbin/sysctl", []string{"-n", "hw.vmm.maxcpu"})
 	if string(stdErrBytes) != "" || rc != 0 || err != nil {
-		slog.Error("error running command", "stdOutBytes", stdOutBytes, "stdErrBytes", stdErrBytes, "rc", rc, "err", err)
-
 		return 0, fmt.Errorf("error running sysctl: stderr: %s, rc: %d, err: %w", string(stdErrBytes), rc, err)
 	}
 
@@ -759,4 +759,14 @@ func NumCpusValid(numCpus uint16) bool {
 	}
 
 	return true
+}
+
+// SetupTestCmd replaces the executing command to the fake function implemented by Go lang
+func SetupTestCmd(fakeExecute func(command string, args ...string) *exec.Cmd) {
+	execute = fakeExecute
+}
+
+// TearDownTestCmd recovers the execute command function
+func TearDownTestCmd() {
+	execute = exec.Command
 }
