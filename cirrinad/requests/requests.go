@@ -145,12 +145,7 @@ func CreateVMReq(requestType reqType, vmID string) (Request, error) {
 
 	var reqData []byte
 
-	reqData, err = json.Marshal(VMReqData{VMID: vmID})
-	if err != nil {
-		slog.Error("failed parsing CreateVMReq: %w", err)
-
-		return Request{}, fmt.Errorf("internal error parsing CreateVM request: %w", err)
-	}
+	reqData, _ = json.Marshal(VMReqData{VMID: vmID}) //nolint:errchkjson
 
 	reqDB := GetReqDB()
 	newReq := Request{
