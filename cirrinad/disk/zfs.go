@@ -11,9 +11,9 @@ import (
 )
 
 func GetAllZfsVolumes() ([]string, error) {
-	var allVolumes []string
-
 	var err error
+
+	var allVolumes []string
 
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		"/sbin/zfs",
@@ -97,58 +97,6 @@ func GetZfsVolumeSize(volumeName string) (uint64, error) {
 	}
 
 	return volSize, nil
-}
-
-func getZfsVolBlockSize(volumeName string) (uint64, error) {
-	var volSizeStr string
-
-	found := false
-
-	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
-		"/sbin/zfs",
-		[]string{"get", "-H", "-p", "volblocksize", volumeName},
-	)
-	if err != nil {
-		slog.Error("failed to get zfs volume block size",
-			"stdOutBytes", stdOutBytes,
-			"stdErrBytes", stdErrBytes,
-			"returnCode", returnCode,
-			"err", err,
-		)
-
-		return 0, fmt.Errorf("failed to get zfs volume block size: %w", err)
-	}
-
-	for _, line := range strings.Split(string(stdOutBytes), "\n") {
-		if len(line) == 0 {
-			continue
-		}
-
-		if found {
-			return 0, errDiskDupe
-		}
-
-		textFields := strings.Fields(line)
-		if len(textFields) != 4 {
-			continue
-		}
-
-		volSizeStr = textFields[2]
-		found = true
-	}
-
-	if !found {
-		return 0, errDiskNotFound
-	}
-
-	var volBlockSize uint64
-
-	volBlockSize, err = strconv.ParseUint(volSizeStr, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("failed parsing zfs output: %w", err)
-	}
-
-	return volBlockSize, nil
 }
 
 func SetZfsVolumeSize(volumeName string, volSize uint64) error {
@@ -262,4 +210,56 @@ func GetZfsVolumeUsage(volumeName string) (uint64, error) {
 	}
 
 	return volUsage, nil
+}
+
+func getZfsVolBlockSize(volumeName string) (uint64, error) {
+	var volSizeStr string
+
+	found := false
+
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		"/sbin/zfs",
+		[]string{"get", "-H", "-p", "volblocksize", volumeName},
+	)
+	if err != nil {
+		slog.Error("failed to get zfs volume block size",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return 0, fmt.Errorf("failed to get zfs volume block size: %w", err)
+	}
+
+	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+		if len(line) == 0 {
+			continue
+		}
+
+		if found {
+			return 0, errDiskDupe
+		}
+
+		textFields := strings.Fields(line)
+		if len(textFields) != 4 {
+			continue
+		}
+
+		volSizeStr = textFields[2]
+		found = true
+	}
+
+	if !found {
+		return 0, errDiskNotFound
+	}
+
+	var volBlockSize uint64
+
+	volBlockSize, err = strconv.ParseUint(volSizeStr, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed parsing zfs output: %w", err)
+	}
+
+	return volBlockSize, nil
 }
