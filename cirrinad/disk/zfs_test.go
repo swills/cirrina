@@ -369,6 +369,15 @@ func TestGetZfsVolBlockSizeErrorFields(_ *testing.T) {
 }
 
 //nolint:paralleltest
+func TestGetZfsVolBlockSizeErrorExit(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(1)
+}
+
+//nolint:paralleltest
 func TestGetZfsVolBlockSizeErrorDupe(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
@@ -392,7 +401,7 @@ func TestGetZfsVolBlockSizeSuccess1(_ *testing.T) {
 }
 
 //nolint:paralleltest
-func Test_getZfsVolBlockSize(t *testing.T) {
+func TestGetZfsVolBlockSize(t *testing.T) {
 	type args struct {
 		volumeName string
 	}
@@ -410,6 +419,13 @@ func Test_getZfsVolBlockSize(t *testing.T) {
 			args:        args{volumeName: "cirrinad0/disk/test2024021425_hd5"},
 			want:        16384,
 			wantErr:     false,
+		},
+		{
+			name:        "errorExit",
+			mockCmdFunc: "TestGetZfsVolBlockSizeErrorExit",
+			args:        args{volumeName: "cirrinad0/disk/test2024021425_hd5"},
+			want:        0,
+			wantErr:     true,
 		},
 		{
 			name:        "errorDupe",
@@ -450,15 +466,15 @@ func Test_getZfsVolBlockSize(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			got, err := getZfsVolBlockSize(testCase.args.volumeName)
+			got, err := GetZfsVolBlockSize(testCase.args.volumeName)
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("getZfsVolBlockSize() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("GetZfsVolBlockSize() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}
 
 			if got != testCase.want {
-				t.Errorf("getZfsVolBlockSize() got = %v, want %v", got, testCase.want)
+				t.Errorf("GetZfsVolBlockSize() got = %v, want %v", got, testCase.want)
 			}
 		})
 	}
