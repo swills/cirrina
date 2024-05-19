@@ -479,3 +479,167 @@ func TestGetZfsVolBlockSize(t *testing.T) {
 		})
 	}
 }
+
+//nolint:paralleltest
+func TestSetZfsVolumeSizeSuccess1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func TestSetZfsVolumeSizeExitError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(1)
+}
+
+//nolint:paralleltest
+func TestSetZfsVolumeSize(t *testing.T) {
+	type args struct {
+		volumeName string
+		volSize    uint64
+	}
+
+	tests := []struct {
+		name                       string
+		mockCmdFunc                string
+		mockGetZfsVolumeSizeFunc   func(string) (uint64, error)
+		mockGetZfsVolBlockSizeFunc func(string) (uint64, error)
+		args                       args
+		wantErr                    bool
+	}{
+		{
+			name:        "success1",
+			mockCmdFunc: "TestSetZfsVolumeSizeSuccess1",
+			mockGetZfsVolumeSizeFunc: func(string) (uint64, error) {
+				return 1073741824, nil
+			},
+			mockGetZfsVolBlockSizeFunc: func(string) (uint64, error) {
+				return 16384, nil
+			},
+			args: args{
+				volumeName: "someVolume",
+				volSize:    2147483648,
+			},
+			wantErr: false,
+		},
+		{
+			name:        "errorGetVolSize1",
+			mockCmdFunc: "TestSetZfsVolumeSizeSuccess1",
+			mockGetZfsVolumeSizeFunc: func(string) (uint64, error) {
+				return 0, errDiskNotFound
+			},
+			mockGetZfsVolBlockSizeFunc: func(string) (uint64, error) {
+				return 16384, nil
+			},
+			args: args{
+				volumeName: "someVolume",
+				volSize:    2147483648,
+			},
+			wantErr: true,
+		},
+		{
+			name:        "errorGetVolSize2",
+			mockCmdFunc: "TestSetZfsVolumeSizeSuccess1",
+			mockGetZfsVolumeSizeFunc: func(string) (uint64, error) {
+				return 2147483648, nil
+			},
+			mockGetZfsVolBlockSizeFunc: func(string) (uint64, error) {
+				return 16384, nil
+			},
+			args: args{
+				volumeName: "someVolume",
+				volSize:    2147483648,
+			},
+			wantErr: false,
+		},
+		{
+			name:        "errorGetVolBlockSize1",
+			mockCmdFunc: "TestSetZfsVolumeSizeSuccess1",
+			mockGetZfsVolumeSizeFunc: func(string) (uint64, error) {
+				return 1073741824, nil
+			},
+			mockGetZfsVolBlockSizeFunc: func(string) (uint64, error) {
+				return 0, errDiskNotFound
+			},
+			args: args{
+				volumeName: "someVolume",
+				volSize:    2147483648,
+			},
+			wantErr: true,
+		},
+		{
+			name:        "success2",
+			mockCmdFunc: "TestSetZfsVolumeSizeSuccess1",
+			mockGetZfsVolumeSizeFunc: func(string) (uint64, error) {
+				return 1073741824, nil
+			},
+			mockGetZfsVolBlockSizeFunc: func(string) (uint64, error) {
+				return 16384, nil
+			},
+			args: args{
+				volumeName: "someVolume",
+				volSize:    2147483647,
+			},
+			wantErr: false,
+		},
+		{
+			name:        "errorShrinkage",
+			mockCmdFunc: "TestSetZfsVolumeSizeSuccess1",
+			mockGetZfsVolumeSizeFunc: func(string) (uint64, error) {
+				return 2147483648, nil
+			},
+			mockGetZfsVolBlockSizeFunc: func(string) (uint64, error) {
+				return 16384, nil
+			},
+			args: args{
+				volumeName: "someVolume",
+				volSize:    1073741824,
+			},
+			wantErr: true,
+		},
+		{
+			name:        "errorExit",
+			mockCmdFunc: "TestSetZfsVolumeSizeExitError",
+			mockGetZfsVolumeSizeFunc: func(string) (uint64, error) {
+				return 1073741824, nil
+			},
+			mockGetZfsVolBlockSizeFunc: func(string) (uint64, error) {
+				return 16384, nil
+			},
+			args: args{
+				volumeName: "someVolume",
+				volSize:    2147483648,
+			},
+			wantErr: true,
+		},
+	}
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			GetZfsVolumeSizeFunc = testCase.mockGetZfsVolumeSizeFunc
+
+			t.Cleanup(func() { GetZfsVolumeSizeFunc = GetZfsVolumeSize })
+
+			GetZfsVolBlockSizeFunc = testCase.mockGetZfsVolBlockSizeFunc
+
+			t.Cleanup(func() { GetZfsVolBlockSizeFunc = GetZfsVolBlockSize })
+
+			err := SetZfsVolumeSize(testCase.args.volumeName, testCase.args.volSize)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("SetZfsVolumeSize() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}

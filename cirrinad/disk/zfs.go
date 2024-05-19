@@ -10,6 +10,9 @@ import (
 	"cirrina/cirrinad/util"
 )
 
+var GetZfsVolumeSizeFunc = GetZfsVolumeSize
+var GetZfsVolBlockSizeFunc = GetZfsVolBlockSize
+
 func GetAllZfsVolumes() ([]string, error) {
 	var err error
 
@@ -104,7 +107,7 @@ func SetZfsVolumeSize(volumeName string, volSize uint64) error {
 
 	var currentVolSize uint64
 
-	currentVolSize, err = GetZfsVolumeSize(volumeName)
+	currentVolSize, err = GetZfsVolumeSizeFunc(volumeName)
 	if err != nil {
 		slog.Error("SetZfsVolumeSize", "msg", "failed getting current volume size", "err", err)
 
@@ -120,12 +123,17 @@ func SetZfsVolumeSize(volumeName string, volSize uint64) error {
 	// volsize must be a multiple of volume block size
 	var vbs uint64
 
-	vbs, err = GetZfsVolBlockSize(volumeName)
+	vbs, err = GetZfsVolBlockSizeFunc(volumeName)
 	if err != nil {
 		slog.Error("error getting zfs vol block size", "err", err)
 
 		return fmt.Errorf("failed getting zfs volume block size: %w", err)
 	}
+
+	// per zfsprops(7) -- "The volsize can only be set to
+	//       a multiple of volblocksize, and cannot be zero."
+	// so, if user asked for something not a multiple of volblocksize,
+	// round up to a multiple of volblocksize
 
 	// get modulus
 	mod := volSize % vbs
@@ -134,12 +142,6 @@ func SetZfsVolumeSize(volumeName string, volSize uint64) error {
 	if mod > 0 {
 		ads := vbs - mod
 		volSize += ads
-	}
-
-	if volSize == currentVolSize {
-		slog.Debug("SetZfsVolumeSize adjusted vol size already set")
-
-		return nil
 	}
 
 	if volSize < currentVolSize {
