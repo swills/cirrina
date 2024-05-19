@@ -275,9 +275,12 @@ func (d *Disk) Save() error {
 
 	res := db.Model(&d).
 		Updates(map[string]interface{}{
+			"name":        &d.Name,
 			"description": &d.Description,
 			"type":        &d.Type,
-			"name":        &d.Name,
+			"dev_type":    &d.DevType,
+			"disk_cache":  &d.DiskCache,
+			"disk_direct": &d.DiskDirect,
 		},
 		)
 

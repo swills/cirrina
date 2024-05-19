@@ -3,11 +3,13 @@ package disk
 import (
 	"database/sql"
 	"reflect"
+	"regexp"
 	"testing"
 	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-test/deep"
+	"github.com/mattn/go-sqlite3"
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/cirrinadtest"
@@ -588,6 +590,330 @@ func TestDisk_GetPath(t *testing.T) {
 
 			if got := d.GetPath(); got != testCase.want {
 				t.Errorf("GetPath() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+//nolint:maintidx
+func TestDisk_Save(t *testing.T) {
+	type diskFields struct {
+		ID          string
+		Name        string
+		Description string
+		Type        string
+		DevType     string
+		DiskCache   sql.NullBool
+		DiskDirect  sql.NullBool
+	}
+
+	tests := []struct {
+		name        string
+		testDisk    diskFields
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		wantErr     bool
+	}{
+		{
+			name: "success1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `disks` SET `description`=?,`dev_type`=?,`disk_cache`=?,`disk_direct`=?,`name`=?,`type`=?,`updated_at`=? WHERE `disks`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some test disk", "FILE", true, false, "aDisk", "NVME", sqlmock.AnyArg(), "89609970-ae8d-4ccd-a71c-9f69fd8e12cd"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			testDisk: diskFields{
+				ID:          "89609970-ae8d-4ccd-a71c-9f69fd8e12cd",
+				Name:        "aDisk",
+				Description: "some test disk",
+				Type:        "NVME",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "success2",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `disks` SET `description`=?,`dev_type`=?,`disk_cache`=?,`disk_direct`=?,`name`=?,`type`=?,`updated_at`=? WHERE `disks`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some test disk", "FILE", true, false, "aDisk", "AHCI-HD", sqlmock.AnyArg(), "89609970-ae8d-4ccd-a71c-9f69fd8e12cd"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			testDisk: diskFields{
+				ID:          "89609970-ae8d-4ccd-a71c-9f69fd8e12cd",
+				Name:        "aDisk",
+				Description: "some test disk",
+				Type:        "AHCI-HD",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "success3",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `disks` SET `description`=?,`dev_type`=?,`disk_cache`=?,`disk_direct`=?,`name`=?,`type`=?,`updated_at`=? WHERE `disks`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some test disk", "FILE", true, false, "aDisk", "VIRTIO-BLK", sqlmock.AnyArg(), "89609970-ae8d-4ccd-a71c-9f69fd8e12cd"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			testDisk: diskFields{
+				ID:          "89609970-ae8d-4ccd-a71c-9f69fd8e12cd",
+				Name:        "aDisk",
+				Description: "some test disk",
+				Type:        "VIRTIO-BLK",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "success4",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `disks` SET `description`=?,`dev_type`=?,`disk_cache`=?,`disk_direct`=?,`name`=?,`type`=?,`updated_at`=? WHERE `disks`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some test disk", "ZVOL", true, false, "aDisk", "NVME", sqlmock.AnyArg(), "89609970-ae8d-4ccd-a71c-9f69fd8e12cd"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			testDisk: diskFields{
+				ID:          "89609970-ae8d-4ccd-a71c-9f69fd8e12cd",
+				Name:        "aDisk",
+				Description: "some test disk",
+				Type:        "NVME",
+				DevType:     "ZVOL",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "success5",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+
+					regexp.QuoteMeta(
+						"UPDATE `disks` SET `description`=?,`dev_type`=?,`disk_cache`=?,`disk_direct`=?,`name`=?,`type`=?,`updated_at`=? WHERE `disks`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some test disk", "ZVOL", true, false, "aDisk", "AHCI-HD", sqlmock.AnyArg(), "89609970-ae8d-4ccd-a71c-9f69fd8e12cd"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			testDisk: diskFields{
+				ID:          "89609970-ae8d-4ccd-a71c-9f69fd8e12cd",
+				Name:        "aDisk",
+				Description: "some test disk",
+				Type:        "AHCI-HD",
+				DevType:     "ZVOL",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "success6",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `disks` SET `description`=?,`dev_type`=?,`disk_cache`=?,`disk_direct`=?,`name`=?,`type`=?,`updated_at`=? WHERE `disks`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some test disk", "ZVOL", true, false, "aDisk", "VIRTIO-BLK", sqlmock.AnyArg(), "89609970-ae8d-4ccd-a71c-9f69fd8e12cd"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			testDisk: diskFields{
+				ID:          "89609970-ae8d-4ccd-a71c-9f69fd8e12cd",
+				Name:        "aDisk",
+				Description: "some test disk",
+				Type:        "VIRTIO-BLK",
+				DevType:     "ZVOL",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "error1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `disks` SET `description`=?,`dev_type`=?,`disk_cache`=?,`disk_direct`=?,`name`=?,`type`=?,`updated_at`=? WHERE `disks`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some test disk", "FILE", true, false, "aDisk", "NVME", sqlmock.AnyArg(), "89609970-ae8d-4ccd-a71c-9f69fd8e12cd"). //nolint:lll
+					// does not matter what error is returned
+					WillReturnError(gorm.ErrInvalidField)
+				mock.ExpectRollback()
+			},
+			testDisk: diskFields{
+				ID:          "89609970-ae8d-4ccd-a71c-9f69fd8e12cd",
+				Name:        "aDisk",
+				Description: "some test disk",
+				Type:        "NVME",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error2",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `disks` SET `description`=?,`dev_type`=?,`disk_cache`=?,`disk_direct`=?,`name`=?,`type`=?,`updated_at`=? WHERE `disks`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some test disk", "ZVOL", true, false, "aDisk", "junk", sqlmock.AnyArg(), "89609970-ae8d-4ccd-a71c-9f69fd8e12cd"). //nolint:lll
+					WillReturnError(sqlite3.ErrConstraintCheck)
+				mock.ExpectRollback()
+			},
+			testDisk: diskFields{
+				ID:          "89609970-ae8d-4ccd-a71c-9f69fd8e12cd",
+				Name:        "aDisk",
+				Description: "some test disk",
+				Type:        "junk",
+				DevType:     "ZVOL",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testCase.mockClosure(testDB, mock)
+
+			aDisk := &Disk{
+				ID:          testCase.testDisk.ID,
+				Name:        testCase.testDisk.Name,
+				Description: testCase.testDisk.Description,
+				Type:        testCase.testDisk.Type,
+				DevType:     testCase.testDisk.DevType,
+				DiskCache:   testCase.testDisk.DiskCache,
+				DiskDirect:  testCase.testDisk.DiskDirect,
+			}
+
+			if err := aDisk.Save(); (err != nil) != testCase.wantErr {
+				t.Errorf("Save() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
 	}
