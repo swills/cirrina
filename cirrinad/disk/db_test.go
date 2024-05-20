@@ -65,6 +65,35 @@ func TestDisk_BeforeCreate(t *testing.T) {
 			args:    args{in0: testDB},
 			wantErr: false,
 		},
+		{
+			name: "fail1",
+			fields: fields{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: time.Time{},
+					UpdatedAt: time.Time{},
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "",
+				Name:        "",
+				Description: "a good disk",
+				Type:        "NVME",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			},
+			args:    args{in0: testDB},
+			wantErr: true,
+		},
 	}
 
 	for _, testCase := range tests {
