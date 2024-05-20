@@ -490,7 +490,9 @@ func validateDiskReq(diskUploadReq *cirrina.DiskUploadInfo) (*disk.Disk, error) 
 
 	// not technically "validation" per se, but it needs to be done
 	if diskInst.DevType == "ZVOL" {
-		err = disk.SetZfsVolumeSize(config.Config.Disk.VM.Path.Zpool+"/"+diskInst.Name, diskUploadReq.GetSize())
+		d := disk.NewZfsVolService(nil)
+
+		err = d.SetZfsVolumeSize(config.Config.Disk.VM.Path.Zpool+"/"+diskInst.Name, diskUploadReq.GetSize())
 		if err != nil {
 			slog.Error("UploadDisk", "msg", "failed setting new volume size", "err", err)
 
@@ -622,16 +624,18 @@ func mapDiskTypeDBStringToType(diskType string) (*cirrina.DiskType, error) {
 }
 
 func getDiskInfoZVOL(diskInst *disk.Disk, diskInfo *cirrina.DiskInfo) error {
-	diskSizeNum, err := disk.GetZfsVolumeSize(filepath.Join(config.Config.Disk.VM.Path.Zpool, diskInst.Name))
+	volService := disk.NewZfsVolService(nil)
+	diskSizeNum, err := volService.GetZfsVolumeSize(filepath.Join(config.Config.Disk.VM.Path.Zpool, diskInst.Name))
+
 	if err != nil {
-		slog.Error("getDiskInfoZVOL GetZfsVolumeSize error", "err", err)
+		slog.Error("getDiskInfoZVOL FetchZfsVolumeSize error", "err", err)
 
 		return fmt.Errorf("failed getting vol size: %w", err)
 	}
 
-	diskUsageNum, err := disk.GetZfsVolumeUsage(config.Config.Disk.VM.Path.Zpool + "/" + diskInst.Name)
+	diskUsageNum, err := volService.GetZfsVolumeUsage(config.Config.Disk.VM.Path.Zpool + "/" + diskInst.Name)
 	if err != nil {
-		slog.Error("getDiskInfoZVOL GetZfsVolumeUsage error", "err", err)
+		slog.Error("getDiskInfoZVOL FetchZfsVolumeUsage error", "err", err)
 
 		diskUsageNum = 0
 	}

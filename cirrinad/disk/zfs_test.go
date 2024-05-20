@@ -3,47 +3,15 @@ package disk
 import (
 	"fmt"
 	"os"
-	"reflect"
 	"testing"
 
+	"github.com/go-test/deep"
+	"go.uber.org/mock/gomock"
+
 	"cirrina/cirrinad/cirrinadtest"
+	"cirrina/cirrinad/disk/mocks"
 	"cirrina/cirrinad/util"
 )
-
-//nolint:paralleltest
-func TestGetAllZfsVolumesSuccess1(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
-	}
-
-	successOutput := `cirrinad0/disk/test2024051402_hd0
-cirrinad0/disk/test2024051402_hd1
-cirrinad0/disk/test2024051402_hd2
-`
-
-	fmt.Print(successOutput) //nolint:forbidigo
-	os.Exit(0)
-}
-
-//nolint:paralleltest
-func TestGetAllZfsVolumesErrorFields(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
-	}
-
-	fmt.Print("forced error wrong number of fields") //nolint:forbidigo
-	os.Exit(0)
-}
-
-//nolint:paralleltest
-func TestGetAllZfsVolumesErrorExec(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
-	}
-
-	fmt.Print("forced error exec") //nolint:forbidigo
-	os.Exit(1)
-}
 
 //nolint:paralleltest
 func TestGetAllZfsVolumes(t *testing.T) {
@@ -55,7 +23,7 @@ func TestGetAllZfsVolumes(t *testing.T) {
 	}{
 		{
 			name:        "success1",
-			mockCmdFunc: "TestGetAllZfsVolumesSuccess1",
+			mockCmdFunc: "TestFetchAllZfsVolumesSuccess1",
 			want: []string{
 				"cirrinad0/disk/test2024051402_hd0",
 				"cirrinad0/disk/test2024051402_hd1",
@@ -93,15 +61,709 @@ func TestGetAllZfsVolumes(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("GetAllZfsVolumes() got = %v, want %v", got, testCase.want)
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func TestNewZfsVolService(t *testing.T) {
+	type args struct {
+		impl ZfsVolInfoFetcher
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want ZfsVolService
+	}{
+		{
+			name: "success1",
+			args: args{impl: nil},
+			want: ZfsVolService{
+				ZvolInfoImpl: &ZfsVolInfoCmds{},
+			},
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := NewZfsVolService(testCase.args.impl)
+			diff := deep.Equal(got, testCase.want)
+
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func TestGetZfsVolumeSize(t *testing.T) {
+	type args struct {
+		volumeName string
+	}
+
+	tests := []struct {
+		name                          string
+		mockGetZfsVolumeSizeReturnVal uint64
+		mockGetZfsVolumeSizeReturnErr error
+		args                          args
+		want                          uint64
+		wantErr                       bool
+	}{
+		{
+			name:                          "success1",
+			mockGetZfsVolumeSizeReturnVal: 1073741824,
+			mockGetZfsVolumeSizeReturnErr: nil,
+			args: args{
+				volumeName: "someVolumeName",
+			},
+			want:    1073741824,
+			wantErr: false,
+		},
+		{
+			name:                          "error1",
+			mockGetZfsVolumeSizeReturnVal: 0,
+			mockGetZfsVolumeSizeReturnErr: errDiskNotFound,
+			args: args{
+				volumeName: "someVolumeName",
+			},
+			want:    0,
+			wantErr: true,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			mock := mocks.NewMockZfsVolInfoFetcher(ctrl)
+
+			zfsVolService := NewZfsVolService(mock)
+
+			mock.EXPECT().FetchZfsVolumeSize(testCase.args.volumeName).
+				Return(testCase.mockGetZfsVolumeSizeReturnVal, testCase.mockGetZfsVolumeSizeReturnErr).
+				MaxTimes(1)
+
+			got, err := zfsVolService.GetZfsVolumeSize(testCase.args.volumeName)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetZfsVolumeSize() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("GetZfsVolumeSize() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestGetZfsVolumeUsage(t *testing.T) {
+	type args struct {
+		volumeName string
+	}
+
+	tests := []struct {
+		name                            string
+		mockGetZfsVolUsageReturnVal     uint64
+		mockGetZfsVolUsageSizeReturnErr error
+		args                            args
+		want                            uint64
+		wantErr                         bool
+	}{
+		{
+			name:                            "success1",
+			mockGetZfsVolUsageReturnVal:     662609920,
+			mockGetZfsVolUsageSizeReturnErr: nil,
+			args: args{
+				volumeName: "someVolumeName",
+			},
+			want:    662609920,
+			wantErr: false,
+		},
+		{
+			name:                            "error1",
+			mockGetZfsVolUsageReturnVal:     0,
+			mockGetZfsVolUsageSizeReturnErr: errDiskNotFound,
+			args: args{
+				volumeName: "someVolumeName",
+			},
+			want:    0,
+			wantErr: true,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			mock := mocks.NewMockZfsVolInfoFetcher(ctrl)
+
+			zfsVolService := NewZfsVolService(mock)
+
+			mock.EXPECT().FetchZfsVolumeUsage(testCase.args.volumeName).
+				Return(testCase.mockGetZfsVolUsageReturnVal, testCase.mockGetZfsVolUsageSizeReturnErr).
+				MaxTimes(1)
+
+			got, err := zfsVolService.GetZfsVolumeUsage(testCase.args.volumeName)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetZfsVolumeUsage() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("GetZfsVolumeUsage() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestGetZfsVolBlockSize(t *testing.T) {
+	type args struct {
+		volumeName string
+	}
+
+	tests := []struct {
+		name                          string
+		mockGetZfsVolumeSizeReturnVal uint64
+		mockGetZfsVolumeSizeReturnErr error
+		args                          args
+		want                          uint64
+		wantErr                       bool
+	}{
+		{
+			name:                          "success1",
+			mockGetZfsVolumeSizeReturnVal: 2147483648,
+			mockGetZfsVolumeSizeReturnErr: nil,
+			args:                          args{volumeName: "someVolumeName"},
+			want:                          2147483648,
+			wantErr:                       false,
+		},
+		{
+			name:                          "error1",
+			mockGetZfsVolumeSizeReturnVal: 0,
+			mockGetZfsVolumeSizeReturnErr: errDiskNotFound,
+			args:                          args{volumeName: "someVolumeName"},
+			want:                          0,
+			wantErr:                       true,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			ctrl := gomock.NewController(t)
+			mock := mocks.NewMockZfsVolInfoFetcher(ctrl)
+
+			mock.EXPECT().FetchZfsVolBlockSize(testCase.args.volumeName).
+				Return(testCase.mockGetZfsVolumeSizeReturnVal, testCase.mockGetZfsVolumeSizeReturnErr).
+				MaxTimes(1)
+
+			n := NewZfsVolService(mock)
+
+			got, err := n.GetZfsVolBlockSize(testCase.args.volumeName)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetZfsVolBlockSize() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("GetZfsVolBlockSize() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestSetZfsVolumeSize(t *testing.T) {
+	type args struct {
+		volumeName string
+		volSize    uint64
+	}
+
+	tests := []struct {
+		name                            string
+		mockGetZfsVolumeSizeReturnVal   uint64
+		mockGetZfsVolumeSizeReturnErr   error
+		mockGetZfsVolBlockSizeReturnVal uint64
+		mockGetZfsVolBlockSizeReturnErr error
+		args                            args
+		wantErr                         bool
+	}{
+		{
+			name:                            "success1",
+			mockGetZfsVolumeSizeReturnVal:   1073741824,
+			mockGetZfsVolumeSizeReturnErr:   nil,
+			mockGetZfsVolBlockSizeReturnVal: 16384,
+			mockGetZfsVolBlockSizeReturnErr: nil,
+			args: args{
+				volumeName: "someVolume",
+				volSize:    2147483648,
+			},
+			wantErr: false,
+		},
+		{
+			name:                            "errorGetVolSize1",
+			mockGetZfsVolumeSizeReturnVal:   0,
+			mockGetZfsVolumeSizeReturnErr:   errDiskNotFound,
+			mockGetZfsVolBlockSizeReturnVal: 16384,
+			mockGetZfsVolBlockSizeReturnErr: nil,
+			args: args{
+				volumeName: "someVolume",
+				volSize:    2147483648,
+			},
+			wantErr: true,
+		},
+		{
+			name:                            "errorGetVolSize2",
+			mockGetZfsVolumeSizeReturnVal:   2147483648,
+			mockGetZfsVolumeSizeReturnErr:   nil,
+			mockGetZfsVolBlockSizeReturnVal: 16384,
+			mockGetZfsVolBlockSizeReturnErr: nil,
+			args: args{
+				volumeName: "someVolume",
+				volSize:    2147483648,
+			},
+			wantErr: false,
+		},
+		{
+			name:                            "errorGetVolBlockSize1",
+			mockGetZfsVolumeSizeReturnVal:   1073741824,
+			mockGetZfsVolumeSizeReturnErr:   nil,
+			mockGetZfsVolBlockSizeReturnVal: 0,
+			mockGetZfsVolBlockSizeReturnErr: errDiskNotFound,
+			args: args{
+				volumeName: "someVolume",
+				volSize:    2147483648,
+			},
+			wantErr: true,
+		},
+		{
+			name:                            "success2",
+			mockGetZfsVolumeSizeReturnVal:   1073741824,
+			mockGetZfsVolumeSizeReturnErr:   nil,
+			mockGetZfsVolBlockSizeReturnVal: 16384,
+			mockGetZfsVolBlockSizeReturnErr: nil,
+			args: args{
+				volumeName: "someVolume",
+				volSize:    2147483647,
+			},
+			wantErr: false,
+		},
+		{
+			name:                            "errorShrinkage",
+			mockGetZfsVolumeSizeReturnVal:   2147483648,
+			mockGetZfsVolumeSizeReturnErr:   nil,
+			mockGetZfsVolBlockSizeReturnVal: 16384,
+			mockGetZfsVolBlockSizeReturnErr: nil,
+			args: args{
+				volumeName: "someVolume",
+				volSize:    1073741824,
+			},
+			wantErr: true,
+		},
+		{
+			name:                            "errorExit",
+			mockGetZfsVolumeSizeReturnVal:   1073741824,
+			mockGetZfsVolumeSizeReturnErr:   nil,
+			mockGetZfsVolBlockSizeReturnVal: 16384,
+			mockGetZfsVolBlockSizeReturnErr: nil,
+			args: args{
+				volumeName: "someVolume",
+				volSize:    2147483648,
+			},
+			wantErr: true,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+			ctrl := gomock.NewController(t)
+
+			wantNewVolSize := func(startVal uint64, blockSize uint64) uint64 {
+				newVal := startVal
+				if blockSize == 0 {
+					return newVal
+				}
+
+				mod := startVal % blockSize
+
+				if mod != 0 {
+					ads := blockSize - mod
+					newVal += ads
+				}
+
+				return newVal
+			}(testCase.args.volSize, testCase.mockGetZfsVolBlockSizeReturnVal)
+
+			mock := mocks.NewMockZfsVolInfoFetcher(ctrl)
+
+			mock.EXPECT().FetchZfsVolumeSize(testCase.args.volumeName).
+				Return(testCase.mockGetZfsVolumeSizeReturnVal, testCase.mockGetZfsVolumeSizeReturnErr)
+			mock.EXPECT().FetchZfsVolBlockSize(testCase.args.volumeName).
+				Return(testCase.mockGetZfsVolBlockSizeReturnVal, testCase.mockGetZfsVolBlockSizeReturnErr).
+				MaxTimes(1)
+			mock.EXPECT().ApplyZfsVolumeSize(testCase.args.volumeName, wantNewVolSize).
+				MaxTimes(1).
+				DoAndReturn(func(_ string, _ uint64) error {
+					if testCase.wantErr {
+						return errDiskNotFound
+					}
+
+					return nil
+				})
+
+			d := NewZfsVolService(mock)
+
+			err := d.SetZfsVolumeSize(testCase.args.volumeName, testCase.args.volSize)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("SetZfsVolumeSize() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}
 }
 
 //nolint:paralleltest
-func TestGetZfsVolumeSizeErrorParse(_ *testing.T) {
+func TestFetchZfsVolumeSize(t *testing.T) {
+	type args struct {
+		volumeName string
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		want        uint64
+		wantErr     bool
+	}{
+		{
+			name:        "success1",
+			mockCmdFunc: "TestFetchZfsVolumeSizeSuccess1",
+			args:        args{volumeName: "someVolumeName"},
+			want:        2147483648,
+			wantErr:     false,
+		},
+		{
+			name:        "errorExit",
+			mockCmdFunc: "TestFetchZfsVolumeSizeErrorExit",
+			args:        args{volumeName: "someVolumeName"},
+			want:        0,
+			wantErr:     true,
+		},
+		{
+			name:        "errorExit",
+			mockCmdFunc: "TestFetchZfsVolumeSizeErrorFields",
+			args:        args{volumeName: "someVolumeName"},
+			want:        0,
+			wantErr:     true,
+		},
+		{
+			name:        "errorParse",
+			mockCmdFunc: "TestFetchZfsVolumeSizeErrorParse",
+			args:        args{volumeName: "someVolumeName"},
+			want:        0,
+			wantErr:     true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			n := ZfsVolService{
+				ZvolInfoImpl: &ZfsVolInfoCmds{},
+			}
+
+			got, err := n.ZvolInfoImpl.FetchZfsVolumeSize(testCase.args.volumeName)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("FetchZfsVolumeSize() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("FetchZfsVolumeSize() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest
+func TestFetchZfsVolumeUsage(t *testing.T) {
+	type args struct {
+		volumeName string
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		want        uint64
+		wantErr     bool
+	}{
+		{
+			name:        "success1",
+			mockCmdFunc: "TestFetchZfsVolumeUsageSuccess1",
+			args:        args{volumeName: "someVolumeName"},
+			want:        662609920,
+			wantErr:     false,
+		},
+		{
+			name:        "errorExec",
+			mockCmdFunc: "TestFetchZfsVolumeUsageErrorExec",
+			args:        args{volumeName: "someVolumeName"},
+			want:        0,
+			wantErr:     true,
+		},
+		{
+			name:        "errorParse",
+			mockCmdFunc: "TestFetchZfsVolumeUsageErrorParse",
+			args:        args{volumeName: "someVolumeName"},
+			want:        0,
+			wantErr:     true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			n := ZfsVolService{
+				ZvolInfoImpl: &ZfsVolInfoCmds{},
+			}
+
+			got, err := n.ZvolInfoImpl.FetchZfsVolumeUsage(testCase.args.volumeName)
+
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("FetchZfsVolumeUsage() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("FetchZfsVolumeUsage() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest
+func TestFetchZfsVolBlockSize(t *testing.T) {
+	type args struct {
+		volumeName string
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		want        uint64
+		wantErr     bool
+	}{
+		{
+			name:        "success1",
+			mockCmdFunc: "TestFetchZfsVolBlockSizeSuccess1",
+			args:        args{volumeName: "cirrinad0/disk/test2024021425_hd5"},
+			want:        16384,
+			wantErr:     false,
+		},
+		{
+			name:        "errorExit",
+			mockCmdFunc: "TestFetchZfsVolBlockSizeErrorExit",
+			args:        args{volumeName: "cirrinad0/disk/test2024021425_hd5"},
+			want:        0,
+			wantErr:     true,
+		},
+		{
+			name:        "errorDupe",
+			mockCmdFunc: "TestFetchZfsVolBlockSizeErrorDupe",
+			args:        args{volumeName: "cirrinad0/disk/test2024021425_hd5"},
+			want:        0,
+			wantErr:     true,
+		},
+		{
+			name:        "errorFields",
+			mockCmdFunc: "TestFetchZfsVolBlockSizeErrorFields",
+			args:        args{volumeName: "cirrinad0/disk/test2024021425_hd5"},
+			want:        0,
+			wantErr:     true,
+		},
+		{
+			name:        "errorNotFound",
+			mockCmdFunc: "TestFetchZfsVolBlockSizeErrorNotFound",
+			args:        args{volumeName: "cirrinad0/disk/test2024021425_hd5"},
+			want:        0,
+			wantErr:     true,
+		},
+		{
+			name:        "errorUintParse",
+			mockCmdFunc: "TestFetchZfsVolBlockSizeErrorUintParse",
+			args:        args{volumeName: "cirrinad0/disk/test2024021425_hd5"},
+			want:        0,
+			wantErr:     true,
+		},
+		{
+			name:        "errorUintParse",
+			mockCmdFunc: "TestFetchZfsVolBlockSizeErrorZero",
+			args:        args{volumeName: "cirrinad0/disk/test2024021425_hd5"},
+			want:        0,
+			wantErr:     true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			n := ZfsVolService{
+				ZvolInfoImpl: &ZfsVolInfoCmds{},
+			}
+
+			got, err := n.ZvolInfoImpl.FetchZfsVolBlockSize(testCase.args.volumeName)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("FetchZfsVolBlockSize() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("FetchZfsVolBlockSize() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest
+func TestApplyZfsVolumeSize(t *testing.T) {
+	type args struct {
+		volumeName string
+		volSize    uint64
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		wantErr     bool
+	}{
+		{
+			name:        "success1",
+			mockCmdFunc: "TestApplyZfsVolumeSizeSuccess1",
+			args: args{
+				volumeName: "someVolume",
+				volSize:    2147483648,
+			},
+			wantErr: false,
+		},
+		{
+			name:        "errorExit",
+			mockCmdFunc: "TestApplyZfsVolumeSizeExitError",
+			args: args{
+				volumeName: "someVolume",
+				volSize:    2147483648,
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			e := &ZfsVolInfoCmds{}
+
+			err := e.ApplyZfsVolumeSize(testCase.args.volumeName, testCase.args.volSize)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("ApplyZfsVolumeSize() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
+// test helpers from here on down
+
+//nolint:paralleltest
+func TestFetchAllZfsVolumesSuccess1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	successOutput := `cirrinad0/disk/test2024051402_hd0
+cirrinad0/disk/test2024051402_hd1
+cirrinad0/disk/test2024051402_hd2
+`
+
+	fmt.Print(successOutput) //nolint:forbidigo
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func TestGetAllZfsVolumesErrorFields(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	fmt.Print("forced error wrong number of fields") //nolint:forbidigo
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func TestGetAllZfsVolumesErrorExec(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	fmt.Print("forced error exec") //nolint:forbidigo
+	os.Exit(1)
+}
+
+//nolint:paralleltest
+func TestFetchZfsVolumeSizeErrorParse(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -122,7 +784,7 @@ func TestGetZfsVolumeSizeErrorParse(_ *testing.T) {
 }
 
 //nolint:paralleltest
-func TestGetZfsVolumeSizeErrorFields(_ *testing.T) {
+func TestFetchZfsVolumeSizeErrorFields(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -143,7 +805,7 @@ func TestGetZfsVolumeSizeErrorFields(_ *testing.T) {
 }
 
 //nolint:paralleltest
-func TestGetZfsVolumeSizeErrorExit(_ *testing.T) {
+func TestFetchZfsVolumeSizeErrorExit(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -152,7 +814,7 @@ func TestGetZfsVolumeSizeErrorExit(_ *testing.T) {
 }
 
 //nolint:paralleltest
-func TestGetZfsVolumeSizeSuccess1(_ *testing.T) {
+func TestFetchZfsVolumeSizeSuccess1(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -173,73 +835,7 @@ func TestGetZfsVolumeSizeSuccess1(_ *testing.T) {
 }
 
 //nolint:paralleltest
-func TestGetZfsVolumeSize(t *testing.T) {
-	type args struct {
-		volumeName string
-	}
-
-	tests := []struct {
-		name        string
-		mockCmdFunc string
-		args        args
-		want        uint64
-		wantErr     bool
-	}{
-		{
-			name:        "success1",
-			mockCmdFunc: "TestGetZfsVolumeSizeSuccess1",
-			args:        args{volumeName: "someVolumeName"},
-			want:        2147483648,
-			wantErr:     false,
-		},
-		{
-			name:        "errorExit",
-			mockCmdFunc: "TestGetZfsVolumeSizeErrorExit",
-			args:        args{volumeName: "someVolumeName"},
-			want:        0,
-			wantErr:     true,
-		},
-		{
-			name:        "errorExit",
-			mockCmdFunc: "TestGetZfsVolumeSizeErrorFields",
-			args:        args{volumeName: "someVolumeName"},
-			want:        0,
-			wantErr:     true,
-		},
-		{
-			name:        "errorParse",
-			mockCmdFunc: "TestGetZfsVolumeSizeErrorParse",
-			args:        args{volumeName: "someVolumeName"},
-			want:        0,
-			wantErr:     true,
-		},
-	}
-
-	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
-		t.Run(testCase.name, func(t *testing.T) {
-			// prevents parallel testing
-			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
-			util.SetupTestCmd(fakeCommand)
-
-			t.Cleanup(func() { util.TearDownTestCmd() })
-
-			got, err := GetZfsVolumeSize(testCase.args.volumeName)
-			if (err != nil) != testCase.wantErr {
-				t.Errorf("GetZfsVolumeSize() error = %v, wantErr %v", err, testCase.wantErr)
-
-				return
-			}
-
-			if got != testCase.want {
-				t.Errorf("GetZfsVolumeSize() got = %v, want %v", got, testCase.want)
-			}
-		})
-	}
-}
-
-//nolint:paralleltest
-func TestGetZfsVolumeUsageSuccess1(_ *testing.T) {
+func TestFetchZfsVolumeUsageSuccess1(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -260,7 +856,7 @@ func TestGetZfsVolumeUsageSuccess1(_ *testing.T) {
 }
 
 //nolint:paralleltest
-func TestGetZfsVolumeUsageErrorExec(_ *testing.T) {
+func TestFetchZfsVolumeUsageErrorExec(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -269,7 +865,7 @@ func TestGetZfsVolumeUsageErrorExec(_ *testing.T) {
 }
 
 //nolint:paralleltest
-func TestGetZfsVolumeUsageErrorParse(_ *testing.T) {
+func TestFetchZfsVolumeUsageErrorParse(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -279,67 +875,7 @@ func TestGetZfsVolumeUsageErrorParse(_ *testing.T) {
 }
 
 //nolint:paralleltest
-func TestGetZfsVolumeUsage(t *testing.T) {
-	type args struct {
-		volumeName string
-	}
-
-	tests := []struct {
-		name        string
-		mockCmdFunc string
-		args        args
-		want        uint64
-		wantErr     bool
-	}{
-		{
-			name:        "success1",
-			mockCmdFunc: "TestGetZfsVolumeUsageSuccess1",
-			args:        args{volumeName: "someVolumeName"},
-			want:        662609920,
-			wantErr:     false,
-		},
-		{
-			name:        "errorExec",
-			mockCmdFunc: "TestGetZfsVolumeUsageErrorExec",
-			args:        args{volumeName: "someVolumeName"},
-			want:        0,
-			wantErr:     true,
-		},
-		{
-			name:        "errorParse",
-			mockCmdFunc: "TestGetZfsVolumeUsageErrorParse",
-			args:        args{volumeName: "someVolumeName"},
-			want:        0,
-			wantErr:     true,
-		},
-	}
-
-	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
-		t.Run(testCase.name, func(t *testing.T) {
-			// prevents parallel testing
-			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
-			util.SetupTestCmd(fakeCommand)
-
-			t.Cleanup(func() { util.TearDownTestCmd() })
-
-			got, err := GetZfsVolumeUsage(testCase.args.volumeName)
-
-			if (err != nil) != testCase.wantErr {
-				t.Errorf("GetZfsVolumeUsage() error = %v, wantErr %v", err, testCase.wantErr)
-
-				return
-			}
-
-			if got != testCase.want {
-				t.Errorf("GetZfsVolumeUsage() got = %v, want %v", got, testCase.want)
-			}
-		})
-	}
-}
-
-//nolint:paralleltest
-func TestGetZfsVolBlockSizeErrorUintParse(_ *testing.T) {
+func TestFetchZfsVolBlockSizeErrorUintParse(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -349,7 +885,7 @@ func TestGetZfsVolBlockSizeErrorUintParse(_ *testing.T) {
 }
 
 //nolint:paralleltest
-func TestGetZfsVolBlockSizeErrorNotFound(_ *testing.T) {
+func TestFetchZfsVolBlockSizeErrorNotFound(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -359,7 +895,7 @@ func TestGetZfsVolBlockSizeErrorNotFound(_ *testing.T) {
 }
 
 //nolint:paralleltest
-func TestGetZfsVolBlockSizeErrorFields(_ *testing.T) {
+func TestFetchZfsVolBlockSizeErrorFields(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -369,7 +905,7 @@ func TestGetZfsVolBlockSizeErrorFields(_ *testing.T) {
 }
 
 //nolint:paralleltest
-func TestGetZfsVolBlockSizeErrorExit(_ *testing.T) {
+func TestFetchZfsVolBlockSizeErrorExit(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -378,7 +914,7 @@ func TestGetZfsVolBlockSizeErrorExit(_ *testing.T) {
 }
 
 //nolint:paralleltest
-func TestGetZfsVolBlockSizeErrorDupe(_ *testing.T) {
+func TestFetchZfsVolBlockSizeErrorDupe(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -390,7 +926,18 @@ func TestGetZfsVolBlockSizeErrorDupe(_ *testing.T) {
 }
 
 //nolint:paralleltest
-func TestGetZfsVolBlockSizeSuccess1(_ *testing.T) {
+func TestFetchZfsVolBlockSizeErrorZero(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	fmt.Print("cirrinad0/disk/test2024021425_hd5       volblocksize    0   default\n") //nolint:forbidigo
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func TestFetchZfsVolBlockSizeSuccess1(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -401,87 +948,7 @@ func TestGetZfsVolBlockSizeSuccess1(_ *testing.T) {
 }
 
 //nolint:paralleltest
-func TestGetZfsVolBlockSize(t *testing.T) {
-	type args struct {
-		volumeName string
-	}
-
-	tests := []struct {
-		name        string
-		mockCmdFunc string
-		args        args
-		want        uint64
-		wantErr     bool
-	}{
-		{
-			name:        "success1",
-			mockCmdFunc: "TestGetZfsVolBlockSizeSuccess1",
-			args:        args{volumeName: "cirrinad0/disk/test2024021425_hd5"},
-			want:        16384,
-			wantErr:     false,
-		},
-		{
-			name:        "errorExit",
-			mockCmdFunc: "TestGetZfsVolBlockSizeErrorExit",
-			args:        args{volumeName: "cirrinad0/disk/test2024021425_hd5"},
-			want:        0,
-			wantErr:     true,
-		},
-		{
-			name:        "errorDupe",
-			mockCmdFunc: "TestGetZfsVolBlockSizeErrorDupe",
-			args:        args{volumeName: "cirrinad0/disk/test2024021425_hd5"},
-			want:        0,
-			wantErr:     true,
-		},
-		{
-			name:        "errorFields",
-			mockCmdFunc: "TestGetZfsVolBlockSizeErrorFields",
-			args:        args{volumeName: "cirrinad0/disk/test2024021425_hd5"},
-			want:        0,
-			wantErr:     true,
-		},
-		{
-			name:        "errorNotFound",
-			mockCmdFunc: "TestGetZfsVolBlockSizeErrorNotFound",
-			args:        args{volumeName: "cirrinad0/disk/test2024021425_hd5"},
-			want:        0,
-			wantErr:     true,
-		},
-		{
-			name:        "errorUintParse",
-			mockCmdFunc: "TestGetZfsVolBlockSizeErrorUintParse",
-			args:        args{volumeName: "cirrinad0/disk/test2024021425_hd5"},
-			want:        0,
-			wantErr:     true,
-		},
-	}
-
-	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
-		t.Run(testCase.name, func(t *testing.T) {
-			// prevents parallel testing
-			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
-			util.SetupTestCmd(fakeCommand)
-
-			t.Cleanup(func() { util.TearDownTestCmd() })
-
-			got, err := GetZfsVolBlockSize(testCase.args.volumeName)
-			if (err != nil) != testCase.wantErr {
-				t.Errorf("GetZfsVolBlockSize() error = %v, wantErr %v", err, testCase.wantErr)
-
-				return
-			}
-
-			if got != testCase.want {
-				t.Errorf("GetZfsVolBlockSize() got = %v, want %v", got, testCase.want)
-			}
-		})
-	}
-}
-
-//nolint:paralleltest
-func TestSetZfsVolumeSizeSuccess1(_ *testing.T) {
+func TestApplyZfsVolumeSizeSuccess1(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -490,156 +957,10 @@ func TestSetZfsVolumeSizeSuccess1(_ *testing.T) {
 }
 
 //nolint:paralleltest
-func TestSetZfsVolumeSizeExitError(_ *testing.T) {
+func TestApplyZfsVolumeSizeExitError(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
 
 	os.Exit(1)
-}
-
-//nolint:paralleltest
-func TestSetZfsVolumeSize(t *testing.T) {
-	type args struct {
-		volumeName string
-		volSize    uint64
-	}
-
-	tests := []struct {
-		name                       string
-		mockCmdFunc                string
-		mockGetZfsVolumeSizeFunc   func(string) (uint64, error)
-		mockGetZfsVolBlockSizeFunc func(string) (uint64, error)
-		args                       args
-		wantErr                    bool
-	}{
-		{
-			name:        "success1",
-			mockCmdFunc: "TestSetZfsVolumeSizeSuccess1",
-			mockGetZfsVolumeSizeFunc: func(string) (uint64, error) {
-				return 1073741824, nil
-			},
-			mockGetZfsVolBlockSizeFunc: func(string) (uint64, error) {
-				return 16384, nil
-			},
-			args: args{
-				volumeName: "someVolume",
-				volSize:    2147483648,
-			},
-			wantErr: false,
-		},
-		{
-			name:        "errorGetVolSize1",
-			mockCmdFunc: "TestSetZfsVolumeSizeSuccess1",
-			mockGetZfsVolumeSizeFunc: func(string) (uint64, error) {
-				return 0, errDiskNotFound
-			},
-			mockGetZfsVolBlockSizeFunc: func(string) (uint64, error) {
-				return 16384, nil
-			},
-			args: args{
-				volumeName: "someVolume",
-				volSize:    2147483648,
-			},
-			wantErr: true,
-		},
-		{
-			name:        "errorGetVolSize2",
-			mockCmdFunc: "TestSetZfsVolumeSizeSuccess1",
-			mockGetZfsVolumeSizeFunc: func(string) (uint64, error) {
-				return 2147483648, nil
-			},
-			mockGetZfsVolBlockSizeFunc: func(string) (uint64, error) {
-				return 16384, nil
-			},
-			args: args{
-				volumeName: "someVolume",
-				volSize:    2147483648,
-			},
-			wantErr: false,
-		},
-		{
-			name:        "errorGetVolBlockSize1",
-			mockCmdFunc: "TestSetZfsVolumeSizeSuccess1",
-			mockGetZfsVolumeSizeFunc: func(string) (uint64, error) {
-				return 1073741824, nil
-			},
-			mockGetZfsVolBlockSizeFunc: func(string) (uint64, error) {
-				return 0, errDiskNotFound
-			},
-			args: args{
-				volumeName: "someVolume",
-				volSize:    2147483648,
-			},
-			wantErr: true,
-		},
-		{
-			name:        "success2",
-			mockCmdFunc: "TestSetZfsVolumeSizeSuccess1",
-			mockGetZfsVolumeSizeFunc: func(string) (uint64, error) {
-				return 1073741824, nil
-			},
-			mockGetZfsVolBlockSizeFunc: func(string) (uint64, error) {
-				return 16384, nil
-			},
-			args: args{
-				volumeName: "someVolume",
-				volSize:    2147483647,
-			},
-			wantErr: false,
-		},
-		{
-			name:        "errorShrinkage",
-			mockCmdFunc: "TestSetZfsVolumeSizeSuccess1",
-			mockGetZfsVolumeSizeFunc: func(string) (uint64, error) {
-				return 2147483648, nil
-			},
-			mockGetZfsVolBlockSizeFunc: func(string) (uint64, error) {
-				return 16384, nil
-			},
-			args: args{
-				volumeName: "someVolume",
-				volSize:    1073741824,
-			},
-			wantErr: true,
-		},
-		{
-			name:        "errorExit",
-			mockCmdFunc: "TestSetZfsVolumeSizeExitError",
-			mockGetZfsVolumeSizeFunc: func(string) (uint64, error) {
-				return 1073741824, nil
-			},
-			mockGetZfsVolBlockSizeFunc: func(string) (uint64, error) {
-				return 16384, nil
-			},
-			args: args{
-				volumeName: "someVolume",
-				volSize:    2147483648,
-			},
-			wantErr: true,
-		},
-	}
-	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
-		t.Run(testCase.name, func(t *testing.T) {
-			// prevents parallel testing
-			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
-			util.SetupTestCmd(fakeCommand)
-
-			t.Cleanup(func() { util.TearDownTestCmd() })
-
-			GetZfsVolumeSizeFunc = testCase.mockGetZfsVolumeSizeFunc
-
-			t.Cleanup(func() { GetZfsVolumeSizeFunc = GetZfsVolumeSize })
-
-			GetZfsVolBlockSizeFunc = testCase.mockGetZfsVolBlockSizeFunc
-
-			t.Cleanup(func() { GetZfsVolBlockSizeFunc = GetZfsVolBlockSize })
-
-			err := SetZfsVolumeSize(testCase.args.volumeName, testCase.args.volSize)
-			if (err != nil) != testCase.wantErr {
-				t.Errorf("SetZfsVolumeSize() error = %v, wantErr %v", err, testCase.wantErr)
-			}
-		})
-	}
 }

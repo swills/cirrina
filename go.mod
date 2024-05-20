@@ -19,6 +19,7 @@ require (
 	github.com/spf13/cobra v1.8.0
 	github.com/spf13/viper v1.18.2
 	github.com/tarm/serial v0.0.0-20180830185346-98f6abe2eb07
+	go.uber.org/mock v0.4.0
 	golang.org/x/sys v0.18.0
 	golang.org/x/term v0.18.0
 	google.golang.org/grpc v1.62.1
