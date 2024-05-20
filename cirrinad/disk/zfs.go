@@ -1,4 +1,4 @@
-//go:generate mockgen -destination=mocks/mock_zfs.go -package=disk . ZfsVolInfoFetcher
+//go:generate mockgen -destination=zfs_mocks.go -package=disk . ZfsVolInfoFetcher
 package disk
 
 import (
