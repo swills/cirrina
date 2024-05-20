@@ -145,7 +145,7 @@ func GetConn() error {
 	}
 
 	// build server connection and client
-	serverConn, err = grpc.Dial(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	serverConn, err = grpc.NewClient(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("unable to connect: %w", err)
 	}
