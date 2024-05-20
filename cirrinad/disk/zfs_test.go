@@ -9,7 +9,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"cirrina/cirrinad/cirrinadtest"
-	"cirrina/cirrinad/disk/mocks"
+	disk "cirrina/cirrinad/disk/mocks"
 	"cirrina/cirrinad/util"
 )
 
@@ -148,7 +148,7 @@ func TestGetZfsVolumeSize(t *testing.T) {
 			t.Parallel()
 
 			ctrl := gomock.NewController(t)
-			mock := mocks.NewMockZfsVolInfoFetcher(ctrl)
+			mock := disk.NewMockZfsVolInfoFetcher(ctrl)
 
 			zfsVolService := NewZfsVolService(mock)
 
@@ -213,7 +213,7 @@ func TestGetZfsVolumeUsage(t *testing.T) {
 			t.Parallel()
 
 			ctrl := gomock.NewController(t)
-			mock := mocks.NewMockZfsVolInfoFetcher(ctrl)
+			mock := disk.NewMockZfsVolInfoFetcher(ctrl)
 
 			zfsVolService := NewZfsVolService(mock)
 
@@ -274,7 +274,7 @@ func TestGetZfsVolBlockSize(t *testing.T) {
 			t.Parallel()
 
 			ctrl := gomock.NewController(t)
-			mock := mocks.NewMockZfsVolInfoFetcher(ctrl)
+			mock := disk.NewMockZfsVolInfoFetcher(ctrl)
 
 			mock.EXPECT().FetchZfsVolBlockSize(testCase.args.volumeName).
 				Return(testCase.mockGetZfsVolumeSizeReturnVal, testCase.mockGetZfsVolumeSizeReturnErr).
@@ -421,7 +421,7 @@ func TestSetZfsVolumeSize(t *testing.T) {
 				return newVal
 			}(testCase.args.volSize, testCase.mockGetZfsVolBlockSizeReturnVal)
 
-			mock := mocks.NewMockZfsVolInfoFetcher(ctrl)
+			mock := disk.NewMockZfsVolInfoFetcher(ctrl)
 
 			mock.EXPECT().FetchZfsVolumeSize(testCase.args.volumeName).
 				Return(testCase.mockGetZfsVolumeSizeReturnVal, testCase.mockGetZfsVolumeSizeReturnErr)
