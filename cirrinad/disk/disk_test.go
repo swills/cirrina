@@ -884,7 +884,7 @@ func TestDisk_Save(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testDB, mock := cirrinadtest.NewMockDB("diskTest")
 			testCase.mockClosure(testDB, mock)
 
 			aDisk := &Disk{
@@ -899,6 +899,158 @@ func TestDisk_Save(t *testing.T) {
 
 			if err := aDisk.Save(); (err != nil) != testCase.wantErr {
 				t.Errorf("Save() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+func TestDelete(t *testing.T) {
+	type args struct {
+		diskID string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		wantErr     bool
+	}{
+		{
+			name: "success1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				diskInst := &Disk{
+					ID:          "e89be82f-25c7-42b9-823a-df432e64320e",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				List.DiskList[diskInst.ID] = diskInst
+
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `disks` SET `deleted_at`=? WHERE `disks`.`id` = ? AND `disks`.`deleted_at` IS NULL"),
+				).
+					WithArgs(sqlmock.AnyArg(), "e89be82f-25c7-42b9-823a-df432e64320e").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args: args{
+				diskID: "e89be82f-25c7-42b9-823a-df432e64320e",
+			},
+			wantErr: false,
+		},
+		{
+			name: "error1",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+			},
+			args: args{
+				diskID: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "error2",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				diskInst := &Disk{
+					ID:          "e89be82f-25c7-42b9-823a-df432e64320e",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				List.DiskList[diskInst.ID] = diskInst
+
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+			},
+			args: args{
+				diskID: "2e1f3582-7bc1-4a7a-beeb-1651e371435e",
+			},
+			wantErr: true,
+		},
+		{
+			name: "error3",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				diskInst := &Disk{
+					ID:          "e89be82f-25c7-42b9-823a-df432e64320e",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				List.DiskList[diskInst.ID] = diskInst
+
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `disks` SET `deleted_at`=? WHERE `disks`.`id` = ? AND `disks`.`deleted_at` IS NULL"),
+				).
+					WithArgs(sqlmock.AnyArg(), "e89be82f-25c7-42b9-823a-df432e64320e").
+					WillReturnResult(sqlmock.NewResult(1, 0))
+				mock.ExpectCommit()
+			},
+			args: args{
+				diskID: "e89be82f-25c7-42b9-823a-df432e64320e",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testCase.mockClosure(testDB, mock)
+
+			err := Delete(testCase.args.diskID)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("Delete() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 
 			mock.ExpectClose()
