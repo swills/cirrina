@@ -88,7 +88,11 @@ func DBAutoMigrate() {
 	if err != nil {
 		slog.Error("DiskDb DBAutoMigrate failed to drop path column, continuing anyway")
 	}
+}
 
+func CacheInit() {
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
 	for _, diskInst := range GetAllDB() {
 		initOneDisk(diskInst)
 	}

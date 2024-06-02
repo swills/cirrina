@@ -73,13 +73,13 @@ func TestGetAllDB(t *testing.T) {
 			},
 			want: []*Disk{
 				{
-					Model: gorm.Model{
-						ID:        0,
-						CreatedAt: createUpdateTime,
-						UpdatedAt: createUpdateTime,
-						DeletedAt: gorm.DeletedAt{},
+					ID:        "20d3098f-7ccf-484e-bed4-757940a3c775",
+					CreatedAt: createUpdateTime,
+					UpdatedAt: createUpdateTime,
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
 					},
-					ID:          "20d3098f-7ccf-484e-bed4-757940a3c775",
 					Name:        "test2023061001_14.img",
 					Description: "a virtual hard disk image",
 					Type:        "NVME",
@@ -94,13 +94,13 @@ func TestGetAllDB(t *testing.T) {
 					},
 				},
 				{
-					Model: gorm.Model{
-						ID:        0,
-						CreatedAt: createUpdateTime,
-						UpdatedAt: createUpdateTime,
-						DeletedAt: gorm.DeletedAt{},
+					ID:        "41ae49ee-6e7e-47c2-aebb-671f2dbac4a2",
+					CreatedAt: createUpdateTime,
+					UpdatedAt: createUpdateTime,
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
 					},
-					ID:          "41ae49ee-6e7e-47c2-aebb-671f2dbac4a2",
 					Name:        "test2023061001_15.img",
 					Description: "another virtual hard disk image",
 					Type:        "NVME",
@@ -188,7 +188,7 @@ func Test_diskTypeValid(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := diskTypeValid(tt.args.diskType); got != tt.want {
-				t.Errorf("diskTypeValid() = %v, want %v", got, tt.want)
+				t.Errorf("diskTypeValid() = %v, wantFetch %v", got, tt.want)
 			}
 		})
 	}
@@ -224,7 +224,7 @@ func Test_diskDevTypeValid(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := diskDevTypeValid(tt.args.diskDevType); got != tt.want {
-				t.Errorf("diskDevTypeValid() = %v, want %v", got, tt.want)
+				t.Errorf("diskDevTypeValid() = %v, wantFetch %v", got, tt.want)
 			}
 		})
 	}
@@ -528,7 +528,7 @@ func TestGetByName(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("GetByName() got = %v, want %v", got, testCase.want)
+				t.Errorf("GetByName() got = %v, wantFetch %v", got, testCase.want)
 			}
 		})
 	}
@@ -589,7 +589,7 @@ func TestDisk_GetPath(t *testing.T) {
 			}
 
 			if got := d.GetPath(); got != testCase.want {
-				t.Errorf("GetPath() = %v, want %v", got, testCase.want)
+				t.Errorf("GetPath() = %v, wantFetch %v", got, testCase.want)
 			}
 		})
 	}
@@ -1066,6 +1066,39 @@ func TestDelete(t *testing.T) {
 
 			if err = mock.ExpectationsWereMet(); err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+type MockDisk struct {
+}
+
+func Test_diskExists(t *testing.T) {
+	type args struct {
+		diskInst *Disk
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    bool
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			got, err := diskExistsCacheDB(testCase.args.diskInst)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("diskExistsCacheDB() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("diskExistsCacheDB() got = %v, wantFetch %v", got, testCase.want)
 			}
 		})
 	}

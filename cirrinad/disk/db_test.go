@@ -16,8 +16,10 @@ func TestDisk_BeforeCreate(t *testing.T) {
 	testDB, _ := cirrinadtest.NewMockDB("requestTest")
 
 	type fields struct {
-		Model       gorm.Model
 		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		DeletedAt   gorm.DeletedAt `gorm:"index"`
 		Name        string
 		Description string
 		Type        string
@@ -39,16 +41,13 @@ func TestDisk_BeforeCreate(t *testing.T) {
 		{
 			name: "success1",
 			fields: fields{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "",
 				Name:        "someDisk",
 				Description: "a good disk",
 				Type:        "NVME",
@@ -68,16 +67,13 @@ func TestDisk_BeforeCreate(t *testing.T) {
 		{
 			name: "fail1",
 			fields: fields{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "",
 				Name:        "",
 				Description: "a good disk",
 				Type:        "NVME",
@@ -101,7 +97,6 @@ func TestDisk_BeforeCreate(t *testing.T) {
 
 		t.Run(testCase.name, func(t *testing.T) {
 			testDisk := &Disk{
-				Model:       testCase.fields.Model,
 				ID:          testCase.fields.ID,
 				Name:        testCase.fields.Name,
 				Description: testCase.fields.Description,

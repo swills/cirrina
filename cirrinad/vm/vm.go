@@ -167,7 +167,7 @@ func Create(vmInst *VM) error {
 		return res.Error
 	}
 
-	InitOneVM(vmInst)
+	initOneVM(vmInst)
 
 	return nil
 }

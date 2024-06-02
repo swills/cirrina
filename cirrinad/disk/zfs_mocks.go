@@ -38,6 +38,20 @@ func (m *MockZfsVolInfoFetcher) EXPECT() *MockZfsVolInfoFetcherMockRecorder {
 	return m.recorder
 }
 
+// Add mocks base method.
+func (m *MockZfsVolInfoFetcher) Add(arg0 string, arg1 uint64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Add", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Add indicates an expected call of Add.
+func (mr *MockZfsVolInfoFetcherMockRecorder) Add(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockZfsVolInfoFetcher)(nil).Add), arg0, arg1)
+}
+
 // ApplyZfsVolumeSize mocks base method.
 func (m *MockZfsVolInfoFetcher) ApplyZfsVolumeSize(arg0 string, arg1 uint64) error {
 	m.ctrl.T.Helper()
@@ -50,6 +64,36 @@ func (m *MockZfsVolInfoFetcher) ApplyZfsVolumeSize(arg0 string, arg1 uint64) err
 func (mr *MockZfsVolInfoFetcherMockRecorder) ApplyZfsVolumeSize(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyZfsVolumeSize", reflect.TypeOf((*MockZfsVolInfoFetcher)(nil).ApplyZfsVolumeSize), arg0, arg1)
+}
+
+// CheckExists mocks base method.
+func (m *MockZfsVolInfoFetcher) CheckExists(arg0 string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CheckExists", arg0)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CheckExists indicates an expected call of CheckExists.
+func (mr *MockZfsVolInfoFetcherMockRecorder) CheckExists(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckExists", reflect.TypeOf((*MockZfsVolInfoFetcher)(nil).CheckExists), arg0)
+}
+
+// FetchAll mocks base method.
+func (m *MockZfsVolInfoFetcher) FetchAll() ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FetchAll")
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FetchAll indicates an expected call of FetchAll.
+func (mr *MockZfsVolInfoFetcherMockRecorder) FetchAll() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchAll", reflect.TypeOf((*MockZfsVolInfoFetcher)(nil).FetchAll))
 }
 
 // FetchZfsVolBlockSize mocks base method.

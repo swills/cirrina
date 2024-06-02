@@ -206,11 +206,13 @@ func DBAutoMigrate() {
 		slog.Error("failed db migration", "err", err)
 		panic("failed to auto-migrate Configs")
 	}
+}
 
+func CacheInit() {
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
 	for _, vmInst := range GetAllDB() {
-		InitOneVM(vmInst)
+		initOneVM(vmInst)
 	}
 }
 

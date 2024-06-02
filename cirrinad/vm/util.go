@@ -37,7 +37,9 @@ func GetVMLogPath(logpath string) error {
 	return nil
 }
 
-func InitOneVM(vmInst *VM) {
+// initOneVM initializes and adds a VM to the in memory cache of VMs
+// note, callers must lock the in memory cache via List.Mu.Lock()
+func initOneVM(vmInst *VM) {
 	vmLogPath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name
 
 	err := GetVMLogPath(vmLogPath)

@@ -27,11 +27,12 @@ import (
 	"cirrina/cirrinad/config"
 )
 
-// to allow testing
+// allow testing
 var execute = exec.Command
 var getHostMaxVMCpusFunc = GetHostMaxVMCpus
 var getIntGroupsFunc = GetIntGroups
 var netInterfacesFunc = net.Interfaces
+var osOpenFunc = os.Open
 
 func PathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
@@ -87,7 +88,7 @@ func PidExists(pid int) (bool, error) {
 func OSReadDir(path string) ([]string, error) {
 	var files []string
 
-	pathFile, err := os.Open(path)
+	pathFile, err := osOpenFunc(path)
 	if err != nil {
 		return []string{}, fmt.Errorf("failed reading OS dir: %w", err)
 	}
