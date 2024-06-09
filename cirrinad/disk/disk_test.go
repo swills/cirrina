@@ -2,6 +2,7 @@ package disk
 
 import (
 	"database/sql"
+	"errors"
 	"reflect"
 	"regexp"
 	"testing"
@@ -10,6 +11,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-test/deep"
 	"github.com/mattn/go-sqlite3"
+	"go.uber.org/mock/gomock"
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/cirrinadtest"
@@ -1071,9 +1073,6 @@ func TestDelete(t *testing.T) {
 	}
 }
 
-type MockDisk struct {
-}
-
 func Test_diskExists(t *testing.T) {
 	type args struct {
 		diskInst *Disk
@@ -1099,6 +1098,361 @@ func Test_diskExists(t *testing.T) {
 
 			if got != testCase.want {
 				t.Errorf("diskExistsCacheDB() got = %v, wantFetch %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+//nolint:maintidx
+func TestCreate(t *testing.T) {
+	type args struct {
+		diskInst *Disk
+		size     string
+	}
+
+	tests := []struct {
+		name                  string
+		args                  args
+		mockClosure           func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		diskExistsCacheDBFunc func(diskInst *Disk) (bool, error)
+		diskValidateFunc      func(diskInst *Disk) error
+		wantExists            bool
+		wantExistsErr         bool
+		wantCreateErr         bool
+		wantErr               bool
+	}{
+		{
+			name:                  "fileExistsCacheOrDB",
+			args:                  args{diskInst: &Disk{Name: "someDisk", DevType: "FILE"}, size: "2g"},
+			mockClosure:           func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			diskExistsCacheDBFunc: func(*Disk) (bool, error) { return true, nil },
+			diskValidateFunc:      func(*Disk) error { return nil },
+			wantErr:               true,
+		},
+		{
+			name:                  "zvolExistsCacheOrDB",
+			args:                  args{diskInst: &Disk{Name: "someDisk", DevType: "ZVOL"}, size: "2g"},
+			mockClosure:           func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			diskExistsCacheDBFunc: func(*Disk) (bool, error) { return true, nil },
+			diskValidateFunc:      func(*Disk) error { return nil },
+			wantErr:               true,
+		},
+		{
+			name:                  "badType",
+			args:                  args{diskInst: &Disk{Name: "someDisk", DevType: "asdf"}, size: "2g"},
+			mockClosure:           func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			diskExistsCacheDBFunc: func(*Disk) (bool, error) { return true, nil },
+			diskValidateFunc:      func(*Disk) error { return nil },
+			wantErr:               true,
+		},
+		{
+			name:                  "errorCheckingExistsCacheMem",
+			args:                  args{diskInst: &Disk{Name: "someDisk", DevType: "ZVOL"}, size: "2g"},
+			mockClosure:           func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			diskExistsCacheDBFunc: func(*Disk) (bool, error) { return true, errors.New("some bogus error") }, //nolint:goerr113
+			diskValidateFunc:      func(*Disk) error { return nil },
+			wantErr:               true,
+		},
+		{
+			name:                  "errorCheckingExistsFile",
+			args:                  args{diskInst: &Disk{Name: "someDisk", DevType: "FILE"}, size: "2g"},
+			mockClosure:           func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			diskExistsCacheDBFunc: func(*Disk) (bool, error) { return false, nil },
+			diskValidateFunc:      func(*Disk) error { return nil },
+			wantExists:            true,
+			wantExistsErr:         true,
+			wantErr:               true,
+		},
+		{
+			name:                  "errorCheckingExistsZVOL",
+			args:                  args{diskInst: &Disk{Name: "someDisk", DevType: "ZVOL"}, size: "2g"},
+			mockClosure:           func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			diskExistsCacheDBFunc: func(*Disk) (bool, error) { return false, nil },
+			diskValidateFunc:      func(*Disk) error { return nil },
+			wantExists:            true,
+			wantExistsErr:         true,
+			wantErr:               true,
+		},
+		{
+			name:                  "existsFile",
+			args:                  args{diskInst: &Disk{Name: "someDisk", DevType: "FILE"}, size: "2g"},
+			mockClosure:           func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			diskExistsCacheDBFunc: func(*Disk) (bool, error) { return false, nil },
+			diskValidateFunc:      func(*Disk) error { return nil },
+			wantExists:            true,
+			wantExistsErr:         false,
+			wantErr:               true,
+		},
+		{
+			name:                  "existsZFS",
+			args:                  args{diskInst: &Disk{Name: "someDisk", DevType: "ZVOL"}, size: "2g"},
+			mockClosure:           func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			diskExistsCacheDBFunc: func(*Disk) (bool, error) { return false, nil },
+			diskValidateFunc:      func(*Disk) error { return nil },
+			wantExists:            true,
+			wantExistsErr:         false,
+			wantErr:               true,
+		},
+		{
+			name:                  "invalidDisk",
+			args:                  args{diskInst: &Disk{Name: "someDisk", DevType: "ZVOL"}, size: "2g"},
+			mockClosure:           func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			diskExistsCacheDBFunc: func(*Disk) (bool, error) { return false, nil },
+			diskValidateFunc:      func(*Disk) error { return errors.New("bogus invalid disk error") }, //nolint:goerr113
+			wantExists:            false,
+			wantExistsErr:         false,
+			wantErr:               true,
+		},
+		{
+			name:                  "badDiskSize",
+			args:                  args{diskInst: &Disk{Name: "someDisk", DevType: "ZVOL"}, size: "123z"},
+			mockClosure:           func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			diskExistsCacheDBFunc: func(*Disk) (bool, error) { return false, nil },
+			diskValidateFunc:      func(*Disk) error { return nil },
+			wantExists:            false,
+			wantExistsErr:         false,
+			wantErr:               true,
+		},
+		{
+			name:                  "badCreateFile",
+			args:                  args{diskInst: &Disk{Name: "someDisk", DevType: "FILE"}, size: "1g"},
+			mockClosure:           func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			diskExistsCacheDBFunc: func(*Disk) (bool, error) { return false, nil },
+			diskValidateFunc:      func(*Disk) error { return nil },
+			wantExists:            false,
+			wantExistsErr:         false,
+			wantCreateErr:         true,
+			wantErr:               true,
+		},
+		{
+			name:                  "badCreateZVOL",
+			args:                  args{diskInst: &Disk{Name: "someDisk", DevType: "ZVOL"}, size: "1g"},
+			mockClosure:           func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			diskExistsCacheDBFunc: func(*Disk) (bool, error) { return false, nil },
+			diskValidateFunc:      func(*Disk) error { return nil },
+			wantExists:            false,
+			wantExistsErr:         false,
+			wantCreateErr:         true,
+			wantErr:               true,
+		},
+		{
+			name: "badDbFile",
+			args: args{diskInst: &Disk{
+				Name:        "someDisk",
+				Description: "a test disk",
+				Type:        "NVME",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			}, size: "1g"},
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta("INSERT INTO `disks` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`dev_type`,`disk_cache`,`disk_direct`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING `id`,`name`")). //nolint:lll
+					WithArgs(
+						sqlmock.AnyArg(), sqlmock.AnyArg(), nil,
+						"a test disk", "NVME", "FILE", true, false, sqlmock.AnyArg(), "someDisk",
+					).
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
+			},
+			diskExistsCacheDBFunc: func(*Disk) (bool, error) { return false, nil },
+			diskValidateFunc:      func(*Disk) error { return nil },
+			wantExists:            false,
+			wantExistsErr:         false,
+			wantCreateErr:         false,
+			wantErr:               true,
+		},
+		{
+			name: "badDbZVOL",
+			args: args{diskInst: &Disk{
+				Name:        "someDisk",
+				Description: "a test disk",
+				Type:        "NVME",
+				DevType:     "ZVOL",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			}, size: "1g"},
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta("INSERT INTO `disks` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`dev_type`,`disk_cache`,`disk_direct`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING `id`,`name`")). //nolint:lll
+					WithArgs(
+						sqlmock.AnyArg(), sqlmock.AnyArg(), nil,
+						"a test disk", "NVME", "ZVOL", true, false, sqlmock.AnyArg(), "someDisk",
+					).
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
+			},
+			diskExistsCacheDBFunc: func(*Disk) (bool, error) { return false, nil },
+			diskValidateFunc:      func(*Disk) error { return nil },
+			wantExists:            false,
+			wantExistsErr:         false,
+			wantCreateErr:         false,
+			wantErr:               true,
+		},
+		{
+			name: "badDbResRows",
+			args: args{diskInst: &Disk{
+				Name:        "someDisk",
+				Description: "a test disk",
+				Type:        "NVME",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			}, size: "1g"},
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta("INSERT INTO `disks` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`dev_type`,`disk_cache`,`disk_direct`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING `id`,`name`")). //nolint:lll
+					WithArgs(
+						sqlmock.AnyArg(), sqlmock.AnyArg(), nil,
+						"a test disk", "NVME", "FILE", true, false, sqlmock.AnyArg(), "someDisk",
+					).
+					WillReturnRows(sqlmock.NewRows([]string{"id"}))
+				mock.ExpectCommit()
+			},
+			diskExistsCacheDBFunc: func(*Disk) (bool, error) { return false, nil },
+			diskValidateFunc:      func(*Disk) error { return nil },
+			wantExists:            false,
+			wantExistsErr:         false,
+			wantCreateErr:         false,
+			wantErr:               true,
+		},
+		{
+			name: "success",
+			args: args{diskInst: &Disk{
+				Name:        "someDisk",
+				Description: "a test disk",
+				Type:        "NVME",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			}, size: "1g"},
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta("INSERT INTO `disks` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`dev_type`,`disk_cache`,`disk_direct`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING `id`,`name`")). //nolint:lll
+					WithArgs(
+						sqlmock.AnyArg(), sqlmock.AnyArg(), nil,
+						"a test disk", "NVME", "FILE", true, false, sqlmock.AnyArg(), "someDisk",
+					).
+					WillReturnRows(sqlmock.NewRows([]string{"id"}).
+						AddRow("c916ca6e-eb6b-400c-86ec-824b84ae71d3"))
+				mock.ExpectCommit()
+			},
+			diskExistsCacheDBFunc: func(*Disk) (bool, error) { return false, nil },
+			diskValidateFunc:      func(*Disk) error { return nil },
+			wantExists:            false,
+			wantExistsErr:         false,
+			wantCreateErr:         false,
+			wantErr:               false,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			diskExistsCacheDBFunc = testCase.diskExistsCacheDBFunc
+
+			t.Cleanup(func() { diskExistsCacheDBFunc = diskExistsCacheDB })
+
+			validateDiskFunc = testCase.diskValidateFunc
+
+			t.Cleanup(func() { validateDiskFunc = validateDisk })
+
+			ctrl := gomock.NewController(t)
+			fileMock := NewMockFileInfoFetcher(ctrl)
+			zfsMock := NewMockZfsVolInfoFetcher(ctrl)
+
+			testDB, mockDB := cirrinadtest.NewMockDB("diskTest")
+
+			testCase.mockClosure(testDB, mockDB)
+
+			FileInfoFetcherImpl = fileMock
+
+			t.Cleanup(func() { FileInfoFetcherImpl = FileInfoCmds{} })
+
+			ZfsInfoFetcherImpl = zfsMock
+
+			t.Cleanup(func() { ZfsInfoFetcherImpl = ZfsVolInfoCmds{} })
+
+			var existsErr error
+
+			var createErr error
+
+			if testCase.wantExistsErr {
+				existsErr = errors.New("bogus exists error") //nolint:goerr113
+			}
+
+			if testCase.wantCreateErr {
+				createErr = errors.New("bogus create error") //nolint:goerr113
+			}
+
+			if testCase.args.diskInst.DevType == "FILE" {
+				fileMock.EXPECT().CheckExists(gomock.Any()).MaxTimes(1).Return(testCase.wantExists, existsErr)
+				fileMock.EXPECT().Add(gomock.Any(), gomock.Any()).MaxTimes(1).Return(createErr)
+			}
+
+			if testCase.args.diskInst.DevType == "ZVOL" {
+				zfsMock.EXPECT().CheckExists(gomock.Any()).MaxTimes(1).Return(testCase.wantExists, existsErr)
+				zfsMock.EXPECT().Add(gomock.Any(), gomock.Any()).MaxTimes(1).Return(createErr)
+			}
+
+			err := Create(testCase.args.diskInst, testCase.args.size)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("Create() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mockDB.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mockDB.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
 	}

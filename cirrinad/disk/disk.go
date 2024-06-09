@@ -39,6 +39,11 @@ var List = &ListType{
 }
 
 var pathExistsFunc = util.PathExists
+var diskExistsCacheDBFunc = diskExistsCacheDB
+var validateDiskFunc = validateDisk
+var getDiskDBFunc = getDiskDB
+var FileInfoFetcherImpl FileInfoFetcher = FileInfoCmds{}
+var ZfsInfoFetcherImpl ZfsVolInfoFetcher = ZfsVolInfoCmds{}
 
 type InfoServicer interface {
 	GetSize(name string) (uint64, error)
@@ -47,10 +52,6 @@ type InfoServicer interface {
 	Exists(name string) (bool, error)
 	Create(name string, size uint64) error
 	GetAll() ([]string, error)
-}
-
-type InfoService struct {
-	DiskInfoImpl InfoServicer
 }
 
 func Create(diskInst *Disk, size string) error {
@@ -64,17 +65,17 @@ func Create(diskInst *Disk, size string) error {
 
 	switch diskInst.DevType {
 	case "FILE":
-		diskService = NewFileInfoService(nil)
+		diskService = NewFileInfoService(FileInfoFetcherImpl)
 
 	case "ZVOL":
-		diskService = NewZfsVolInfoService(nil)
+		diskService = NewZfsVolInfoService(ZfsInfoFetcherImpl)
 
 	default:
 		return errDiskInvalidDevType
 	}
 
 	// check db for existing disk
-	exists, err = diskExistsCacheDB(diskInst)
+	exists, err = diskExistsCacheDBFunc(diskInst)
 	if err != nil {
 		slog.Error("error checking db for disk", "name", diskInst.Name, "err", err)
 
@@ -101,7 +102,7 @@ func Create(diskInst *Disk, size string) error {
 		return errDiskExists
 	}
 
-	err = validateDisk(diskInst)
+	err = validateDiskFunc(diskInst)
 	if err != nil {
 		return fmt.Errorf("error creating disk: %w", err)
 	}
@@ -117,15 +118,16 @@ func Create(diskInst *Disk, size string) error {
 		return fmt.Errorf("erro creating disk: %w", err)
 	}
 
-	db := getDiskDB()
+	db := getDiskDBFunc()
 
 	res := db.Create(&diskInst)
-	if res.RowsAffected != 1 {
-		return fmt.Errorf("incorrect number of rows affected, err: %w", res.Error)
-	}
 
 	if res.Error != nil {
 		return res.Error
+	}
+
+	if res.RowsAffected != 1 {
+		return fmt.Errorf("db err: %w, incorrect number of rows affected: %d", errDiskInternalDB, res.RowsAffected)
 	}
 
 	defer List.Mu.Unlock()
