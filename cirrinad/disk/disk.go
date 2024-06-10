@@ -44,6 +44,7 @@ var validateDiskFunc = validateDisk
 var getDiskDBFunc = getDiskDB
 var FileInfoFetcherImpl FileInfoFetcher = FileInfoCmds{}
 var ZfsInfoFetcherImpl ZfsVolInfoFetcher = ZfsVolInfoCmds{}
+var GetByNameFunc = GetByName
 
 type InfoServicer interface {
 	GetSize(name string) (uint64, error)
@@ -187,7 +188,7 @@ func GetByID(diskID string) (*Disk, error) {
 	return nil, errDiskNotFound
 }
 
-// GetByName lookup disk by name from in memory disk list
+// GetByName lookups disk by name from in-memory disk list
 func GetByName(name string) (*Disk, error) {
 	for _, diskInst := range List.DiskList {
 		if diskInst.Name == name {
@@ -317,12 +318,12 @@ func validateDisk(diskInst *Disk) error {
 	return nil
 }
 
-// diskExistsCacheDB checks if a disk exists in the in memory cache or in the database
+// diskExistsCacheDB checks if a disk exists in the in-memory cache or in the database
 func diskExistsCacheDB(diskInst *Disk) (bool, error) {
 	var err error
 
 	// check in memory cache for disk
-	memDiskInst, err := GetByName(diskInst.Name)
+	memDiskInst, err := GetByNameFunc(diskInst.Name)
 
 	if err != nil {
 		// if errDiskNotFound, check other places just to be sure

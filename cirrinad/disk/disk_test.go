@@ -52,7 +52,7 @@ func TestGetAllDB(t *testing.T) {
 								createUpdateTime,
 								createUpdateTime,
 								nil,
-								"test2023061001_14.img",
+								"test2023061001_14",
 								"a virtual hard disk image",
 								"NVME",
 								"FILE",
@@ -64,7 +64,7 @@ func TestGetAllDB(t *testing.T) {
 								createUpdateTime,
 								createUpdateTime,
 								nil,
-								"test2023061001_15.img",
+								"test2023061001_15",
 								"another virtual hard disk image",
 								"NVME",
 								"FILE",
@@ -82,7 +82,7 @@ func TestGetAllDB(t *testing.T) {
 						Time:  time.Time{},
 						Valid: false,
 					},
-					Name:        "test2023061001_14.img",
+					Name:        "test2023061001_14",
 					Description: "a virtual hard disk image",
 					Type:        "NVME",
 					DevType:     "FILE",
@@ -103,7 +103,7 @@ func TestGetAllDB(t *testing.T) {
 						Time:  time.Time{},
 						Valid: false,
 					},
-					Name:        "test2023061001_15.img",
+					Name:        "test2023061001_15",
 					Description: "another virtual hard disk image",
 					Type:        "NVME",
 					DevType:     "FILE",
@@ -1074,21 +1074,169 @@ func TestDelete(t *testing.T) {
 }
 
 func Test_diskExists(t *testing.T) {
+	createUpdateTime := time.Now()
+
 	type args struct {
 		diskInst *Disk
 	}
 
 	tests := []struct {
-		name    string
-		args    args
-		want    bool
-		wantErr bool
+		name          string
+		args          args
+		getByNameFunc func(string) (*Disk, error)
+		mockClosure   func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		want          bool
+		wantErr       bool
 	}{
-		// TODO: Add test cases.
+		{
+			name: "GetByNameErr",
+			args: args{&Disk{
+				Name: "someDisk",
+			}},
+			getByNameFunc: func(_ string) (*Disk, error) {
+				return nil, errors.New("some bogus error") //nolint:goerr113
+			},
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+			},
+			want:    true,
+			wantErr: true,
+		},
+		{
+			name: "GetByNameOK",
+			args: args{&Disk{
+				Name: "someDisk",
+			}},
+			getByNameFunc: func(_ string) (*Disk, error) {
+				return &Disk{Name: "someDisk"}, nil
+			},
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+			},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "NotFoundDB",
+			args: args{&Disk{
+				Name: "someDisk",
+			}},
+			getByNameFunc: func(_ string) (*Disk, error) {
+				return nil, errDiskNotFound
+			},
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+				mock.ExpectQuery("^SELECT \\* FROM `disks` WHERE `disks`.`deleted_at` IS NULL$").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"dev_type",
+								"disk_cache",
+								"disk_direct",
+							}).
+							AddRow(
+								"20d3098f-7ccf-484e-bed4-757940a3c775",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2023061001_14",
+								"a virtual hard disk image",
+								"NVME",
+								"FILE",
+								1,
+								0,
+							).
+							AddRow(
+								"41ae49ee-6e7e-47c2-aebb-671f2dbac4a2",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2023061001_15",
+								"another virtual hard disk image",
+								"NVME",
+								"FILE",
+								1,
+								0,
+							),
+					)
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "FoundDB",
+			args: args{&Disk{
+				Name: "someDisk",
+			}},
+			getByNameFunc: func(_ string) (*Disk, error) {
+				return nil, errDiskNotFound
+			},
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					diskDB: testDB,
+				}
+				mock.ExpectQuery("^SELECT \\* FROM `disks` WHERE `disks`.`deleted_at` IS NULL$").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"dev_type",
+								"disk_cache",
+								"disk_direct",
+							}).
+							AddRow(
+								"20d3098f-7ccf-484e-bed4-757940a3c775",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2023061001_14",
+								"a virtual hard disk image",
+								"NVME",
+								"FILE",
+								1,
+								0,
+							).
+							AddRow(
+								"41ae49ee-6e7e-47c2-aebb-671f2dbac4a2",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"someDisk",
+								"another virtual hard disk image",
+								"NVME",
+								"FILE",
+								1,
+								0,
+							),
+					)
+			},
+			want:    true,
+			wantErr: false,
+		},
 	}
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testCase.mockClosure(testDB, mock)
+
+			GetByNameFunc = testCase.getByNameFunc
+
+			t.Cleanup(func() { GetByNameFunc = GetByName })
+
 			got, err := diskExistsCacheDB(testCase.args.diskInst)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("diskExistsCacheDB() error = %v, wantErr %v", err, testCase.wantErr)
@@ -1096,8 +1244,24 @@ func Test_diskExists(t *testing.T) {
 				return
 			}
 
-			if got != testCase.want {
-				t.Errorf("diskExistsCacheDB() got = %v, wantFetch %v", got, testCase.want)
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}
