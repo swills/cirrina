@@ -22,15 +22,32 @@ type ISO struct {
 	Checksum    string
 }
 
+var pathExistsFunc = util.PathExists
+
 func Create(isoInst *ISO) error {
-	thisIsoExists, err := isoExists(isoInst.Name)
+	// check DB
+	exists, err := isoExistsDB(isoInst.Name)
 	if err != nil {
 		slog.Error("error checking for iso", "isoInst", isoInst, "err", err)
 
 		return err
 	}
 
-	if thisIsoExists {
+	if exists {
+		slog.Error("iso exists", "iso", isoInst.Name)
+
+		return errIsoExists
+	}
+
+	// check FS
+	exists, err = isoExistsFS(isoInst.GetPath())
+	if err != nil {
+		slog.Error("error checking for iso", "name", isoInst.Name, "err", err)
+
+		return fmt.Errorf("error checking iso exists: %w", err)
+	}
+
+	if exists {
 		slog.Error("iso exists", "iso", isoInst.Name)
 
 		return errIsoExists
@@ -98,16 +115,16 @@ func GetByName(name string) (*ISO, error) {
 	return result, nil
 }
 
-func (iso *ISO) Save() error {
+func (i *ISO) Save() error {
 	db := getIsoDB()
 
-	res := db.Model(&iso).
+	res := db.Model(&i).
 		Updates(map[string]interface{}{
-			"name":        &iso.Name,
-			"description": &iso.Description,
-			"path":        &iso.Path,
-			"size":        &iso.Size,
-			"checksum":    &iso.Checksum,
+			"name":        &i.Name,
+			"description": &i.Description,
+			"path":        &i.Path,
+			"size":        &i.Size,
+			"checksum":    &i.Checksum,
 		},
 		)
 
@@ -125,12 +142,12 @@ func Delete(isoID string) error {
 
 	isoDB := getIsoDB()
 
-	dDisk, err := GetByID(isoID)
+	dIso, err := GetByID(isoID)
 	if err != nil {
 		return errIsoNotFound
 	}
 
-	res := isoDB.Limit(1).Unscoped().Delete(&dDisk)
+	res := isoDB.Limit(1).Unscoped().Delete(&dIso)
 	if res.RowsAffected != 1 {
 		slog.Error("iso delete error", "RowsAffected", res.RowsAffected)
 
@@ -148,39 +165,37 @@ func validateIso(isoInst *ISO) error {
 	return nil
 }
 
-func isoExists(isoName string) (bool, error) {
+func (i *ISO) GetPath() string {
+	return filepath.Join(config.Config.Disk.VM.Path.Iso, i.Name)
+}
+
+func isoExistsDB(isoName string) (bool, error) {
 	var err error
 
-	// check DB
-	isoInst, err := GetByName(isoName)
+	_, err = GetByName(isoName)
 
 	if err != nil {
 		if !errors.Is(err, errIsoNotFound) {
 			slog.Error("error checking db for iso", "name", isoName, "err", err)
 
-			return false, err
+			return true, err // fail safe
 		}
 
 		return false, nil
 	}
 
-	if isoInst != nil && isoInst.Name != "" {
-		return true, nil
-	}
+	return true, nil
+}
 
-	path := filepath.Join(config.Config.Disk.VM.Path.Iso, isoName)
-
-	// check disk
-	isoPathExists, err := util.PathExists(path)
+func isoExistsFS(name string) (bool, error) {
+	isoPathExists, err := pathExistsFunc(name)
 	if err != nil {
-		slog.Error("error checking if iso exists", "path", path, "err", err)
+		slog.Error("error checking if iso exists", "name", name, "err", err)
 
-		return false, fmt.Errorf("error checking if iso exists: %w", err)
+		return true, fmt.Errorf("error checking if iso exists: %w", err)
 	}
 
 	if isoPathExists {
-		slog.Error("iso exists", "iso", isoInst)
-
 		return true, nil
 	}
 
