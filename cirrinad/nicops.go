@@ -28,7 +28,7 @@ func nicClone(request *requests.Request) {
 	// get request data
 	err = json.Unmarshal([]byte(request.Data), &nicCloneReqData)
 	if err != nil {
-		slog.Error("failed unmarshalling request data: %w", err)
+		slog.Error("failed unmarshalling request data: %w", "err", err)
 		request.Failed()
 
 		return
@@ -37,7 +37,7 @@ func nicClone(request *requests.Request) {
 	// check source nic exists
 	sourceNic, err = vmnic.GetByID(nicCloneReqData.NicID)
 	if err != nil {
-		slog.Error("nicClone error getting nic: %w", err)
+		slog.Error("nicClone error getting nic: %w", "err", err)
 		request.Failed()
 
 		return
@@ -45,7 +45,7 @@ func nicClone(request *requests.Request) {
 
 	// check source nic is not busy
 	if nicHasPendingReq(request.ID, sourceNic.ID) {
-		slog.Error("failing request to clone NIC which has pending request: %w", errPendingReqExists)
+		slog.Error("failing request to clone NIC which has pending request")
 		request.Failed()
 
 		return
@@ -54,14 +54,14 @@ func nicClone(request *requests.Request) {
 	// check target nic name exists already
 	existingVMNic, err := vmnic.GetByName(nicCloneReqData.NewNicName)
 	if err != nil && !errors.Is(err, vmnic.ErrNicNotFound) {
-		slog.Error("error getting name of new NIC: %w", err)
+		slog.Error("error getting name of new NIC", "err", err)
 		request.Failed()
 
 		return
 	}
 
 	if existingVMNic != nil && existingVMNic.Name == "" {
-		slog.Error("clone nic already exists: %w", errNicExists)
+		slog.Error("clone nic already exists")
 		request.Failed()
 
 		return

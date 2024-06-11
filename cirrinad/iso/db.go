@@ -66,8 +66,8 @@ func getIsoDB() *gorm.DB {
 	return instance.isoDB
 }
 
-func (i *ISO) BeforeCreate(_ *gorm.DB) error {
-	i.ID = uuid.NewString()
+func (iso *ISO) BeforeCreate(_ *gorm.DB) error {
+	iso.ID = uuid.NewString()
 
 	return nil
 }

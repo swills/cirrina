@@ -21,7 +21,6 @@ var (
 	errInvalidNicID          = errors.New("nic id not specified or invalid")
 	errNicInUseByMultipleVMs = errors.New("nic in use by more than one VM")
 	errNicInUse              = errors.New("nic in use")
-	errNicExists             = errors.New("nic already exists")
 )
 
 var (

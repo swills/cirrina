@@ -90,7 +90,7 @@ func setupVMNicRateLimit(vmNic vmnic.VMNic) (string, error) {
 
 	err = epair.CreateEpair(thisEpair)
 	if err != nil {
-		slog.Error("error creating epair", err)
+		slog.Error("error creating epair", "err", err)
 
 		return "", fmt.Errorf("error creating epair: %w", err)
 	}
@@ -382,14 +382,14 @@ func cleanupIfNic(vmNic vmnic.VMNic) error {
 	if vmNic.InstEpair != "" {
 		err = epair.DestroyEpair(vmNic.InstEpair)
 		if err != nil {
-			slog.Error("failed to destroy epair", err)
+			slog.Error("failed to destroy epair", "err", err)
 		}
 	}
 
 	if vmNic.InstBridge != "" {
 		err = vmswitch.DestroyIfBridge(vmNic.InstBridge, false)
 		if err != nil {
-			slog.Error("failed to destroy switch", err)
+			slog.Error("failed to destroy switch", "err", err)
 		}
 	}
 	// tap/vmnet nics may be connected to an epair which is connected
@@ -397,12 +397,12 @@ func cleanupIfNic(vmNic vmnic.VMNic) error {
 	if vmNic.InstEpair != "" {
 		err = epair.NgDestroyPipe(vmNic.InstEpair + "a")
 		if err != nil {
-			slog.Error("failed to ng pipe", err)
+			slog.Error("failed to ng pipe", "err", err)
 		}
 
 		err = epair.NgDestroyPipe(vmNic.InstEpair + "b")
 		if err != nil {
-			slog.Error("failed to ng pipe", err)
+			slog.Error("failed to ng pipe", "err", err)
 		}
 	}
 

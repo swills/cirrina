@@ -115,16 +115,16 @@ func GetByName(name string) (*ISO, error) {
 	return result, nil
 }
 
-func (i *ISO) Save() error {
+func (iso *ISO) Save() error {
 	db := getIsoDB()
 
-	res := db.Model(&i).
+	res := db.Model(&iso).
 		Updates(map[string]interface{}{
-			"name":        &i.Name,
-			"description": &i.Description,
-			"path":        &i.Path,
-			"size":        &i.Size,
-			"checksum":    &i.Checksum,
+			"name":        &iso.Name,
+			"description": &iso.Description,
+			"path":        &iso.Path,
+			"size":        &iso.Size,
+			"checksum":    &iso.Checksum,
 		},
 		)
 
@@ -165,8 +165,8 @@ func validateIso(isoInst *ISO) error {
 	return nil
 }
 
-func (i *ISO) GetPath() string {
-	return filepath.Join(config.Config.Disk.VM.Path.Iso, i.Name)
+func (iso *ISO) GetPath() string {
+	return filepath.Join(config.Config.Disk.VM.Path.Iso, iso.Name)
 }
 
 func isoExistsDB(isoName string) (bool, error) {

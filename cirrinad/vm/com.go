@@ -85,7 +85,7 @@ func comLogger(thisVM *VM, comNum int) {
 
 	logFile, err := comLoggerGetLogFile(thisVM, comNum)
 	if err != nil {
-		slog.Error("error getting com log file: %w", err)
+		slog.Error("error getting com log file", "err", err)
 
 		return
 	}

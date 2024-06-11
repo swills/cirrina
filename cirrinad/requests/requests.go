@@ -91,7 +91,7 @@ func CreateNicCloneReq(nicID string, newName string) (Request, error) {
 
 	reqData, err = json.Marshal(NicCloneReqData{NicID: nicID, NewNicName: newName})
 	if err != nil {
-		slog.Error("failed parsing NicCloneReqData: %w", err)
+		slog.Error("failed parsing NicCloneReqData", "err", err)
 
 		return Request{}, fmt.Errorf("internal error parsing NicClone request: %w", err)
 	}

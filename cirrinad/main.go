@@ -271,7 +271,7 @@ var rootCmd = &cobra.Command{
 
 		logFile, err := os.OpenFile(config.Config.Log.Path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 		if err != nil {
-			slog.Error("failed to open log file", err)
+			slog.Error("failed to open log file", "err", err)
 
 			return fmt.Errorf("error opening log file: %w", err)
 		}

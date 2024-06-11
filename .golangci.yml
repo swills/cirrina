@@ -24,7 +24,6 @@ linters:
     - bodyclose
     - noctx
     - perfsprint
-    - execinquery
     - rowserrcheck
     - sqlclosecheck
     - nestif
@@ -79,7 +78,7 @@ linters:
     - nlreturn
     - stylecheck
     - wrapcheck
-    - goerr113
+    - err113
     - lll
     - revive
     - goimports
