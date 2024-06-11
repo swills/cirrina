@@ -699,3 +699,152 @@ func TestISO_GetPath(t *testing.T) {
 		})
 	}
 }
+
+func TestDelete(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		isoID string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		wantErr     bool
+	}{
+		{
+			name: "success1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					isoDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("97737cc1-5890-4148-bf1f-948949b625c2").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"97737cc1-5890-4148-bf1f-948949b625c2",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"some.iso",
+								"some test iso",
+								123123123123,
+								"3db0336f110c24cbf852d1b516888daa077e65ed43dcc7ab1ddf8c5782fed82221bc427e869f79c10e7b612db5b93692318307e6a3388fd2e201ae84e59bdea3", //nolint:lll
+							))
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `isos` WHERE `isos`.`id` = ?"),
+				).
+					WithArgs("97737cc1-5890-4148-bf1f-948949b625c2").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args:    args{isoID: "97737cc1-5890-4148-bf1f-948949b625c2"},
+			wantErr: false,
+		},
+		{
+			name: "fail1",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+			},
+			args:    args{isoID: ""},
+			wantErr: true,
+		},
+		{
+			name: "fail2",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					isoDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+			},
+			args:    args{isoID: "97737cc1-5890-4148-bf1f-948949b625c2"},
+			wantErr: true,
+		},
+		{
+			name: "fail3",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					isoDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("97737cc1-5890-4148-bf1f-948949b625c2").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"97737cc1-5890-4148-bf1f-948949b625c2",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"some.iso",
+								"some test iso",
+								123123123123,
+								"3db0336f110c24cbf852d1b516888daa077e65ed43dcc7ab1ddf8c5782fed82221bc427e869f79c10e7b612db5b93692318307e6a3388fd2e201ae84e59bdea3", //nolint:lll
+							))
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `isos` WHERE `isos`.`id` = ?"),
+				).
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+			},
+			args:    args{isoID: "97737cc1-5890-4148-bf1f-948949b625c2"},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testCase.mockClosure(testDB, mock)
+			err := Delete(testCase.args.isoID)
+
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("Delete() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
