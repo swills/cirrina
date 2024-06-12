@@ -61,12 +61,12 @@ func Create(isoInst *ISO) error {
 	db := getIsoDB()
 
 	res := db.Create(&isoInst)
-	if res.RowsAffected != 1 {
-		return fmt.Errorf("incorrect number of rows affected, err: %w", res.Error)
-	}
-
 	if res.Error != nil {
 		return res.Error
+	}
+
+	if res.RowsAffected != 1 {
+		return fmt.Errorf("incorrect number of rows affected, err: %w", res.Error)
 	}
 
 	return nil

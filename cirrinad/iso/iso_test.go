@@ -878,7 +878,15 @@ func TestISO_Save(t *testing.T) {
 						"UPDATE `isos` SET `checksum`=?,`description`=?,`name`=?,`path`=?,`size`=?,`updated_at`=? WHERE `isos`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
 					),
 				).
-					WithArgs("garbage", "random iso", "some.iso", "/some/path/some.iso", 32768, sqlmock.AnyArg(), "8c6c9326-bd5f-4c39-a5ec-562bb73391a3"). //nolint:lll
+					WithArgs(
+						"garbage",
+						"random iso",
+						"some.iso",
+						"/some/path/some.iso",
+						32768,
+						sqlmock.AnyArg(),
+						"8c6c9326-bd5f-4c39-a5ec-562bb73391a3",
+					).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
 			},
@@ -904,7 +912,15 @@ func TestISO_Save(t *testing.T) {
 						"UPDATE `isos` SET `checksum`=?,`description`=?,`name`=?,`path`=?,`size`=?,`updated_at`=? WHERE `isos`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
 					),
 				).
-					WithArgs("garbage", "random iso", "some.iso", "/some/path/some.iso", 32768, sqlmock.AnyArg(), "8c6c9326-bd5f-4c39-a5ec-562bb73391a3"). //nolint:lll
+					WithArgs(
+						"garbage",
+						"random iso",
+						"some.iso",
+						"/some/path/some.iso",
+						32768,
+						sqlmock.AnyArg(),
+						"8c6c9326-bd5f-4c39-a5ec-562bb73391a3",
+					).
 					WillReturnError(gorm.ErrInvalidField)
 				mock.ExpectRollback()
 			},
@@ -923,7 +939,7 @@ func TestISO_Save(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testDB, mock := cirrinadtest.NewMockDB("isoTest")
 			testCase.mockClosure(testDB, mock)
 
 			iso := &ISO{
@@ -938,6 +954,451 @@ func TestISO_Save(t *testing.T) {
 
 			if err := iso.Save(); (err != nil) != testCase.wantErr {
 				t.Errorf("Save() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+//nolint:maintidx
+func TestCreate(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		isoInst *ISO
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		wantPathErr bool
+		wantPath    bool
+		wantErr     bool
+	}{
+		{
+			name: "fail1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					isoDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("some.iso").
+					WillReturnError(gorm.ErrInvalidField)
+			},
+			args: args{
+				isoInst: &ISO{
+					ID:          "40b149c2-edf7-4bf4-873f-1f5ed74e49f6",
+					Name:        "some.iso",
+					Description: "a random iso",
+					Path:        "/some/path/some.iso",
+					Size:        32768,
+					Checksum:    "garbage",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "fail2",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					isoDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("some.iso").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"ac7d8dc2-df5e-4643-8f2c-9e9064094932",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"FreeBSD-13.1-RELEASE-amd64-disc1.iso",
+								"some description",
+								"/bhyve/isos/FreeBSD-13.1-RELEASE-amd64-disc1.iso",
+								1047048192,
+								"259e034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3e3b630ba2", //nolint:lll
+							),
+					)
+			},
+			args: args{
+				isoInst: &ISO{
+					ID:          "40b149c2-edf7-4bf4-873f-1f5ed74e49f6",
+					Name:        "some.iso",
+					Description: "a random iso",
+					Path:        "/some/path/some.iso",
+					Size:        32768,
+					Checksum:    "garbage",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "fail3",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					isoDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("some.iso").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							},
+						),
+					)
+			},
+			args: args{
+				isoInst: &ISO{
+					ID:          "40b149c2-edf7-4bf4-873f-1f5ed74e49f6",
+					Name:        "some.iso",
+					Description: "a random iso",
+					Path:        "/some/path/some.iso",
+					Size:        32768,
+					Checksum:    "garbage",
+				},
+			},
+			wantPath:    true,
+			wantPathErr: true,
+			wantErr:     true,
+		},
+		{
+			name: "fail4",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					isoDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("some.iso").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							},
+						),
+					)
+			},
+			args: args{
+				isoInst: &ISO{
+					ID:          "40b149c2-edf7-4bf4-873f-1f5ed74e49f6",
+					Name:        "some.iso",
+					Description: "a random iso",
+					Path:        "/some/path/some.iso",
+					Size:        32768,
+					Checksum:    "garbage",
+				},
+			},
+			wantPath:    true,
+			wantPathErr: false,
+			wantErr:     true,
+		},
+		{
+			name: "fail5",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					isoDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("some&bad.iso").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							},
+						),
+					)
+			},
+			args: args{
+				isoInst: &ISO{
+					ID:          "40b149c2-edf7-4bf4-873f-1f5ed74e49f6",
+					Name:        "some&bad.iso",
+					Description: "a random iso",
+					Path:        "/some/path/some.iso",
+					Size:        32768,
+					Checksum:    "garbage",
+				},
+			},
+			wantPath:    false,
+			wantPathErr: false,
+			wantErr:     true,
+		},
+		{
+			name: "fail6",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					isoDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("some.iso").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							},
+						),
+					)
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `isos` (`created_at`,`updated_at`,`deleted_at`,`description`,`size`,`checksum`,`id`,`name`,`path`) VALUES (?,?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`,`path`", //nolint:lll
+					),
+				).
+					WithArgs(
+						sqlmock.AnyArg(),
+						sqlmock.AnyArg(),
+						nil,
+						"a random iso",
+						32768,
+						"garbage",
+						sqlmock.AnyArg(),
+						"some.iso",
+						"/some/path/some.iso",
+					).
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+
+				mock.ExpectRollback()
+			},
+			args: args{
+				isoInst: &ISO{
+					Name:        "some.iso",
+					Description: "a random iso",
+					Path:        "/some/path/some.iso",
+					Size:        32768,
+					Checksum:    "garbage",
+				},
+			},
+			wantPath:    false,
+			wantPathErr: false,
+			wantErr:     true,
+		},
+		{
+			name: "fail7",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					isoDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("some.iso").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							},
+						),
+					)
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `isos` (`created_at`,`updated_at`,`deleted_at`,`description`,`size`,`checksum`,`id`,`name`,`path`) VALUES (?,?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`,`path`", //nolint:lll
+					),
+				).
+					WithArgs(
+						sqlmock.AnyArg(),
+						sqlmock.AnyArg(),
+						nil,
+						"a random iso",
+						32768,
+						"garbage",
+						sqlmock.AnyArg(),
+						"some.iso",
+						"/some/path/some.iso",
+					).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"id",
+								"name",
+								"path",
+							}),
+					)
+				mock.ExpectCommit()
+			},
+			args: args{
+				isoInst: &ISO{
+					Name:        "some.iso",
+					Description: "a random iso",
+					Path:        "/some/path/some.iso",
+					Size:        32768,
+					Checksum:    "garbage",
+				},
+			},
+			wantPath:    false,
+			wantPathErr: false,
+			wantErr:     true,
+		},
+		{
+			name: "success1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					isoDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("some.iso").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							},
+						),
+					)
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta("INSERT INTO `isos` (`created_at`,`updated_at`,`deleted_at`,`description`,`size`,`checksum`,`id`,`name`,`path`) VALUES (?,?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`,`path`"), //nolint:lll
+				).
+					WithArgs(
+						sqlmock.AnyArg(),
+						sqlmock.AnyArg(),
+						nil,
+						"a random iso",
+						32768,
+						"garbage",
+						sqlmock.AnyArg(),
+						"some.iso",
+						"/some/path/some.iso",
+					).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"id",
+								"name",
+								"path",
+							}).
+							AddRow(
+								"a24e5161-5800-4ed4-95cf-c774b9c5bbd6",
+								"a24e5161-5800-4ed4-95cf-c774b9c5bbd6",
+								"some.iso",
+								"/some/path/some.iso",
+							),
+					)
+				mock.ExpectCommit()
+			},
+			args: args{
+				isoInst: &ISO{
+					Name:        "some.iso",
+					Description: "a random iso",
+					Path:        "/some/path/some.iso",
+					Size:        32768,
+					Checksum:    "garbage",
+				},
+			},
+			wantPath:    false,
+			wantPathErr: false,
+			wantErr:     false,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("isoTest")
+			testCase.mockClosure(testDB, mock)
+
+			pathExistsFunc = func(_ string) (bool, error) {
+				if testCase.wantPathErr {
+					return true, errors.New("another error") //nolint:goerr113
+				}
+
+				if testCase.wantPath {
+					return true, nil
+				}
+
+				return false, nil
+			}
+
+			if err := Create(testCase.args.isoInst); (err != nil) != testCase.wantErr {
+				t.Errorf("Create() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 
 			mock.ExpectClose()
