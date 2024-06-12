@@ -848,3 +848,112 @@ func TestDelete(t *testing.T) {
 		})
 	}
 }
+
+func TestISO_Save(t *testing.T) {
+	type fields struct {
+		Model       gorm.Model
+		ID          string
+		Name        string
+		Description string
+		Path        string
+		Size        uint64
+		Checksum    string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		fields      fields
+		wantErr     bool
+	}{
+		{
+			name: "success1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					isoDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `isos` SET `checksum`=?,`description`=?,`name`=?,`path`=?,`size`=?,`updated_at`=? WHERE `isos`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("garbage", "random iso", "some.iso", "/some/path/some.iso", 32768, sqlmock.AnyArg(), "8c6c9326-bd5f-4c39-a5ec-562bb73391a3"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			fields: fields{
+				ID:          "8c6c9326-bd5f-4c39-a5ec-562bb73391a3",
+				Name:        "some.iso",
+				Description: "random iso",
+				Path:        "/some/path/some.iso",
+				Size:        32768,
+				Checksum:    "garbage",
+			},
+			wantErr: false,
+		},
+		{
+			name: "fail1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					isoDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `isos` SET `checksum`=?,`description`=?,`name`=?,`path`=?,`size`=?,`updated_at`=? WHERE `isos`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("garbage", "random iso", "some.iso", "/some/path/some.iso", 32768, sqlmock.AnyArg(), "8c6c9326-bd5f-4c39-a5ec-562bb73391a3"). //nolint:lll
+					WillReturnError(gorm.ErrInvalidField)
+				mock.ExpectRollback()
+			},
+			fields: fields{
+				ID:          "8c6c9326-bd5f-4c39-a5ec-562bb73391a3",
+				Name:        "some.iso",
+				Description: "random iso",
+				Path:        "/some/path/some.iso",
+				Size:        32768,
+				Checksum:    "garbage",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testCase.mockClosure(testDB, mock)
+
+			iso := &ISO{
+				Model:       testCase.fields.Model,
+				ID:          testCase.fields.ID,
+				Name:        testCase.fields.Name,
+				Description: testCase.fields.Description,
+				Path:        testCase.fields.Path,
+				Size:        testCase.fields.Size,
+				Checksum:    testCase.fields.Checksum,
+			}
+
+			if err := iso.Save(); (err != nil) != testCase.wantErr {
+				t.Errorf("Save() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
