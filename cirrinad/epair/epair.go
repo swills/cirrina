@@ -25,7 +25,7 @@ func getAllEpair() ([]string, error) {
 			"err", err,
 		)
 
-		return []string{}, fmt.Errorf("ifconfig error: %w", err)
+		return nil, fmt.Errorf("ifconfig error: %w", err)
 	}
 
 	for _, line := range strings.Split(string(stdOutBytes), "\n") {
@@ -39,7 +39,7 @@ func getAllEpair() ([]string, error) {
 			continue
 		}
 
-		if strings.HasSuffix(textFields[0], "b") {
+		if !strings.HasSuffix(textFields[0], "a") {
 			continue
 		}
 
