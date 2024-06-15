@@ -1,6 +1,7 @@
 package vmnic
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -8,7 +9,9 @@ import (
 	"github.com/go-test/deep"
 	"gorm.io/gorm"
 
+	"cirrina/cirrina"
 	"cirrina/cirrinad/cirrinadtest"
+	"cirrina/cirrinad/util"
 )
 
 func Test_nicTypeValid(t *testing.T) {
@@ -627,6 +630,257 @@ func TestGetByID(t *testing.T) {
 			diff := deep.Equal(got, testCase.want)
 			if diff != nil {
 				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func TestParseNetDevType(t *testing.T) {
+	type args struct {
+		netDevType cirrina.NetDevType
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name:    "tap",
+			args:    args{netDevType: cirrina.NetDevType_TAP},
+			want:    "TAP",
+			wantErr: false,
+		},
+		{
+			name:    "vmnet",
+			args:    args{netDevType: cirrina.NetDevType_VMNET},
+			want:    "VMNET",
+			wantErr: false,
+		},
+		{
+			name:    "netgraph",
+			args:    args{netDevType: cirrina.NetDevType_NETGRAPH},
+			want:    "NETGRAPH",
+			wantErr: false,
+		},
+		{
+			name:    "fail1",
+			args:    args{netDevType: -1},
+			want:    "",
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			got, err := ParseNetDevType(testCase.args.netDevType)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("ParseNetDevType() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("ParseNetDevType() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestParseNetType(t *testing.T) {
+	type args struct {
+		netType cirrina.NetType
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name:    "virtio",
+			args:    args{netType: cirrina.NetType_VIRTIONET},
+			want:    "VIRTIONET",
+			wantErr: false,
+		},
+		{
+			name:    "E1000",
+			args:    args{netType: cirrina.NetType_E1000},
+			want:    "E1000",
+			wantErr: false,
+		},
+		{
+			name:    "fail1",
+			args:    args{netType: -1},
+			want:    "",
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			got, err := ParseNetType(testCase.args.netType)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("ParseNetType() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("ParseNetType() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestParseMac(t *testing.T) {
+	type args struct {
+		macAddress string
+	}
+
+	tests := []struct {
+		name          string
+		args          args
+		broadcastFunc func(string) (bool, error)
+		multicastFunc func(string) (bool, error)
+		want          string
+		wantErr       bool
+	}{
+		{
+			name: "auto",
+			args: args{macAddress: "AUTO"},
+			broadcastFunc: func(_ string) (bool, error) {
+				return false, nil
+			},
+			multicastFunc: func(_ string) (bool, error) {
+				return false, nil
+			},
+			want:    "AUTO",
+			wantErr: false,
+		},
+		{
+			name: "empty",
+			args: args{macAddress: ""},
+			broadcastFunc: func(_ string) (bool, error) {
+				return false, nil
+			},
+			multicastFunc: func(_ string) (bool, error) {
+				return false, nil
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "broadcastErr",
+			broadcastFunc: func(_ string) (bool, error) {
+				return false, errors.New("some error") //nolint:err113
+			},
+			multicastFunc: func(_ string) (bool, error) {
+				return false, nil
+			},
+			args:    args{macAddress: "garbage"},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "broadcast",
+			args: args{macAddress: "FF:FF:FF:FF:FF:FF"},
+			broadcastFunc: func(_ string) (bool, error) {
+				return true, nil
+			},
+			multicastFunc: func(_ string) (bool, error) {
+				return false, nil
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "multicastErr",
+			broadcastFunc: func(_ string) (bool, error) {
+				return false, nil
+			},
+			multicastFunc: func(_ string) (bool, error) {
+				return false, errors.New("some error") //nolint:err113
+			},
+			args:    args{macAddress: "garbage"},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "broadcast",
+			args: args{macAddress: "FF:FF:FF:FF:FF:FF"},
+			broadcastFunc: func(_ string) (bool, error) {
+				return false, nil
+			},
+			multicastFunc: func(_ string) (bool, error) {
+				return true, nil
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "parseErr",
+			args: args{macAddress: "garbage"},
+			broadcastFunc: func(_ string) (bool, error) {
+				return false, nil
+			},
+			multicastFunc: func(_ string) (bool, error) {
+				return false, nil
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "wrongKindOfMac",
+			args: args{macAddress: "02:00:5e:10:00:00:00:01"},
+			broadcastFunc: func(_ string) (bool, error) {
+				return false, nil
+			},
+			multicastFunc: func(_ string) (bool, error) {
+				return false, nil
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "success1",
+			args: args{macAddress: "00:A0:98:11:22:33"},
+			broadcastFunc: func(_ string) (bool, error) {
+				return false, nil
+			},
+			multicastFunc: func(_ string) (bool, error) {
+				return false, nil
+			},
+			want:    "00:a0:98:11:22:33",
+			wantErr: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+
+		t.Run(testCase.name, func(t *testing.T) {
+			MacIsBroadcastFunc = testCase.broadcastFunc
+
+			t.Cleanup(func() { MacIsBroadcastFunc = util.MacIsBroadcast })
+
+			MacIsMulticastFunc = testCase.multicastFunc
+
+			t.Cleanup(func() { MacIsMulticastFunc = util.MacIsMulticast })
+
+			got, err := ParseMac(testCase.args.macAddress)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("ParseMac() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("ParseMac() got = %v, want %v", got, testCase.want)
 			}
 		})
 	}

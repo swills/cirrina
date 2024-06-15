@@ -30,6 +30,9 @@ type VMNic struct {
 	ConfigID    uint `gorm:"index;default:null"`
 }
 
+var MacIsBroadcastFunc = util.MacIsBroadcast
+var MacIsMulticastFunc = util.MacIsBroadcast
+
 func Create(vmNicInst *VMNic) error {
 	if vmNicInst.Mac == "" {
 		vmNicInst.Mac = "AUTO"
@@ -202,7 +205,7 @@ func ParseMac(macAddress string) (string, error) {
 		return "", errInvalidMac
 	}
 
-	isBroadcast, err := util.MacIsBroadcast(macAddress)
+	isBroadcast, err := MacIsBroadcastFunc(macAddress)
 	if err != nil {
 		return "", errInvalidMac
 	}
@@ -211,7 +214,7 @@ func ParseMac(macAddress string) (string, error) {
 		return "", errInvalidMacBroadcast
 	}
 
-	isMulticast, err := util.MacIsMulticast(macAddress)
+	isMulticast, err := MacIsMulticastFunc(macAddress)
 	if err != nil {
 		return "", errInvalidMac
 	}
@@ -227,6 +230,7 @@ func ParseMac(macAddress string) (string, error) {
 		return "", errInvalidMac
 	}
 
+	// ensure we have an ethernet MAC address, not some other type, see net.ParseMac docs
 	if len(newMac.String()) != 17 {
 		return "", errInvalidMac
 	}
