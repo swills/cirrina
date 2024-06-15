@@ -1186,3 +1186,155 @@ func TestVMNic_Save(t *testing.T) {
 		})
 	}
 }
+
+func TestGetNics(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		vmConfigID uint
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		want        []VMNic
+	}{
+		{
+			name: "success1",
+			args: args{vmConfigID: 321},
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					vmNicDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
+				).WillReturnRows(sqlmock.NewRows([]string{
+					"id",
+					"created_at",
+					"updated_at",
+					"deleted_at",
+					"name",
+					"description",
+					"mac",
+					"net_type",
+					"net_dev_type",
+					"switch_id",
+					"net_dev",
+					"rate_limit",
+					"rate_in",
+					"rate_out",
+					"inst_bridge",
+					"inst_epair",
+					"config_id",
+				}))
+			},
+			want: []VMNic{},
+		},
+		{
+			name: "success2",
+			args: args{vmConfigID: 321},
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					vmNicDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
+				).WillReturnRows(sqlmock.NewRows([]string{
+					"id",
+					"created_at",
+					"updated_at",
+					"deleted_at",
+					"name",
+					"description",
+					"mac",
+					"net_type",
+					"net_dev_type",
+					"switch_id",
+					"net_dev",
+					"rate_limit",
+					"rate_in",
+					"rate_out",
+					"inst_bridge",
+					"inst_epair",
+					"config_id",
+				}).
+					AddRow(
+						"f1268949-35b5-40ca-a422-22147d38d700",
+						createUpdateTime,
+						createUpdateTime,
+						nil,
+						"aNic",
+						"a description",
+						"00:11:22:33:44:55",
+						"VIRTIONET",
+						"TAP",
+						"6ad8f637-22ee-43aa-b9d8-10df5fd7f50f",
+						"",
+						false,
+						0,
+						0,
+						nil,
+						nil,
+						321,
+					),
+				)
+			},
+			want: []VMNic{{
+				Model: gorm.Model{
+					CreatedAt: createUpdateTime,
+					UpdatedAt: createUpdateTime,
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "f1268949-35b5-40ca-a422-22147d38d700",
+				Name:        "aNic",
+				Description: "a description",
+				Mac:         "00:11:22:33:44:55",
+				NetDev:      "",
+				NetType:     "VIRTIONET",
+				NetDevType:  "TAP",
+				SwitchID:    "6ad8f637-22ee-43aa-b9d8-10df5fd7f50f",
+				RateLimit:   false,
+				RateIn:      0,
+				RateOut:     0,
+				InstBridge:  "",
+				InstEpair:   "",
+				ConfigID:    321,
+			}},
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("isoTest")
+
+			testCase.mockClosure(testDB, mock)
+
+			got := GetNics(testCase.args.vmConfigID)
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
