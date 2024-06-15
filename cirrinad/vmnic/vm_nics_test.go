@@ -1022,3 +1022,167 @@ func TestVMNic_Delete(t *testing.T) {
 		})
 	}
 }
+
+func TestVMNic_Save(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type fields struct {
+		Model       gorm.Model
+		ID          string
+		Name        string
+		Description string
+		Mac         string
+		NetDev      string
+		NetType     string
+		NetDevType  string
+		SwitchID    string
+		RateLimit   bool
+		RateIn      uint64
+		RateOut     uint64
+		InstBridge  string
+		InstEpair   string
+		ConfigID    uint
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		fields      fields
+		wantErr     bool
+	}{
+		{
+			name: "success1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					vmNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(321, "a test nic", "", "", "00:a0:98:11:22:33", "someNic", "", "TAP",
+						"VIRTIONET", 0, false, 0, "f1a0beec-e49d-4463-98e8-839b6b3f468d", sqlmock.AnyArg(),
+						"45b862b3-8459-4253-8116-7f313198c3b6").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			fields: fields{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: createUpdateTime,
+					UpdatedAt: createUpdateTime,
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "45b862b3-8459-4253-8116-7f313198c3b6",
+				Name:        "someNic",
+				Description: "a test nic",
+				Mac:         "00:a0:98:11:22:33",
+				NetDev:      "",
+				NetType:     "VIRTIONET",
+				NetDevType:  "TAP",
+				SwitchID:    "f1a0beec-e49d-4463-98e8-839b6b3f468d",
+				RateLimit:   false,
+				RateIn:      0,
+				RateOut:     0,
+				InstBridge:  "",
+				InstEpair:   "",
+				ConfigID:    321,
+			},
+			wantErr: false,
+		},
+		{
+			name: "error1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					vmNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(321, "a test nic", "", "", "00:a0:98:11:22:33", "someNic", "", "TAP",
+						"VIRTIONET", 0, false, 0, "f1a0beec-e49d-4463-98e8-839b6b3f468d", sqlmock.AnyArg(),
+										"45b862b3-8459-4253-8116-7f313198c3b6").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
+			},
+			fields: fields{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: createUpdateTime,
+					UpdatedAt: createUpdateTime,
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "45b862b3-8459-4253-8116-7f313198c3b6",
+				Name:        "someNic",
+				Description: "a test nic",
+				Mac:         "00:a0:98:11:22:33",
+				NetDev:      "",
+				NetType:     "VIRTIONET",
+				NetDevType:  "TAP",
+				SwitchID:    "f1a0beec-e49d-4463-98e8-839b6b3f468d",
+				RateLimit:   false,
+				RateIn:      0,
+				RateOut:     0,
+				InstBridge:  "",
+				InstEpair:   "",
+				ConfigID:    321,
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testNic := &VMNic{
+				Model:       testCase.fields.Model,
+				ID:          testCase.fields.ID,
+				Name:        testCase.fields.Name,
+				Description: testCase.fields.Description,
+				Mac:         testCase.fields.Mac,
+				NetDev:      testCase.fields.NetDev,
+				NetType:     testCase.fields.NetType,
+				NetDevType:  testCase.fields.NetDevType,
+				SwitchID:    testCase.fields.SwitchID,
+				RateLimit:   testCase.fields.RateLimit,
+				RateIn:      testCase.fields.RateIn,
+				RateOut:     testCase.fields.RateOut,
+				InstBridge:  testCase.fields.InstBridge,
+				InstEpair:   testCase.fields.InstEpair,
+				ConfigID:    testCase.fields.ConfigID,
+			}
+
+			testDB, mock := cirrinadtest.NewMockDB("isoTest")
+
+			testCase.mockClosure(testDB, mock)
+
+			err := testNic.Save()
+
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("Save() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
