@@ -1,6 +1,7 @@
 package vmswitch
 
 import (
+	"regexp"
 	"testing"
 	"time"
 
@@ -484,6 +485,285 @@ func Test_switchNameValid(t *testing.T) {
 
 			if got := switchNameValid(testCase.args.switchInst); got != testCase.want {
 				t.Errorf("switchNameValid() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestParseSwitchID(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		switchID   string
+		netDevType string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		want        string
+		wantErr     bool
+	}{
+		{
+			name: "success1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							},
+						).
+							AddRow(
+								"90b2b502-13c9-4132-a0c5-3bbb54a4b443",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"bridge0",
+								"some if switch description",
+								"IF",
+								"em1",
+							),
+					)
+			},
+			args: args{switchID: "90b2b502-13c9-4132-a0c5-3bbb54a4b443", netDevType: "TAP"},
+			want: "90b2b502-13c9-4132-a0c5-3bbb54a4b443",
+		},
+		{
+			name: "errorEmptySwitchID",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+			},
+			args:    args{switchID: "", netDevType: "TAP"},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "errBadSwitchID",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+			},
+			args:    args{switchID: "bogusSwitchId", netDevType: "TAP"},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "errorGettingSwitchID",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+			},
+			args:    args{switchID: "90b2b502-13c9-4132-a0c5-3bbb54a4b443", netDevType: "TAP"},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "errReturnedEmptySwitchName",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							},
+						).
+							AddRow(
+								"90b2b502-13c9-4132-a0c5-3bbb54a4b443",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"",
+								"some if switch description",
+								"IF",
+								"em1",
+							),
+					)
+			},
+			args:    args{switchID: "90b2b502-13c9-4132-a0c5-3bbb54a4b443", netDevType: "TAP"},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "errorSwitchTypeMismatchIF",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							},
+						).
+							AddRow(
+								"90b2b502-13c9-4132-a0c5-3bbb54a4b443",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"bnet0",
+								"some ng switch description",
+								"NG",
+								"em1",
+							),
+					)
+			},
+			args:    args{switchID: "90b2b502-13c9-4132-a0c5-3bbb54a4b443", netDevType: "TAP"},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "errorSwitchTypeMismatchNG",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							},
+						).
+							AddRow(
+								"90b2b502-13c9-4132-a0c5-3bbb54a4b443",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"bridge0",
+								"some if switch description",
+								"IF",
+								"em1",
+							),
+					)
+			},
+			args:    args{switchID: "90b2b502-13c9-4132-a0c5-3bbb54a4b443", netDevType: "NETGRAPH"},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "errorSwitchTypeUnknown",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							},
+						).
+							AddRow(
+								"90b2b502-13c9-4132-a0c5-3bbb54a4b443",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"bridge0",
+								"some if switch description",
+								"IF",
+								"em1",
+							),
+					)
+			},
+			args:    args{switchID: "90b2b502-13c9-4132-a0c5-3bbb54a4b443", netDevType: "garbage"},
+			want:    "",
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testCase.mockClosure(testDB, mock)
+
+			got, err := ParseSwitchID(testCase.args.switchID, testCase.args.netDevType)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("ParseSwitchID() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}

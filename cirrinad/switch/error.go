@@ -19,4 +19,5 @@ var (
 	errSwitchInvalidBridgeDupe   = errors.New("duplicate bridge")
 	errSwitchInvalidBridgeNameNG = errors.New("invalid bridge name, bridge name must start with \"bnet\"")
 	errSwitchFailDummy           = errors.New("failed to create ng bridge: could not get dummy bridge name")
+	errSwitchUnknownNicDevType   = errors.New("unknown nic dev type")
 )

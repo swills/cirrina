@@ -771,14 +771,19 @@ func ParseSwitchID(switchID string, netDevType string) (string, error) {
 		return res, errSwitchInvalidName
 	}
 
-	if netDevType == "TAP" || netDevType == "VMNET" {
+	switch netDevType {
+	case "TAP":
+		fallthrough
+	case "VMNET":
 		if switchInst.Type != "IF" {
 			return res, errSwitchUplinkWrongType
 		}
-	} else if netDevType == "NETGRAPH" {
+	case "NETGRAPH":
 		if switchInst.Type != "NG" {
 			return res, errSwitchUplinkWrongType
 		}
+	default:
+		return res, errSwitchUnknownNicDevType
 	}
 
 	res = switchUUID.String()
