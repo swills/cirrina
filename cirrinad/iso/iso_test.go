@@ -825,6 +825,7 @@ func TestDelete(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("diskTest")
 			testCase.mockClosure(testDB, mock)
+
 			err := Delete(testCase.args.isoID)
 
 			if (err != nil) != testCase.wantErr {

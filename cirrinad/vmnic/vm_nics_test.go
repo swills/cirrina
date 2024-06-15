@@ -2,6 +2,7 @@ package vmnic
 
 import (
 	"errors"
+	"regexp"
 	"testing"
 	"time"
 
@@ -881,6 +882,142 @@ func TestParseMac(t *testing.T) {
 
 			if got != testCase.want {
 				t.Errorf("ParseMac() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func TestVMNic_Delete(t *testing.T) {
+	type fields struct {
+		Model       gorm.Model
+		ID          string
+		Name        string
+		Description string
+		Mac         string
+		NetDev      string
+		NetType     string
+		NetDevType  string
+		SwitchID    string
+		RateLimit   bool
+		RateIn      uint64
+		RateOut     uint64
+		InstBridge  string
+		InstEpair   string
+		ConfigID    uint
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		fields      fields
+		wantErr     bool
+	}{
+		{
+			name: "err1",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					vmNicDB: testDB,
+				}
+			},
+			fields: fields{
+				ID: "",
+			},
+			wantErr: true,
+		},
+		{
+			name: "err2",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					vmNicDB: testDB,
+				}
+			},
+			fields: fields{
+				ID: "garbage",
+			},
+			wantErr: true,
+		},
+		{
+			name: "err3",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					vmNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_nics` WHERE `vm_nics`.`id` = ?"),
+				).
+					WithArgs("00e58e32-b058-4617-a3db-a270e80ff801").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
+			},
+			fields: fields{
+				ID: "00e58e32-b058-4617-a3db-a270e80ff801",
+			},
+			wantErr: true,
+		},
+		{
+			name: "success1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					vmNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_nics` WHERE `vm_nics`.`id` = ?"),
+				).
+					WithArgs("00e58e32-b058-4617-a3db-a270e80ff801").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			fields: fields{
+				ID: "00e58e32-b058-4617-a3db-a270e80ff801",
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testNic := &VMNic{
+				Model:       testCase.fields.Model,
+				ID:          testCase.fields.ID,
+				Name:        testCase.fields.Name,
+				Description: testCase.fields.Description,
+				Mac:         testCase.fields.Mac,
+				NetDev:      testCase.fields.NetDev,
+				NetType:     testCase.fields.NetType,
+				NetDevType:  testCase.fields.NetDevType,
+				SwitchID:    testCase.fields.SwitchID,
+				RateLimit:   testCase.fields.RateLimit,
+				RateIn:      testCase.fields.RateIn,
+				RateOut:     testCase.fields.RateOut,
+				InstBridge:  testCase.fields.InstBridge,
+				InstEpair:   testCase.fields.InstEpair,
+				ConfigID:    testCase.fields.ConfigID,
+			}
+
+			testDB, mock := cirrinadtest.NewMockDB("isoTest")
+
+			testCase.mockClosure(testDB, mock)
+
+			err := testNic.Delete()
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("Delete() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
 	}

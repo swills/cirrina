@@ -2,6 +2,12 @@
 # TODO
 
 * Finish writing tests
+* Make sure iso, nic, disk switch are uniform, ie, take same args for all funcs
+  * For example, iso delete takes string, nic delete takes object
+* Remove duplicate IDs from iso, nic
+* Convert all UUIDs from strings to UUID type
+* Convert all paths from strings to path/filepath
+* Convert all bool in database to `sql.NullBool`
 * Finish cloning -- NICs are done, need to do switches, disks and VMs
 * Do templating
 * Switch to using Netlink
@@ -33,9 +39,6 @@
 * Fix setting the switch on a NIC while a VM is running
   * Currently, it won't work until you stop then start the VM
   * It should work immediately, without even a reboot, but also if you reboot or stop then start
-* Convert all UUIDs from strings to UUID type
-* Convert all paths from strings to path/filepath
-* Convert all bool in database to `sql.NullBool`
 * Add error checking and result count checking if applicable to all db queries, as was done in cirrinad/switch/switch.go
 * Return nil instead of empty value whenever possible (pointers)
 * Ensure all error returns return no value(s), nil if possible

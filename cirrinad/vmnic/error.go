@@ -13,4 +13,5 @@ var (
 	errInvalidMacBroadcast     = errors.New("may not use broadcast MAC address")
 	errInvalidMacMulticast     = errors.New("may not use multicast MAC address")
 	ErrNicNotFound             = errors.New("nic not found")
+	ErrInvalidNic              = errors.New("invalid NIC")
 )

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net"
 
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"cirrina/cirrina"
@@ -141,9 +142,14 @@ func GetAll() []*VMNic {
 }
 
 func (d *VMNic) Delete() error {
-	db := GetVMNicDB()
+	nicDB := GetVMNicDB()
 
-	res := db.Limit(1).Unscoped().Delete(&d)
+	_, err := uuid.Parse(d.ID)
+	if err != nil {
+		return ErrInvalidNic
+	}
+
+	res := nicDB.Limit(1).Unscoped().Delete(&d)
 	if res.RowsAffected != 1 {
 		slog.Error("error saving vmnic", "res", res)
 
