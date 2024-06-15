@@ -996,7 +996,7 @@ func TestVMNic_Delete(t *testing.T) {
 				ConfigID:    testCase.fields.ConfigID,
 			}
 
-			testDB, mock := cirrinadtest.NewMockDB("isoTest")
+			testDB, mock := cirrinadtest.NewMockDB("nicTest")
 
 			testCase.mockClosure(testDB, mock)
 
@@ -1159,7 +1159,7 @@ func TestVMNic_Save(t *testing.T) {
 				ConfigID:    testCase.fields.ConfigID,
 			}
 
-			testDB, mock := cirrinadtest.NewMockDB("isoTest")
+			testDB, mock := cirrinadtest.NewMockDB("nicTest")
 
 			testCase.mockClosure(testDB, mock)
 
@@ -1310,7 +1310,7 @@ func TestGetNics(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("isoTest")
+			testDB, mock := cirrinadtest.NewMockDB("nicTest")
 
 			testCase.mockClosure(testDB, mock)
 
@@ -1319,6 +1319,172 @@ func TestGetNics(t *testing.T) {
 			diff := deep.Equal(got, testCase.want)
 			if diff != nil {
 				t.Errorf("compare failed: %v", diff)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+func TestVMNic_SetSwitch(t *testing.T) {
+	type fields struct {
+		Model       gorm.Model
+		ID          string
+		Name        string
+		Description string
+		Mac         string
+		NetDev      string
+		NetType     string
+		NetDevType  string
+		SwitchID    string
+		RateLimit   bool
+		RateIn      uint64
+		RateOut     uint64
+		InstBridge  string
+		InstEpair   string
+		ConfigID    uint
+	}
+
+	type args struct {
+		switchid string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		fields      fields
+		args        args
+		wantErr     bool
+	}{
+		{
+			name: "success1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					vmNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(432, "another test description", "", "", "12:34:56:78:9a:bc", "yetAnotherTestNic", "", "TAP",
+						"VIRTIONET", 0, false, 0, "5dca509e-086c-4447-a38d-91a898b29518", sqlmock.AnyArg(),
+						"d9eb6d83-379a-4803-9946-f55b99744137").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			fields: fields{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: time.Time{},
+					UpdatedAt: time.Time{},
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "d9eb6d83-379a-4803-9946-f55b99744137",
+				Name:        "yetAnotherTestNic",
+				Description: "another test description",
+				Mac:         "12:34:56:78:9a:bc",
+				NetDev:      "",
+				NetType:     "VIRTIONET",
+				NetDevType:  "TAP",
+				SwitchID:    "d1818527-693e-4b4d-be3d-36ec72d6c420",
+				RateLimit:   false,
+				RateIn:      0,
+				RateOut:     0,
+				InstBridge:  "",
+				InstEpair:   "",
+				ConfigID:    432,
+			},
+			args:    args{switchid: "5dca509e-086c-4447-a38d-91a898b29518"},
+			wantErr: false,
+		},
+		{
+			name: "error1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					vmNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(432, "another test description", "", "", "12:34:56:78:9a:bc", "yetAnotherTestNic", "", "TAP",
+						"VIRTIONET", 0, false, 0, "5dca509e-086c-4447-a38d-91a898b29518", sqlmock.AnyArg(),
+										"d9eb6d83-379a-4803-9946-f55b99744137").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
+			},
+			fields: fields{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: time.Time{},
+					UpdatedAt: time.Time{},
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "d9eb6d83-379a-4803-9946-f55b99744137",
+				Name:        "yetAnotherTestNic",
+				Description: "another test description",
+				Mac:         "12:34:56:78:9a:bc",
+				NetDev:      "",
+				NetType:     "VIRTIONET",
+				NetDevType:  "TAP",
+				SwitchID:    "d1818527-693e-4b4d-be3d-36ec72d6c420",
+				RateLimit:   false,
+				RateIn:      0,
+				RateOut:     0,
+				InstBridge:  "",
+				InstEpair:   "",
+				ConfigID:    432,
+			},
+			args:    args{switchid: "5dca509e-086c-4447-a38d-91a898b29518"},
+			wantErr: true,
+		},
+	}
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testNic := &VMNic{
+				Model:       testCase.fields.Model,
+				ID:          testCase.fields.ID,
+				Name:        testCase.fields.Name,
+				Description: testCase.fields.Description,
+				Mac:         testCase.fields.Mac,
+				NetDev:      testCase.fields.NetDev,
+				NetType:     testCase.fields.NetType,
+				NetDevType:  testCase.fields.NetDevType,
+				SwitchID:    testCase.fields.SwitchID,
+				RateLimit:   testCase.fields.RateLimit,
+				RateIn:      testCase.fields.RateIn,
+				RateOut:     testCase.fields.RateOut,
+				InstBridge:  testCase.fields.InstBridge,
+				InstEpair:   testCase.fields.InstEpair,
+				ConfigID:    testCase.fields.ConfigID,
+			}
+			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+
+			testCase.mockClosure(testDB, mock)
+
+			err := testNic.SetSwitch(testCase.args.switchid)
+
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("SetSwitch() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 
 			mock.ExpectClose()
