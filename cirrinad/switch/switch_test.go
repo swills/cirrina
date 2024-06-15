@@ -1,6 +1,9 @@
 package vmswitch
 
 import (
+	"fmt"
+	"net"
+	"os"
 	"regexp"
 	"testing"
 	"time"
@@ -10,6 +13,7 @@ import (
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/cirrinadtest"
+	"cirrina/cirrinad/util"
 )
 
 func TestGetAll(t *testing.T) {
@@ -767,4 +771,271 @@ func TestParseSwitchID(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_bringUpNewSwitch(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		switchInst *Switch
+	}
+
+	tests := []struct {
+		name            string
+		mockCmdFunc     string
+		hostIntStubFunc func() ([]net.Interface, error)
+		args            args
+		wantErr         bool
+	}{
+		{
+			name:            "successIfNoUplink",
+			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
+			args: args{switchInst: &Switch{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: createUpdateTime,
+					UpdatedAt: createUpdateTime,
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
+				Name:        "bridge0",
+				Description: "some description",
+				Type:        "IF",
+				Uplink:      "",
+			}},
+		},
+		{
+			name:            "successNGNoUplink",
+			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
+			args: args{switchInst: &Switch{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: createUpdateTime,
+					UpdatedAt: createUpdateTime,
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
+				Name:        "bnet0",
+				Description: "some description",
+				Type:        "NG",
+				Uplink:      "",
+			}},
+		},
+		{
+			name:            "errInvalidSwitchType",
+			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
+			args: args{switchInst: &Switch{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: createUpdateTime,
+					UpdatedAt: createUpdateTime,
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
+				Name:        "bridge0",
+				Description: "some description",
+				Type:        "garbage",
+				Uplink:      "",
+			}},
+			wantErr: true,
+		},
+		{
+			name:            "successIFWithUplink",
+			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
+			args: args{switchInst: &Switch{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: createUpdateTime,
+					UpdatedAt: createUpdateTime,
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
+				Name:        "bridge0",
+				Description: "some description",
+				Type:        "IF",
+				Uplink:      "em0",
+			}},
+		},
+		{
+			name:            "successNGWithUplink",
+			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
+			args: args{switchInst: &Switch{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: createUpdateTime,
+					UpdatedAt: createUpdateTime,
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
+				Name:        "bnet0",
+				Description: "some description",
+				Type:        "NG",
+				Uplink:      "em0",
+			}},
+		},
+		{
+			name:            "errSwitchNil",
+			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
+			args:            args{switchInst: nil},
+			wantErr:         true,
+		},
+		{
+			name:            "errSwitchIDEmpty",
+			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
+			args:            args{switchInst: &Switch{ID: ""}},
+			wantErr:         true,
+		},
+		{
+			name:            "errBuildIF",
+			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
+			args: args{switchInst: &Switch{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: createUpdateTime,
+					UpdatedAt: createUpdateTime,
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
+				Name:        "bnet0",
+				Description: "some description",
+				Type:        "IF",
+				Uplink:      "em0",
+			}},
+		},
+		{
+			name:            "errBuildNG",
+			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
+			args: args{switchInst: &Switch{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: createUpdateTime,
+					UpdatedAt: createUpdateTime,
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
+				Name:        "bridge0",
+				Description: "some description",
+				Type:        "NG",
+				Uplink:      "em0",
+			}},
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			err := bringUpNewSwitch(testCase.args.switchInst)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("bringUpNewSwitch() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
+// test helpers from here down
+
+func Test_bringUpNewSwitchSuccess1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(0)
+}
+
+func Test_bringUpNewSwitchError1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "bridge0" {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func Test_bringUpNewSwitchSuccess2(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		ifconfigOutput := `bridge1: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=0
+        ether 58:9c:fc:10:d6:22
+        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
+        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
+        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
+        member: em0 flags=143<LEARNING,DISCOVER,AUTOEDGE,AUTOPTP>
+                ifmaxaddr 0 port 2 priority 128 path cost 20000
+        groups: bridge cirrinad
+        nd6 options=9<PERFORMNUD,IFDISABLED>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func StubBringUpNewSwitchHostInterfacesSuccess1() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+	}, nil
 }

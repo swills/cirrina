@@ -31,7 +31,7 @@ import (
 var execute = exec.Command
 var getHostMaxVMCpusFunc = GetHostMaxVMCpus
 var getIntGroupsFunc = GetIntGroups
-var netInterfacesFunc = net.Interfaces
+var NetInterfacesFunc = net.Interfaces
 var osOpenFunc = os.Open
 
 func PathExists(path string) (bool, error) {
@@ -333,7 +333,7 @@ func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (int, error) {
 func GetHostInterfaces() []string {
 	var netDevs []string
 
-	netInterfaces, _ := netInterfacesFunc()
+	netInterfaces, _ := NetInterfacesFunc()
 
 	for _, inter := range netInterfaces {
 		intGroups, err := getIntGroupsFunc(inter.Name)

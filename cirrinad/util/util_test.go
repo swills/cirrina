@@ -2433,7 +2433,7 @@ func TestModeIsSuid(t *testing.T) {
 }
 
 func StubHostInterfacesSuccess1() ([]net.Interface, error) {
-	someInterfaces := []net.Interface{
+	return []net.Interface{
 		{
 			Index:        1,
 			MTU:          1500,
@@ -2455,9 +2455,7 @@ func StubHostInterfacesSuccess1() ([]net.Interface, error) {
 			HardwareAddr: net.HardwareAddr(nil),
 			Flags:        0x35,
 		},
-	}
-
-	return someInterfaces, nil
+	}, nil
 }
 
 func StubGetIntGroupSuccess1(intName string) ([]string, error) {
@@ -2502,9 +2500,9 @@ func TestGetHostInterfaces(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			netInterfacesFunc = testCase.hostIntStubFunc
+			NetInterfacesFunc = testCase.hostIntStubFunc
 
-			t.Cleanup(func() { netInterfacesFunc = net.Interfaces })
+			t.Cleanup(func() { NetInterfacesFunc = net.Interfaces })
 
 			getIntGroupsFunc = testCase.getIntGroupStubFunc
 
