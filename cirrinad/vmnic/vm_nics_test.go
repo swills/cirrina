@@ -1662,3 +1662,200 @@ func Test_nicExists(t *testing.T) {
 		})
 	}
 }
+
+func Test_validateNic(t *testing.T) {
+	type args struct {
+		vmNicInst *VMNic
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "success1",
+			args: args{vmNicInst: &VMNic{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: time.Time{},
+					UpdatedAt: time.Time{},
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
+				Name:        "genericNicName",
+				Description: "yet another test description also",
+				Mac:         "00:22:33:44:55:66",
+				NetDev:      "",
+				NetType:     "VIRTIONET",
+				NetDevType:  "TAP",
+				SwitchID:    "96590f8a-de19-4701-964c-628147636244",
+				RateLimit:   false,
+				RateIn:      0,
+				RateOut:     0,
+				InstBridge:  "",
+				InstEpair:   "",
+				ConfigID:    567,
+			}},
+			wantErr: false,
+		},
+		{
+			name: "error1",
+			args: args{vmNicInst: &VMNic{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: time.Time{},
+					UpdatedAt: time.Time{},
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
+				Name:        "genericNicName!",
+				Description: "yet another test description also",
+				Mac:         "00:22:33:44:55:66",
+				NetDev:      "",
+				NetType:     "VIRTIONET",
+				NetDevType:  "TAP",
+				SwitchID:    "96590f8a-de19-4701-964c-628147636244",
+				RateLimit:   false,
+				RateIn:      0,
+				RateOut:     0,
+				InstBridge:  "",
+				InstEpair:   "",
+				ConfigID:    567,
+			}},
+			wantErr: true,
+		},
+		{
+			name: "error2",
+			args: args{vmNicInst: &VMNic{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: time.Time{},
+					UpdatedAt: time.Time{},
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
+				Name:        "genericNicName",
+				Description: "yet another test description also",
+				Mac:         "00:22:33:44:55:66",
+				NetDev:      "",
+				NetType:     "garbage",
+				NetDevType:  "TAP",
+				SwitchID:    "96590f8a-de19-4701-964c-628147636244",
+				RateLimit:   false,
+				RateIn:      0,
+				RateOut:     0,
+				InstBridge:  "",
+				InstEpair:   "",
+				ConfigID:    567,
+			}},
+			wantErr: true,
+		},
+		{
+			name: "error3",
+			args: args{vmNicInst: &VMNic{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: time.Time{},
+					UpdatedAt: time.Time{},
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
+				Name:        "genericNicName",
+				Description: "yet another test description also",
+				Mac:         "00:22:33:44:55:66",
+				NetDev:      "",
+				NetType:     "VIRTIONET",
+				NetDevType:  "garbage",
+				SwitchID:    "96590f8a-de19-4701-964c-628147636244",
+				RateLimit:   false,
+				RateIn:      0,
+				RateOut:     0,
+				InstBridge:  "",
+				InstEpair:   "",
+				ConfigID:    567,
+			}},
+			wantErr: true,
+		},
+		{
+			name: "error4",
+			args: args{vmNicInst: &VMNic{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: time.Time{},
+					UpdatedAt: time.Time{},
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
+				Name:        "genericNicName",
+				Description: "yet another test description also",
+				Mac:         "garbage",
+				NetDev:      "",
+				NetType:     "VIRTIONET",
+				NetDevType:  "TAP",
+				SwitchID:    "96590f8a-de19-4701-964c-628147636244",
+				RateLimit:   false,
+				RateIn:      0,
+				RateOut:     0,
+				InstBridge:  "",
+				InstEpair:   "",
+				ConfigID:    567,
+			}},
+			wantErr: true,
+		},
+		{
+			name: "error5",
+			args: args{vmNicInst: &VMNic{
+				Model: gorm.Model{
+					ID:        0,
+					CreatedAt: time.Time{},
+					UpdatedAt: time.Time{},
+					DeletedAt: gorm.DeletedAt{
+						Time:  time.Time{},
+						Valid: false,
+					},
+				},
+				ID:          "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
+				Name:        "genericNicName",
+				Description: "yet another test description also",
+				Mac:         "02:00:5e:10:00:00:00:01",
+				NetDev:      "",
+				NetType:     "VIRTIONET",
+				NetDevType:  "TAP",
+				SwitchID:    "96590f8a-de19-4701-964c-628147636244",
+				RateLimit:   false,
+				RateIn:      0,
+				RateOut:     0,
+				InstBridge:  "",
+				InstEpair:   "",
+				ConfigID:    567,
+			}},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			err := validateNic(testCase.args.vmNicInst)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("validateNic() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}

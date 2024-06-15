@@ -294,18 +294,13 @@ func validateNic(vmNicInst *VMNic) error {
 		return errInvalidNetDevType
 	}
 
-	if vmNicInst.RateLimit {
-		if vmNicInst.RateIn <= 0 || vmNicInst.RateOut <= 0 {
-			return errInvalidNetworkRateLimit
-		}
-	}
-
 	if vmNicInst.Mac != "AUTO" {
 		newMac, err := net.ParseMAC(vmNicInst.Mac)
 		if err != nil {
 			return errInvalidMac
 		}
 
+		// ensure we have an ethernet MAC address, not some other type, see net.ParseMac docs
 		if len(newMac.String()) != 17 {
 			return errInvalidMac
 		}
