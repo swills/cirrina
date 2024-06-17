@@ -405,9 +405,6 @@ func bridgeNgRemoveUplink(bridgeName string, peerName string) error {
 			}
 		}
 	}
-	// if thisPeer.PeerName == "" {
-	// 	return errors.New("uplink not found")
-	// }
 
 	return nil
 }
