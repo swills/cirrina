@@ -1095,6 +1095,64 @@ func Test_memberUsedByIfBridge(t *testing.T) {
 	}
 }
 
+func Test_memberUsedByNgBridge(t *testing.T) {
+	type args struct {
+		member string
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		want        bool
+		wantErr     bool
+	}{
+		{
+			name:        "success1",
+			args:        args{member: "em0"},
+			mockCmdFunc: "Test_memberUsedByNgBridgeSuccess1",
+			want:        true,
+			wantErr:     false,
+		},
+		{
+			name:        "error1",
+			args:        args{member: "em0"},
+			mockCmdFunc: "Test_memberUsedByNgBridgeError1",
+			want:        false,
+			wantErr:     true,
+		},
+		{
+			name:        "error2",
+			args:        args{member: "em0"},
+			mockCmdFunc: "Test_memberUsedByNgBridgeError2",
+			want:        false,
+			wantErr:     true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			got, err := memberUsedByNgBridge(testCase.args.member)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("memberUsedByNgBridge() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("memberUsedByNgBridge() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 func Test_bringUpNewSwitchSuccess1(_ *testing.T) {
@@ -1282,6 +1340,84 @@ func Test_memberUsedByIfBridgeError2(_ *testing.T) {
 	}
 
 	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "bridge0" {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func Test_memberUsedByNgBridgeSuccess1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "list" {
+		ngctlOutput := `There are 8 total nodes:
+  Name: igb0            Type: ether           ID: 00000001   Num hooks: 0
+  Name: ix0             Type: ether           ID: 00000002   Num hooks: 2
+  Name: ue0             Type: ether           ID: 00000003   Num hooks: 0
+  Name: bridge0         Type: ether           ID: 00000006   Num hooks: 0
+  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Name: bridge1         Type: ether           ID: 00000014   Num hooks: 0
+  Name: bnet1           Type: bridge          ID: 00000018   Num hooks: 0
+  Name: ngctl23503      Type: socket          ID: 0000001e   Num hooks: 0
+`
+
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 4 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "show" && cmdWithArgs[3] == "bnet0:" { //nolint:lll
+		ngctlOutput := `  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Local hook      Peer name       Peer type    Peer ID         Peer hook      
+  ----------      ---------       ---------    -------         ---------      
+  link1           em0             ether        00000002        upper          
+  link0           em0             ether        00000002        lower          
+`
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func Test_memberUsedByNgBridgeError1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "list" {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func Test_memberUsedByNgBridgeError2(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "list" {
+		ngctlOutput := `There are 8 total nodes:
+  Name: igb0            Type: ether           ID: 00000001   Num hooks: 0
+  Name: ix0             Type: ether           ID: 00000002   Num hooks: 2
+  Name: ue0             Type: ether           ID: 00000003   Num hooks: 0
+  Name: bridge0         Type: ether           ID: 00000006   Num hooks: 0
+  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Name: bridge1         Type: ether           ID: 00000014   Num hooks: 0
+  Name: bnet1           Type: bridge          ID: 00000018   Num hooks: 0
+  Name: ngctl23503      Type: socket          ID: 0000001e   Num hooks: 0
+`
+
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 4 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "show" && cmdWithArgs[3] == "bnet0:" { //nolint:lll
 		os.Exit(1)
 	}
 
