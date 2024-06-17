@@ -423,6 +423,8 @@ func memberUsedByIfBridge(member string) (bool, error) {
 	allBridges, err := GetAllIfBridges()
 	if err != nil {
 		slog.Error("error getting all if bridges", "err", err)
+
+		return true, err
 	}
 
 	for _, aBridge := range allBridges {
@@ -430,7 +432,7 @@ func memberUsedByIfBridge(member string) (bool, error) {
 		if err != nil {
 			slog.Error("error getting if bridge members", "bridge", aBridge)
 
-			return false, err
+			return true, err
 		}
 
 		if util.ContainsStr(existingMembers, member) {

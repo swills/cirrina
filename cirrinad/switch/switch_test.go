@@ -1023,6 +1023,78 @@ func Test_switchTypeValid(t *testing.T) {
 	}
 }
 
+func Test_memberUsedByIfBridge(t *testing.T) {
+	type args struct {
+		member string
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		want        bool
+		wantErr     bool
+	}{
+		{
+			name:        "success1",
+			mockCmdFunc: "Test_memberUsedByIfBridgeSuccess1",
+			args:        args{member: "em0"},
+			want:        false,
+			wantErr:     false,
+		},
+		{
+			name:        "success2",
+			mockCmdFunc: "Test_memberUsedByIfBridgeSuccess2",
+			args:        args{member: "em0"},
+			want:        false,
+			wantErr:     false,
+		},
+		{
+			name:        "success3",
+			mockCmdFunc: "Test_memberUsedByIfBridgeSuccess3",
+			args:        args{member: "em0"},
+			want:        true,
+			wantErr:     false,
+		},
+		{
+			name:        "error1",
+			mockCmdFunc: "Test_memberUsedByIfBridgeError1",
+			args:        args{member: "em0"},
+			want:        true,
+			wantErr:     true,
+		},
+		{
+			name:        "error2",
+			mockCmdFunc: "Test_memberUsedByIfBridgeError2",
+			args:        args{member: "em0"},
+			want:        true,
+			wantErr:     true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			got, err := memberUsedByIfBridge(testCase.args.member)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("memberUsedByIfBridge() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("memberUsedByIfBridge() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 func Test_bringUpNewSwitchSuccess1(_ *testing.T) {
@@ -1088,4 +1160,130 @@ func StubBringUpNewSwitchHostInterfacesSuccess1() ([]net.Interface, error) {
 			Flags:        0x33,
 		},
 	}, nil
+}
+
+func Test_memberUsedByIfBridgeSuccess1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		ifconfigOutput := "bridge0\n"
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "bridge0" {
+		ifconfigOutput := `bridge0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=0
+        ether 58:9c:fc:10:d6:22
+        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
+        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
+        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
+        groups: bridge cirrinad
+        nd6 options=9<PERFORMNUD,IFDISABLED>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func Test_memberUsedByIfBridgeSuccess2(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		ifconfigOutput := "bridge0\n"
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "bridge0" {
+		ifconfigOutput := `bridge0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=0
+        ether 58:9c:fc:10:d6:22
+        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
+        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
+        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
+        member: ix0 flags=143<LEARNING,DISCOVER,AUTOEDGE,AUTOPTP>
+                ifmaxaddr 0 port 2 priority 128 path cost 20000
+        groups: bridge cirrinad
+        nd6 options=9<PERFORMNUD,IFDISABLED>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func Test_memberUsedByIfBridgeSuccess3(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		ifconfigOutput := "bridge0\n"
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "bridge0" {
+		ifconfigOutput := `bridge0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=0
+        ether 58:9c:fc:10:d6:22
+        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
+        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
+        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
+        member: em0 flags=143<LEARNING,DISCOVER,AUTOEDGE,AUTOPTP>
+                ifmaxaddr 0 port 2 priority 128 path cost 20000
+        groups: bridge cirrinad
+        nd6 options=9<PERFORMNUD,IFDISABLED>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func Test_memberUsedByIfBridgeError1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func Test_memberUsedByIfBridgeError2(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		ifconfigOutput := "bridge0\n"
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "bridge0" {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
 }
