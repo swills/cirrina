@@ -1039,3 +1039,53 @@ func StubBringUpNewSwitchHostInterfacesSuccess1() ([]net.Interface, error) {
 		},
 	}, nil
 }
+
+func Test_switchTypeValid(t *testing.T) {
+	type args struct {
+		switchInst *Switch
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "okIFBridge",
+			args: args{
+				switchInst: &Switch{
+					Type: "IF",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "okNGBridge",
+			args: args{
+				switchInst: &Switch{
+					Type: "NG",
+				},
+			},
+			want: true,
+		},
+		{
+			name: "badGarbage",
+			args: args{
+				switchInst: &Switch{
+					Type: "garbage",
+				},
+			},
+			want: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			got := switchTypeValid(testCase.args.switchInst)
+			if got != testCase.want {
+				t.Errorf("switchTypeValid() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
