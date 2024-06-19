@@ -2051,6 +2051,109 @@ func TestDelete(t *testing.T) {
 	}
 }
 
+func Test_switchCheckUplink(t *testing.T) {
+	type args struct {
+		switchInst *Switch
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		wantErr     bool
+	}{
+		{
+			name:        "SuccessIF1",
+			mockCmdFunc: "Test_switchCheckUplinkSuccessIF1",
+			args: args{switchInst: &Switch{
+				Name:        "bridge0",
+				Description: "test if switch",
+				Type:        "IF",
+				Uplink:      "em0",
+			}},
+			wantErr: false,
+		},
+		{
+			name:        "SuccessNG1",
+			mockCmdFunc: "Test_switchCheckUplinkSuccessNG1",
+			args: args{switchInst: &Switch{
+				Name:        "bnet0",
+				Description: "test ng switch",
+				Type:        "NG",
+				Uplink:      "em0",
+			}},
+			wantErr: false,
+		},
+		{
+			name:        "ErrorIF1",
+			mockCmdFunc: "Test_switchCheckUplinkErrorIF1",
+			args: args{switchInst: &Switch{
+				Name:        "bridge0",
+				Description: "test if switch",
+				Type:        "IF",
+				Uplink:      "em0",
+			}},
+			wantErr: true,
+		},
+		{
+			name:        "InUseIF1",
+			mockCmdFunc: "Test_switchCheckUplinkInUseIF1",
+			args: args{switchInst: &Switch{
+				Name:        "bridge0",
+				Description: "test if switch",
+				Type:        "IF",
+				Uplink:      "em0",
+			}},
+			wantErr: true,
+		},
+		{
+			name:        "ErrorNG1",
+			mockCmdFunc: "Test_switchCheckUplinkErrorNG1",
+			args: args{switchInst: &Switch{
+				Name:        "bnet0",
+				Description: "test ng switch",
+				Type:        "NG",
+				Uplink:      "em0",
+			}},
+			wantErr: true,
+		},
+		{
+			name:        "InUseNG1",
+			mockCmdFunc: "Test_switchCheckUplinkInUseNG1",
+			args: args{switchInst: &Switch{
+				Name:        "bnet0",
+				Description: "test if switch",
+				Type:        "NG",
+				Uplink:      "em0",
+			}},
+			wantErr: true,
+		},
+		{
+			name: "BadType",
+			args: args{switchInst: &Switch{
+				Type: "garbage",
+			}},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			err := switchCheckUplink(testCase.args.switchInst)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("switchCheckUplink() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 func Test_bringUpNewSwitchSuccess1(_ *testing.T) {
@@ -2568,4 +2671,159 @@ func TestBridgeNgAddMemberError3(_ *testing.T) {
 	}
 
 	os.Exit(1)
+}
+
+func Test_switchCheckUplinkSuccessIF1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		ifconfigOutput := "bridge0\n"
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "bridge0" {
+		ifconfigOutput := `bridge0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=0
+        ether 58:9c:fc:10:d6:22
+        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
+        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
+        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
+        groups: bridge cirrinad
+        nd6 options=9<PERFORMNUD,IFDISABLED>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func Test_switchCheckUplinkSuccessNG1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "list" {
+		ngctlOutput := `There are 8 total nodes:
+  Name: igb0            Type: ether           ID: 00000001   Num hooks: 0
+  Name: ix0             Type: ether           ID: 00000002   Num hooks: 2
+  Name: ue0             Type: ether           ID: 00000003   Num hooks: 0
+  Name: bridge0         Type: ether           ID: 00000006   Num hooks: 0
+  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Name: bridge1         Type: ether           ID: 00000014   Num hooks: 0
+  Name: bnet1           Type: bridge          ID: 00000018   Num hooks: 0
+  Name: ngctl23503      Type: socket          ID: 0000001e   Num hooks: 0
+`
+
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 4 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "show" && cmdWithArgs[3] == "bnet0:" { //nolint:lll
+		ngctlOutput := `  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+`
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func Test_switchCheckUplinkErrorIF1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func Test_switchCheckUplinkInUseIF1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		ifconfigOutput := "bridge0\n"
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "bridge0" {
+		ifconfigOutput := `bridge0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=0
+        ether 58:9c:fc:10:d6:22
+        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
+        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
+        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
+        member: em0 flags=143<LEARNING,DISCOVER,AUTOEDGE,AUTOPTP>
+                ifmaxaddr 0 port 2 priority 128 path cost 20000
+        groups: bridge cirrinad
+        nd6 options=9<PERFORMNUD,IFDISABLED>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func Test_switchCheckUplinkErrorNG1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "list" {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func Test_switchCheckUplinkInUseNG1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "list" {
+		ngctlOutput := `There are 8 total nodes:
+  Name: igb0            Type: ether           ID: 00000001   Num hooks: 0
+  Name: ix0             Type: ether           ID: 00000002   Num hooks: 2
+  Name: ue0             Type: ether           ID: 00000003   Num hooks: 0
+  Name: bridge0         Type: ether           ID: 00000006   Num hooks: 0
+  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Name: bridge1         Type: ether           ID: 00000014   Num hooks: 0
+  Name: bnet1           Type: bridge          ID: 00000018   Num hooks: 0
+  Name: ngctl23503      Type: socket          ID: 0000001e   Num hooks: 0
+`
+
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 4 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "show" && cmdWithArgs[3] == "bnet0:" { //nolint:lll
+		ngctlOutput := `  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Local hook      Peer name       Peer type    Peer ID         Peer hook      
+  ----------      ---------       ---------    -------         ---------      
+  link1           em0             ether        00000002        upper          
+  link0           em0             ether        00000002        lower          
+`
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
 }
