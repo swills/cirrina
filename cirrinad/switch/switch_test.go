@@ -1829,6 +1829,228 @@ func TestSwitch_Save(t *testing.T) {
 	}
 }
 
+func TestDelete(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		switchID string
+	}
+
+	tests := []struct {
+		name                string
+		mockClosure         func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockVmnicGetAllFunc func() []*vmnic.VMNic
+		args                args
+		wantErr             bool
+	}{
+		{
+			name: "success1",
+			mockVmnicGetAllFunc: func() []*vmnic.VMNic {
+				return []*vmnic.VMNic{{
+					SwitchID: "56df0e88-9edd-4536-af80-6b53537f1708",
+				}}
+			},
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("9a463b0e-094a-401b-b508-2390367b376a").
+					WillReturnRows(sqlmock.NewRows(
+						[]string{
+							"id",
+							"created_at",
+							"updated_at",
+							"deleted_at",
+							"name",
+							"description",
+							"type",
+							"uplink",
+						}).
+						AddRow(
+							"9a463b0e-094a-401b-b508-2390367b376a",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge0",
+							"a simple test bridge",
+							"IF",
+							"em0",
+						),
+					)
+				mock.ExpectBegin()
+
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"DELETE FROM `switches` WHERE `switches`.`id` = ?",
+					),
+				).
+					WithArgs("9a463b0e-094a-401b-b508-2390367b376a").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args:    args{switchID: "9a463b0e-094a-401b-b508-2390367b376a"},
+			wantErr: false,
+		},
+		{
+			name: "error1",
+			mockVmnicGetAllFunc: func() []*vmnic.VMNic {
+				return []*vmnic.VMNic{{
+					SwitchID: "9a463b0e-094a-401b-b508-2390367b376a",
+				}}
+			},
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("9a463b0e-094a-401b-b508-2390367b376a").
+					WillReturnRows(sqlmock.NewRows(
+						[]string{
+							"id",
+							"created_at",
+							"updated_at",
+							"deleted_at",
+							"name",
+							"description",
+							"type",
+							"uplink",
+						}).
+						AddRow(
+							"9a463b0e-094a-401b-b508-2390367b376a",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge0",
+							"a simple test bridge",
+							"IF",
+							"em0",
+						),
+					)
+			},
+			args:    args{switchID: "9a463b0e-094a-401b-b508-2390367b376a"},
+			wantErr: true,
+		},
+		{
+			name: "error2",
+			mockVmnicGetAllFunc: func() []*vmnic.VMNic {
+				return []*vmnic.VMNic{{
+					SwitchID: "56df0e88-9edd-4536-af80-6b53537f1708",
+				}}
+			},
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("9a463b0e-094a-401b-b508-2390367b376a").
+					WillReturnRows(sqlmock.NewRows(
+						[]string{
+							"id",
+							"created_at",
+							"updated_at",
+							"deleted_at",
+							"name",
+							"description",
+							"type",
+							"uplink",
+						}).
+						AddRow(
+							"9a463b0e-094a-401b-b508-2390367b376a",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge0",
+							"a simple test bridge",
+							"IF",
+							"em0",
+						),
+					)
+				mock.ExpectBegin()
+
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"DELETE FROM `switches` WHERE `switches`.`id` = ?",
+					),
+				).
+					WithArgs("9a463b0e-094a-401b-b508-2390367b376a").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
+			},
+			args:    args{switchID: "9a463b0e-094a-401b-b508-2390367b376a"},
+			wantErr: true,
+		},
+		{
+			name: "error3",
+			mockVmnicGetAllFunc: func() []*vmnic.VMNic {
+				return []*vmnic.VMNic{{
+					SwitchID: "56df0e88-9edd-4536-af80-6b53537f1708",
+				}}
+			},
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("9a463b0e-094a-401b-b508-2390367b376a").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+			},
+			args:    args{switchID: "9a463b0e-094a-401b-b508-2390367b376a"},
+			wantErr: true,
+		},
+		{
+			name: "error4",
+			mockVmnicGetAllFunc: func() []*vmnic.VMNic {
+				return []*vmnic.VMNic{}
+			},
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+			},
+			args:    args{switchID: ""},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testCase.mockClosure(testDB, mock)
+
+			vmnicGetAllFunc = testCase.mockVmnicGetAllFunc
+
+			t.Cleanup(func() { vmnicGetAllFunc = vmnic.GetAll })
+
+			err := Delete(testCase.args.switchID)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("Delete() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 func Test_bringUpNewSwitchSuccess1(_ *testing.T) {
