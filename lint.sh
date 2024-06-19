@@ -12,7 +12,9 @@ if [ ! -d /tmp/cirrinagopath ]; then
 fi
 export GOPATH=/tmp/cirrinagopath
 export PATH=${GOROOT}/bin:${PATH}:${GOPATH}/bin
-export GOMAXPROCS=$(sysctl -n hw.ncpu)
+NCPU=$(getconf NPROCESSORS_ONLN)
+RESERVED_CPUS=4
+export GOMAXPROCS=$((${NCPU}-${RESERVED_CPUS}))
 
 idprio -t nice gci write --skip-generated --skip-vendor -s standard -s default -s 'prefix(cirrina)' cirrinad cirrinactl
 idprio -t nice pre-commit run --all-files
