@@ -2154,6 +2154,173 @@ func Test_switchCheckUplink(t *testing.T) {
 	}
 }
 
+func Test_setUplinkIf(t *testing.T) {
+	type args struct {
+		uplink     string
+		switchInst *Switch
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockCmdFunc string
+		args        args
+		wantErr     bool
+	}{
+		{
+			name:        "success1",
+			mockCmdFunc: "Test_setUplinkIfSuccess1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some bridge", "bridge0", "IF", "em0", sqlmock.AnyArg(), sqlmock.AnyArg()).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "83bd9693-ea10-43f4-b888-49d3b8bb7f35",
+					Name:        "bridge0",
+					Description: "some bridge",
+					Type:        "IF",
+					Uplink:      "",
+				},
+				uplink: "em0",
+			},
+		},
+		{
+			name:        "MemberCheckError",
+			mockCmdFunc: "Test_setUplinkIfMemberCheckError",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "83bd9693-ea10-43f4-b888-49d3b8bb7f35",
+					Name:        "bridge0",
+					Description: "some bridge",
+					Type:        "IF",
+					Uplink:      "",
+				},
+				uplink: "em0",
+			},
+			wantErr: true,
+		},
+		{
+			name:        "MemberInUse1",
+			mockCmdFunc: "Test_setUplinkIfMemberInUse1",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "83bd9693-ea10-43f4-b888-49d3b8bb7f35",
+					Name:        "bridge1",
+					Description: "some bridge",
+					Type:        "IF",
+					Uplink:      "",
+				},
+				uplink: "em0",
+			},
+			wantErr: true,
+		},
+		{
+			name:        "AddMemberError1",
+			mockCmdFunc: "Test_setUplinkIfAddMemberError1",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "83bd9693-ea10-43f4-b888-49d3b8bb7f35",
+					Name:        "bridge0",
+					Description: "some bridge",
+					Type:        "IF",
+					Uplink:      "",
+				},
+				uplink: "em0",
+			},
+			wantErr: true,
+		},
+		{
+			name:        "SaveError",
+			mockCmdFunc: "Test_setUplinkIfSuccess1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some bridge", "bridge0", "IF", "em0", sqlmock.AnyArg(), sqlmock.AnyArg()).
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "83bd9693-ea10-43f4-b888-49d3b8bb7f35",
+					Name:        "bridge0",
+					Description: "some bridge",
+					Type:        "IF",
+					Uplink:      "",
+				},
+				uplink: "em0",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testCase.mockClosure(testDB, mock)
+
+			err := setUplinkIf(testCase.args.uplink, testCase.args.switchInst)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("setUplinkIf() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 func Test_bringUpNewSwitchSuccess1(_ *testing.T) {
@@ -2823,6 +2990,116 @@ func Test_switchCheckUplinkInUseNG1(_ *testing.T) {
   link0           em0             ether        00000002        lower          
 `
 		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func Test_setUplinkIfSuccess1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		ifconfigOutput := "bridge0\n"
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "bridge0" {
+		ifconfigOutput := `bridge0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=0
+        ether 58:9c:fc:10:d6:22
+        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
+        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
+        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
+        groups: bridge cirrinad
+        nd6 options=9<PERFORMNUD,IFDISABLED>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func Test_setUplinkIfMemberCheckError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func Test_setUplinkIfMemberInUse1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		ifconfigOutput := "bridge0\n"
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "bridge0" {
+		ifconfigOutput := `bridge0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=0
+        ether 58:9c:fc:10:d6:22
+        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
+        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
+        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
+        member: em0 flags=143<LEARNING,DISCOVER,AUTOEDGE,AUTOPTP>
+                ifmaxaddr 0 port 2 priority 128 path cost 20000
+        groups: bridge cirrinad
+        nd6 options=9<PERFORMNUD,IFDISABLED>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func Test_setUplinkIfAddMemberError1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		ifconfigOutput := "bridge0\n"
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "bridge0" {
+		ifconfigOutput := `bridge0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=0
+        ether 58:9c:fc:10:d6:22
+        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
+        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
+        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
+        groups: bridge cirrinad
+        nd6 options=9<PERFORMNUD,IFDISABLED>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	for _, v := range cmdWithArgs {
+		if v == "addm" {
+			os.Exit(1)
+		}
 	}
 
 	os.Exit(0)

@@ -685,6 +685,7 @@ func TestFileInfoCmds_ApplyFileSize(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
 func TestFileInfoCmds_CheckExists(t *testing.T) {
 	type args struct {
 		name string
@@ -724,13 +725,9 @@ func TestFileInfoCmds_CheckExists(t *testing.T) {
 		},
 	}
 
-	t.Parallel()
-
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
 			fileInfoCmds := FileInfoCmds{}
 
 			pathExistsFunc = func(_ string) (bool, error) {
