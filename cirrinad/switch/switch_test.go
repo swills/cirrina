@@ -2180,7 +2180,7 @@ func Test_setUplinkIf(t *testing.T) {
 						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
 					),
 				).
-					WithArgs("some bridge", "bridge0", "IF", "em0", sqlmock.AnyArg(), sqlmock.AnyArg()).
+					WithArgs("some bridge", "bridge0", "IF", "em0", sqlmock.AnyArg(), "83bd9693-ea10-43f4-b888-49d3b8bb7f35").
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
 			},
@@ -2316,6 +2316,158 @@ func Test_setUplinkIf(t *testing.T) {
 
 			if err = mock.ExpectationsWereMet(); err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+func Test_setUplinkNG(t *testing.T) {
+	type args struct {
+		uplink     string
+		switchInst *Switch
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockCmdFunc string
+		args        args
+		wantErr     bool
+	}{
+		{
+			name:        "success1",
+			mockCmdFunc: "Test_setUplinkNGSuccess1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some bridge", "bnet0", "NG", "em0", sqlmock.AnyArg(), "20405b69-6d32-4690-8145-4d55a60f16a7").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "20405b69-6d32-4690-8145-4d55a60f16a7",
+					Name:        "bnet0",
+					Description: "some bridge",
+					Type:        "NG",
+					Uplink:      "",
+				},
+				uplink: "em0",
+			},
+		},
+		{
+			name:        "MemberUsedError",
+			mockCmdFunc: "Test_setUplinkNGMemberUsedError",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "20405b69-6d32-4690-8145-4d55a60f16a7",
+					Name:        "bnet0",
+					Description: "some bridge",
+					Type:        "NG",
+					Uplink:      "",
+				},
+				uplink: "em0",
+			},
+			wantErr: true,
+		},
+		{
+			name:        "MemberAlreadyUsed",
+			mockCmdFunc: "Test_setUplinkNGMemberAlreadyUsed",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "20405b69-6d32-4690-8145-4d55a60f16a7",
+					Name:        "bnet0",
+					Description: "some bridge",
+					Type:        "NG",
+					Uplink:      "",
+				},
+				uplink: "em0",
+			},
+			wantErr: true,
+		},
+		{
+			name:        "MemberAddError",
+			mockCmdFunc: "Test_setUplinkNGMemberAddError",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "20405b69-6d32-4690-8145-4d55a60f16a7",
+					Name:        "bnet0",
+					Description: "some bridge",
+					Type:        "NG",
+					Uplink:      "",
+				},
+				uplink: "em0",
+			},
+			wantErr: true,
+		},
+		{
+			name:        "SaveError",
+			mockCmdFunc: "Test_setUplinkNGSuccess1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some bridge", "bnet0", "NG", "em0", sqlmock.AnyArg(), "20405b69-6d32-4690-8145-4d55a60f16a7").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "20405b69-6d32-4690-8145-4d55a60f16a7",
+					Name:        "bnet0",
+					Description: "some bridge",
+					Type:        "NG",
+					Uplink:      "",
+				},
+				uplink: "em0",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testCase.mockClosure(testDB, mock)
+
+			err := setUplinkNG(testCase.args.uplink, testCase.args.switchInst)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("setUplinkNG() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}
@@ -2892,7 +3044,7 @@ func Test_switchCheckUplinkSuccessNG1(_ *testing.T) {
 	}
 
 	if len(cmdWithArgs) == 4 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "show" && cmdWithArgs[3] == "bnet0:" { //nolint:lll
-		ngctlOutput := `  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+		ngctlOutput := `  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 0
 `
 		fmt.Print(ngctlOutput) //nolint:forbidigo
 	}
@@ -3098,6 +3250,123 @@ func Test_setUplinkIfAddMemberError1(_ *testing.T) {
 
 	for _, v := range cmdWithArgs {
 		if v == "addm" {
+			os.Exit(1)
+		}
+	}
+
+	os.Exit(0)
+}
+
+func Test_setUplinkNGSuccess1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "list" {
+		ngctlOutput := `There are 8 total nodes:
+  Name: igb0            Type: ether           ID: 00000001   Num hooks: 0
+  Name: ix0             Type: ether           ID: 00000002   Num hooks: 2
+  Name: ue0             Type: ether           ID: 00000003   Num hooks: 0
+  Name: bridge0         Type: ether           ID: 00000006   Num hooks: 0
+  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 0
+  Name: bridge1         Type: ether           ID: 00000014   Num hooks: 0
+  Name: bnet1           Type: bridge          ID: 00000018   Num hooks: 0
+  Name: ngctl23503      Type: socket          ID: 0000001e   Num hooks: 0
+`
+
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 4 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "show" && cmdWithArgs[3] == "bnet0:" { //nolint:lll
+		ngctlOutput := `  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 0
+`
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func Test_setUplinkNGMemberUsedError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "list" {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func Test_setUplinkNGMemberAlreadyUsed(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "list" {
+		ngctlOutput := `There are 8 total nodes:
+  Name: igb0            Type: ether           ID: 00000001   Num hooks: 0
+  Name: ix0             Type: ether           ID: 00000002   Num hooks: 2
+  Name: ue0             Type: ether           ID: 00000003   Num hooks: 0
+  Name: bridge0         Type: ether           ID: 00000006   Num hooks: 0
+  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 0
+  Name: bridge1         Type: ether           ID: 00000014   Num hooks: 0
+  Name: bnet1           Type: bridge          ID: 00000018   Num hooks: 0
+  Name: ngctl23503      Type: socket          ID: 0000001e   Num hooks: 0
+`
+
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 4 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "show" && cmdWithArgs[3] == "bnet0:" { //nolint:lll
+		ngctlOutput := `  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Local hook      Peer name       Peer type    Peer ID         Peer hook      
+  ----------      ---------       ---------    -------         ---------      
+  link1           em0             ether        00000002        upper          
+  link0           em0             ether        00000002        lower          
+`
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func Test_setUplinkNGMemberAddError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "list" {
+		ngctlOutput := `There are 8 total nodes:
+  Name: igb0            Type: ether           ID: 00000001   Num hooks: 0
+  Name: ix0             Type: ether           ID: 00000002   Num hooks: 2
+  Name: ue0             Type: ether           ID: 00000003   Num hooks: 0
+  Name: bridge0         Type: ether           ID: 00000006   Num hooks: 0
+  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 0
+  Name: bridge1         Type: ether           ID: 00000014   Num hooks: 0
+  Name: bnet1           Type: bridge          ID: 00000018   Num hooks: 0
+  Name: ngctl23503      Type: socket          ID: 0000001e   Num hooks: 0
+`
+
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 4 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "show" && cmdWithArgs[3] == "bnet0:" { //nolint:lll
+		ngctlOutput := `  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 0
+`
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	for _, v := range cmdWithArgs {
+		if v == "connect" {
 			os.Exit(1)
 		}
 	}
