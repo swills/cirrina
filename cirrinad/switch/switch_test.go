@@ -1323,6 +1323,107 @@ func Test_validateNgSwitch(t *testing.T) {
 	}
 }
 
+func TestDestroyNgBridge(t *testing.T) {
+	type args struct {
+		netDev string
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		wantErr     bool
+	}{
+		{
+			name:        "success1",
+			mockCmdFunc: "TestDestroyNgBridgeSuccess1",
+			args:        args{netDev: "bnet0"},
+			wantErr:     false,
+		},
+		{
+			name:        "error1",
+			mockCmdFunc: "TestDestroyNgBridgeError1",
+			args:        args{netDev: ""},
+			wantErr:     true,
+		},
+		{
+			name:        "error2",
+			mockCmdFunc: "TestDestroyNgBridgeError1",
+			args:        args{netDev: "bnet0"},
+			wantErr:     true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			if err := DestroyNgBridge(testCase.args.netDev); (err != nil) != testCase.wantErr {
+				t.Errorf("DestroyNgBridge() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
+func TestDestroyIfBridge(t *testing.T) {
+	type args struct {
+		name    string
+		cleanup bool
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		wantErr     bool
+	}{
+		{
+			name:        "success1",
+			mockCmdFunc: "TestDestroyIfBridgeSuccess1",
+			args:        args{name: "bridge0", cleanup: false},
+			wantErr:     false,
+		},
+		{
+			name:        "error1",
+			mockCmdFunc: "TestDestroyIfBridgeSuccess1",
+			args:        args{name: "garbage", cleanup: false},
+			wantErr:     true,
+		},
+		{
+			name:        "error2",
+			mockCmdFunc: "TestDestroyIfBridgeError2",
+			args:        args{name: "bridge0", cleanup: false},
+			wantErr:     true,
+		},
+		{
+			name:        "error3",
+			mockCmdFunc: "TestDestroyIfBridgeError2",
+			args:        args{name: "bridge0", cleanup: true},
+			wantErr:     true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			if err := DestroyIfBridge(testCase.args.name, testCase.args.cleanup); (err != nil) != testCase.wantErr {
+				t.Errorf("DestroyIfBridge() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 func Test_bringUpNewSwitchSuccess1(_ *testing.T) {
@@ -1725,4 +1826,36 @@ func Test_validateNgSwitchError1(_ *testing.T) {
 	}
 
 	os.Exit(0)
+}
+
+func TestDestroyNgBridgeSuccess1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(0)
+}
+
+func TestDestroyNgBridgeError1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(1)
+}
+
+func TestDestroyIfBridgeSuccess1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(0)
+}
+
+func TestDestroyIfBridgeError2(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(1)
 }
