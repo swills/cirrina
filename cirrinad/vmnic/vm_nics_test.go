@@ -132,7 +132,9 @@ func TestGetByName(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					vmNicDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE name = \\? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
+				).
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{
@@ -206,7 +208,9 @@ func TestGetByName(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					vmNicDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE name = \\? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
+				).
 					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
 			},
 			args:    args{name: "someNicName"},
@@ -219,7 +223,9 @@ func TestGetByName(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					vmNicDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE name = \\? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
+				).
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{
@@ -310,7 +316,9 @@ func TestGetAll(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					vmNicDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE `vm_nics`.`deleted_at` IS NULL$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE `vm_nics`.`deleted_at` IS NULL"),
+				).
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{
@@ -471,7 +479,9 @@ func TestGetByID(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					vmNicDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE id = \\? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE id = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
+				).
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{
@@ -546,7 +556,9 @@ func TestGetByID(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					vmNicDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE id = \\? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE id = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
+				).
 					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
 			},
 			args:    args{id: "007af66e-9c05-41a6-832a-40273cce3bf8"},
@@ -559,7 +571,9 @@ func TestGetByID(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					vmNicDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `vm_nics` WHERE id = \\? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE id = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
+				).
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{

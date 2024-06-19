@@ -3,6 +3,7 @@ package vm
 import (
 	"database/sql"
 	"log/slog"
+	"regexp"
 	"sync"
 	"testing"
 	"time"
@@ -28,7 +29,9 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 				instance = &singleton{ // prevents parallel testing
 					vmDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `vms` WHERE `vms`.`deleted_at` IS NULL$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vms` WHERE `vms`.`deleted_at` IS NULL"),
+				).
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{
@@ -81,7 +84,8 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 							),
 					)
 				mock.ExpectQuery(
-					"^SELECT \\* FROM `configs` WHERE `configs`.`vm_id` IN \\(\\?,\\?\\) AND `configs`.`deleted_at` IS NULL$"). //nolint:lll
+					regexp.QuoteMeta("SELECT * FROM `configs` WHERE `configs`.`vm_id` IN (?,?) AND `configs`.`deleted_at` IS NULL"), //nolint:lll
+				).
 					WithArgs("38d38177-2309-48a1-8076-0687caa803fb", "263ca626-7e08-4534-8670-06339bcd2381").
 					WillReturnRows(
 						sqlmock.NewRows([]string{

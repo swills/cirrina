@@ -28,7 +28,9 @@ func TestGetAll(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					isoDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `isos` WHERE `isos`.`deleted_at` IS NULL$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE `isos`.`deleted_at` IS NULL"),
+				).
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{

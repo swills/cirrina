@@ -32,7 +32,9 @@ func TestGetAllDB(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					diskDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `disks` WHERE `disks`.`deleted_at` IS NULL$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `disks` WHERE `disks`.`deleted_at` IS NULL"),
+				).
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{
@@ -1126,7 +1128,9 @@ func Test_diskExists(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					diskDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `disks` WHERE `disks`.`deleted_at` IS NULL$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `disks` WHERE `disks`.`deleted_at` IS NULL"),
+				).
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{
@@ -1182,7 +1186,9 @@ func Test_diskExists(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					diskDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `disks` WHERE `disks`.`deleted_at` IS NULL$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `disks` WHERE `disks`.`deleted_at` IS NULL"),
+				).
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{

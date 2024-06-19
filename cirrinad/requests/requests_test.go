@@ -37,7 +37,8 @@ func TestGetByID(t *testing.T) {
 					reqDB: testDB,
 				}
 				mock.ExpectQuery(
-					"^SELECT \\* FROM `requests` WHERE `requests`.`id` = \\? AND `requests`.`deleted_at` IS NULL LIMIT 1$"). //nolint:lll
+					regexp.QuoteMeta("SELECT * FROM `requests` WHERE `requests`.`id` = ? AND `requests`.`deleted_at` IS NULL LIMIT 1"),
+				).
 					WithArgs("4aecbcd1-c39c-48e6-9a45-4a1abe06821f").
 					WillReturnRows(
 						sqlmock.NewRows(
@@ -94,7 +95,8 @@ func TestGetByID(t *testing.T) {
 					reqDB: testDB,
 				}
 				mock.ExpectQuery(
-					"^SELECT \\* FROM `requests` WHERE `requests`.`id` = \\? AND `requests`.`deleted_at` IS NULL LIMIT 1$"). //nolint:lll
+					regexp.QuoteMeta("SELECT * FROM `requests` WHERE `requests`.`id` = ? AND `requests`.`deleted_at` IS NULL LIMIT 1"), //nolint:lll
+				).
 					WithArgs("cd48e86e-8b1a-4870-b1ec-337d1f1df37d").
 					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
 			},
@@ -110,7 +112,8 @@ func TestGetByID(t *testing.T) {
 					reqDB: testDB,
 				}
 				mock.ExpectQuery(
-					"^SELECT \\* FROM `requests` WHERE `requests`.`id` = \\? AND `requests`.`deleted_at` IS NULL LIMIT 1$"). //nolint:lll
+					regexp.QuoteMeta("SELECT * FROM `requests` WHERE `requests`.`id` = ? AND `requests`.`deleted_at` IS NULL LIMIT 1"), //nolint:lll
+				).
 					WithArgs("db945c03-c8f5-4c5d-91ec-da826646d227").
 					WillReturnRows(
 						sqlmock.NewRows(

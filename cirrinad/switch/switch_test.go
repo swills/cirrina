@@ -31,7 +31,10 @@ func TestGetAll(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					switchDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE `switches`.`deleted_at` IS NULL$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE `switches`.`deleted_at` IS NULL"),
+				).
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{
@@ -147,7 +150,10 @@ func TestGetByName(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					switchDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE name = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE name = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{
@@ -193,7 +199,10 @@ func TestGetByName(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					switchDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE name = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE name = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
 					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
 			},
 			args:    args{name: "bridge0"},
@@ -206,7 +215,9 @@ func TestGetByName(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					switchDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE name = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE name = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{
@@ -293,7 +304,9 @@ func TestGetByID(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					switchDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE id = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{
@@ -340,7 +353,9 @@ func TestGetByID(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					switchDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE id = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
 					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
 			},
 			args:    args{switchID: "0cb98661-6470-432d-8fa4-5eca3668b494"},
@@ -353,7 +368,9 @@ func TestGetByID(t *testing.T) {
 				instance = &singleton{ // prevents parallel testing
 					switchDB: testDB,
 				}
-				mock.ExpectQuery("^SELECT \\* FROM `switches` WHERE id = \\? AND `switches`.`deleted_at` IS NULL LIMIT 1$").
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{
@@ -1566,6 +1583,143 @@ func TestCheckSwitchInUse(t *testing.T) {
 			err := CheckSwitchInUse(testCase.args.id)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("CheckSwitchInUse() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
+func Test_switchExists(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		switchName string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		want        bool
+		wantErr     bool
+	}{
+		{
+			name: "success1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE name = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							}).
+							AddRow(
+								"0cb98661-6470-432d-8fa4-5eca3668b494",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"bridge0",
+								"some if switch description",
+								"IF",
+								"em1",
+							),
+					)
+			},
+			args:    args{switchName: "bridge0"},
+			want:    true,
+			wantErr: false,
+		},
+		{
+			name: "error1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE name = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							},
+						),
+					)
+			},
+			args:    args{switchName: "bridge0"},
+			want:    false,
+			wantErr: false,
+		},
+		{
+			name: "error2",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE name = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+			},
+			args:    args{switchName: "bridge0"},
+			want:    false,
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testCase.mockClosure(testDB, mock)
+
+			got, err := switchExists(testCase.args.switchName)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("switchExists() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("switchExists() got = %v, want %v", got, testCase.want)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
 	}
