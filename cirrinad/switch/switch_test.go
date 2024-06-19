@@ -14,6 +14,7 @@ import (
 
 	"cirrina/cirrinad/cirrinadtest"
 	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vmnic"
 )
 
 func TestGetAll(t *testing.T) {
@@ -1517,6 +1518,54 @@ func TestBridgeNgAddMember(t *testing.T) {
 			err := BridgeNgAddMember(testCase.args.bridgeName, testCase.args.memberName)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("BridgeNgAddMember() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
+func TestCheckSwitchInUse(t *testing.T) {
+	type args struct {
+		id string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func() []*vmnic.VMNic
+		args        args
+		wantErr     bool
+	}{
+		{
+			name: "success1",
+			mockClosure: func() []*vmnic.VMNic {
+				return []*vmnic.VMNic{{
+					SwitchID: "14152233-f90c-49e2-b53e-89d1f8b5ac2b",
+				}}
+			},
+			args:    args{id: "56df0e88-9edd-4536-af80-6b53537f1708"},
+			wantErr: false,
+		},
+		{
+			name: "error1",
+			mockClosure: func() []*vmnic.VMNic {
+				return []*vmnic.VMNic{{
+					SwitchID: "56df0e88-9edd-4536-af80-6b53537f1708",
+				}}
+			},
+			args:    args{id: "56df0e88-9edd-4536-af80-6b53537f1708"},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			vmnicGetAllFunc = testCase.mockClosure
+
+			t.Cleanup(func() { vmnicGetAllFunc = vmnic.GetAll })
+
+			err := CheckSwitchInUse(testCase.args.id)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("CheckSwitchInUse() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}

@@ -25,6 +25,8 @@ type Switch struct {
 	Uplink      string
 }
 
+var vmnicGetAllFunc = vmnic.GetAll
+
 func switchTypeValid(switchInst *Switch) bool {
 	switch switchInst.Type {
 	case "IF":
@@ -227,7 +229,7 @@ func Delete(switchID string) error {
 }
 
 func CheckSwitchInUse(id string) error {
-	vmNics := vmnic.GetAll()
+	vmNics := vmnicGetAllFunc()
 	for _, vmNic := range vmNics {
 		if vmNic.SwitchID == id {
 			return errSwitchInUse
