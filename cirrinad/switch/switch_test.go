@@ -2670,6 +2670,222 @@ func TestSwitch_SetUplink(t *testing.T) {
 	}
 }
 
+func TestSwitch_UnsetUplink(t *testing.T) {
+	type fields struct {
+		Model       gorm.Model
+		ID          string
+		Name        string
+		Description string
+		Type        string
+		Uplink      string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockCmdFunc string
+		fields      fields
+		wantErr     bool
+	}{
+		{
+			name:        "SwitchIFSuccess",
+			mockCmdFunc: "Test_bridgeIfDeleteMemberSuccess1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some description also", "bridge0", "IF", "", sqlmock.AnyArg(), "be336aa3-4640-4534-9d11-7d8d580a37ff").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			fields: fields{
+				ID:          "be336aa3-4640-4534-9d11-7d8d580a37ff",
+				Name:        "bridge0",
+				Description: "some description also",
+				Type:        "IF",
+				Uplink:      "em0",
+			},
+			wantErr: false,
+		},
+		{
+			name:        "SwitchNGSuccess",
+			mockCmdFunc: "Test_bridgeNgDeleteMemberSuccess1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some description also", "bnet0", "NG", "", sqlmock.AnyArg(), "f3512b8f-504e-4f45-8a5d-d6f9799f1148").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			fields: fields{
+				ID:          "f3512b8f-504e-4f45-8a5d-d6f9799f1148",
+				Name:        "bnet0",
+				Description: "some description also",
+				Type:        "NG",
+				Uplink:      "em0",
+			},
+			wantErr: false,
+		},
+		{
+			name:        "SwitchIFDeleteMemberError",
+			mockCmdFunc: "Test_bridgeIfDeleteMemberError1",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+			},
+			fields: fields{
+				ID:          "be336aa3-4640-4534-9d11-7d8d580a37ff",
+				Name:        "bridge0",
+				Description: "some description also",
+				Type:        "IF",
+				Uplink:      "em0",
+			},
+			wantErr: true,
+		},
+		{
+			name:        "SwitchIFSaveError",
+			mockCmdFunc: "Test_bridgeIfDeleteMemberSuccess1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some description also", "bridge0", "IF", "", sqlmock.AnyArg(), "be336aa3-4640-4534-9d11-7d8d580a37ff").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
+			},
+			fields: fields{
+				ID:          "be336aa3-4640-4534-9d11-7d8d580a37ff",
+				Name:        "bridge0",
+				Description: "some description also",
+				Type:        "IF",
+				Uplink:      "em0",
+			},
+			wantErr: true,
+		},
+		{
+			name:        "SwitchNGRemoveUplinkError",
+			mockCmdFunc: "Test_bridgeNgRemoveUplinkError1",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+			},
+			fields: fields{
+				ID:          "f3512b8f-504e-4f45-8a5d-d6f9799f1148",
+				Name:        "bnet0",
+				Description: "some description also",
+				Type:        "NG",
+				Uplink:      "em0",
+			},
+			wantErr: true,
+		},
+		{
+			name:        "SwitchNGSaveError",
+			mockCmdFunc: "Test_bridgeNgDeleteMemberSuccess1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some description also", "bnet0", "NG", "", sqlmock.AnyArg(), "f3512b8f-504e-4f45-8a5d-d6f9799f1148").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
+			},
+			fields: fields{
+				ID:          "f3512b8f-504e-4f45-8a5d-d6f9799f1148",
+				Name:        "bnet0",
+				Description: "some description also",
+				Type:        "NG",
+				Uplink:      "em0",
+			},
+			wantErr: true,
+		},
+		{
+			name:        "InvalidSwitchType",
+			mockCmdFunc: "Test_bridgeIfDeleteMemberSuccess1",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+			},
+			fields: fields{
+				Type: "garbage",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testCase.mockClosure(testDB, mock)
+
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			testSwitch := &Switch{
+				Model:       testCase.fields.Model,
+				ID:          testCase.fields.ID,
+				Name:        testCase.fields.Name,
+				Description: testCase.fields.Description,
+				Type:        testCase.fields.Type,
+				Uplink:      testCase.fields.Uplink,
+			}
+
+			err := testSwitch.UnsetUplink()
+
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("UnsetUplink() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 func Test_bringUpNewSwitchSuccess1(_ *testing.T) {
