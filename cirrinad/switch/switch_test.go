@@ -1424,6 +1424,104 @@ func TestDestroyIfBridge(t *testing.T) {
 	}
 }
 
+func TestBridgeIfAddMember(t *testing.T) {
+	type args struct {
+		bridgeName string
+		memberName string
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		wantErr     bool
+	}{
+		{
+			name:        "success1",
+			mockCmdFunc: "TestBridgeIfAddMemberSuccess1",
+			args:        args{bridgeName: "bridge0", memberName: "tap0"},
+			wantErr:     false,
+		},
+		{
+			name:        "error1",
+			mockCmdFunc: "TestBridgeIfAddMemberError1",
+			args:        args{bridgeName: "bridge0", memberName: "tap0"},
+			wantErr:     true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			err := BridgeIfAddMember(testCase.args.bridgeName, testCase.args.memberName)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("BridgeIfAddMember() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
+func TestBridgeNgAddMember(t *testing.T) {
+	type args struct {
+		bridgeName string
+		memberName string
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		wantErr     bool
+	}{
+		{
+			name:        "success1",
+			mockCmdFunc: "TestBridgeNgAddMemberSuccess1",
+			args:        args{bridgeName: "bnet0", memberName: "tap0"},
+			wantErr:     false,
+		},
+		{
+			name:        "error1",
+			mockCmdFunc: "TestBridgeNgAddMemberError1",
+			args:        args{bridgeName: "bnet0", memberName: "tap0"},
+			wantErr:     true,
+		},
+		{
+			name:        "error2",
+			mockCmdFunc: "TestBridgeNgAddMemberError2",
+			args:        args{bridgeName: "bnet0", memberName: "tap0"},
+			wantErr:     true,
+		},
+		{
+			name:        "error3",
+			mockCmdFunc: "TestBridgeNgAddMemberError3",
+			args:        args{bridgeName: "bnet0", memberName: "tap0"},
+			wantErr:     true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			err := BridgeNgAddMember(testCase.args.bridgeName, testCase.args.memberName)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("BridgeNgAddMember() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 func Test_bringUpNewSwitchSuccess1(_ *testing.T) {
@@ -1855,6 +1953,89 @@ func TestDestroyIfBridgeSuccess1(_ *testing.T) {
 func TestDestroyIfBridgeError2(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
+	}
+
+	os.Exit(1)
+}
+
+func TestBridgeIfAddMemberSuccess1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(0)
+}
+
+func TestBridgeIfAddMemberError1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(1)
+}
+
+func TestBridgeNgAddMemberSuccess1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(0)
+}
+
+func TestBridgeNgAddMemberError1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(1)
+}
+
+func TestBridgeNgAddMemberError2(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 4 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "show" {
+		ngctlOutput := `  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Local hook      Peer name       Peer type    Peer ID         Peer hook      
+  ----------      ---------       ---------    -------         ---------      
+  link1           em0             ether        00000002        upper          
+  link0           em0             ether        00000002        lower          
+`
+
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+
+		os.Exit(0)
+	}
+
+	os.Exit(1)
+}
+
+func TestBridgeNgAddMemberError3(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 4 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "show" {
+		ngctlOutput := `  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Local hook      Peer name       Peer type    Peer ID         Peer hook      
+  ----------      ---------       ---------    -------         ---------      
+  link1           em0             ether        00000002        upper          
+  link0           em0             ether        00000002        lower          
+`
+
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+
+		os.Exit(0)
+	}
+
+	//nolint:lll
+	if len(cmdWithArgs) == 7 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "connect" && cmdWithArgs[5] == "lower" {
+		os.Exit(0)
 	}
 
 	os.Exit(1)
