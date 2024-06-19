@@ -2886,6 +2886,173 @@ func TestSwitch_UnsetUplink(t *testing.T) {
 	}
 }
 
+func TestGetNgDev(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		switchID string
+		name     string
+	}
+
+	tests := []struct {
+		name          string
+		mockClosure   func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockCmdFunc   string
+		args          args
+		wantNgNetDev  string
+		wantNetDevArg string
+		wantErr       bool
+	}{
+		{
+			name:        "success",
+			mockCmdFunc: "TestGetNgDevSuccess",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("14ffc92f-6c1d-4fcd-9c84-0cc1992453fe").
+					WillReturnRows(sqlmock.NewRows(
+						[]string{
+							"id",
+							"created_at",
+							"updated_at",
+							"deleted_at",
+							"name",
+							"description",
+							"type",
+							"uplink",
+						}).
+						AddRow(
+							"14ffc92f-6c1d-4fcd-9c84-0cc1992453fe",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bnet0",
+							"some ng switch description",
+							"NG",
+							"em0",
+						))
+			},
+			args: args{
+				switchID: "14ffc92f-6c1d-4fcd-9c84-0cc1992453fe",
+				name:     "test2024041902",
+			},
+			wantNgNetDev:  "bnet0,link2",
+			wantNetDevArg: "netgraph,path=bnet0:,peerhook=link2,socket=test2024041902",
+			wantErr:       false,
+		},
+		{
+			name:        "SwitchLookupFailure",
+			mockCmdFunc: "TestGetNgDevSuccess",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("14ffc92f-6c1d-4fcd-9c84-0cc1992453fe").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+			},
+			args: args{
+				switchID: "14ffc92f-6c1d-4fcd-9c84-0cc1992453fe",
+				name:     "test2024041902",
+			},
+			wantNgNetDev:  "",
+			wantNetDevArg: "",
+			wantErr:       true,
+		},
+		{
+			name:        "GetNgBridgeMembersError",
+			mockCmdFunc: "TestGetNgDevGetBridgeMembersError",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("14ffc92f-6c1d-4fcd-9c84-0cc1992453fe").
+					WillReturnRows(sqlmock.NewRows(
+						[]string{
+							"id",
+							"created_at",
+							"updated_at",
+							"deleted_at",
+							"name",
+							"description",
+							"type",
+							"uplink",
+						}).
+						AddRow(
+							"14ffc92f-6c1d-4fcd-9c84-0cc1992453fe",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bnet0",
+							"some ng switch description",
+							"NG",
+							"em0",
+						))
+			},
+			args: args{
+				switchID: "14ffc92f-6c1d-4fcd-9c84-0cc1992453fe",
+				name:     "test2024041902",
+			},
+			wantNgNetDev:  "",
+			wantNetDevArg: "",
+			wantErr:       true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testCase.mockClosure(testDB, mock)
+
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			gotNgNetDev, gotNetDevArg, err := GetNgDev(testCase.args.switchID, testCase.args.name)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetNgDev() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if gotNgNetDev != testCase.wantNgNetDev {
+				t.Errorf("GetNgDev() got = %v, want %v", gotNgNetDev, testCase.wantNgNetDev)
+			}
+
+			if gotNetDevArg != testCase.wantNetDevArg {
+				t.Errorf("GetNgDev() got1 = %v, want %v", gotNetDevArg, testCase.wantNetDevArg)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 func Test_bringUpNewSwitchSuccess1(_ *testing.T) {
@@ -3815,4 +3982,28 @@ func StubGetHostIntGroupSuccess1(intName string) ([]string, error) {
 	default:
 		return nil, nil
 	}
+}
+
+func TestGetNgDevSuccess(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	ngctlOutput := `  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Local hook      Peer name       Peer type    Peer ID         Peer hook      
+  ----------      ---------       ---------    -------         ---------      
+  link1           em0             ether        00000002        upper          
+  link0           em0             ether        00000002        lower          
+`
+
+	fmt.Print(ngctlOutput) //nolint:forbidigo
+	os.Exit(0)
+}
+
+func TestGetNgDevGetBridgeMembersError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(1)
 }

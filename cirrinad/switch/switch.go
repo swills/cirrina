@@ -511,6 +511,8 @@ func GetNgDev(switchID string, name string) (string, string, error) {
 	thisSwitch, err := GetByID(switchID)
 	if err != nil {
 		slog.Error("switch lookup error", "switchid", switchID)
+
+		return "", "", err
 	}
 
 	bridgePeers, err := getNgBridgeMembers(thisSwitch.Name)
