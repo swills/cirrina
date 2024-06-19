@@ -14,7 +14,7 @@ var (
 	errSwitchInvalidType         = errors.New("unknown switch type")
 	errSwitchUplinkInUse         = errors.New("uplink already used")
 	errSwitchUplinkWrongType     = errors.New("uplink switch has wrong type")
-	errSwitchInternalDB          = errors.New("internal nic database error")
+	errSwitchInternalDB          = errors.New("internal switch database error")
 	errSwitchInvalidBridgeNameIF = errors.New("invalid bridge name, bridge name must start with \"bridge\"")
 	errSwitchInvalidBridgeDupe   = errors.New("duplicate bridge")
 	errSwitchInvalidBridgeNameNG = errors.New("invalid bridge name, bridge name must start with \"bnet\"")

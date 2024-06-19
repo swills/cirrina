@@ -251,7 +251,7 @@ func TestGetByName(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
 
 			got, err := GetByName(testCase.args.name)
@@ -393,7 +393,7 @@ func TestGetByID(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
 
 			got, err := GetByID(testCase.args.switchID)
@@ -758,7 +758,7 @@ func TestParseSwitchID(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
 
 			got, err := ParseSwitchID(testCase.args.switchID, testCase.args.netDevType)
@@ -1693,7 +1693,7 @@ func Test_switchExists(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
 
 			got, err := switchExists(testCase.args.switchName)
@@ -1705,6 +1705,110 @@ func Test_switchExists(t *testing.T) {
 
 			if got != testCase.want {
 				t.Errorf("switchExists() got = %v, want %v", got, testCase.want)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+func TestSwitch_Save(t *testing.T) {
+	type switchFields struct {
+		Model       gorm.Model
+		ID          string
+		Name        string
+		Description string
+		Type        string
+		Uplink      string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		testSwitch  switchFields
+		wantErr     bool
+	}{
+		{
+			name: "success1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a simple test bridge", "bridge0", "IF", "em0", sqlmock.AnyArg(), sqlmock.AnyArg()).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			testSwitch: switchFields{
+				ID:          "f219ec59-cda7-4c7c-a57b-84ca3f063c39",
+				Name:        "bridge0",
+				Description: "a simple test bridge",
+				Type:        "IF",
+				Uplink:      "em0",
+			},
+			wantErr: false,
+		},
+		{
+			name: "error1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a simple test bridge", "bridge0", "IF", "em0", sqlmock.AnyArg(), sqlmock.AnyArg()).
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
+			},
+			testSwitch: switchFields{
+				ID:          "f219ec59-cda7-4c7c-a57b-84ca3f063c39",
+				Name:        "bridge0",
+				Description: "a simple test bridge",
+				Type:        "IF",
+				Uplink:      "em0",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testCase.mockClosure(testDB, mock)
+
+			testSwitch := &Switch{
+				ID:          testCase.testSwitch.ID,
+				Name:        testCase.testSwitch.Name,
+				Description: testCase.testSwitch.Description,
+				Type:        testCase.testSwitch.Type,
+				Uplink:      testCase.testSwitch.Uplink,
+			}
+
+			err := testSwitch.Save()
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("Save() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 
 			mock.ExpectClose()

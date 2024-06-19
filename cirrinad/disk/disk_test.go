@@ -891,7 +891,7 @@ func TestDisk_Save(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("diskTest")
 			testCase.mockClosure(testDB, mock)
 
-			aDisk := &Disk{
+			testDisk := &Disk{
 				ID:          testCase.testDisk.ID,
 				Name:        testCase.testDisk.Name,
 				Description: testCase.testDisk.Description,
@@ -901,7 +901,7 @@ func TestDisk_Save(t *testing.T) {
 				DiskDirect:  testCase.testDisk.DiskDirect,
 			}
 
-			if err := aDisk.Save(); (err != nil) != testCase.wantErr {
+			if err := testDisk.Save(); (err != nil) != testCase.wantErr {
 				t.Errorf("Save() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 
