@@ -1153,6 +1153,57 @@ func Test_memberUsedByNgBridge(t *testing.T) {
 	}
 }
 
+func Test_ngGetBridgeNextLink(t *testing.T) {
+	type args struct {
+		bridge string
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		want        string
+		wantErr     bool
+	}{
+		{
+			name:        "success1",
+			mockCmdFunc: "Test_ngGetBridgeNextLinkSuccess1",
+			args:        args{bridge: "bnet0"},
+			want:        "link2",
+			wantErr:     false,
+		},
+		{
+			name:        "error1",
+			mockCmdFunc: "Test_ngGetBridgeNextLinkError1",
+			args:        args{bridge: "bnet0"},
+			want:        "",
+			wantErr:     true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			got, err := ngGetBridgeNextLink(testCase.args.bridge)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("ngGetBridgeNextLink() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("ngGetBridgeNextLink() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 func Test_bringUpNewSwitchSuccess1(_ *testing.T) {
@@ -1422,4 +1473,28 @@ func Test_memberUsedByNgBridgeError2(_ *testing.T) {
 	}
 
 	os.Exit(0)
+}
+
+func Test_ngGetBridgeNextLinkSuccess1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	ngctlOutput := `  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Local hook      Peer name       Peer type    Peer ID         Peer hook      
+  ----------      ---------       ---------    -------         ---------      
+  link1           em0             ether        00000002        upper          
+  link0           em0             ether        00000002        lower          
+`
+
+	fmt.Print(ngctlOutput) //nolint:forbidigo
+	os.Exit(0)
+}
+
+func Test_ngGetBridgeNextLinkError1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(1)
 }
