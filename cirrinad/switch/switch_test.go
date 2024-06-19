@@ -2469,6 +2469,203 @@ func Test_setUplinkNG(t *testing.T) {
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("setUplinkNG() error = %v, wantErr %v", err, testCase.wantErr)
 			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+func TestSwitch_SetUplink(t *testing.T) {
+	type fields struct {
+		Model       gorm.Model
+		ID          string
+		Name        string
+		Description string
+		Type        string
+		Uplink      string
+	}
+
+	type args struct {
+		uplink string
+	}
+
+	tests := []struct {
+		name                string
+		hostIntStubFunc     func() ([]net.Interface, error)
+		getIntGroupStubFunc func(string) ([]string, error)
+		mockClosure         func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockCmdFunc         string
+		fields              fields
+		args                args
+		wantErr             bool
+	}{
+		{
+			name:                "successIF",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			mockCmdFunc:         "Test_setUplinkIfSuccess1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("another test if bridge", "bridge0", "IF", "em0", sqlmock.AnyArg(), "1c336538-84ed-4303-8be0-e80f6367fb24"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			fields: fields{
+				ID:          "1c336538-84ed-4303-8be0-e80f6367fb24",
+				Name:        "bridge0",
+				Description: "another test if bridge",
+				Type:        "IF",
+				Uplink:      "",
+			},
+			args: args{
+				uplink: "em0",
+			},
+		},
+		{
+			name:                "successNG",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			mockCmdFunc:         "Test_setUplinkNgSuccess1",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("another test if bridge", "bnet0", "NG", "em0", sqlmock.AnyArg(), "1c336538-84ed-4303-8be0-e80f6367fb24").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			fields: fields{
+				ID:          "1c336538-84ed-4303-8be0-e80f6367fb24",
+				Name:        "bnet0",
+				Description: "another test if bridge",
+				Type:        "NG",
+				Uplink:      "",
+			},
+			args: args{
+				uplink: "em0",
+			},
+		},
+		{
+			name:                "UplinkNotFound",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			mockCmdFunc:         "Test_setUplinkIfSuccess1",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+			},
+			fields: fields{
+				ID:          "1c336538-84ed-4303-8be0-e80f6367fb24",
+				Name:        "bridge0",
+				Description: "another test if bridge",
+				Type:        "IF",
+				Uplink:      "",
+			},
+			args: args{
+				uplink: "em2",
+			},
+			wantErr: true,
+		},
+		{
+			name:                "InvalidSwitchType",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			mockCmdFunc:         "Test_setUplinkIfSuccess1",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+			},
+			fields: fields{
+				ID:          "1c336538-84ed-4303-8be0-e80f6367fb24",
+				Name:        "bridge0",
+				Description: "another test if bridge",
+				Type:        "garbage",
+				Uplink:      "",
+			},
+			args: args{
+				uplink: "em0",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
+			util.GetIntGroupsFunc = testCase.getIntGroupStubFunc
+
+			t.Cleanup(func() { util.GetIntGroupsFunc = util.GetIntGroups })
+
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testCase.mockClosure(testDB, mock)
+
+			testSwitch := &Switch{
+				Model:       testCase.fields.Model,
+				ID:          testCase.fields.ID,
+				Name:        testCase.fields.Name,
+				Description: testCase.fields.Description,
+				Type:        testCase.fields.Type,
+				Uplink:      testCase.fields.Uplink,
+			}
+
+			err := testSwitch.SetUplink(testCase.args.uplink)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("SetUplink() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
 		})
 	}
 }
@@ -3372,4 +3569,34 @@ func Test_setUplinkNGMemberAddError(_ *testing.T) {
 	}
 
 	os.Exit(0)
+}
+
+func StubHostInterfacesSuccess1() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+	}, nil
+}
+
+func StubGetHostIntGroupSuccess1(intName string) ([]string, error) {
+	switch intName {
+	case "em0":
+		return []string{}, nil
+	case "lo0":
+		return []string{"lo"}, nil
+	default:
+		return nil, nil
+	}
 }

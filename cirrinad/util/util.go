@@ -30,7 +30,7 @@ import (
 // allow testing
 var execute = exec.Command
 var getHostMaxVMCpusFunc = GetHostMaxVMCpus
-var getIntGroupsFunc = GetIntGroups
+var GetIntGroupsFunc = GetIntGroups
 var NetInterfacesFunc = net.Interfaces
 var osOpenFunc = os.Open
 
@@ -336,7 +336,7 @@ func GetHostInterfaces() []string {
 	netInterfaces, _ := NetInterfacesFunc()
 
 	for _, inter := range netInterfaces {
-		intGroups, err := getIntGroupsFunc(inter.Name)
+		intGroups, err := GetIntGroupsFunc(inter.Name)
 		if err != nil {
 			slog.Error("failed to get interface groups", "err", err)
 

@@ -2504,9 +2504,9 @@ func TestGetHostInterfaces(t *testing.T) {
 
 			t.Cleanup(func() { NetInterfacesFunc = net.Interfaces })
 
-			getIntGroupsFunc = testCase.getIntGroupStubFunc
+			GetIntGroupsFunc = testCase.getIntGroupStubFunc
 
-			t.Cleanup(func() { getIntGroupsFunc = GetIntGroups })
+			t.Cleanup(func() { GetIntGroupsFunc = GetIntGroups })
 
 			got := GetHostInterfaces()
 
