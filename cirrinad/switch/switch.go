@@ -72,12 +72,9 @@ func switchCheckUplink(switchInst *Switch) error {
 }
 
 func validateSwitch(switchInst *Switch) error {
+	// switchNameValid also checks type, no need to check here
 	if !switchNameValid(switchInst) {
 		return errSwitchInvalidName
-	}
-
-	if !switchTypeValid(switchInst) {
-		return errSwitchInvalidType
 	}
 
 	err := switchCheckUplink(switchInst)
@@ -85,6 +82,7 @@ func validateSwitch(switchInst *Switch) error {
 		return err
 	}
 
+	// default case unreachable
 	switch switchInst.Type {
 	case "IF":
 		return validateIfSwitch(switchInst)
