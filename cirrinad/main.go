@@ -316,7 +316,10 @@ var rootCmd = &cobra.Command{
 		slog.Debug("Clean up complete")
 
 		slog.Debug("Creating bridges")
-		_switch.CreateBridges()
+		err = _switch.CreateBridges()
+		if err != nil {
+			panic(err)
+		}
 		slog.Info("Starting Daemon")
 
 		go vm.AutoStartVMs()

@@ -249,7 +249,7 @@ func CheckInterfaceExists(interfaceName string) bool {
 	return false
 }
 
-func CreateBridges() {
+func CreateBridges() error {
 	allBridges := GetAll()
 
 	for num, bridge := range allBridges {
@@ -263,7 +263,7 @@ func CreateBridges() {
 			if err != nil {
 				slog.Error("error creating if bridge", "err", err)
 
-				return
+				return fmt.Errorf("error creating if bridge: %w", err)
 			}
 		case "NG":
 			slog.Debug("creating ng bridge", "name", bridge.Name)
@@ -275,12 +275,16 @@ func CreateBridges() {
 					"err", err,
 				)
 
-				return
+				return fmt.Errorf("error creating ng bridge: %w", err)
 			}
 		default:
 			slog.Debug("unknown bridge type", "name", bridge.Name, "type", bridge.Type)
+
+			return errSwitchInvalidType
 		}
 	}
+
+	return nil
 }
 
 func DestroyBridges() error {

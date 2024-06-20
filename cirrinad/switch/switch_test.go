@@ -3396,7 +3396,8 @@ func TestDestroyBridges(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			if err := DestroyBridges(); (err != nil) != testCase.wantErr {
+			err := DestroyBridges()
+			if (err != nil) != testCase.wantErr {
 				// prevents parallel testing
 				fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 				util.SetupTestCmd(fakeCommand)
@@ -3419,6 +3420,193 @@ func TestDestroyBridges(t *testing.T) {
 				if err = mock.ExpectationsWereMet(); err != nil {
 					t.Errorf("there were unfulfilled expectations: %s", err)
 				}
+			}
+		})
+	}
+}
+
+func TestCreateBridges(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockCmdFunc string
+		wantErr     bool
+	}{
+		{
+			name:        "Success",
+			mockCmdFunc: "TestCreateBridgesSuccess",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE `switches`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							}).
+							AddRow(
+								"0cb98661-6470-432d-8fa4-5eca3668b494",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"bridge0",
+								"some if switch description",
+								"IF",
+								"em0",
+							).
+							AddRow(
+								"76290cc3-7143-4c0b-980f-25f74b12673f",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"bnet0",
+								"some ng switch description",
+								"NG",
+								"em0",
+							),
+					)
+			},
+			wantErr: false,
+		},
+		{
+			name:        "BuildIfBridgeError",
+			mockCmdFunc: "TestCreateBridgesBuildIfBridgeError",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE `switches`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							}).
+							AddRow(
+								"0cb98661-6470-432d-8fa4-5eca3668b494",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"bridge0",
+								"some if switch description",
+								"IF",
+								"em0",
+							).
+							AddRow(
+								"76290cc3-7143-4c0b-980f-25f74b12673f",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"bnet0",
+								"some ng switch description",
+								"NG",
+								"em0",
+							),
+					)
+			},
+			wantErr: true,
+		},
+		{
+			name:        "BuildNgBridgeError",
+			mockCmdFunc: "TestCreateBridgesBuildNgBridgeError",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE `switches`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							}).
+							AddRow(
+								"0cb98661-6470-432d-8fa4-5eca3668b494",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"bridge0",
+								"some if switch description",
+								"IF",
+								"em0",
+							).
+							AddRow(
+								"76290cc3-7143-4c0b-980f-25f74b12673f",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"bnet0",
+								"some ng switch description",
+								"NG",
+								"em0",
+							),
+					)
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testCase.mockClosure(testDB, mock)
+
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			err := CreateBridges()
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("CreateBridges() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
 	}
@@ -4710,6 +4898,42 @@ func TestDestroyBridgesDestroyNgBridgeError(_ *testing.T) {
 
 	//nolint:lll
 	if len(cmdWithArgs) == 5 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "msg" && cmdWithArgs[4] == "shutdown" {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func TestCreateBridgesSuccess(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(0)
+}
+
+func TestCreateBridgesBuildIfBridgeError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if cmdWithArgs[1] == "/sbin/ifconfig" {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func TestCreateBridgesBuildNgBridgeError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if cmdWithArgs[1] == "/usr/sbin/ngctl" {
 		os.Exit(1)
 	}
 
