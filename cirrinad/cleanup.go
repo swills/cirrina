@@ -121,7 +121,10 @@ func cleanupNet() {
 	}
 
 	// destroy all the bridges we know about
-	_switch.DestroyBridges()
+	err := _switch.DestroyBridges()
+	if err != nil {
+		panic(err)
+	}
 
 	// look for network things in cirrinad group and destroy them
 	netInterfaces, err := net.Interfaces()

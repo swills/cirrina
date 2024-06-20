@@ -283,17 +283,21 @@ func CreateBridges() {
 	}
 }
 
-func DestroyBridges() {
+func DestroyBridges() error {
 	allBridges := GetAll()
 
 	exitingIfBridges, err := GetAllIfBridges()
 	if err != nil {
 		slog.Error("error getting all if bridges")
+
+		return fmt.Errorf("error getting all if bridges: %w", err)
 	}
 
 	exitingNgBridges, err := GetAllNgBridges()
 	if err != nil {
 		slog.Error("error getting all ng bridges")
+
+		return fmt.Errorf("error getting all ng bridges: %w", err)
 	}
 
 	for _, bridge := range allBridges {
@@ -305,6 +309,8 @@ func DestroyBridges() {
 				err = DestroyIfBridge(bridge.Name, true)
 				if err != nil {
 					slog.Error("error destroying if bridge", "err", err)
+
+					return fmt.Errorf("error destroying if bridge: %w", err)
 				}
 			}
 		case "NG":
@@ -313,13 +319,19 @@ func DestroyBridges() {
 
 				err = DestroyNgBridge(bridge.Name)
 				if err != nil {
-					slog.Error("error destroying if bridge", "err", err)
+					slog.Error("error destroying ng bridge", "err", err)
+
+					return fmt.Errorf("error destroying ng bridge: %w", err)
 				}
 			}
 		default:
 			slog.Debug("unknown bridge type", "name", bridge.Name, "type", bridge.Type)
+
+			return errSwitchInvalidType
 		}
 	}
+
+	return nil
 }
 
 func BridgeIfAddMember(bridgeName string, memberName string) error {

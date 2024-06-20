@@ -184,7 +184,12 @@ func shutdownHandler() {
 		slog.Info("waiting on running VM(s)", "count", runningVMs)
 		time.Sleep(time.Second)
 	}
-	_switch.DestroyBridges()
+
+	err := _switch.DestroyBridges()
+	if err != nil {
+		slog.Error("failure destroying bridges, some may be left over", "err", err)
+	}
+
 	destroyPidFile()
 	slog.Info("Exiting normally")
 	shutdownWaitGroup.Done()
