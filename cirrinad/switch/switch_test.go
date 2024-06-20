@@ -945,6 +945,7 @@ func Test_bringUpNewSwitch(t *testing.T) {
 				Type:        "IF",
 				Uplink:      "em0",
 			}},
+			wantErr: true,
 		},
 		{
 			name:            "errBuildNG",
@@ -3612,6 +3613,362 @@ func TestCreateBridges(t *testing.T) {
 	}
 }
 
+//nolint:maintidx
+func TestCreate(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		switchInst *Switch
+	}
+
+	tests := []struct {
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockClosure     func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockCmdFunc     string
+		args            args
+		wantErr         bool
+	}{
+		{
+			name:            "Success",
+			mockCmdFunc:     "TestCreateSuccess",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE name = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							},
+						),
+					)
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta("INSERT INTO `switches` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`uplink`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`"), //nolint:lll
+				).
+					WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "a bridge", "IF", "em0", sqlmock.AnyArg(), "bridge0").
+					WillReturnRows(sqlmock.NewRows([]string{"id", "id", "name"}).
+						AddRow("1eebf646-ff9d-4760-bd68-dd0125233cbf", "1eebf646-ff9d-4760-bd68-dd0125233cbf", "bridge0"))
+				mock.ExpectCommit()
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "f93672b3-a290-4c84-87bd-37eafc07e700",
+					Name:        "bridge0",
+					Description: "a bridge",
+					Type:        "IF",
+					Uplink:      "em0",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:            "BringUpNewSwitchError",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockCmdFunc:     "TestCreateBringUpNewSwitchError",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE name = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							},
+						),
+					)
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta("INSERT INTO `switches` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`uplink`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`"), //nolint:lll
+				).
+					WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "a bridge", "IF", "em0", sqlmock.AnyArg(), "bridge0").
+					WillReturnRows(sqlmock.NewRows([]string{"id", "id", "name"}).
+						AddRow("1eebf646-ff9d-4760-bd68-dd0125233cbf", "1eebf646-ff9d-4760-bd68-dd0125233cbf", "bridge0"))
+				mock.ExpectRollback()
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "f93672b3-a290-4c84-87bd-37eafc07e700",
+					Name:        "bridge0",
+					Description: "a bridge",
+					Type:        "IF",
+					Uplink:      "em0",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:            "ErrorDB",
+			mockCmdFunc:     "TestCreateSuccess",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE name = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							},
+						),
+					)
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta("INSERT INTO `switches` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`uplink`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`"), //nolint:lll
+				).
+					WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "a bridge", "IF", "em0", sqlmock.AnyArg(), "bridge0").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "f93672b3-a290-4c84-87bd-37eafc07e700",
+					Name:        "bridge0",
+					Description: "a bridge",
+					Type:        "IF",
+					Uplink:      "em0",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:            "ErrorNoRows",
+			mockCmdFunc:     "TestCreateSuccess",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE name = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							},
+						),
+					)
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta("INSERT INTO `switches` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`uplink`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`"), //nolint:lll
+				).
+					WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "a bridge", "IF", "em0", sqlmock.AnyArg(), "bridge0").
+					WillReturnRows(sqlmock.NewRows([]string{"id", "id", "name"}))
+				mock.ExpectCommit()
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "f93672b3-a290-4c84-87bd-37eafc07e700",
+					Name:        "bridge0",
+					Description: "a bridge",
+					Type:        "IF",
+					Uplink:      "em0",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:            "ValidateSwitchError",
+			mockCmdFunc:     "Test_validateSwitchIfInvalidUplink",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE name = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							},
+						),
+					)
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "f93672b3-a290-4c84-87bd-37eafc07e700",
+					Name:        "bridge1",
+					Description: "a bridge",
+					Type:        "IF",
+					Uplink:      "em0",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:            "SwitchAlreadyExists",
+			mockCmdFunc:     "TestCreateSwitchAlreadyExists",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE name = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							},
+						).AddRow(
+							"0cb98661-6470-432d-8fa4-5eca3668b494",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge0",
+							"some if switch description",
+							"IF",
+							"em0",
+						),
+					)
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "f93672b3-a290-4c84-87bd-37eafc07e700",
+					Name:        "bridge0",
+					Description: "a bridge",
+					Type:        "IF",
+					Uplink:      "em0",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:            "SwitchExistsError",
+			mockCmdFunc:     "TestCreateSuccess",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				instance = &singleton{ // prevents parallel testing
+					switchDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE name = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+			},
+			args: args{
+				switchInst: &Switch{
+					ID:          "f93672b3-a290-4c84-87bd-37eafc07e700",
+					Name:        "bridge0",
+					Description: "a bridge",
+					Type:        "IF",
+					Uplink:      "em0",
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
+			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testCase.mockClosure(testDB, mock)
+
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			err := Create(testCase.args.switchInst)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("Create() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			if err = db.Close(); err != nil {
+				t.Error(err)
+			}
+
+			if err = mock.ExpectationsWereMet(); err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 func Test_bringUpNewSwitchSuccess1(_ *testing.T) {
@@ -4934,6 +5291,41 @@ func TestCreateBridgesBuildNgBridgeError(_ *testing.T) {
 	cmdWithArgs := os.Args[3:]
 
 	if cmdWithArgs[1] == "/usr/sbin/ngctl" {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func TestCreateSuccess(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		fmt.Print("\n") //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func TestCreateBringUpNewSwitchError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		fmt.Print("\n") //nolint:forbidigo
+		os.Exit(0)
+	}
+
+	if cmdWithArgs[1] == "/sbin/ifconfig" && cmdWithArgs[3] == "create" {
 		os.Exit(1)
 	}
 

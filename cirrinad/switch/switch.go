@@ -117,17 +117,13 @@ func Create(switchInst *Switch) error {
 	db := getSwitchDB()
 
 	res := db.Create(&switchInst)
-	if res.RowsAffected != 1 {
-		return fmt.Errorf("incorrect number of rows affected, err: %w", res.Error)
-	}
 
 	if res.Error != nil {
 		return res.Error
 	}
 
-	err = bringUpNewSwitch(switchInst)
-	if err != nil {
-		return err
+	if res.RowsAffected != 1 {
+		return fmt.Errorf("incorrect number of rows affected, err: %w", res.Error)
 	}
 
 	return nil
@@ -839,7 +835,7 @@ func bringUpNewSwitch(switchInst *Switch) error {
 		if err != nil {
 			slog.Error("error creating if bridge", "err", err)
 			// already created in db, so ignore system state and proceed on...
-			return nil
+			return err
 		}
 	case "NG":
 		slog.Debug("creating ng bridge", "name", switchInst.Name)

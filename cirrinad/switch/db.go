@@ -72,6 +72,10 @@ func (d *Switch) BeforeCreate(_ *gorm.DB) error {
 	return nil
 }
 
+func (d *Switch) AfterCreate(_ *gorm.DB) error {
+	return bringUpNewSwitch(d)
+}
+
 func DBAutoMigrate() {
 	db := getSwitchDB()
 
