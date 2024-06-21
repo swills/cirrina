@@ -54,7 +54,8 @@ func Test_nicTypeValid(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := nicTypeValid(testCase.args.nicType); got != testCase.want {
+			got := nicTypeValid(testCase.args.nicType)
+			if got != testCase.want {
 				t.Errorf("nicTypeValid() = %v, want %v", got, testCase.want)
 			}
 		})
@@ -105,7 +106,8 @@ func Test_nicDevTypeValid(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := nicDevTypeValid(testCase.args.nicDevType); got != testCase.want {
+			got := nicDevTypeValid(testCase.args.nicDevType)
+			if got != testCase.want {
 				t.Errorf("nicDevTypeValid() = %v, want %v", got, testCase.want)
 			}
 		})
@@ -286,11 +288,13 @@ func TestGetByName(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 
@@ -448,11 +452,13 @@ func TestGetAll(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -634,11 +640,13 @@ func TestGetByID(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 
@@ -1026,11 +1034,13 @@ func TestVMNic_Delete(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -1190,11 +1200,13 @@ func TestVMNic_Save(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -1342,11 +1354,13 @@ func TestGetNics(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -1508,11 +1522,13 @@ func TestVMNic_SetSwitch(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -1666,11 +1682,13 @@ func Test_nicExists(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -2464,11 +2482,13 @@ func TestCreate(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})

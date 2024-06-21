@@ -167,11 +167,13 @@ func TestGetByID(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 
@@ -427,11 +429,13 @@ func TestCreateVMReq(t *testing.T) { //nolint:maintidx
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -487,7 +491,8 @@ func Test_validVMReqType(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := validVMReqType(testCase.args.aReqType); got != testCase.want {
+			got := validVMReqType(testCase.args.aReqType)
+			if got != testCase.want {
 				t.Errorf("validVMReqType() = %v, want %v", got, testCase.want)
 			}
 		})
@@ -626,11 +631,13 @@ func TestCreateNicCloneReq(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -690,11 +697,13 @@ func TestGetUnStarted(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -778,11 +787,13 @@ func TestRequest_Start(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -867,11 +878,13 @@ func TestRequest_Succeeded(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -956,11 +969,13 @@ func TestRequest_Failed(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -1273,11 +1288,13 @@ func TestPendingReqExists(t *testing.T) { //nolint:maintidx
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 
@@ -1343,11 +1360,13 @@ func TestFailAllPending(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 
@@ -1409,11 +1428,13 @@ func TestDBInitialized(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 

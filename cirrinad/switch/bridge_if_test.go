@@ -3,8 +3,9 @@ package vmswitch
 import (
 	"fmt"
 	"os"
-	"reflect"
 	"testing"
+
+	"github.com/go-test/deep"
 
 	"cirrina/cirrinad/cirrinadtest"
 	"cirrina/cirrinad/util"
@@ -47,8 +48,9 @@ func TestGetAllIfBridges(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("GetAllIfBridges() got = %v, want %v", got, testCase.want)
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}
@@ -99,8 +101,9 @@ func Test_getIfBridgeMembers(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("getIfBridgeMembers() got = %v, want %v", got, testCase.want)
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}

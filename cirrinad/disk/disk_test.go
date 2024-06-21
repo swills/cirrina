@@ -3,7 +3,6 @@ package disk
 import (
 	"database/sql"
 	"errors"
-	"reflect"
 	"regexp"
 	"testing"
 	"time"
@@ -141,11 +140,13 @@ func TestGetAllDB(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -191,7 +192,8 @@ func Test_diskTypeValid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := diskTypeValid(tt.args.diskType); got != tt.want {
+			got := diskTypeValid(tt.args.diskType)
+			if got != tt.want {
 				t.Errorf("diskTypeValid() = %v, wantFetch %v", got, tt.want)
 			}
 		})
@@ -227,7 +229,8 @@ func Test_diskDevTypeValid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := diskDevTypeValid(tt.args.diskDevType); got != tt.want {
+			got := diskDevTypeValid(tt.args.diskDevType)
+			if got != tt.want {
 				t.Errorf("diskDevTypeValid() = %v, wantFetch %v", got, tt.want)
 			}
 		})
@@ -338,7 +341,8 @@ func Test_validateDisk(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := validateDisk(tt.args.diskInst); (err != nil) != tt.wantErr {
+			err := validateDisk(tt.args.diskInst)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("validateDisk() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -448,11 +452,13 @@ func TestGetByID(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 
@@ -531,8 +537,9 @@ func TestGetByName(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("GetByName() got = %v, wantFetch %v", got, testCase.want)
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}
@@ -592,7 +599,8 @@ func TestDisk_GetPath(t *testing.T) {
 				DevType: testCase.fields.DevType,
 			}
 
-			if got := d.GetPath(); got != testCase.want {
+			got := d.GetPath()
+			if got != testCase.want {
 				t.Errorf("GetPath() = %v, wantFetch %v", got, testCase.want)
 			}
 		})
@@ -901,7 +909,8 @@ func TestDisk_Save(t *testing.T) {
 				DiskDirect:  testCase.testDisk.DiskDirect,
 			}
 
-			if err := testDisk.Save(); (err != nil) != testCase.wantErr {
+			err := testDisk.Save()
+			if (err != nil) != testCase.wantErr {
 				t.Errorf("Save() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 
@@ -912,11 +921,13 @@ func TestDisk_Save(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -1064,11 +1075,13 @@ func TestDelete(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -1257,11 +1270,13 @@ func Test_diskExists(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 
@@ -1617,11 +1632,13 @@ func TestCreate(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mockDB.ExpectationsWereMet(); err != nil {
+			err = mockDB.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})

@@ -29,7 +29,8 @@ func rpcServer() {
 	reflection.Register(s)
 	cirrina.RegisterVMInfoServer(s, &server{})
 
-	if err := s.Serve(lis); err != nil {
+	err = s.Serve(lis)
+	if err != nil {
 		slog.Error("failed to serve rpc", "err", err)
 	}
 }

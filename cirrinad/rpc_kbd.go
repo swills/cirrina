@@ -83,7 +83,8 @@ func GetKbdDescription(path string) (string, error) {
 		}
 	}
 
-	if err := scanner.Err(); err != nil {
+	err = scanner.Err()
+	if err != nil {
 		slog.Error("error scanning keyboard description dir", "err", err)
 
 		return "", fmt.Errorf("error parsing keyboard description: %w", err)

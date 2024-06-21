@@ -81,7 +81,8 @@ nameLoop:
 		_, err = os.Stat(tmpFileName)
 		switch {
 		case err == nil:
-			if try++; try < 10000 {
+			try++
+			if try < 10000 {
 				continue
 			}
 			// couldn't find a file name that doesn't exist?

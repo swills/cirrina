@@ -519,11 +519,13 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})

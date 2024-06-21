@@ -181,7 +181,8 @@ func (s *server) SetSwitchUplink(_ context.Context,
 		if switchInst.Uplink != "" {
 			slog.Debug("SetSwitchUplink", "msg", "unsetting switch uplink", "switchInst", switchInst)
 
-			if err = switchInst.UnsetUplink(); err != nil {
+			err = switchInst.UnsetUplink()
+			if err != nil {
 				return &res, fmt.Errorf("error unsetting swtich uplink: %w", err)
 			}
 		}
@@ -206,17 +207,20 @@ func (s *server) SetSwitchUplink(_ context.Context,
 		_ = switchInst.UnsetUplink()
 		slog.Debug("SetSwitchUplink", "msg", "setting switch uplink", "switchInst", switchInst)
 
-		if err = switchInst.SetUplink(uplink); err != nil {
+		err = switchInst.SetUplink(uplink)
+		if err != nil {
 			return &res, fmt.Errorf("error setting switch uplink: %w", err)
 		}
 	} else {
 		slog.Debug("SetSwitchUplink", "msg", "re-setting switch uplink", "switchInst", switchInst)
 
-		if err = switchInst.UnsetUplink(); err != nil {
+		err = switchInst.UnsetUplink()
+		if err != nil {
 			return &res, fmt.Errorf("error unsetting switch uplink: %w", err)
 		}
 
-		if err = switchInst.SetUplink(uplink); err != nil {
+		err = switchInst.SetUplink(uplink)
+		if err != nil {
 			return &res, fmt.Errorf("error setting switch uplink: %w", err)
 		}
 	}

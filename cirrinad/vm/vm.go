@@ -373,7 +373,8 @@ func (vm *VM) Start() error { //nolint:funlen
 	vm.proc = vmProc
 	go vmDaemon(events, vm)
 
-	if err := vmProc.Start(); err != nil {
+	err = vmProc.Start()
+	if err != nil {
 		panic(fmt.Sprintf("failed to start process: %s", err))
 	}
 
@@ -496,7 +497,8 @@ func validateVM(vmInst *VM) error {
 }
 
 func vmExists(vmName string) (bool, error) {
-	if _, err := GetByName(vmName); err == nil {
+	_, err := GetByName(vmName)
+	if err == nil {
 		return true, errVMDupe
 	}
 

@@ -119,11 +119,13 @@ func TestGetAll(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -268,11 +270,13 @@ func TestGetByName(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 
@@ -410,11 +414,13 @@ func TestGetByID(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 
@@ -505,7 +511,8 @@ func Test_switchNameValid(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := switchNameValid(testCase.args.switchInst); got != testCase.want {
+			got := switchNameValid(testCase.args.switchInst)
+			if got != testCase.want {
 				t.Errorf("switchNameValid() = %v, want %v", got, testCase.want)
 			}
 		})
@@ -775,11 +782,13 @@ func TestParseSwitchID(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 
@@ -1382,7 +1391,8 @@ func TestDestroyNgBridge(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			if err := DestroyNgBridge(testCase.args.netDev); (err != nil) != testCase.wantErr {
+			err := DestroyNgBridge(testCase.args.netDev)
+			if (err != nil) != testCase.wantErr {
 				t.Errorf("DestroyNgBridge() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
@@ -1436,7 +1446,8 @@ func TestDestroyIfBridge(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			if err := DestroyIfBridge(testCase.args.name, testCase.args.cleanup); (err != nil) != testCase.wantErr {
+			err := DestroyIfBridge(testCase.args.name, testCase.args.cleanup)
+			if (err != nil) != testCase.wantErr {
 				t.Errorf("DestroyIfBridge() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
@@ -1715,11 +1726,13 @@ func Test_switchExists(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -1819,11 +1832,13 @@ func TestSwitch_Save(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -2041,11 +2056,13 @@ func TestDelete(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -2311,11 +2328,13 @@ func Test_setUplinkIf(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -2478,11 +2497,13 @@ func Test_setUplinkNG(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -2660,11 +2681,13 @@ func TestSwitch_SetUplink(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -2876,11 +2899,13 @@ func TestSwitch_UnsetUplink(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -3043,11 +3068,13 @@ func TestGetNgDev(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -3414,11 +3441,13 @@ func TestDestroyBridges(t *testing.T) {
 					t.Error(err)
 				}
 
-				if err = db.Close(); err != nil {
+				err = db.Close()
+				if err != nil {
 					t.Error(err)
 				}
 
-				if err = mock.ExpectationsWereMet(); err != nil {
+				err = mock.ExpectationsWereMet()
+				if err != nil {
 					t.Errorf("there were unfulfilled expectations: %s", err)
 				}
 			}
@@ -3602,11 +3631,13 @@ func TestCreateBridges(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -3958,11 +3989,13 @@ func TestCreate(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -4232,6 +4265,36 @@ func TestCheckInterfaceExists(t *testing.T) {
 }
 
 // test helpers from here down
+
+func StubHostInterfacesSuccess1() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+	}, nil
+}
+
+func StubGetHostIntGroupSuccess1(intName string) ([]string, error) {
+	switch intName {
+	case "em0":
+		return []string{}, nil
+	case "lo0":
+		return []string{"lo"}, nil
+	default:
+		return nil, nil
+	}
+}
 
 func StubBringUpNewSwitchHostInterfacesSuccess1() ([]net.Interface, error) {
 	return []net.Interface{
@@ -5105,36 +5168,6 @@ func Test_setUplinkNGMemberAddError(_ *testing.T) {
 	}
 
 	os.Exit(0)
-}
-
-func StubHostInterfacesSuccess1() ([]net.Interface, error) {
-	return []net.Interface{
-		{
-			Index:        1,
-			MTU:          1500,
-			Name:         "em0",
-			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
-			Flags:        0x33,
-		},
-		{
-			Index:        2,
-			MTU:          16384,
-			Name:         "lo0",
-			HardwareAddr: net.HardwareAddr(nil),
-			Flags:        0x35,
-		},
-	}, nil
-}
-
-func StubGetHostIntGroupSuccess1(intName string) ([]string, error) {
-	switch intName {
-	case "em0":
-		return []string{}, nil
-	case "lo0":
-		return []string{"lo"}, nil
-	default:
-		return nil, nil
-	}
 }
 
 func TestGetNgDevSuccess(_ *testing.T) {

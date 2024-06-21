@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"reflect"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -432,7 +431,8 @@ func TestZfsVolService_Create(t *testing.T) {
 
 			diskService := NewZfsVolInfoService(mock)
 
-			if err := diskService.Create(testCase.args.name, testCase.args.size); (err != nil) != testCase.wantErr {
+			err := diskService.Create(testCase.args.name, testCase.args.size)
+			if (err != nil) != testCase.wantErr {
 				t.Errorf("Create() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
@@ -485,8 +485,9 @@ func TestZfsVolService_GetAll(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("GetAll() got = %v, wantFetch %v", got, testCase.want)
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}

@@ -121,11 +121,13 @@ func TestGetAll(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -260,11 +262,13 @@ func TestGetByID(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 
@@ -304,7 +308,8 @@ func Test_validateIso(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			if err := validateIso(testCase.args.isoInst); (err != nil) != testCase.wantErr {
+			err := validateIso(testCase.args.isoInst)
+			if (err != nil) != testCase.wantErr {
 				t.Errorf("validateIso() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
@@ -440,11 +445,13 @@ func TestGetByName(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 
@@ -576,11 +583,13 @@ func Test_isoExistsDB(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 
@@ -695,7 +704,8 @@ func TestISO_GetPath(t *testing.T) {
 				Name: testCase.fields.Name,
 			}
 
-			if got := i.GetPath(); got != testCase.want {
+			got := i.GetPath()
+			if got != testCase.want {
 				t.Errorf("GetPath() = %v, want %v", got, testCase.want)
 			}
 		})
@@ -841,11 +851,13 @@ func TestDelete(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -955,7 +967,8 @@ func TestISO_Save(t *testing.T) {
 				Checksum:    testCase.fields.Checksum,
 			}
 
-			if err := iso.Save(); (err != nil) != testCase.wantErr {
+			err := iso.Save()
+			if (err != nil) != testCase.wantErr {
 				t.Errorf("Save() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 
@@ -966,11 +979,13 @@ func TestISO_Save(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
@@ -1400,7 +1415,8 @@ func TestCreate(t *testing.T) {
 				return false, nil
 			}
 
-			if err := Create(testCase.args.isoInst); (err != nil) != testCase.wantErr {
+			err := Create(testCase.args.isoInst)
+			if (err != nil) != testCase.wantErr {
 				t.Errorf("Create() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 
@@ -1411,11 +1427,13 @@ func TestCreate(t *testing.T) {
 				t.Error(err)
 			}
 
-			if err = db.Close(); err != nil {
+			err = db.Close()
+			if err != nil {
 				t.Error(err)
 			}
 
-			if err = mock.ExpectationsWereMet(); err != nil {
+			err = mock.ExpectationsWereMet()
+			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})

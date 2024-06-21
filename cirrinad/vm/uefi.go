@@ -50,7 +50,8 @@ func (vm *VM) DeleteUEFIState() error {
 	}
 
 	if uvFileExists {
-		if err := os.Remove(uefiVarsFile); err != nil {
+		err = os.Remove(uefiVarsFile)
+		if err != nil {
 			return fmt.Errorf("error removing UEFI state file: %w", err)
 		}
 	}

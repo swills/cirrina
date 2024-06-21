@@ -4,11 +4,11 @@ import (
 	"errors"
 	"os"
 	"os/user"
-	"reflect"
 	"syscall"
 	"testing"
 	"testing/fstest"
 
+	"github.com/go-test/deep"
 	"go.uber.org/mock/gomock"
 
 	"cirrina/cirrinad/cirrinadtest"
@@ -42,8 +42,11 @@ func TestNewFileInfoService(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := NewFileInfoService(testCase.args.impl); !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("NewFileInfoService() = %v, wantFetch %v", got, testCase.want)
+			got := NewFileInfoService(testCase.args.impl)
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}
@@ -231,7 +234,8 @@ func TestFileInfoService_SetSize(t *testing.T) {
 			mock.EXPECT().ApplyFileSize(testCase.args.name, testCase.args.newSize).
 				Return(mockError)
 
-			if err := fileInfoService.SetSize(testCase.args.name, testCase.args.newSize); (err != nil) != testCase.wantErr {
+			err := fileInfoService.SetSize(testCase.args.name, testCase.args.newSize)
+			if (err != nil) != testCase.wantErr {
 				t.Errorf("SetSize() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
@@ -348,7 +352,8 @@ func TestFileInfoService_Create(t *testing.T) {
 			mock.EXPECT().Add(testCase.args.name, testCase.args.size).
 				Return(mockError)
 
-			if err := fileInfoService.Create(testCase.args.name, testCase.args.size); (err != nil) != testCase.wantErr {
+			err := fileInfoService.Create(testCase.args.name, testCase.args.size)
+			if (err != nil) != testCase.wantErr {
 				t.Errorf("Create() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
@@ -406,8 +411,9 @@ func TestFileInfoService_GetAll(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("GetAll() got = %v, wantFetch %v", got, testCase.want)
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}
@@ -906,8 +912,9 @@ func TestFileInfoCmds_FetchAll(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("FetchAll() got = %v, wantFetch %v", got, testCase.want)
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}

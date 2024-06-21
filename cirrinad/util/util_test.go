@@ -230,7 +230,8 @@ func Test_multiplyWillOverflow(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := multiplyWillOverflow(testCase.args.xVal, testCase.args.yVal); got != testCase.want {
+			got := multiplyWillOverflow(testCase.args.xVal, testCase.args.yVal)
+			if got != testCase.want {
 				t.Errorf("multiplyWillOverflow() = %v, want %v", got, testCase.want)
 			}
 		})
@@ -555,7 +556,8 @@ func TestValidVMName(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := ValidVMName(testCase.args.name); got != testCase.want {
+			got := ValidVMName(testCase.args.name)
+			if got != testCase.want {
 				t.Errorf("ValidVMName() = %v, want %v", got, testCase.want)
 			}
 		})
@@ -617,7 +619,8 @@ func TestContainsInt(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := ContainsInt(testCase.args.elems, testCase.args.v); got != testCase.want {
+			got := ContainsInt(testCase.args.elems, testCase.args.v)
+			if got != testCase.want {
 				t.Errorf("ContainsInt() = %v, want %v", got, testCase.want)
 			}
 		})
@@ -664,7 +667,8 @@ func TestContainsStr(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := ContainsStr(testCase.args.elems, testCase.args.v); got != testCase.want {
+			got := ContainsStr(testCase.args.elems, testCase.args.v)
+			if got != testCase.want {
 				t.Errorf("ContainsStr() = %v, want %v", got, testCase.want)
 			}
 		})
@@ -855,7 +859,8 @@ func TestValidNicName(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := ValidNicName(testCase.args.name); got != testCase.want {
+			got := ValidNicName(testCase.args.name)
+			if got != testCase.want {
 				t.Errorf("ValidNicName() = %v, want %v", got, testCase.want)
 			}
 		})
@@ -1041,7 +1046,8 @@ func TestValidIsoName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ValidIsoName(tt.args.name); got != tt.want {
+			got := ValidIsoName(tt.args.name)
+			if got != tt.want {
 				t.Errorf("ValidIsoName() = %v, want %v", got, tt.want)
 			}
 		})
@@ -1247,7 +1253,8 @@ func TestValidDiskName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ValidDiskName(tt.args.name); got != tt.want {
+			got := ValidDiskName(tt.args.name)
+			if got != tt.want {
 				t.Errorf("ValidDiskName() = %v, want %v", got, tt.want)
 			}
 		})
@@ -2031,19 +2038,24 @@ func TestOSReadDir(t *testing.T) {
 		}
 	}(testOSReadDirPath1) // clean up
 
-	testOSReadDirPath2, err := os.MkdirTemp("/tmp/", "cirrinaTestOSReadDir2")
+	var testOSReadDirPath2 string
+
+	testOSReadDirPath2, err = os.MkdirTemp("/tmp/", "cirrinaTestOSReadDir2")
 	if err != nil {
 		t.Fail()
 	}
+
 	defer func(path string) {
-		err := os.RemoveAll(path)
+		err = os.RemoveAll(path)
 		if err != nil {
 			t.Fail()
 		}
 	}(testOSReadDirPath2) // clean up
 
 	file := filepath.Join(testOSReadDirPath2, "tmpfile")
-	if err := os.WriteFile(file, []byte("content"), 0666); err != nil {
+	err = os.WriteFile(file, []byte("content"), 0666)
+
+	if err != nil {
 		t.Fail()
 	}
 
@@ -2117,7 +2129,8 @@ func TestIsValidTCPPort(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := IsValidTCPPort(testCase.args.tcpPort); got != testCase.want {
+			got := IsValidTCPPort(testCase.args.tcpPort)
+			if got != testCase.want {
 				t.Errorf("IsValidTCPPort() = %v, want %v", got, testCase.want)
 			}
 		})
@@ -2173,64 +2186,12 @@ func TestIsValidIP(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			if got := IsValidIP(testCase.args.ipAddress); got != testCase.want {
+			got := IsValidIP(testCase.args.ipAddress)
+			if got != testCase.want {
 				t.Errorf("IsValidIP() = %v, want %v", got, testCase.want)
 			}
 		})
 	}
-}
-
-func TestGetHostMaxVMCpusError4(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
-	}
-
-	_, _ = fmt.Fprintf(os.Stdout, "65535")
-	os.Exit(0)
-}
-
-func TestGetHostMaxVMCpusError3(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
-	}
-
-	_, _ = fmt.Fprintf(os.Stdout, "-1")
-	os.Exit(0)
-}
-
-func TestGetHostMaxVMCpusError2(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
-	}
-
-	_, _ = fmt.Fprintf(os.Stdout, "thirtytwo")
-	os.Exit(0)
-}
-
-func TestGetHostMaxVMCpusError1(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
-	}
-
-	os.Exit(1)
-}
-
-func TestGetHostMaxVMCpusSuccess1(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
-	}
-
-	// cmdWithParams gets []string{"/usr/sbin/sysctl", "-n", "hw.vmm.maxcpu"}
-	cmdWithParams := strings.Split(os.Args[len(os.Args)-3], " ")
-
-	cmd := cmdWithParams[0]
-	if cmd != "/sbin/sysctl" {
-		os.Exit(1)
-	}
-
-	_, _ = fmt.Fprintf(os.Stdout, "32")
-
-	os.Exit(0)
 }
 
 func TestGetHostMaxVMCpus(t *testing.T) {
@@ -2338,7 +2299,8 @@ func TestNumCpusValid(t *testing.T) {
 
 			t.Cleanup(func() { getHostMaxVMCpusFunc = GetHostMaxVMCpus })
 
-			if got := NumCpusValid(testCase.args.numCpus); got != testCase.want {
+			got := NumCpusValid(testCase.args.numCpus)
+			if got != testCase.want {
 				t.Errorf("NumCpusValid() = %v, want %v", got, testCase.want)
 			}
 		})
@@ -2393,7 +2355,8 @@ func TestModeIsExecOther(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			if got := ModeIsExecOther(testCase.args.mode); got != testCase.want {
+			got := ModeIsExecOther(testCase.args.mode)
+			if got != testCase.want {
 				t.Errorf("ModeIsExecOther() = %v, want %v", got, testCase.want)
 			}
 		})
@@ -2425,7 +2388,8 @@ func TestModeIsSuid(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			if got := ModeIsSuid(testCase.args.mode); got != testCase.want {
+			got := ModeIsSuid(testCase.args.mode)
+			if got != testCase.want {
 				t.Errorf("ModeIsSuid() = %v, want %v", got, testCase.want)
 			}
 		})
@@ -2518,48 +2482,49 @@ func TestGetHostInterfaces(t *testing.T) {
 	}
 }
 
-func TestGetIntGroupsLoZero(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
+func TestGetFreeTCPPort(t *testing.T) {
+	type args struct {
+		firstVncPort int
+		usedVncPorts []int
 	}
 
-	lo0Stdout := `lo0: flags=1008049<UP,LOOPBACK,RUNNING,MULTICAST,LOWER_UP> metric 0 mtu 16384
-	options=680003<RXCSUM,TXCSUM,LINKSTATE,RXCSUM_IPV6,TXCSUM_IPV6>
-		inet 127.0.0.1 netmask 0xff000000
-inet6 ::1 prefixlen 128
-	inet6 fe80::1%lo0 prefixlen 64 scopeid 0x3
-groups: lo
-	nd6 options=21<PERFORMNUD,AUTO_LINKLOCAL>
-`
-	_, _ = fmt.Print(lo0Stdout) //nolint:forbidigo
-
-	os.Exit(0)
-}
-
-func TestGetIntGroupsIXZero(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		want        int
+		wantErr     bool
+	}{
+		{
+			name:        "success1",
+			mockCmdFunc: "TestGetFreeTCPPortSuccess1",
+			args:        args{firstVncPort: 7900, usedVncPorts: []int{7901, 7902}},
+			want:        7903,
+			wantErr:     false,
+		},
 	}
 
-	//nolint:lll
-	ix0Stdout := `ix0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
-        options=4e53fbb<RXCSUM,TXCSUM,VLAN_MTU,VLAN_HWTAGGING,JUMBO_MTU,VLAN_HWCSUM,TSO4,TSO6,LRO,WOL_UCAST,WOL_MCAST,WOL_MAGIC,VLAN_HWFILTER,VLAN_HWTSO,RXCSUM_IPV6,TXCSUM_IPV6,HWSTATS,MEXTPG>
-        ether a0:36:9f:87:6e:06
-        media: Ethernet autoselect (1000baseT <full-duplex,rxpause,txpause>)
-        status: active
-        nd6 options=29<PERFORMNUD,IFDISABLED,AUTO_LINKLOCAL>
-`
-	_, _ = fmt.Print(ix0Stdout) //nolint:forbidigo
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc) // prevents parallel testing
 
-	os.Exit(0)
-}
+			SetupTestCmd(fakeCommand)
 
-func TestGetIntGroupsError1(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
+			t.Cleanup(func() { TearDownTestCmd() })
+
+			got, err := GetFreeTCPPort(testCase.args.firstVncPort, testCase.args.usedVncPorts)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetFreeTCPPort() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("GetFreeTCPPort() got = %v, want %v", got, testCase.want)
+			}
+		})
 	}
-
-	os.Exit(1)
 }
 
 func TestGetIntGroups(t *testing.T) {
@@ -2621,6 +2586,105 @@ func TestGetIntGroups(t *testing.T) {
 	}
 }
 
+// test helpers from here down
+
+func TestGetHostMaxVMCpusError4(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	_, _ = fmt.Fprintf(os.Stdout, "65535")
+	os.Exit(0)
+}
+
+func TestGetHostMaxVMCpusError3(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	_, _ = fmt.Fprintf(os.Stdout, "-1")
+	os.Exit(0)
+}
+
+func TestGetHostMaxVMCpusError2(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	_, _ = fmt.Fprintf(os.Stdout, "thirtytwo")
+	os.Exit(0)
+}
+
+func TestGetHostMaxVMCpusError1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(1)
+}
+
+func TestGetHostMaxVMCpusSuccess1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	// cmdWithParams gets []string{"/usr/sbin/sysctl", "-n", "hw.vmm.maxcpu"}
+	cmdWithParams := strings.Split(os.Args[len(os.Args)-3], " ")
+
+	cmd := cmdWithParams[0]
+	if cmd != "/sbin/sysctl" {
+		os.Exit(1)
+	}
+
+	_, _ = fmt.Fprintf(os.Stdout, "32")
+
+	os.Exit(0)
+}
+
+func TestGetIntGroupsLoZero(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	lo0Stdout := `lo0: flags=1008049<UP,LOOPBACK,RUNNING,MULTICAST,LOWER_UP> metric 0 mtu 16384
+	options=680003<RXCSUM,TXCSUM,LINKSTATE,RXCSUM_IPV6,TXCSUM_IPV6>
+		inet 127.0.0.1 netmask 0xff000000
+inet6 ::1 prefixlen 128
+	inet6 fe80::1%lo0 prefixlen 64 scopeid 0x3
+groups: lo
+	nd6 options=21<PERFORMNUD,AUTO_LINKLOCAL>
+`
+	_, _ = fmt.Print(lo0Stdout) //nolint:forbidigo
+
+	os.Exit(0)
+}
+
+func TestGetIntGroupsIXZero(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	//nolint:lll
+	ix0Stdout := `ix0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=4e53fbb<RXCSUM,TXCSUM,VLAN_MTU,VLAN_HWTAGGING,JUMBO_MTU,VLAN_HWCSUM,TSO4,TSO6,LRO,WOL_UCAST,WOL_MCAST,WOL_MAGIC,VLAN_HWFILTER,VLAN_HWTSO,RXCSUM_IPV6,TXCSUM_IPV6,HWSTATS,MEXTPG>
+        ether a0:36:9f:87:6e:06
+        media: Ethernet autoselect (1000baseT <full-duplex,rxpause,txpause>)
+        status: active
+        nd6 options=29<PERFORMNUD,IFDISABLED,AUTO_LINKLOCAL>
+`
+	_, _ = fmt.Print(ix0Stdout) //nolint:forbidigo
+
+	os.Exit(0)
+}
+
+func TestGetIntGroupsError1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(1)
+}
+
 func TestGetFreeTCPPortSuccess1(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
@@ -2635,49 +2699,4 @@ func TestGetFreeTCPPortSuccess1(_ *testing.T) {
 
 	fmt.Print(string(goodOutput)) //nolint:forbidigo
 	os.Exit(0)
-}
-
-func TestGetFreeTCPPort(t *testing.T) {
-	type args struct {
-		firstVncPort int
-		usedVncPorts []int
-	}
-
-	tests := []struct {
-		name        string
-		mockCmdFunc string
-		args        args
-		want        int
-		wantErr     bool
-	}{
-		{
-			name:        "success1",
-			mockCmdFunc: "TestGetFreeTCPPortSuccess1",
-			args:        args{firstVncPort: 7900, usedVncPorts: []int{7901, 7902}},
-			want:        7903,
-			wantErr:     false,
-		},
-	}
-
-	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
-		t.Run(testCase.name, func(t *testing.T) {
-			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc) // prevents parallel testing
-
-			SetupTestCmd(fakeCommand)
-
-			t.Cleanup(func() { TearDownTestCmd() })
-
-			got, err := GetFreeTCPPort(testCase.args.firstVncPort, testCase.args.usedVncPorts)
-			if (err != nil) != testCase.wantErr {
-				t.Errorf("GetFreeTCPPort() error = %v, wantErr %v", err, testCase.wantErr)
-
-				return
-			}
-
-			if got != testCase.want {
-				t.Errorf("GetFreeTCPPort() got = %v, want %v", got, testCase.want)
-			}
-		})
-	}
 }

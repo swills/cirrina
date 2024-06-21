@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"reflect"
 	"testing"
+
+	"github.com/go-test/deep"
 
 	"cirrina/cirrinad/cirrinadtest"
 	"cirrina/cirrinad/util"
@@ -335,8 +336,9 @@ func Test_ngGetNodes(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("ngGetNodes() got = %v, want %v", got, testCase.want)
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}
@@ -385,8 +387,9 @@ func TestGetAllNgBridges(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("GetAllNgBridges() got = %v, want %v", got, testCase.want)
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}
@@ -474,8 +477,9 @@ func Test_getNgBridgeMembers(t *testing.T) {
 				return
 			}
 
-			if !reflect.DeepEqual(got, testCase.want) {
-				t.Errorf("getNgBridgeMembers() got = %v, want %v", got, testCase.want)
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}
@@ -708,7 +712,8 @@ func Test_bridgeNgDeletePeer(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			if err := bridgeNgDeletePeer(testCase.args.bridgeName, testCase.args.hook); (err != nil) != testCase.wantErr {
+			err := bridgeNgDeletePeer(testCase.args.bridgeName, testCase.args.hook)
+			if (err != nil) != testCase.wantErr {
 				t.Errorf("bridgeNgDeletePeer() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
@@ -762,7 +767,8 @@ func Test_bridgeNgDeleteAllPeers(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			if err := bridgeNgDeleteAllPeers(testCase.args.name); (err != nil) != testCase.wantErr {
+			err := bridgeNgDeleteAllPeers(testCase.args.name)
+			if (err != nil) != testCase.wantErr {
 				t.Errorf("bridgeNgDeleteAllPeers() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
@@ -906,6 +912,25 @@ func Test_bridgeNgRemoveUplink(t *testing.T) {
 }
 
 // test helpers from here down
+
+func StubCreateNgBridgeWithMembersError3() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "igb0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+	}, nil
+}
 
 //nolint:paralleltest
 func Test_ngGetNodesSuccess1(_ *testing.T) {
@@ -1542,25 +1567,6 @@ func Test_createNgBridgeWithMembersError2(_ *testing.T) {
 	}
 
 	os.Exit(0)
-}
-
-func StubCreateNgBridgeWithMembersError3() ([]net.Interface, error) {
-	return []net.Interface{
-		{
-			Index:        0,
-			MTU:          16384,
-			Name:         "lo0",
-			HardwareAddr: net.HardwareAddr(nil),
-			Flags:        0x35,
-		},
-		{
-			Index:        1,
-			MTU:          1500,
-			Name:         "igb0",
-			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
-			Flags:        0x33,
-		},
-	}, nil
 }
 
 //nolint:paralleltest

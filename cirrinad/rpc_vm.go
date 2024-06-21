@@ -514,7 +514,8 @@ func updateVMBasics(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 			return errInvalidName
 		}
 
-		if _, err := vm.GetByName(vmConfig.GetName()); err == nil {
+		_, err := vm.GetByName(vmConfig.GetName())
+		if err == nil {
 			return errVMDupe
 		}
 
