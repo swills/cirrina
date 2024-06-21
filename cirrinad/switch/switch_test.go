@@ -3969,7 +3969,288 @@ func TestCreate(t *testing.T) {
 	}
 }
 
+func Test_buildNgBridge(t *testing.T) {
+	type args struct {
+		switchInst *Switch
+	}
+
+	tests := []struct {
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockCmdFunc     string
+		args            args
+		wantErr         bool
+	}{
+		{
+			name:            "Success",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_buildNgBridgeSuccess",
+			args: args{switchInst: &Switch{
+				Name:        "bnet0",
+				Description: "a description",
+				Type:        "NG",
+				Uplink:      "em0",
+			}},
+			wantErr: false,
+		},
+		{
+			name:            "EmptyMember",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_buildNgBridgeSuccess",
+			args: args{switchInst: &Switch{
+				Name:        "bnet0",
+				Description: "a description",
+				Type:        "NG",
+				Uplink:      "em0,",
+			}},
+			wantErr: false,
+		},
+		{
+			name:            "MemberDoesNotExist",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_buildNgBridgeMemberDoesNotExist",
+			args: args{switchInst: &Switch{
+				Name:        "bnet2",
+				Description: "a description",
+				Type:        "NG",
+				Uplink:      "em2",
+			}},
+			wantErr: false,
+		},
+		{
+			name:            "MemberCheckError",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_buildNgBridgeMemberCheckError",
+			args: args{switchInst: &Switch{
+				Name:        "bnet0",
+				Description: "a description",
+				Type:        "NG",
+				Uplink:      "em0",
+			}},
+			wantErr: true,
+		},
+		{
+			name:            "MemberAlreadyUsed",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_buildNgBridgeMemberAlreadyUsed",
+			args: args{switchInst: &Switch{
+				Name:        "bnet2",
+				Description: "a description",
+				Type:        "NG",
+				Uplink:      "em0",
+			}},
+			wantErr: false,
+		},
+		{
+			name:            "CreateBridgeError",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_buildNgBridgeCreateBridgeError",
+			args: args{switchInst: &Switch{
+				Name:        "bnet2",
+				Description: "a description",
+				Type:        "NG",
+				Uplink:      "em0",
+			}},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
+			err := buildNgBridge(testCase.args.switchInst)
+			if (err != nil) != testCase.wantErr {
+				// prevents parallel testing
+				fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+				util.SetupTestCmd(fakeCommand)
+
+				t.Cleanup(func() { util.TearDownTestCmd() })
+
+				t.Errorf("buildNgBridge() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
+func Test_buildIfBridge(t *testing.T) {
+	type args struct {
+		switchInst *Switch
+	}
+
+	tests := []struct {
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockCmdFunc     string
+		args            args
+		wantErr         bool
+	}{
+		{
+			name:            "Success",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_buildIfBridgeSuccess",
+			args: args{switchInst: &Switch{
+				Name:        "bridge0",
+				Description: "an if bridge",
+				Type:        "IF",
+				Uplink:      "em0",
+			}},
+		},
+		{
+			name:            "EmptyMember",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_buildIfBridgeSuccess",
+			args: args{switchInst: &Switch{
+				Name:        "bridge0",
+				Description: "an if bridge",
+				Type:        "IF",
+				Uplink:      "em0,",
+			}},
+		},
+		{
+			name:            "MemberDoesNotExist",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_buildIfBridgeSuccess",
+			args: args{switchInst: &Switch{
+				Name:        "bridge0",
+				Description: "an if bridge",
+				Type:        "IF",
+				Uplink:      "em1",
+			}},
+		},
+		{
+			name:            "MemberCheckError",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_buildIfBridgeMemberCheckError",
+			args: args{switchInst: &Switch{
+				Name:        "bridge0",
+				Description: "an if bridge",
+				Type:        "IF",
+				Uplink:      "em0,",
+			}},
+			wantErr: true,
+		},
+		{
+			name:            "MemberAlreadyUsed",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_buildIfBridgeMemberAlreadyUsed",
+			args: args{switchInst: &Switch{
+				Name:        "bridge1",
+				Description: "an if bridge",
+				Type:        "IF",
+				Uplink:      "em0",
+			}},
+		},
+		{
+			name:            "MemberInUse",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			mockCmdFunc:     "Test_buildIfBridgeMemberCheckError",
+			args: args{switchInst: &Switch{
+				Name:        "bridge0",
+				Description: "an if bridge",
+				Type:        "IF",
+				Uplink:      "em0,",
+			}},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
+			err := buildIfBridge(testCase.args.switchInst)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("buildIfBridge() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
+func TestCheckInterfaceExists(t *testing.T) {
+	type args struct {
+		interfaceName string
+	}
+
+	tests := []struct {
+		name                string
+		args                args
+		hostIntStubFunc     func() ([]net.Interface, error)
+		getIntGroupStubFunc func(string) ([]string, error)
+		want                bool
+	}{
+		{
+			name:                "InterfaceDoesExist",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			args:                args{interfaceName: "em0"},
+			want:                true,
+		},
+		{
+			name:                "InterfaceDoesNotExist",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			args:                args{interfaceName: "em1"},
+			want:                false,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
+			util.GetIntGroupsFunc = testCase.getIntGroupStubFunc
+
+			t.Cleanup(func() { util.GetIntGroupsFunc = util.GetIntGroups })
+
+			got := CheckInterfaceExists(testCase.args.interfaceName)
+			if got != testCase.want {
+				t.Errorf("CheckInterfaceExists() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
 // test helpers from here down
+
+func StubBringUpNewSwitchHostInterfacesSuccess1() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+	}, nil
+}
 
 func Test_bringUpNewSwitchSuccess1(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
@@ -3990,25 +4271,6 @@ func Test_bringUpNewSwitchError1(_ *testing.T) {
 	}
 
 	os.Exit(0)
-}
-
-func StubBringUpNewSwitchHostInterfacesSuccess1() ([]net.Interface, error) {
-	return []net.Interface{
-		{
-			Index:        0,
-			MTU:          16384,
-			Name:         "lo0",
-			HardwareAddr: net.HardwareAddr(nil),
-			Flags:        0x35,
-		},
-		{
-			Index:        1,
-			MTU:          1500,
-			Name:         "em0",
-			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
-			Flags:        0x33,
-		},
-	}, nil
 }
 
 func Test_memberUsedByIfBridgeSuccess1(_ *testing.T) {
@@ -5141,7 +5403,6 @@ func TestDestroyBridgesGetAllNgBridgesError(_ *testing.T) {
 	os.Exit(0)
 }
 
-//nolint:cyclop
 func TestDestroyBridgesDestroyIfBridgeError(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
@@ -5152,21 +5413,6 @@ func TestDestroyBridgesDestroyIfBridgeError(_ *testing.T) {
 	//nolint:lll
 	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
 		ifconfigOutput := "bridge0\n"
-		fmt.Print(ifconfigOutput) //nolint:forbidigo
-	}
-
-	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "bridge0" {
-		ifconfigOutput := `bridge0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
-        options=0
-        ether 58:9c:fc:10:d6:22
-        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
-        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
-        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
-        member: em0 flags=143<LEARNING,DISCOVER,AUTOEDGE,AUTOPTP>
-                ifmaxaddr 0 port 2 priority 128 path cost 20000
-        groups: bridge cirrinad
-        nd6 options=9<PERFORMNUD,IFDISABLED>
-`
 		fmt.Print(ifconfigOutput) //nolint:forbidigo
 	}
 
@@ -5327,6 +5573,266 @@ func TestCreateBringUpNewSwitchError(_ *testing.T) {
 
 	if cmdWithArgs[1] == "/sbin/ifconfig" && cmdWithArgs[3] == "create" {
 		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func Test_buildNgBridgeSuccess(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "em0" {
+		ifconfigOutput := `em0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=4e53fbb<RXCSUM,TXCSUM,VLAN_MTU,VLAN_HWTAGGING,JUMBO_MTU,VLAN_HWCSUM,TSO4,TSO6,LRO,WOL_UCAST,WOL_MCAST,WOL_MAGIC,VLAN_HWFILTER,VLAN_HWTSO,RXCSUM_IPV6,TXCSUM_IPV6,HWSTATS,MEXTPG>
+        ether a0:ab:b2:72:01:37
+        media: Ethernet autoselect (1000baseT <full-duplex,rxpause,txpause>)
+        status: active
+        nd6 options=29<PERFORMNUD,IFDISABLED,AUTO_LINKLOCAL>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func Test_buildNgBridgeMemberDoesNotExist(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "em0" {
+		ifconfigOutput := `em0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=4e53fbb<RXCSUM,TXCSUM,VLAN_MTU,VLAN_HWTAGGING,JUMBO_MTU,VLAN_HWCSUM,TSO4,TSO6,LRO,WOL_UCAST,WOL_MCAST,WOL_MAGIC,VLAN_HWFILTER,VLAN_HWTSO,RXCSUM_IPV6,TXCSUM_IPV6,HWSTATS,MEXTPG>
+        ether a0:ab:b2:72:01:37
+        media: Ethernet autoselect (1000baseT <full-duplex,rxpause,txpause>)
+        status: active
+        nd6 options=29<PERFORMNUD,IFDISABLED,AUTO_LINKLOCAL>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "list" {
+		ngctlOutput := `There are 8 total nodes:
+  Name: igb0            Type: ether           ID: 00000001   Num hooks: 0
+  Name: ix0             Type: ether           ID: 00000002   Num hooks: 2
+  Name: ue0             Type: ether           ID: 00000003   Num hooks: 0
+  Name: bridge0         Type: ether           ID: 00000006   Num hooks: 0
+  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Name: bridge1         Type: ether           ID: 00000014   Num hooks: 0
+  Name: bnet1           Type: bridge          ID: 00000018   Num hooks: 0
+  Name: ngctl23503      Type: socket          ID: 0000001e   Num hooks: 0
+`
+
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 4 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "show" && cmdWithArgs[3] == "bnet0:" { //nolint:lll
+		ngctlOutput := `  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Local hook      Peer name       Peer type    Peer ID         Peer hook      
+  ----------      ---------       ---------    -------         ---------      
+  link1           em0             ether        00000002        upper          
+  link0           em0             ether        00000002        lower          
+`
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func Test_buildNgBridgeMemberCheckError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "em0" {
+		ifconfigOutput := `em0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=4e53fbb<RXCSUM,TXCSUM,VLAN_MTU,VLAN_HWTAGGING,JUMBO_MTU,VLAN_HWCSUM,TSO4,TSO6,LRO,WOL_UCAST,WOL_MCAST,WOL_MAGIC,VLAN_HWFILTER,VLAN_HWTSO,RXCSUM_IPV6,TXCSUM_IPV6,HWSTATS,MEXTPG>
+        ether a0:ab:b2:72:01:37
+        media: Ethernet autoselect (1000baseT <full-duplex,rxpause,txpause>)
+        status: active
+        nd6 options=29<PERFORMNUD,IFDISABLED,AUTO_LINKLOCAL>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "list" {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func Test_buildNgBridgeMemberAlreadyUsed(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "em0" {
+		ifconfigOutput := `em0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=4e53fbb<RXCSUM,TXCSUM,VLAN_MTU,VLAN_HWTAGGING,JUMBO_MTU,VLAN_HWCSUM,TSO4,TSO6,LRO,WOL_UCAST,WOL_MCAST,WOL_MAGIC,VLAN_HWFILTER,VLAN_HWTSO,RXCSUM_IPV6,TXCSUM_IPV6,HWSTATS,MEXTPG>
+        ether a0:ab:b2:72:01:37
+        media: Ethernet autoselect (1000baseT <full-duplex,rxpause,txpause>)
+        status: active
+        nd6 options=29<PERFORMNUD,IFDISABLED,AUTO_LINKLOCAL>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "list" {
+		ngctlOutput := `There are 8 total nodes:
+  Name: igb0            Type: ether           ID: 00000001   Num hooks: 0
+  Name: ix0             Type: ether           ID: 00000002   Num hooks: 2
+  Name: ue0             Type: ether           ID: 00000003   Num hooks: 0
+  Name: bridge0         Type: ether           ID: 00000006   Num hooks: 0
+  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Name: bridge1         Type: ether           ID: 00000014   Num hooks: 0
+  Name: bnet1           Type: bridge          ID: 00000018   Num hooks: 0
+  Name: ngctl23503      Type: socket          ID: 0000001e   Num hooks: 0
+`
+
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 4 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "show" && cmdWithArgs[3] == "bnet0:" { //nolint:lll
+		ngctlOutput := `  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Local hook      Peer name       Peer type    Peer ID         Peer hook      
+  ----------      ---------       ---------    -------         ---------      
+  link1           em0             ether        00000002        upper          
+  link0           em0             ether        00000002        lower          
+`
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func Test_buildNgBridgeCreateBridgeError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "em0" {
+		ifconfigOutput := `em0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=4e53fbb<RXCSUM,TXCSUM,VLAN_MTU,VLAN_HWTAGGING,JUMBO_MTU,VLAN_HWCSUM,TSO4,TSO6,LRO,WOL_UCAST,WOL_MCAST,WOL_MAGIC,VLAN_HWFILTER,VLAN_HWTSO,RXCSUM_IPV6,TXCSUM_IPV6,HWSTATS,MEXTPG>
+        ether a0:ab:b2:72:01:37
+        media: Ethernet autoselect (1000baseT <full-duplex,rxpause,txpause>)
+        status: active
+        nd6 options=29<PERFORMNUD,IFDISABLED,AUTO_LINKLOCAL>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	if cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "mkpeer" {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func Test_buildIfBridgeSuccess(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "em0" {
+		ifconfigOutput := `em0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=4e53fbb<RXCSUM,TXCSUM,VLAN_MTU,VLAN_HWTAGGING,JUMBO_MTU,VLAN_HWCSUM,TSO4,TSO6,LRO,WOL_UCAST,WOL_MCAST,WOL_MAGIC,VLAN_HWFILTER,VLAN_HWTSO,RXCSUM_IPV6,TXCSUM_IPV6,HWSTATS,MEXTPG>
+        ether a0:ab:b2:72:01:37
+        media: Ethernet autoselect (1000baseT <full-duplex,rxpause,txpause>)
+        status: active
+        nd6 options=29<PERFORMNUD,IFDISABLED,AUTO_LINKLOCAL>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+func Test_buildIfBridgeMemberCheckError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "em0" {
+		ifconfigOutput := `em0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=4e53fbb<RXCSUM,TXCSUM,VLAN_MTU,VLAN_HWTAGGING,JUMBO_MTU,VLAN_HWCSUM,TSO4,TSO6,LRO,WOL_UCAST,WOL_MCAST,WOL_MAGIC,VLAN_HWFILTER,VLAN_HWTSO,RXCSUM_IPV6,TXCSUM_IPV6,HWSTATS,MEXTPG>
+        ether a0:ab:b2:72:01:37
+        media: Ethernet autoselect (1000baseT <full-duplex,rxpause,txpause>)
+        status: active
+        nd6 options=29<PERFORMNUD,IFDISABLED,AUTO_LINKLOCAL>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func Test_buildIfBridgeMemberAlreadyUsed(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	//nolint:lll
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+		ifconfigOutput := "bridge0\n"
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	//nolint:lll
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "em0" {
+		ifconfigOutput := `em0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=4e53fbb<RXCSUM,TXCSUM,VLAN_MTU,VLAN_HWTAGGING,JUMBO_MTU,VLAN_HWCSUM,TSO4,TSO6,LRO,WOL_UCAST,WOL_MCAST,WOL_MAGIC,VLAN_HWFILTER,VLAN_HWTSO,RXCSUM_IPV6,TXCSUM_IPV6,HWSTATS,MEXTPG>
+        ether a0:ab:b2:72:01:37
+        media: Ethernet autoselect (1000baseT <full-duplex,rxpause,txpause>)
+        status: active
+        nd6 options=29<PERFORMNUD,IFDISABLED,AUTO_LINKLOCAL>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
+	}
+
+	if len(cmdWithArgs) == 2 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "bridge0" {
+		ifconfigOutput := `bridge0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=0
+        ether 58:9c:fc:10:d6:22
+        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
+        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
+        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
+        member: em0 flags=143<LEARNING,DISCOVER,AUTOEDGE,AUTOPTP>
+                ifmaxaddr 0 port 2 priority 128 path cost 20000
+        groups: bridge cirrinad
+        nd6 options=9<PERFORMNUD,IFDISABLED>
+`
+		fmt.Print(ifconfigOutput) //nolint:forbidigo
 	}
 
 	os.Exit(0)
