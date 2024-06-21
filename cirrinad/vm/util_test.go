@@ -1,6 +1,13 @@
 package vm
 
-import "testing"
+import (
+	"fmt"
+	"os"
+	"testing"
+
+	"cirrina/cirrinad/cirrinadtest"
+	"cirrina/cirrinad/util"
+)
 
 func Test_parsePsJSONOutput(t *testing.T) {
 	type args struct {
@@ -100,4 +107,103 @@ func Test_parsePsJSONOutput(t *testing.T) {
 			}
 		})
 	}
+}
+
+//nolint:paralleltest
+func Test_findProcName(t *testing.T) {
+	type args struct {
+		pid uint32
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		want        string
+	}{
+		{
+			name:        "Sleep",
+			mockCmdFunc: "Test_findProcNameSleep",
+			args:        args{pid: 12345},
+			want:        "sleep",
+		},
+		{
+			name:        "Error",
+			mockCmdFunc: "Test_findProcNameError",
+			args:        args{pid: 12345},
+			want:        "",
+		},
+		{
+			name:        "BadJson",
+			mockCmdFunc: "Test_findProcNameBadJson",
+			args:        args{pid: 12345},
+			want:        "",
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			got := findProcName(testCase.args.pid)
+			if got != testCase.want {
+				t.Errorf("findProcName() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+// test helpers from here down
+
+//nolint:paralleltest
+func Test_findProcNameSleep(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 5 && cmdWithArgs[0] == "/bin/ps" && cmdWithArgs[1] == "--libxo" && cmdWithArgs[2] == "json" && cmdWithArgs[3] == "-p" { //nolint:lll
+		fmt.Printf("{\"process-information\": {\"process\": [{\"pid\":\"12345\",\"terminal-name\":\"28 \",\"state\":\"SC+\",\"cpu-time\":\"0:00.00\",\"command\":\"sleep 1024\"}]}}\n") //nolint:lll,forbidigo
+		os.Exit(0)
+	}
+
+	os.Exit(1)
+}
+
+//nolint:paralleltest
+func Test_findProcNameError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 5 && cmdWithArgs[0] == "/bin/ps" && cmdWithArgs[1] == "--libxo" && cmdWithArgs[2] == "json" && cmdWithArgs[3] == "-p" { //nolint:lll
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_findProcNameBadJson(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 5 && cmdWithArgs[0] == "/bin/ps" && cmdWithArgs[1] == "--libxo" && cmdWithArgs[2] == "json" && cmdWithArgs[3] == "-p" { //nolint:lll
+		fmt.Printf("{\"process-information\": {\"process\": [{\"pid\":\"12345\",\"terminal-name\":\"28 \",\"state\":\"SC+\",\"cpu-time\":\"0:00.00\",\"comm") //nolint:lll,forbidigo
+		os.Exit(0)
+	}
+
+	os.Exit(1)
 }
