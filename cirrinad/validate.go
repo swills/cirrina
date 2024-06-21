@@ -1,11 +1,12 @@
 package main
 
 import (
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
-	"math/rand"
+	"math/big"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -13,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
-	"time"
 
 	"github.com/hashicorp/go-version"
 	"golang.org/x/sys/unix"
@@ -70,13 +70,15 @@ func getTmpFileName() (string, error) {
 		tmpDir = "/tmp"
 	}
 
-	s1 := rand.NewSource(time.Now().UnixNano())
-	r1 := rand.New(s1)
-
 	try := 0
 nameLoop:
 	for {
-		randomNum := r1.Intn(1000000000)
+		var randomNumBig *big.Int
+		randomNumBig, err = rand.Int(rand.Reader, big.NewInt(1000000000))
+		randomNum := int(randomNumBig.Int64())
+		if err != nil {
+			return "", fmt.Errorf("couldn't find a tmp file %w", err)
+		}
 		tmpFileName = tmpDir + string(os.PathSeparator) + "cirrinad" + strconv.Itoa(randomNum)
 		_, err = os.Stat(tmpFileName)
 		switch {

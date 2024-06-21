@@ -88,6 +88,8 @@ linters:
     - tparallel
     - paralleltest
     - wsl
+    - funlen
+    - gosec
 
 issues:
   exclude-rules:
@@ -125,6 +127,13 @@ issues:
     - path: 'cirrinad/requests/requests_test.go'
       linters:
         - paralleltest
+    - path: 'cirrinad/cirrinadtest/helpers.go'
+      linters:
+        - gosec
+    - path: '_test.go'
+      linters:
+        - funlen
+        - gosec
 
 linters-settings:
   cyclop:
@@ -183,3 +192,6 @@ linters-settings:
       - unusedwrite
   gofumpt:
     module-path: "cirrina"
+  funlen:
+    lines: 100
+    statements: 55

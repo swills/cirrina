@@ -172,7 +172,7 @@ func Create(vmInst *VM) error {
 	return nil
 }
 
-func (vm *VM) Save() error { //nolint:funlen
+func (vm *VM) Save() error {
 	vmDB := GetVMDB()
 
 	res := vmDB.Model(&vm.Config).
@@ -304,7 +304,7 @@ func (vm *VM) Running() bool {
 	return false
 }
 
-func (vm *VM) Start() error { //nolint:funlen
+func (vm *VM) Start() error {
 	var err error
 	defer vmStartLock.Unlock()
 	vmStartLock.Lock()
