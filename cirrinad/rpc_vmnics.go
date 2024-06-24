@@ -453,7 +453,7 @@ func vmNicParseUpdate(vmNicInfoUpdate *cirrina.VmNicInfoUpdate, vmNicInst *vmnic
 	if vmNicInfoUpdate.Switchid != nil {
 		var newSwitchID string
 
-		newSwitchID, err = _switch.ParseSwitchID(vmNicInfoUpdate.GetSwitchid(), vmNicInst.NetType)
+		newSwitchID, err = _switch.ParseSwitchID(vmNicInfoUpdate.GetSwitchid(), vmNicInst.NetDevType)
 		if err != nil {
 			return fmt.Errorf("error parsing switch ID: %w", err)
 		}
