@@ -64,7 +64,7 @@ func (s *server) AddVMNic(_ context.Context, vmNicInfo *cirrina.VmNicInfo) (*cir
 	if vmNicInfo.Switchid != nil && vmNicInfo.GetSwitchid() != "" {
 		var newSwitchID string
 
-		newSwitchID, err = _switch.ParseSwitchID(vmNicInfo.GetSwitchid(), vmNicInst.NetType)
+		newSwitchID, err = _switch.ParseSwitchID(vmNicInfo.GetSwitchid(), vmNicInst.NetDevType)
 		if err != nil {
 			return vmNicID, fmt.Errorf("error parsing switch id: %w", err)
 		}
