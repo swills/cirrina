@@ -358,7 +358,14 @@ func (vm *VM) Start() error {
 	cmdName, cmdArgs := vm.generateCommandLine()
 	vm.log.Info("start", "cmd", cmdName, "args", cmdArgs)
 	vm.createUefiVarsFile()
-	vm.netStartup()
+
+	err = vm.netStartup()
+	if err != nil {
+		slog.Error("Failed VM net startup, cleaning up", "err", err)
+		vm.NetCleanup()
+
+		return err
+	}
 
 	err = vm.Save()
 	if err != nil {

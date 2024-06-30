@@ -162,12 +162,12 @@ func netStartupNg(vmNic vmnic.VMNic) error {
 	return nil
 }
 
-func (vm *VM) netStartup() {
+func (vm *VM) netStartup() error {
 	vmNicsList, err := vmnic.GetNics(vm.Config.ID)
 	if err != nil {
 		slog.Error("netStartup failed to get nics", "err", err)
 
-		return
+		return fmt.Errorf("error getting vm nics: %w", err)
 	}
 
 	for _, vmNic := range vmNicsList {
@@ -177,21 +177,23 @@ func (vm *VM) netStartup() {
 			if err != nil {
 				slog.Error("error bringing up nic", "err", err)
 
-				continue
+				return fmt.Errorf("error starting vm nic: %w", err)
 			}
 		case vmNic.NetDevType == "NETGRAPH":
 			err := netStartupNg(vmNic)
 			if err != nil {
 				slog.Error("error bringing up nic", "err", err)
 
-				continue
+				return fmt.Errorf("error starting vm nic: %w", err)
 			}
 		default:
 			slog.Debug("unknown net type, can't set up")
 
-			continue
+			return errVMUnknownNetDevType
 		}
 	}
+
+	return nil
 }
 
 // NetCleanup clean up all of a VMs nics
@@ -236,13 +238,13 @@ func (vm *VM) SetNics(nicIDs []string) error {
 	}
 
 	// remove all nics from VM
-	err := removeAllNicsFromVM(vm)
+	err := vm.removeAllNicsFromVM()
 	if err != nil {
 		return err
 	}
 
 	// check that these nics can be attached to this VM
-	err = validateNics(nicIDs, vm)
+	err = vm.validateNics(nicIDs)
 	if err != nil {
 		return err
 	}
@@ -270,7 +272,7 @@ func (vm *VM) SetNics(nicIDs []string) error {
 }
 
 // validateNics check if nics can be attached to a VM
-func validateNics(nicIDs []string, thisVM *VM) error {
+func (vm *VM) validateNics(nicIDs []string) error {
 	occurred := map[string]bool{}
 
 	for _, aNic := range nicIDs {
@@ -302,7 +304,7 @@ func validateNics(nicIDs []string, thisVM *VM) error {
 
 		slog.Debug("checking if nic is already attached", "nic", aNic)
 
-		err = nicAttached(aNic, thisVM)
+		err = vm.nicAttached(aNic)
 		if err != nil {
 			return err
 		}
@@ -312,7 +314,7 @@ func validateNics(nicIDs []string, thisVM *VM) error {
 }
 
 // nicAttached check if nic is attached to another VM besides this one
-func nicAttached(aNic string, thisVM *VM) error {
+func (vm *VM) nicAttached(aNic string) error {
 	allVms := GetAll()
 	for _, aVM := range allVms {
 		vmNics, err := vmnic.GetNics(aVM.Config.ID)
@@ -323,7 +325,7 @@ func nicAttached(aNic string, thisVM *VM) error {
 		}
 
 		for _, aVMNic := range vmNics {
-			if aNic == aVMNic.ID && aVM.ID != thisVM.ID {
+			if aNic == aVMNic.ID && aVM.ID != vm.ID {
 				slog.Error("nic is already attached to VM", "disk", aNic, "vm", aVM.ID)
 
 				return errVMNicAttached
@@ -334,9 +336,9 @@ func nicAttached(aNic string, thisVM *VM) error {
 	return nil
 }
 
-// removeAllNicsFromVM does what it says on the tin, mate
-func removeAllNicsFromVM(thisVM *VM) error {
-	thisVMNics, err := vmnic.GetNics(thisVM.Config.ID)
+// removeAllNicsFromVM removes all nics from a VM
+func (vm *VM) removeAllNicsFromVM() error {
+	thisVMNics, err := vmnic.GetNics(vm.Config.ID)
 	if err != nil {
 		slog.Error("error looking up nics", "err", err)
 
