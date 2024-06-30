@@ -1225,6 +1225,7 @@ func TestGetNics(t *testing.T) {
 		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
 		args        args
 		want        []VMNic
+		wantErr     bool
 	}{
 		{
 			name: "success1",
@@ -1340,7 +1341,10 @@ func TestGetNics(t *testing.T) {
 
 			testCase.mockClosure(testDB, mock)
 
-			got := GetNics(testCase.args.vmConfigID)
+			got, err := GetNics(testCase.args.vmConfigID)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetNics() error = %v, wantErr %v", err, testCase.wantErr)
+			}
 
 			diff := deep.Equal(got, testCase.want)
 			if diff != nil {

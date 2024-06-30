@@ -484,7 +484,13 @@ func (vm *VM) getNetArgs(slot int) ([]string, int) {
 	var netArgs []string
 
 	originalSlot := slot
-	nicList := vmnic.GetNics(vm.Config.ID)
+
+	nicList, err := vmnic.GetNics(vm.Config.ID)
+	if err != nil {
+		slog.Error("error getting vm nics", "err", err)
+
+		return []string{}, originalSlot
+	}
 
 	for _, nicItem := range nicList {
 		slog.Debug("adding nic", "nic", nicItem)
@@ -493,7 +499,7 @@ func (vm *VM) getNetArgs(slot int) ([]string, int) {
 
 		netType, err = getNetTypeArg(nicItem.NetType)
 		if err != nil {
-			slog.Debug("unknown net type, cannot configure", "netType", nicItem.NetType)
+			slog.Error("unknown net type, cannot configure", "netType", nicItem.NetType)
 
 			return []string{}, originalSlot
 		}

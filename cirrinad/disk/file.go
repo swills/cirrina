@@ -57,7 +57,7 @@ var currentUserFunc = user.Current
 
 var utilOSReadDirFunc = util.OSReadDir
 
-func (osFS) Open(name string) (MyFile, error) { return os.Open(name) } //nolint:wrapcheck,ireturn
+func (osFS) Open(name string) (MyFile, error) { return os.Open(name) } //nolint:wrapcheck,ireturn,nolintlint
 
 func (osFS) Stat(name string) (os.FileInfo, error) { return os.Stat(name) } //nolint:wrapcheck
 

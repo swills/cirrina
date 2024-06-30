@@ -263,7 +263,7 @@ func (s *server) RemoveVMNic(_ context.Context, vmNicID *cirrina.VmNicId) (*cirr
 	for _, aVM := range allVms {
 		var nics []vmnic.VMNic
 
-		nics, err = aVM.GetNics()
+		nics, err = vmnic.GetNics(aVM.Config.ID)
 		if err != nil {
 			return &res, fmt.Errorf("error getting NICs: %w", err)
 		}

@@ -123,13 +123,17 @@ func GetByID(nicID string) (*VMNic, error) {
 	return vmNic, nil
 }
 
-func GetNics(vmConfigID uint) []VMNic {
+func GetNics(vmConfigID uint) ([]VMNic, error) {
 	var vmNics []VMNic
 
 	db := GetVMNicDB()
-	db.Where("config_id = ?", vmConfigID).Find(&vmNics)
 
-	return vmNics
+	res := db.Where("config_id = ?", vmConfigID).Find(&vmNics)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+
+	return vmNics, nil
 }
 
 func GetAll() []*VMNic {

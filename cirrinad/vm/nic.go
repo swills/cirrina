@@ -163,7 +163,7 @@ func netStartupNg(vmNic vmnic.VMNic) error {
 }
 
 func (vm *VM) netStartup() {
-	vmNicsList, err := vm.GetNics()
+	vmNicsList, err := vmnic.GetNics(vm.Config.ID)
 	if err != nil {
 		slog.Error("netStartup failed to get nics", "err", err)
 
@@ -196,7 +196,7 @@ func (vm *VM) netStartup() {
 
 // NetCleanup clean up all of a VMs nics
 func (vm *VM) NetCleanup() {
-	vmNicsList, err := vm.GetNics()
+	vmNicsList, err := vmnic.GetNics(vm.Config.ID)
 	if err != nil {
 		slog.Error("failed to get nics", "err", err)
 
@@ -315,9 +315,11 @@ func validateNics(nicIDs []string, thisVM *VM) error {
 func nicAttached(aNic string, thisVM *VM) error {
 	allVms := GetAll()
 	for _, aVM := range allVms {
-		vmNics, err := aVM.GetNics()
+		vmNics, err := vmnic.GetNics(aVM.Config.ID)
 		if err != nil {
-			return err
+			slog.Error("error looking up nics", "err", err)
+
+			return fmt.Errorf("error getting vm nics: %w", err)
 		}
 
 		for _, aVMNic := range vmNics {
@@ -334,11 +336,11 @@ func nicAttached(aNic string, thisVM *VM) error {
 
 // removeAllNicsFromVM does what it says on the tin, mate
 func removeAllNicsFromVM(thisVM *VM) error {
-	thisVMNics, err := thisVM.GetNics()
+	thisVMNics, err := vmnic.GetNics(thisVM.Config.ID)
 	if err != nil {
 		slog.Error("error looking up nics", "err", err)
 
-		return err
+		return fmt.Errorf("error getting vm nics: %w", err)
 	}
 
 	for _, aNic := range thisVMNics {
@@ -411,10 +413,4 @@ func cleanupIfNic(vmNic vmnic.VMNic) error {
 	}
 
 	return nil
-}
-
-func (vm *VM) GetNics() ([]vmnic.VMNic, error) {
-	nics := vmnic.GetNics(vm.Config.ID)
-
-	return nics, nil
 }

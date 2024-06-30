@@ -15,6 +15,7 @@ import (
 
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vmnic"
 )
 
 func GetVMLogPath(logpath string) error {
@@ -232,7 +233,7 @@ func GetUsedNetPorts() []string {
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
 	for _, vmInst := range List.VMList {
-		vmNicsList, err := vmInst.GetNics()
+		vmNicsList, err := vmnic.GetNics(vmInst.Config.ID)
 		if err != nil {
 			slog.Error("GetUsedNetPorts failed to get nics", "err", err)
 		}

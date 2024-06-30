@@ -16,6 +16,7 @@ import (
 	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm"
+	"cirrina/cirrinad/vmnic"
 )
 
 var (
@@ -1100,7 +1101,7 @@ func (s *server) GetVMNics(vmID *cirrina.VMID, stream cirrina.VMInfo_GetVMNicsSe
 		return errNotFound
 	}
 
-	vmNics, err := vmInst.GetNics()
+	vmNics, err := vmnic.GetNics(vmInst.Config.ID)
 	if err != nil {
 		return fmt.Errorf("error getting NICs: %w", err)
 	}
