@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"time"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -14,9 +15,11 @@ import (
 )
 
 type VMNic struct {
-	gorm.Model
 	ID          string `gorm:"uniqueIndex;not null;default:null"`
-	Name        string `gorm:"uniqueIndex;not null;default:null"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   gorm.DeletedAt `gorm:"index"`
+	Name        string         `gorm:"uniqueIndex;not null;default:null"`
 	Description string
 	Mac         string `gorm:"default:AUTO"`
 	NetDev      string

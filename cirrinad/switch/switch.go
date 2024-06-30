@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/google/uuid"
@@ -17,9 +18,11 @@ import (
 )
 
 type Switch struct {
-	gorm.Model
 	ID          string `gorm:"uniqueIndex;not null;default:null"`
-	Name        string `gorm:"uniqueIndex;not null;default:null"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   gorm.DeletedAt `gorm:"index"`
+	Name        string         `gorm:"uniqueIndex;not null;default:null"`
 	Description string
 	Type        string `gorm:"default:IF;check:type IN ('IF','NG')"`
 	Uplink      string

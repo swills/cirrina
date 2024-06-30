@@ -71,26 +71,20 @@ func TestGetAll(t *testing.T) {
 			},
 			want: []*Switch{
 				{
-					Model: gorm.Model{
-						ID:        0,
-						CreatedAt: createUpdateTime,
-						UpdatedAt: createUpdateTime,
-						DeletedAt: gorm.DeletedAt{},
-					},
 					ID:          "0cb98661-6470-432d-8fa4-5eca3668b494",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					DeletedAt:   gorm.DeletedAt{},
 					Name:        "bridge0",
 					Description: "some if switch description",
 					Type:        "IF",
 					Uplink:      "em1",
 				},
 				{
-					Model: gorm.Model{
-						ID:        0,
-						CreatedAt: createUpdateTime,
-						UpdatedAt: createUpdateTime,
-						DeletedAt: gorm.DeletedAt{},
-					},
 					ID:          "76290cc3-7143-4c0b-980f-25f74b12673f",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					DeletedAt:   gorm.DeletedAt{},
 					Name:        "bnet0",
 					Description: "some ng switch description",
 					Type:        "NG",
@@ -182,13 +176,10 @@ func TestGetByName(t *testing.T) {
 			},
 			args: args{name: "bridge0"},
 			want: &Switch{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: createUpdateTime,
-					UpdatedAt: createUpdateTime,
-					DeletedAt: gorm.DeletedAt{},
-				},
 				ID:          "0cb98661-6470-432d-8fa4-5eca3668b494",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				DeletedAt:   gorm.DeletedAt{},
 				Name:        "bridge0",
 				Description: "some if switch description",
 				Type:        "IF",
@@ -338,13 +329,10 @@ func TestGetByID(t *testing.T) {
 			},
 			args: args{switchID: "0cb98661-6470-432d-8fa4-5eca3668b494"},
 			want: &Switch{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: createUpdateTime,
-					UpdatedAt: createUpdateTime,
-					DeletedAt: gorm.DeletedAt{},
-				},
 				ID:          "0cb98661-6470-432d-8fa4-5eca3668b494",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				DeletedAt:   gorm.DeletedAt{},
 				Name:        "bridge0",
 				Description: "some if switch description",
 				Type:        "IF",
@@ -819,16 +807,13 @@ func Test_bringUpNewSwitch(t *testing.T) {
 			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
 			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
 			args: args{switchInst: &Switch{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: createUpdateTime,
-					UpdatedAt: createUpdateTime,
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
+				CreatedAt: createUpdateTime,
+				UpdatedAt: createUpdateTime,
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
 				Name:        "bridge0",
 				Description: "some description",
 				Type:        "IF",
@@ -840,16 +825,13 @@ func Test_bringUpNewSwitch(t *testing.T) {
 			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
 			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
 			args: args{switchInst: &Switch{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: createUpdateTime,
-					UpdatedAt: createUpdateTime,
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
+				CreatedAt: createUpdateTime,
+				UpdatedAt: createUpdateTime,
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
 				Name:        "bnet0",
 				Description: "some description",
 				Type:        "NG",
@@ -861,16 +843,13 @@ func Test_bringUpNewSwitch(t *testing.T) {
 			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
 			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
 			args: args{switchInst: &Switch{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: createUpdateTime,
-					UpdatedAt: createUpdateTime,
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
+				CreatedAt: createUpdateTime,
+				UpdatedAt: createUpdateTime,
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
 				Name:        "bridge0",
 				Description: "some description",
 				Type:        "garbage",
@@ -883,16 +862,13 @@ func Test_bringUpNewSwitch(t *testing.T) {
 			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
 			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
 			args: args{switchInst: &Switch{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: createUpdateTime,
-					UpdatedAt: createUpdateTime,
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
+				CreatedAt: createUpdateTime,
+				UpdatedAt: createUpdateTime,
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
 				Name:        "bridge0",
 				Description: "some description",
 				Type:        "IF",
@@ -904,16 +880,13 @@ func Test_bringUpNewSwitch(t *testing.T) {
 			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
 			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
 			args: args{switchInst: &Switch{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: createUpdateTime,
-					UpdatedAt: createUpdateTime,
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
+				CreatedAt: createUpdateTime,
+				UpdatedAt: createUpdateTime,
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
 				Name:        "bnet0",
 				Description: "some description",
 				Type:        "NG",
@@ -939,16 +912,13 @@ func Test_bringUpNewSwitch(t *testing.T) {
 			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
 			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
 			args: args{switchInst: &Switch{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: createUpdateTime,
-					UpdatedAt: createUpdateTime,
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
+				CreatedAt: createUpdateTime,
+				UpdatedAt: createUpdateTime,
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
 				Name:        "bnet0",
 				Description: "some description",
 				Type:        "IF",
@@ -961,16 +931,13 @@ func Test_bringUpNewSwitch(t *testing.T) {
 			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
 			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
 			args: args{switchInst: &Switch{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: createUpdateTime,
-					UpdatedAt: createUpdateTime,
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
+				CreatedAt: createUpdateTime,
+				UpdatedAt: createUpdateTime,
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
 				Name:        "bridge0",
 				Description: "some description",
 				Type:        "NG",
@@ -1247,7 +1214,6 @@ func Test_validateIfSwitch(t *testing.T) {
 			name:        "success1",
 			mockCmdFunc: "Test_validateIfSwitchSuccess1",
 			args: args{switchInst: &Switch{
-				Model:  gorm.Model{},
 				Name:   "bridge1",
 				Uplink: "em1",
 			}},
@@ -1257,7 +1223,6 @@ func Test_validateIfSwitch(t *testing.T) {
 			name:        "success2",
 			mockCmdFunc: "Test_validateIfSwitchSuccess1",
 			args: args{switchInst: &Switch{
-				Model:  gorm.Model{},
 				Name:   "bridge1",
 				Uplink: "em0",
 			}},
@@ -1267,7 +1232,6 @@ func Test_validateIfSwitch(t *testing.T) {
 			name:        "error1",
 			mockCmdFunc: "Test_validateIfSwitchError1",
 			args: args{switchInst: &Switch{
-				Model:  gorm.Model{},
 				Name:   "bridge1",
 				Uplink: "em0",
 			}},
@@ -1307,7 +1271,6 @@ func Test_validateNgSwitch(t *testing.T) {
 			name:        "success1",
 			mockCmdFunc: "Test_validateNgSwitchSuccess1",
 			args: args{switchInst: &Switch{
-				Model:  gorm.Model{},
 				Name:   "bnet1",
 				Uplink: "em1",
 			}},
@@ -1316,7 +1279,6 @@ func Test_validateNgSwitch(t *testing.T) {
 			name:        "success2",
 			mockCmdFunc: "Test_validateNgSwitchSuccess1",
 			args: args{switchInst: &Switch{
-				Model:  gorm.Model{},
 				Name:   "bnet1",
 				Uplink: "em0",
 			}},
@@ -1326,7 +1288,6 @@ func Test_validateNgSwitch(t *testing.T) {
 			name:        "error1",
 			mockCmdFunc: "Test_validateNgSwitchError1",
 			args: args{switchInst: &Switch{
-				Model:  gorm.Model{},
 				Name:   "bnet1",
 				Uplink: "em0",
 			}},
@@ -2512,8 +2473,10 @@ func Test_setUplinkNG(t *testing.T) {
 
 func TestSwitch_SetUplink(t *testing.T) {
 	type fields struct {
-		Model       gorm.Model
 		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		DeletedAt   gorm.DeletedAt
 		Name        string
 		Description string
 		Type        string
@@ -2661,8 +2624,10 @@ func TestSwitch_SetUplink(t *testing.T) {
 			testCase.mockClosure(testDB, mock)
 
 			testSwitch := &Switch{
-				Model:       testCase.fields.Model,
 				ID:          testCase.fields.ID,
+				CreatedAt:   testCase.fields.CreatedAt,
+				UpdatedAt:   testCase.fields.UpdatedAt,
+				DeletedAt:   testCase.fields.DeletedAt,
 				Name:        testCase.fields.Name,
 				Description: testCase.fields.Description,
 				Type:        testCase.fields.Type,
@@ -2696,8 +2661,10 @@ func TestSwitch_SetUplink(t *testing.T) {
 
 func TestSwitch_UnsetUplink(t *testing.T) {
 	type fields struct {
-		Model       gorm.Model
 		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		DeletedAt   gorm.DeletedAt
 		Name        string
 		Description string
 		Type        string
@@ -2878,8 +2845,10 @@ func TestSwitch_UnsetUplink(t *testing.T) {
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
 			testSwitch := &Switch{
-				Model:       testCase.fields.Model,
 				ID:          testCase.fields.ID,
+				CreatedAt:   testCase.fields.CreatedAt,
+				UpdatedAt:   testCase.fields.UpdatedAt,
+				DeletedAt:   testCase.fields.DeletedAt,
 				Name:        testCase.fields.Name,
 				Description: testCase.fields.Description,
 				Type:        testCase.fields.Type,
@@ -3689,11 +3658,11 @@ func TestCreate(t *testing.T) {
 					)
 				mock.ExpectBegin()
 				mock.ExpectQuery(
-					regexp.QuoteMeta("INSERT INTO `switches` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`uplink`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`"), //nolint:lll
+					regexp.QuoteMeta("INSERT INTO `switches` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`uplink`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?) RETURNING `id`,`name`"), //nolint:lll
 				).
 					WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "a bridge", "IF", "em0", sqlmock.AnyArg(), "bridge0").
-					WillReturnRows(sqlmock.NewRows([]string{"id", "id", "name"}).
-						AddRow("1eebf646-ff9d-4760-bd68-dd0125233cbf", "1eebf646-ff9d-4760-bd68-dd0125233cbf", "bridge0"))
+					WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).
+						AddRow("1eebf646-ff9d-4760-bd68-dd0125233cbf", "bridge0"))
 				mock.ExpectCommit()
 			},
 			args: args{
@@ -3736,11 +3705,11 @@ func TestCreate(t *testing.T) {
 					)
 				mock.ExpectBegin()
 				mock.ExpectQuery(
-					regexp.QuoteMeta("INSERT INTO `switches` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`uplink`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`"), //nolint:lll
+					regexp.QuoteMeta("INSERT INTO `switches` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`uplink`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?) RETURNING `id`,`name`"), //nolint:lll
 				).
 					WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "a bridge", "IF", "em0", sqlmock.AnyArg(), "bridge0").
-					WillReturnRows(sqlmock.NewRows([]string{"id", "id", "name"}).
-						AddRow("1eebf646-ff9d-4760-bd68-dd0125233cbf", "1eebf646-ff9d-4760-bd68-dd0125233cbf", "bridge0"))
+					WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).
+						AddRow("1eebf646-ff9d-4760-bd68-dd0125233cbf", "bridge0"))
 				mock.ExpectRollback()
 			},
 			args: args{
@@ -3783,7 +3752,7 @@ func TestCreate(t *testing.T) {
 					)
 				mock.ExpectBegin()
 				mock.ExpectQuery(
-					regexp.QuoteMeta("INSERT INTO `switches` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`uplink`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`"), //nolint:lll
+					regexp.QuoteMeta("INSERT INTO `switches` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`uplink`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?) RETURNING `id`,`name`"), //nolint:lll
 				).
 					WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "a bridge", "IF", "em0", sqlmock.AnyArg(), "bridge0").
 					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
@@ -3829,10 +3798,10 @@ func TestCreate(t *testing.T) {
 					)
 				mock.ExpectBegin()
 				mock.ExpectQuery(
-					regexp.QuoteMeta("INSERT INTO `switches` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`uplink`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`"), //nolint:lll
+					regexp.QuoteMeta("INSERT INTO `switches` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`uplink`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?) RETURNING `id`,`name`"), //nolint:lll
 				).
 					WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "a bridge", "IF", "em0", sqlmock.AnyArg(), "bridge0").
-					WillReturnRows(sqlmock.NewRows([]string{"id", "id", "name"}))
+					WillReturnRows(sqlmock.NewRows([]string{"id", "name"}))
 				mock.ExpectCommit()
 			},
 			args: args{

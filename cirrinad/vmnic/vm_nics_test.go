@@ -181,13 +181,10 @@ func TestGetByName(t *testing.T) {
 			},
 			args: args{name: "test2024041901_int0"},
 			want: &VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: createUpdateTime,
-					UpdatedAt: createUpdateTime,
-					DeletedAt: gorm.DeletedAt{},
-				},
 				ID:          "a045696b-1c49-49e7-80a0-12a69fc71ada",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				DeletedAt:   gorm.DeletedAt{},
 				Name:        "test2024030401_int0",
 				Description: "some description",
 				Mac:         "AUTO",
@@ -386,13 +383,10 @@ func TestGetAll(t *testing.T) {
 			},
 			want: []*VMNic{
 				{
-					Model: gorm.Model{
-						ID:        0,
-						CreatedAt: createUpdateTime,
-						UpdatedAt: createUpdateTime,
-						DeletedAt: gorm.DeletedAt{},
-					},
 					ID:          "a045696b-1c49-49e7-80a0-12a69fc71ada",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					DeletedAt:   gorm.DeletedAt{},
 					Name:        "test2024030401_int0",
 					Description: "first VM nic for test2024030401",
 					Mac:         "AUTO",
@@ -408,13 +402,10 @@ func TestGetAll(t *testing.T) {
 					ConfigID:    123,
 				},
 				{
-					Model: gorm.Model{
-						ID:        0,
-						CreatedAt: createUpdateTime,
-						UpdatedAt: createUpdateTime,
-						DeletedAt: gorm.DeletedAt{},
-					},
 					ID:          "15b67c62-4b9a-491b-bc5f-2d4343ccd02b",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					DeletedAt:   gorm.DeletedAt{},
 					Name:        "test2024030401_int1",
 					Description: "second VM nic for test2024030401",
 					Mac:         "AUTO",
@@ -533,13 +524,10 @@ func TestGetByID(t *testing.T) {
 			},
 			args: args{id: "824a4217-2bf9-477c-9326-b5aa7326df03"},
 			want: &VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: createUpdateTime,
-					UpdatedAt: createUpdateTime,
-					DeletedAt: gorm.DeletedAt{},
-				},
 				ID:          "824a4217-2bf9-477c-9326-b5aa7326df03",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				DeletedAt:   gorm.DeletedAt{},
 				Name:        "test2024050501_int0",
 				Description: "another test nic",
 				Mac:         "AUTO",
@@ -911,8 +899,10 @@ func TestParseMac(t *testing.T) {
 
 func TestVMNic_Delete(t *testing.T) {
 	type fields struct {
-		Model       gorm.Model
 		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		DeletedAt   gorm.DeletedAt
 		Name        string
 		Description string
 		Mac         string
@@ -1001,8 +991,10 @@ func TestVMNic_Delete(t *testing.T) {
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			testNic := &VMNic{
-				Model:       testCase.fields.Model,
 				ID:          testCase.fields.ID,
+				CreatedAt:   testCase.fields.CreatedAt,
+				UpdatedAt:   testCase.fields.UpdatedAt,
+				DeletedAt:   testCase.fields.DeletedAt,
 				Name:        testCase.fields.Name,
 				Description: testCase.fields.Description,
 				Mac:         testCase.fields.Mac,
@@ -1051,8 +1043,10 @@ func TestVMNic_Save(t *testing.T) {
 	createUpdateTime := time.Now()
 
 	type fields struct {
-		Model       gorm.Model
 		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		DeletedAt   gorm.DeletedAt
 		Name        string
 		Description string
 		Mac         string
@@ -1091,16 +1085,13 @@ func TestVMNic_Save(t *testing.T) {
 				mock.ExpectCommit()
 			},
 			fields: fields{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: createUpdateTime,
-					UpdatedAt: createUpdateTime,
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "45b862b3-8459-4253-8116-7f313198c3b6",
+				CreatedAt: createUpdateTime,
+				UpdatedAt: createUpdateTime,
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "45b862b3-8459-4253-8116-7f313198c3b6",
 				Name:        "someNic",
 				Description: "a test nic",
 				Mac:         "00:a0:98:11:22:33",
@@ -1134,16 +1125,13 @@ func TestVMNic_Save(t *testing.T) {
 				mock.ExpectRollback()
 			},
 			fields: fields{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: createUpdateTime,
-					UpdatedAt: createUpdateTime,
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "45b862b3-8459-4253-8116-7f313198c3b6",
+				CreatedAt: createUpdateTime,
+				UpdatedAt: createUpdateTime,
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "45b862b3-8459-4253-8116-7f313198c3b6",
 				Name:        "someNic",
 				Description: "a test nic",
 				Mac:         "00:a0:98:11:22:33",
@@ -1166,8 +1154,10 @@ func TestVMNic_Save(t *testing.T) {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testNic := &VMNic{
-				Model:       testCase.fields.Model,
 				ID:          testCase.fields.ID,
+				CreatedAt:   testCase.fields.CreatedAt,
+				UpdatedAt:   testCase.fields.UpdatedAt,
+				DeletedAt:   testCase.fields.DeletedAt,
 				Name:        testCase.fields.Name,
 				Description: testCase.fields.Description,
 				Mac:         testCase.fields.Mac,
@@ -1308,15 +1298,13 @@ func TestGetNics(t *testing.T) {
 				)
 			},
 			want: []VMNic{{
-				Model: gorm.Model{
-					CreatedAt: createUpdateTime,
-					UpdatedAt: createUpdateTime,
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "f1268949-35b5-40ca-a422-22147d38d700",
+				CreatedAt: createUpdateTime,
+				UpdatedAt: createUpdateTime,
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "f1268949-35b5-40ca-a422-22147d38d700",
 				Name:        "aNic",
 				Description: "a description",
 				Mac:         "00:11:22:33:44:55",
@@ -1493,7 +1481,6 @@ func TestVMNic_SetSwitch(t *testing.T) {
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			testNic := &VMNic{
-				Model:       testCase.fields.Model,
 				ID:          testCase.fields.ID,
 				Name:        testCase.fields.Name,
 				Description: testCase.fields.Description,
@@ -1712,16 +1699,13 @@ func Test_validateNic(t *testing.T) {
 		{
 			name: "success1",
 			args: args{vmNicInst: &VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
 				Name:        "genericNicName",
 				Description: "yet another test description also",
 				Mac:         "00:22:33:44:55:66",
@@ -1741,16 +1725,13 @@ func Test_validateNic(t *testing.T) {
 		{
 			name: "error1",
 			args: args{vmNicInst: &VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
 				Name:        "genericNicName!",
 				Description: "yet another test description also",
 				Mac:         "00:22:33:44:55:66",
@@ -1770,16 +1751,13 @@ func Test_validateNic(t *testing.T) {
 		{
 			name: "error2",
 			args: args{vmNicInst: &VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
 				Name:        "genericNicName",
 				Description: "yet another test description also",
 				Mac:         "00:22:33:44:55:66",
@@ -1799,16 +1777,13 @@ func Test_validateNic(t *testing.T) {
 		{
 			name: "error3",
 			args: args{vmNicInst: &VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
 				Name:        "genericNicName",
 				Description: "yet another test description also",
 				Mac:         "00:22:33:44:55:66",
@@ -1828,16 +1803,13 @@ func Test_validateNic(t *testing.T) {
 		{
 			name: "error4",
 			args: args{vmNicInst: &VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
 				Name:        "genericNicName",
 				Description: "yet another test description also",
 				Mac:         "garbage",
@@ -1857,16 +1829,13 @@ func Test_validateNic(t *testing.T) {
 		{
 			name: "error5",
 			args: args{vmNicInst: &VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "283ebc7e-e7b7-4808-ae89-9989afd66ce8",
 				Name:        "genericNicName",
 				Description: "yet another test description also",
 				Mac:         "02:00:5e:10:00:00:00:01",
@@ -1942,27 +1911,24 @@ func TestCreate(t *testing.T) {
 							}))
 				mock.ExpectBegin()
 				mock.ExpectQuery(
-					regexp.QuoteMeta("INSERT INTO `vm_nics` (`created_at`,`updated_at`,`deleted_at`,`description`,`mac`,`net_dev`,`net_type`,`net_dev_type`,`switch_id`,`rate_limit`,`rate_in`,`rate_out`,`inst_bridge`,`inst_epair`,`id`,`name`,`config_id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`,`config_id`"), //nolint:lll
+					regexp.QuoteMeta("INSERT INTO `vm_nics` (`created_at`,`updated_at`,`deleted_at`,`description`,`mac`,`net_dev`,`net_type`,`net_dev_type`,`switch_id`,`rate_limit`,`rate_in`,`rate_out`,`inst_bridge`,`inst_epair`,`id`,`name`,`config_id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`,`name`,`config_id`"), //nolint:lll
 				).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "a test nic description", "00:0f:5f:12:ab:fc", "",
 					"VIRTIONET", "TAP", "c7f025f6-f6a0-4ed7-886d-a3cfa923d17a", false, 0, 0, "", "",
 					sqlmock.AnyArg(), "aTestNic2024061501_int0", 11).
 					WillReturnRows(
-						sqlmock.NewRows([]string{"id", "id", "name", "config_id"}).
-							AddRow("0bd10557-f1ed-4998-a25d-fc883da80a03", "0bd10557-f1ed-4998-a25d-fc883da80a03", "aTestNic2024061501_int0", 11), //nolint:lll
+						sqlmock.NewRows([]string{"id", "name", "config_id"}).
+							AddRow("0bd10557-f1ed-4998-a25d-fc883da80a03", "aTestNic2024061501_int0", 11),
 					)
 				mock.ExpectCommit()
 			},
 			args: args{&VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "0bd10557-f1ed-4998-a25d-fc883da80a03",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "0bd10557-f1ed-4998-a25d-fc883da80a03",
 				Name:        "aTestNic2024061501_int0",
 				Description: "a test nic description",
 				Mac:         "00:0F:5F:12:ab:Fc",
@@ -2010,27 +1976,24 @@ func TestCreate(t *testing.T) {
 							}))
 				mock.ExpectBegin()
 				mock.ExpectQuery(
-					regexp.QuoteMeta("INSERT INTO `vm_nics` (`created_at`,`updated_at`,`deleted_at`,`description`,`mac`,`net_dev`,`net_type`,`net_dev_type`,`switch_id`,`rate_limit`,`rate_in`,`rate_out`,`inst_bridge`,`inst_epair`,`id`,`name`,`config_id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`,`config_id`"), //nolint:lll
+					regexp.QuoteMeta("INSERT INTO `vm_nics` (`created_at`,`updated_at`,`deleted_at`,`description`,`mac`,`net_dev`,`net_type`,`net_dev_type`,`switch_id`,`rate_limit`,`rate_in`,`rate_out`,`inst_bridge`,`inst_epair`,`id`,`name`,`config_id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`,`name`,`config_id`"), //nolint:lll
 				).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "a test nic description", "AUTO", "",
 					"VIRTIONET", "TAP", "c7f025f6-f6a0-4ed7-886d-a3cfa923d17a", false, 0, 0, "", "",
 					sqlmock.AnyArg(), "aTestNic2024061501_int0", 11).
 					WillReturnRows(
-						sqlmock.NewRows([]string{"id", "id", "name", "config_id"}).
-							AddRow("0bd10557-f1ed-4998-a25d-fc883da80a03", "0bd10557-f1ed-4998-a25d-fc883da80a03", "aTestNic2024061501_int0", 11), //nolint:lll
+						sqlmock.NewRows([]string{"id", "name", "config_id"}).
+							AddRow("0bd10557-f1ed-4998-a25d-fc883da80a03", "aTestNic2024061501_int0", 11),
 					)
 				mock.ExpectCommit()
 			},
 			args: args{&VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "0bd10557-f1ed-4998-a25d-fc883da80a03",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "0bd10557-f1ed-4998-a25d-fc883da80a03",
 				Name:        "aTestNic2024061501_int0",
 				Description: "a test nic description",
 				Mac:         "",
@@ -2078,27 +2041,24 @@ func TestCreate(t *testing.T) {
 							}))
 				mock.ExpectBegin()
 				mock.ExpectQuery(
-					regexp.QuoteMeta("INSERT INTO `vm_nics` (`created_at`,`updated_at`,`deleted_at`,`description`,`mac`,`net_dev`,`net_type`,`net_dev_type`,`switch_id`,`rate_limit`,`rate_in`,`rate_out`,`inst_bridge`,`inst_epair`,`id`,`name`,`config_id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`,`config_id`"), //nolint:lll
+					regexp.QuoteMeta("INSERT INTO `vm_nics` (`created_at`,`updated_at`,`deleted_at`,`description`,`mac`,`net_dev`,`net_type`,`net_dev_type`,`switch_id`,`rate_limit`,`rate_in`,`rate_out`,`inst_bridge`,`inst_epair`,`id`,`name`,`config_id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`,`name`,`config_id`"), //nolint:lll
 				).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "a test nic description", "00:0f:5f:12:ab:fc", "",
 					"VIRTIONET", "TAP", "c7f025f6-f6a0-4ed7-886d-a3cfa923d17a", false, 0, 0, "", "",
 					sqlmock.AnyArg(), "aTestNic2024061501_int0", 11).
 					WillReturnRows(
-						sqlmock.NewRows([]string{"id", "id", "name", "config_id"}).
-							AddRow("0bd10557-f1ed-4998-a25d-fc883da80a03", "0bd10557-f1ed-4998-a25d-fc883da80a03", "aTestNic2024061501_int0", 11), //nolint:lll
+						sqlmock.NewRows([]string{"id", "name", "config_id"}).
+							AddRow("0bd10557-f1ed-4998-a25d-fc883da80a03", "aTestNic2024061501_int0", 11),
 					)
 				mock.ExpectCommit()
 			},
 			args: args{&VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "0bd10557-f1ed-4998-a25d-fc883da80a03",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "0bd10557-f1ed-4998-a25d-fc883da80a03",
 				Name:        "aTestNic2024061501_int0",
 				Description: "a test nic description",
 				Mac:         "00:0F:5F:12:ab:Fc",
@@ -2146,27 +2106,24 @@ func TestCreate(t *testing.T) {
 							}))
 				mock.ExpectBegin()
 				mock.ExpectQuery(
-					regexp.QuoteMeta("INSERT INTO `vm_nics` (`created_at`,`updated_at`,`deleted_at`,`description`,`mac`,`net_dev`,`net_type`,`net_dev_type`,`switch_id`,`rate_limit`,`rate_in`,`rate_out`,`inst_bridge`,`inst_epair`,`id`,`name`,`config_id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`,`config_id`"), //nolint:lll
+					regexp.QuoteMeta("INSERT INTO `vm_nics` (`created_at`,`updated_at`,`deleted_at`,`description`,`mac`,`net_dev`,`net_type`,`net_dev_type`,`switch_id`,`rate_limit`,`rate_in`,`rate_out`,`inst_bridge`,`inst_epair`,`id`,`name`,`config_id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`,`name`,`config_id`"), //nolint:lll
 				).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "a test nic description", "00:0f:5f:12:ab:fc", "",
 					"VIRTIONET", "TAP", "c7f025f6-f6a0-4ed7-886d-a3cfa923d17a", false, 0, 0, "", "",
 					sqlmock.AnyArg(), "aTestNic2024061501_int0", 11).
 					WillReturnRows(
-						sqlmock.NewRows([]string{"id", "id", "name", "config_id"}).
-							AddRow("0bd10557-f1ed-4998-a25d-fc883da80a03", "0bd10557-f1ed-4998-a25d-fc883da80a03", "aTestNic2024061501_int0", 11), //nolint:lll
+						sqlmock.NewRows([]string{"id", "name", "config_id"}).
+							AddRow("0bd10557-f1ed-4998-a25d-fc883da80a03", "aTestNic2024061501_int0", 11),
 					)
 				mock.ExpectCommit()
 			},
 			args: args{&VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "0bd10557-f1ed-4998-a25d-fc883da80a03",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "0bd10557-f1ed-4998-a25d-fc883da80a03",
 				Name:        "aTestNic2024061501_int0",
 				Description: "a test nic description",
 				Mac:         "00:0F:5F:12:ab:Fc",
@@ -2190,16 +2147,13 @@ func TestCreate(t *testing.T) {
 				}
 			},
 			args: args{&VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "0bd10557-f1ed-4998-a25d-fc883da80a03",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "0bd10557-f1ed-4998-a25d-fc883da80a03",
 				Name:        "aTestNic2024061501_int0!",
 				Description: "a test nic description",
 				Mac:         "00:0F:5F:12:ab:Fc",
@@ -2268,16 +2222,13 @@ func TestCreate(t *testing.T) {
 					)
 			},
 			args: args{&VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "0bd10557-f1ed-4998-a25d-fc883da80a03",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "0bd10557-f1ed-4998-a25d-fc883da80a03",
 				Name:        "aTestNic2024061501_int0",
 				Description: "a test nic description",
 				Mac:         "00:0F:5F:12:ab:Fc",
@@ -2306,16 +2257,13 @@ func TestCreate(t *testing.T) {
 					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
 			},
 			args: args{&VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "0bd10557-f1ed-4998-a25d-fc883da80a03",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "0bd10557-f1ed-4998-a25d-fc883da80a03",
 				Name:        "aTestNic2024061501_int0",
 				Description: "a test nic description",
 				Mac:         "00:0F:5F:12:ab:Fc",
@@ -2364,23 +2312,20 @@ func TestCreate(t *testing.T) {
 							}))
 				mock.ExpectBegin()
 				mock.ExpectQuery(
-					regexp.QuoteMeta("INSERT INTO `vm_nics` (`created_at`,`updated_at`,`deleted_at`,`description`,`mac`,`net_dev`,`net_type`,`net_dev_type`,`switch_id`,`rate_limit`,`rate_in`,`rate_out`,`inst_bridge`,`inst_epair`,`id`,`name`,`config_id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`,`config_id`"), //nolint:lll
+					regexp.QuoteMeta("INSERT INTO `vm_nics` (`created_at`,`updated_at`,`deleted_at`,`description`,`mac`,`net_dev`,`net_type`,`net_dev_type`,`switch_id`,`rate_limit`,`rate_in`,`rate_out`,`inst_bridge`,`inst_epair`,`id`,`name`,`config_id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`,`name`,`config_id`"), //nolint:lll
 				).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "a test nic description", "00:0f:5f:12:ab:fc", "",
 					"VIRTIONET", "TAP", "c7f025f6-f6a0-4ed7-886d-a3cfa923d17a", false, 0, 0, "", "",
 					sqlmock.AnyArg(), "aTestNic2024061501_int0", 11).
 					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
 			},
 			args: args{&VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "0bd10557-f1ed-4998-a25d-fc883da80a03",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "0bd10557-f1ed-4998-a25d-fc883da80a03",
 				Name:        "aTestNic2024061501_int0",
 				Description: "a test nic description",
 				Mac:         "00:0F:5F:12:ab:Fc",
@@ -2429,26 +2374,23 @@ func TestCreate(t *testing.T) {
 							}))
 				mock.ExpectBegin()
 				mock.ExpectQuery(
-					regexp.QuoteMeta("INSERT INTO `vm_nics` (`created_at`,`updated_at`,`deleted_at`,`description`,`mac`,`net_dev`,`net_type`,`net_dev_type`,`switch_id`,`rate_limit`,`rate_in`,`rate_out`,`inst_bridge`,`inst_epair`,`id`,`name`,`config_id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`,`config_id`"), //nolint:lll
+					regexp.QuoteMeta("INSERT INTO `vm_nics` (`created_at`,`updated_at`,`deleted_at`,`description`,`mac`,`net_dev`,`net_type`,`net_dev_type`,`switch_id`,`rate_limit`,`rate_in`,`rate_out`,`inst_bridge`,`inst_epair`,`id`,`name`,`config_id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`,`name`,`config_id`"), //nolint:lll
 				).WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "a test nic description", "00:0f:5f:12:ab:fc", "",
 					"VIRTIONET", "TAP", "c7f025f6-f6a0-4ed7-886d-a3cfa923d17a", false, 0, 0, "", "",
 					sqlmock.AnyArg(), "aTestNic2024061501_int0", 11).
 					WillReturnRows(
-						sqlmock.NewRows([]string{"id", "id", "name", "config_id"}),
+						sqlmock.NewRows([]string{"id", "name", "config_id"}),
 					)
 				mock.ExpectCommit()
 			},
 			args: args{&VMNic{
-				Model: gorm.Model{
-					ID:        0,
-					CreatedAt: time.Time{},
-					UpdatedAt: time.Time{},
-					DeletedAt: gorm.DeletedAt{
-						Time:  time.Time{},
-						Valid: false,
-					},
+				ID:        "0bd10557-f1ed-4998-a25d-fc883da80a03",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
 				},
-				ID:          "0bd10557-f1ed-4998-a25d-fc883da80a03",
 				Name:        "aTestNic2024061501_int0",
 				Description: "a test nic description",
 				Mac:         "00:0F:5F:12:ab:Fc",

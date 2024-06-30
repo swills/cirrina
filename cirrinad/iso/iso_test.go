@@ -662,8 +662,10 @@ func Test_isoExistsFS(t *testing.T) {
 
 func TestISO_GetPath(t *testing.T) {
 	type fields struct {
-		Model       gorm.Model
 		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		DeletedAt   gorm.DeletedAt `gorm:"index"`
 		Name        string
 		Description string
 		Path        string
@@ -860,8 +862,10 @@ func TestISO_Save(t *testing.T) {
 	createUpdateTime := time.Now()
 
 	type fields struct {
-		Model       gorm.Model
 		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		DeletedAt   gorm.DeletedAt `gorm:"index"`
 		Name        string
 		Description string
 		Path        string
