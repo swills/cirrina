@@ -13,6 +13,7 @@ import (
 	"gorm.io/gorm/logger"
 
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/iso"
 	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/vm"
 	"cirrina/cirrinad/vmnic"
@@ -119,6 +120,7 @@ func CustomMigrate() {
 	vmNicDB := vmnic.GetVMNicDB()
 	vmDB := vm.GetVMDB()
 	reqDB := requests.GetReqDB()
+	isoDB := iso.GetIsoDB()
 
 	schemaVersion := getSchemaVersion()
 	// 2024022401 - copy nics from config.nics to vm_nics.config_id
@@ -130,7 +132,14 @@ func CustomMigrate() {
 	// 2024022403 - remove vm_id from requests
 	migration2024022403(schemaVersion, reqDB)
 
-	// 2024022403
+	// 2024062701 - add vm_isos
+	migration2024062701(schemaVersion, vmDB)
+
+	// 2024062702 - migrate old iso data to new table
+	migration2024062702(schemaVersion, isoDB)
+
+	// 2024062703 - delete is_os from config
+	migration2024062703(schemaVersion, vmDB)
 
 	slog.Debug("finished custom migration")
 }
@@ -149,7 +158,11 @@ func migration2024022401(schemaVersion uint32, vmNicDB *gorm.DB, vmDB *gorm.DB) 
 					panic(err)
 				}
 
-				allVMs := vm.GetAllDB()
+				allVMs, err := vm.GetAllDB()
+				if err != nil {
+					panic(err)
+				}
+
 				for _, vmInst := range allVMs {
 					type Result struct {
 						Nics string
@@ -241,5 +254,97 @@ func migration2024022403(schemaVersion uint32, reqDB *gorm.DB) {
 		}
 
 		setSchemaVersion(2024022403)
+	}
+}
+
+func migration2024062701(schemaVersion uint32, vmDB *gorm.DB) {
+	if schemaVersion < 2024062701 {
+		if vm.DBInitialized() {
+			if !vmDB.Migrator().HasTable("vm_isos") {
+				//nolint:lll
+				vmIsoCreateTableRawSQL := `CREATE TABLE "vm_isos" (
+    vm_id  text default null
+      constraint fk_vm_isos_vm
+      references vms,
+    iso_id text default null
+      constraint fk_vm_isos_iso
+      references isos,
+    position integer not null,
+    primary key (vm_id, iso_id, position),
+    CONSTRAINT ` + "`" + `fk_vm_isos_vm` + "`" + ` FOREIGN KEY (` + "`" + `vm_id` + "`" + `) REFERENCES ` + "`" + `vms` + "`" + `(` + "`" + `id` + "`" + `),
+    CONSTRAINT ` + "`" + `fk_vm_isos_iso` + "`" + ` FOREIGN KEY (` + "`" + `iso_id` + "`" + `) REFERENCES ` + "`" + `isos` + "`" + `(` + "`" + `id` + "`" + `)
+);
+`
+
+				res := vmDB.Exec(vmIsoCreateTableRawSQL)
+				if res.Error != nil {
+					panic(res.Error)
+				}
+
+				setSchemaVersion(2024062701)
+			}
+		}
+	}
+}
+
+func migration2024062703(schemaVersion uint32, vmDB *gorm.DB) {
+	if schemaVersion < 2024062703 {
+		haveOldISOsColumn := vmDB.Migrator().HasColumn(&vm.Config{}, "is_os")
+
+		if haveOldISOsColumn {
+			err := vmDB.Migrator().DropColumn(&vm.Config{}, "is_os")
+			if err != nil {
+				panic(err)
+			}
+
+			setSchemaVersion(2024062703)
+		}
+	}
+}
+
+func migration2024062702(schemaVersion uint32, vmDB *gorm.DB) {
+	if schemaVersion < 2024062702 {
+		type Result struct {
+			VMID string
+			ISOs string
+		}
+
+		haveOldISOsColumn := vmDB.Migrator().HasColumn(&vm.Config{}, "is_os")
+
+		if haveOldISOsColumn {
+			var result []Result
+
+			res := vmDB.Raw("SELECT vm_id, is_os from configs where deleted_at is null and is_os != \"\"").Scan(&result)
+			if res.Error != nil {
+				panic(res.Error)
+			}
+
+			for _, val := range result {
+				isoList := strings.Split(val.ISOs, ",")
+				position := 0
+
+				type newVMISOs struct {
+					VMID     string
+					IsoID    string
+					Position int
+				}
+
+				var newVMISOsData []newVMISOs
+
+				for _, ISOv := range isoList {
+					if ISOv != "" {
+						newVMISOsData = append(newVMISOsData, newVMISOs{VMID: val.VMID, IsoID: ISOv, Position: position})
+					}
+
+					position++
+				}
+
+				for _, v := range newVMISOsData {
+					vmDB.Exec("INSERT INTO vm_isos (vm_id, iso_id, position) VALUES (?,?,?)", v.VMID, v.IsoID, v.Position)
+				}
+			}
+		}
+
+		setSchemaVersion(2024062702)
 	}
 }

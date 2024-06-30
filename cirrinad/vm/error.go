@@ -33,11 +33,6 @@ var (
 var errVMSwitchNICMismatch = errors.New("bridge/interface type mismatch")
 
 var (
-	errVMIsoInvalid  = errors.New("iso id not specified or invalid")
-	errVMIsoNotFound = errors.New("iso not found")
-)
-
-var (
 	errVMComInvalid   = errors.New("invalid com port number")
 	errVMComDevNotSet = errors.New("com port enabled but comDev not set")
 )

@@ -1,10 +1,12 @@
 package requests
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -76,4 +78,17 @@ func DBAutoMigrate() {
 	if err != nil {
 		panic("failed to auto-migrate Requests")
 	}
+}
+
+func (req *Request) BeforeCreate(_ *gorm.DB) error {
+	if req.ID == "" {
+		newUUID, err := uuid.NewV7()
+		if err != nil {
+			return fmt.Errorf("error creating request: %w", err)
+		}
+
+		req.ID = newUUID.String()
+	}
+
+	return nil
 }

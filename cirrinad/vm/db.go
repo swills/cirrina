@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"fmt"
 	"log"
 	"log/slog"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"gorm.io/gorm/logger"
 
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/iso"
 )
 
 type singleton struct {
@@ -51,7 +53,6 @@ func GetVMDB() *gorm.DB {
 				PrepareStmt: true,
 			},
 		)
-		vmDB.Preload("Config")
 
 		if err != nil {
 			panic("failed to connect database")
@@ -188,7 +189,9 @@ func (vm *VM) SetDebugPort(port int) {
 }
 
 func (vm *VM) BeforeCreate(_ *gorm.DB) error {
-	vm.ID = uuid.NewString()
+	if vm.ID == "" {
+		vm.ID = uuid.NewString()
+	}
 
 	return nil
 }
@@ -211,18 +214,100 @@ func DBAutoMigrate() {
 func CacheInit() {
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
-	for _, vmInst := range GetAllDB() {
+
+	allVMs, err := GetAllDB()
+	if err != nil {
+		panic(err)
+	}
+
+	for _, vmInst := range allVMs {
 		initOneVM(vmInst)
 	}
 }
 
-func GetAllDB() []*VM {
+func getIsosForVM(vmID string, vmDB *gorm.DB) ([]iso.ISO, error) {
+	var returnISOs []iso.ISO
+
+	res := vmDB.Table("vm_isos").Select([]string{"vm_id", "iso_id", "position"}).
+		Where("vm_id LIKE ?", vmID).Order("position")
+
+	rows, rowErr := res.Rows()
+	if rowErr != nil {
+		slog.Error("error getting vm_isos rows", "rowErr", rowErr)
+
+		return returnISOs, fmt.Errorf("error getting VM ISOs: %w", rowErr)
+	}
+
+	err := rows.Err()
+	if err != nil {
+		slog.Error("error getting vm_isos rows", "err", err)
+
+		return returnISOs, fmt.Errorf("error getting VM ISOs: %w", rowErr)
+	}
+
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	for rows.Next() {
+		var vmISOsVMID string
+
+		var vmISOsIsoID string
+
+		var vmISOsPosition int
+
+		err = rows.Scan(&vmISOsVMID, &vmISOsIsoID, &vmISOsPosition)
+		if err != nil {
+			slog.Error("error scanning vm_isos", "err", err)
+
+			continue
+		}
+
+		slog.Debug("found a vm_iso",
+			"vmISOsVMID", vmISOsVMID,
+			"vmISOsIsoID", vmISOsIsoID,
+			"vmISOsPosition", vmISOsPosition,
+		)
+
+		var thisVMIso *iso.ISO
+
+		thisVMIso, err = iso.GetByID(vmISOsIsoID)
+		if err != nil {
+			slog.Error("error looking up VM ISO", "err", err)
+		}
+
+		returnISOs = append(returnISOs, *thisVMIso)
+	}
+
+	return returnISOs, nil
+}
+
+func GetAllDB() ([]*VM, error) {
 	var result []*VM
 
-	db := GetVMDB()
-	db.Preload("Config").Find(&result)
+	var err error
 
-	return result
+	vmDB := GetVMDB()
+
+	res := vmDB.Preload("Config").Find(&result)
+	if res.Error != nil {
+		slog.Error("error looking up VMs", "resErr", res.Error)
+
+		return result, res.Error
+	}
+
+	// manually load VM ISOs because GORM can't do what is needed in terms of allowing duplicates or
+	// preserving position
+	for _, vmResult := range result {
+		vmResult.ISOs, err = getIsosForVM(vmResult.ID, vmDB)
+		if err != nil {
+			slog.Error("failed getting isos for VM", "err", err)
+
+			return result, err
+		}
+	}
+
+	return result, nil
 }
 
 func DBInitialized() bool {

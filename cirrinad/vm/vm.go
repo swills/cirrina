@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/iso"
 	"cirrina/cirrinad/util"
 )
 
@@ -65,7 +66,6 @@ type Config struct {
 	Com4Dev          string `gorm:"default:AUTO"`
 	Com4Log          bool   `gorm:"default:False;check:com4_log IN(0,1)"`
 	ExtraArgs        string
-	ISOs             string
 	Disks            string
 	Com1Speed        uint32       `gorm:"default:115200;check:com1_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"` //nolint:lll
 	Com2Speed        uint32       `gorm:"default:115200;check:com2_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"` //nolint:lll
@@ -85,9 +85,11 @@ type Config struct {
 }
 
 type VM struct {
-	gorm.Model
 	ID          string `gorm:"uniqueIndex;not null;default:null"`
-	Name        string `gorm:"not null"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   gorm.DeletedAt `gorm:"index"`
+	Name        string         `gorm:"not null"`
 	Description string
 	Status      StatusType `gorm:"type:status_type"`
 	BhyvePid    uint32     `gorm:"check:bhyve_pid>=0"`
@@ -97,7 +99,8 @@ type VM struct {
 	mu          sync.RWMutex
 	log         slog.Logger
 	Config      Config
-	Com1Dev     string // TODO make a com struct and put these in it?
+	ISOs        []iso.ISO `gorm:"-:all"` // -- ignore this, we're doing it ourselves now
+	Com1Dev     string    // TODO make a com struct and put these in it?
 	Com2Dev     string
 	Com3Dev     string
 	Com4Dev     string
@@ -172,6 +175,7 @@ func Create(vmInst *VM) error {
 	return nil
 }
 
+//nolint:funlen
 func (vm *VM) Save() error {
 	vmDB := GetVMDB()
 
@@ -211,7 +215,6 @@ func (vm *VM) Save() error {
 			"com4":               &vm.Config.Com4,
 			"com4_dev":           &vm.Config.Com4Dev,
 			"extra_args":         &vm.Config.ExtraArgs,
-			"is_os":              &vm.Config.ISOs,
 			"disks":              &vm.Config.Disks,
 			"com1_log":           &vm.Config.Com1Log,
 			"com2_log":           &vm.Config.Com2Log,
@@ -267,6 +270,34 @@ func (vm *VM) Save() error {
 		slog.Error("error updating VM", "res", res)
 
 		return fmt.Errorf("error updating VM: %w", res.Error)
+	}
+
+	// delete all isos from VM
+	res = vmDB.Exec("DELETE FROM `vm_isos` WHERE `vm_id` = ?", vm.ID)
+	if res.Error != nil {
+		slog.Error("error updating VM", "res.Error", res.Error)
+
+		return fmt.Errorf("error updating VM: %w", res.Error)
+	}
+
+	// add all new isos to vm
+	err := vmDB.Transaction(func(tx *gorm.DB) error {
+		for i, vmISO := range vm.ISOs {
+			// N.B.: must use tx here, not vmDB
+			res = tx.Exec("INSERT INTO `vm_isos` (`vm_id`,`iso_id`, `position`) VALUES (?,?,?)", vm.ID, vmISO.ID, i)
+			if res.Error != nil || res.RowsAffected != 1 {
+				slog.Error("error adding to vm_isos", "res.Error", res.Error)
+
+				return fmt.Errorf("error updating VM: %w", res.Error)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		slog.Error("error updating VM", "err", err)
+
+		return fmt.Errorf("error updating VM: %w", err)
 	}
 
 	return nil

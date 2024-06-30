@@ -624,7 +624,14 @@ func ValidateDBConfig() {
 		}
 	}
 
-	dbDir := filepath.Dir(config.Config.DB.Path)
+	dbDir := filepath.Dir(dbFilePath)
+
+	_, err = os.Stat(dbDir)
+	if err != nil {
+		slog.Error("database path does not exist")
+		os.Exit(1)
+	}
+
 	if unix.Access(dbDir, unix.W_OK) != nil {
 		errM := fmt.Sprintf("db dir %s not writable", dbDir)
 		slog.Error(errM)

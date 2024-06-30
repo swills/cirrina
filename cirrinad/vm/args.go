@@ -14,7 +14,6 @@ import (
 
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
-	"cirrina/cirrinad/iso"
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vmnic"
@@ -48,30 +47,17 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 
 	maxSataDevs := 32 - slot - 1
 	devCount := 0
-	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 
-	isoList := strings.Split(vm.Config.ISOs, ",")
-	for _, isoItem := range isoList {
-		if isoItem == "" {
-			continue
+	for _, isoItem := range vm.ISOs {
+		if isoItem.Path == "" {
+			slog.Error("empty iso path, correcting", "iso", isoItem.Name, "id", isoItem.ID, "path", isoItem.Path)
+			isoItem.Path = config.Config.Disk.VM.Path.Iso + string(os.PathSeparator) + isoItem.Name
 		}
 
-		thisIso, err := iso.GetByID(isoItem)
-		if err != nil {
-			slog.Error("error getting ISO", "isoItem", isoItem, "err", err)
-
-			return []string{}, slot
-		}
-
-		if thisIso.Path == "" {
-			slog.Error("empty iso path, correcting", "iso", thisIso.Name, "id", thisIso.ID, "path", thisIso.Path)
-			thisIso.Path = config.Config.Disk.VM.Path.Iso + string(os.PathSeparator) + thisIso.Name
-		}
-
-		slog.Debug("getCDArg", "name", thisIso.Name, "id", thisIso.ID, "path", thisIso.Path)
+		slog.Debug("getCDArg", "name", isoItem.Name, "id", isoItem.ID, "path", isoItem.Path)
 
 		if devCount <= maxSataDevs {
-			thisCd := []string{"-s", strconv.Itoa(slot) + ":0,ahci,cd:" + thisIso.Path}
+			thisCd := []string{"-s", strconv.Itoa(slot) + ":0,ahci,cd:" + isoItem.Path}
 			cdString = append(cdString, thisCd...)
 			devCount++
 			slot++

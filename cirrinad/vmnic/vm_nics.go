@@ -141,15 +141,15 @@ func GetAll() []*VMNic {
 	return result
 }
 
-func (d *VMNic) Delete() error {
+func (vmNic *VMNic) Delete() error {
 	nicDB := GetVMNicDB()
 
-	_, err := uuid.Parse(d.ID)
+	_, err := uuid.Parse(vmNic.ID)
 	if err != nil {
 		return ErrInvalidNic
 	}
 
-	res := nicDB.Limit(1).Unscoped().Delete(&d)
+	res := nicDB.Limit(1).Unscoped().Delete(&vmNic)
 	if res.RowsAffected != 1 {
 		slog.Error("error saving vmnic", "res", res)
 
@@ -159,10 +159,10 @@ func (d *VMNic) Delete() error {
 	return nil
 }
 
-func (d *VMNic) SetSwitch(switchid string) error {
-	d.SwitchID = switchid
+func (vmNic *VMNic) SetSwitch(switchID string) error {
+	vmNic.SwitchID = switchID
 
-	err := d.Save()
+	err := vmNic.Save()
 	if err != nil {
 		slog.Error("error saving VM nic", "err", err)
 
@@ -172,24 +172,24 @@ func (d *VMNic) SetSwitch(switchid string) error {
 	return nil
 }
 
-func (d *VMNic) Save() error {
+func (vmNic *VMNic) Save() error {
 	db := GetVMNicDB()
 
-	res := db.Model(&d).
+	res := db.Model(&vmNic).
 		Updates(map[string]interface{}{
-			"name":         &d.Name,
-			"description":  &d.Description,
-			"mac":          &d.Mac,
-			"net_dev":      &d.NetDev,
-			"net_type":     &d.NetType,
-			"net_dev_type": &d.NetDevType,
-			"switch_id":    &d.SwitchID,
-			"rate_limit":   &d.RateLimit,
-			"rate_in":      &d.RateIn,
-			"rate_out":     &d.RateOut,
-			"inst_bridge":  &d.InstBridge,
-			"inst_epair":   &d.InstEpair,
-			"config_id":    &d.ConfigID,
+			"name":         &vmNic.Name,
+			"description":  &vmNic.Description,
+			"mac":          &vmNic.Mac,
+			"net_dev":      &vmNic.NetDev,
+			"net_type":     &vmNic.NetType,
+			"net_dev_type": &vmNic.NetDevType,
+			"switch_id":    &vmNic.SwitchID,
+			"rate_limit":   &vmNic.RateLimit,
+			"rate_in":      &vmNic.RateIn,
+			"rate_out":     &vmNic.RateOut,
+			"inst_bridge":  &vmNic.InstBridge,
+			"inst_epair":   &vmNic.InstEpair,
+			"config_id":    &vmNic.ConfigID,
 		},
 		)
 
@@ -281,21 +281,21 @@ func ParseNetType(netType cirrina.NetType) (string, error) {
 }
 
 // validateNic validate and normalize new nic
-func validateNic(vmNicInst *VMNic) error {
-	if !util.ValidNicName(vmNicInst.Name) {
+func validateNic(vmNic *VMNic) error {
+	if !util.ValidNicName(vmNic.Name) {
 		return errInvalidNicName
 	}
 
-	if !nicTypeValid(vmNicInst.NetType) {
+	if !nicTypeValid(vmNic.NetType) {
 		return errInvalidNetType
 	}
 
-	if !nicDevTypeValid(vmNicInst.NetDevType) {
+	if !nicDevTypeValid(vmNic.NetDevType) {
 		return errInvalidNetDevType
 	}
 
-	if vmNicInst.Mac != "AUTO" {
-		newMac, err := net.ParseMAC(vmNicInst.Mac)
+	if vmNic.Mac != "AUTO" {
+		newMac, err := net.ParseMAC(vmNic.Mac)
 		if err != nil {
 			return errInvalidMac
 		}
@@ -305,7 +305,7 @@ func validateNic(vmNicInst *VMNic) error {
 			return errInvalidMac
 		}
 		// normalize MAC
-		vmNicInst.Mac = newMac.String()
+		vmNic.Mac = newMac.String()
 	}
 
 	return nil

@@ -312,7 +312,10 @@ var rootCmd = &cobra.Command{
 
 		// code after this uses the database
 		slog.Debug("Clean up starting")
-		cleanupSystem()
+		err = cleanupSystem()
+		if err != nil {
+			panic(err)
+		}
 		slog.Debug("Clean up complete")
 
 		slog.Debug("Creating bridges")

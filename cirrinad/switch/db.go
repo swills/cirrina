@@ -67,7 +67,9 @@ func getSwitchDB() *gorm.DB {
 }
 
 func (d *Switch) BeforeCreate(_ *gorm.DB) error {
-	d.ID = uuid.NewString()
+	if d.ID == "" {
+		d.ID = uuid.NewString()
+	}
 
 	return nil
 }

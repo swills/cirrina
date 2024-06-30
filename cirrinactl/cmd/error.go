@@ -9,8 +9,9 @@ var (
 )
 
 var (
-	errIsoEmptyName = errors.New("empty ISO name")
-	errIsoNotFound  = errors.New("ISO not found")
+	errIsoEmptyName   = errors.New("empty ISO name")
+	errIsoNotFound    = errors.New("ISO not found")
+	errIsoNotAttached = errors.New("ISO not attached to VM")
 )
 
 var (

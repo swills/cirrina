@@ -13,19 +13,85 @@ import (
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/cirrinadtest"
+	"cirrina/cirrinad/iso"
 )
 
 func TestGetAllDB(t *testing.T) { //nolint:maintidx
 	createUpdateTime := time.Now()
 
 	tests := []struct {
-		name        string
-		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
-		want        []*VM
+		name           string
+		mockVMClosure  func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockISOClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		want           []*VM
+		wantErr        bool
 	}{
 		{
 			name: "testVMGetAllDB",
-			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+			mockISOClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{ // prevents parallel testing
+					ISODB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("c2c82cc7-7549-497b-8e21-1ac563aad239").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"c2c82cc7-7549-497b-8e21-1ac563aad239",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"someTest.iso",
+								"some description",
+								"/bhyve/isos/someTest.iso",
+								2094096384,
+								"259e034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3e3b630ba3", //nolint:lll
+							),
+					)
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("c6e1c826-42a6-4e12-a10f-80ee4845063c").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"c6e1c826-42a6-4e12-a10f-80ee4845063c",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"someTest2.iso",
+								"some description",
+								"/bhyve/isos/someTest2.iso",
+								4188192768,
+								"259f034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3e3b630ba3", //nolint:lll
+							),
+					)
+			},
+			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				instance = &singleton{ // prevents parallel testing
 					vmDB: testDB,
 				}
@@ -132,7 +198,6 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 							"com4_dev",
 							"com4_log",
 							"extra_args",
-							"is_os",
 							"disks",
 							"com1_speed",
 							"com2_speed",
@@ -194,7 +259,6 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 								0,
 								"AUTO",
 								0,
-								"",
 								"",
 								"7d588080-585d-489e-975c-0290fe1be2e0",
 								115200,
@@ -259,7 +323,6 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 							"AUTO",
 							0,
 							"",
-							"",
 							"8967e7a4-c0c6-4aee-8cfe-43e5d953ca71",
 							115200,
 							115200,
@@ -281,16 +344,26 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 							300,
 						),
 					)
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT vm_id,iso_id,position FROM `vm_isos` WHERE vm_id LIKE ? ORDER BY position"),
+				).
+					WithArgs("38d38177-2309-48a1-8076-0687caa803fb").
+					WillReturnRows(sqlmock.NewRows([]string{"vm_id", "iso_id", "position"}))
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT vm_id,iso_id,position FROM `vm_isos` WHERE vm_id LIKE ? ORDER BY position"),
+				).
+					WithArgs("263ca626-7e08-4534-8670-06339bcd2381").
+					WillReturnRows(sqlmock.NewRows([]string{"vm_id", "iso_id", "position"}).
+						AddRow("263ca626-7e08-4534-8670-06339bcd2381", "c2c82cc7-7549-497b-8e21-1ac563aad239", 0).
+						AddRow("263ca626-7e08-4534-8670-06339bcd2381", "c6e1c826-42a6-4e12-a10f-80ee4845063c", 1),
+					)
 			},
 			want: []*VM{
 				{
-					Model: gorm.Model{
-						ID:        0,
-						CreatedAt: createUpdateTime,
-						UpdatedAt: createUpdateTime,
-						DeletedAt: gorm.DeletedAt{},
-					},
 					ID:          "38d38177-2309-48a1-8076-0687caa803fb",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					DeletedAt:   gorm.DeletedAt{},
 					Name:        "test2023061001",
 					Description: "a test VM",
 					Status:      "STOPPED",
@@ -346,7 +419,6 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 						Com4Dev:          "AUTO",
 						Com4Log:          false,
 						ExtraArgs:        "",
-						ISOs:             "",
 						Disks:            "7d588080-585d-489e-975c-0290fe1be2e0",
 						Com1Speed:        115200,
 						Com2Speed:        115200,
@@ -367,6 +439,7 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 						Riops: 300,
 						Wiops: 300,
 					},
+					ISOs:      nil,
 					Com1Dev:   "",
 					Com2Dev:   "",
 					Com3Dev:   "",
@@ -389,13 +462,10 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 					Com4write: false,
 				},
 				{
-					Model: gorm.Model{
-						ID:        0,
-						CreatedAt: createUpdateTime,
-						UpdatedAt: createUpdateTime,
-						DeletedAt: gorm.DeletedAt{},
-					},
 					ID:          "263ca626-7e08-4534-8670-06339bcd2381",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					DeletedAt:   gorm.DeletedAt{},
 					Name:        "test2023061002",
 					Description: "another test VM",
 					Status:      "STOPPED",
@@ -454,7 +524,6 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 						Com4Dev:          "AUTO",
 						Com4Log:          false,
 						ExtraArgs:        "",
-						ISOs:             "",
 						Disks:            "8967e7a4-c0c6-4aee-8cfe-43e5d953ca71",
 						Com1Speed:        115200,
 						Com2Speed:        115200,
@@ -474,6 +543,36 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 						Wbps:  0,
 						Riops: 300,
 						Wiops: 300,
+					},
+					ISOs: []iso.ISO{
+						{
+							ID:        "c2c82cc7-7549-497b-8e21-1ac563aad239",
+							CreatedAt: createUpdateTime,
+							UpdatedAt: createUpdateTime,
+							DeletedAt: gorm.DeletedAt{
+								Time:  time.Time{},
+								Valid: false,
+							},
+							Name:        "someTest.iso",
+							Description: "some description",
+							Path:        "/bhyve/isos/someTest.iso",
+							Size:        2094096384,
+							Checksum:    "259e034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3e3b630ba3", //nolint:lll
+						},
+						{
+							ID:        "c6e1c826-42a6-4e12-a10f-80ee4845063c",
+							CreatedAt: createUpdateTime,
+							UpdatedAt: createUpdateTime,
+							DeletedAt: gorm.DeletedAt{
+								Time:  time.Time{},
+								Valid: false,
+							},
+							Name:        "someTest2.iso",
+							Description: "some description",
+							Path:        "/bhyve/isos/someTest2.iso",
+							Size:        4188192768,
+							Checksum:    "259f034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3e3b630ba3", //nolint:lll
+						},
 					},
 					Com1Dev:   "",
 					Com2Dev:   "",
@@ -499,22 +598,30 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 			},
 		},
 	}
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("diskTest")
-			testCase.mockClosure(testDB, mock)
+			isoTestDB, isoMock := cirrinadtest.NewMockDB("isoTest")
+			testCase.mockISOClosure(isoTestDB, isoMock)
 
-			got := GetAllDB()
+			vmTestDB, VMmock := cirrinadtest.NewMockDB("diskTest")
+			testCase.mockVMClosure(vmTestDB, VMmock)
+
+			got, err := GetAllDB()
+
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("CreateEpair() error = %v, wantErr %v", err, testCase.wantErr)
+			}
 
 			diff := deep.Equal(got, testCase.want)
 			if diff != nil {
 				t.Errorf("compare failed: %v", diff)
 			}
 
-			mock.ExpectClose()
+			VMmock.ExpectClose()
 
-			db, err := testDB.DB()
+			db, err := vmTestDB.DB()
 			if err != nil {
 				t.Error(err)
 			}
@@ -524,7 +631,7 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 				t.Error(err)
 			}
 
-			err = mock.ExpectationsWereMet()
+			err = VMmock.ExpectationsWereMet()
 			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}

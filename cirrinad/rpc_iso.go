@@ -293,14 +293,7 @@ func (s *server) RemoveISO(_ context.Context, isoID *cirrina.ISOID) (*cirrina.Re
 	for _, thisVM := range allVMs {
 		slog.Debug("vm checks", "vm", thisVM)
 
-		var thisVMISOs []iso.ISO
-
-		thisVMISOs, err = thisVM.GetISOs()
-		if err != nil {
-			return &res, fmt.Errorf("error getting VM ISOs: %w", err)
-		}
-
-		for _, vmISO := range thisVMISOs {
+		for _, vmISO := range thisVM.ISOs {
 			if vmISO.ID == isoUUID.String() {
 				slog.Error("RemoveISO",
 					"msg", "tried to remove ISO in use by VM",

@@ -43,6 +43,8 @@ var (
 	errIsoUploadSize     = errors.New("iso upload size incorrect")
 	errIsoUploadChecksum = errors.New("iso upload checksum incorrect")
 	errIsoInUse          = errors.New("ISO in use")
+	errISOInternalDB     = errors.New("internal ISO database error")
+	errIsoNotFound       = errors.New("ISO not found")
 )
 
 var (
@@ -77,8 +79,6 @@ var (
 	errSTDOUTMismatch      = errors.New("stdout prefix mismatch running command")
 	errExitCodeMismatch    = errors.New("exitCode mismatch running command")
 )
-
-var errISOInternalDB = errors.New("internal ISO database error")
 
 var (
 	errVMDupe    = errors.New("VM already exists")

@@ -172,10 +172,18 @@ var VMIsosRmCmd = &cobra.Command{
 		}
 
 		var newIsoIDs []string
+		var deleted bool
+
 		for _, id := range isoIDs {
-			if id != IsoID {
+			if !deleted && id == IsoID {
+				deleted = true
+			} else {
 				newIsoIDs = append(newIsoIDs, id)
 			}
+		}
+
+		if !deleted {
+			return errIsoNotAttached
 		}
 
 		var res bool

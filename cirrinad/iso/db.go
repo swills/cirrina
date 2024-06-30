@@ -14,15 +14,15 @@ import (
 	"cirrina/cirrinad/config"
 )
 
-type singleton struct {
-	isoDB *gorm.DB
+type Singleton struct {
+	ISODB *gorm.DB
 }
 
-var instance *singleton
+var Instance *Singleton
 
 var once sync.Once
 
-func getIsoDB() *gorm.DB {
+func GetIsoDB() *gorm.DB {
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "IsoDb: ", log.LstdFlags),
 		logger.Config{
@@ -35,11 +35,11 @@ func getIsoDB() *gorm.DB {
 
 	once.Do(func() {
 		// allow override for testing
-		if instance != nil {
+		if Instance != nil {
 			return
 		}
 
-		instance = &singleton{}
+		Instance = &Singleton{}
 
 		isoDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
@@ -60,23 +60,25 @@ func getIsoDB() *gorm.DB {
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
 
-		instance.isoDB = isoDB
+		Instance.ISODB = isoDB
 	})
 
-	return instance.isoDB
+	return Instance.ISODB
 }
 
 func (iso *ISO) BeforeCreate(_ *gorm.DB) error {
-	iso.ID = uuid.NewString()
+	if iso.ID == "" {
+		iso.ID = uuid.NewString()
+	}
 
 	return nil
 }
 
 func DBAutoMigrate() {
-	db := getIsoDB()
+	db := GetIsoDB()
 
 	err := db.AutoMigrate(&ISO{})
 	if err != nil {
-		panic("failed to auto-migrate ISO")
+		panic("failed to auto-migrate ISOs")
 	}
 }

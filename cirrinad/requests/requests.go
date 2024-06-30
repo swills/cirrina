@@ -55,21 +55,6 @@ type VMCloneReqData struct {
 	NewVMName string `json:"new_vm_name"`
 }
 
-func (req *Request) BeforeCreate(_ *gorm.DB) error {
-	var err error
-
-	var newUUID uuid.UUID
-
-	newUUID, err = uuid.NewV7()
-	if err != nil {
-		return fmt.Errorf("error creating request: %w", err)
-	}
-
-	req.ID = newUUID.String()
-
-	return nil
-}
-
 // CreateNicCloneReq creates a request to clone a NIC
 func CreateNicCloneReq(nicID string, newName string) (Request, error) {
 	var err error

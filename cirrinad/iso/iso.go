@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -13,9 +14,11 @@ import (
 )
 
 type ISO struct {
-	gorm.Model
 	ID          string `gorm:"uniqueIndex;not null;default:null"`
-	Name        string `gorm:"uniqueIndex;not null;default:null"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   gorm.DeletedAt `gorm:"index"`
+	Name        string         `gorm:"uniqueIndex;not null;default:null"`
 	Description string
 	Path        string `gorm:"not null;default:null"`
 	Size        uint64
@@ -58,7 +61,7 @@ func Create(isoInst *ISO) error {
 		return fmt.Errorf("error creating iso: %w", err)
 	}
 
-	db := getIsoDB()
+	db := GetIsoDB()
 
 	res := db.Create(&isoInst)
 	if res.Error != nil {
@@ -75,7 +78,7 @@ func Create(isoInst *ISO) error {
 func GetAll() []*ISO {
 	var result []*ISO
 
-	db := getIsoDB()
+	db := GetIsoDB()
 	db.Find(&result)
 
 	return result
@@ -84,7 +87,7 @@ func GetAll() []*ISO {
 func GetByID(id string) (*ISO, error) {
 	var result *ISO
 
-	db := getIsoDB()
+	db := GetIsoDB()
 
 	res := db.Limit(1).Find(&result, "id = ?", id)
 	if res.Error != nil {
@@ -101,7 +104,7 @@ func GetByID(id string) (*ISO, error) {
 func GetByName(name string) (*ISO, error) {
 	var result *ISO
 
-	db := getIsoDB()
+	db := GetIsoDB()
 
 	res := db.Limit(1).Find(&result, "name = ?", name)
 	if res.Error != nil {
@@ -116,7 +119,7 @@ func GetByName(name string) (*ISO, error) {
 }
 
 func (iso *ISO) Save() error {
-	db := getIsoDB()
+	db := GetIsoDB()
 
 	res := db.Model(&iso).
 		Updates(map[string]interface{}{
@@ -140,7 +143,7 @@ func Delete(isoID string) error {
 		return errIsoIDEmptyOrInvalid
 	}
 
-	isoDB := getIsoDB()
+	isoDB := GetIsoDB()
 
 	dIso, err := GetByID(isoID)
 	if err != nil {

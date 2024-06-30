@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"net"
 	"strconv"
@@ -15,9 +16,13 @@ import (
 	"cirrina/cirrinad/vm"
 )
 
-func cleanupVms() {
+func cleanupVms() error {
 	// deal with any leftover running VMs
-	vmList := vm.GetAllDB()
+	vmList, err := vm.GetAllDB()
+	if err != nil {
+		return fmt.Errorf("error cleaning VM: %w", err)
+	}
+
 	for _, aVM := range vmList {
 		vmmPath := "/dev/vmm/" + aVM.Name
 		slog.Debug("checking VM", "name", aVM.Name, "path", vmmPath)
@@ -26,7 +31,7 @@ func cleanupVms() {
 		if err != nil {
 			slog.Error("error checking VM", "err", err)
 
-			continue
+			return fmt.Errorf("error cleaning VM: %w", err)
 		}
 
 		if !exists {
@@ -58,6 +63,8 @@ func cleanupVms() {
 		aVM.MaybeForceKillVM()
 		aVM.SetStopped()
 	}
+
+	return nil
 }
 
 func killLeftoverVM(aVM *vm.VM) {
@@ -110,9 +117,13 @@ func killLeftoverVM(aVM *vm.VM) {
 	}
 }
 
-func cleanupNet() {
+func cleanupNet() error {
 	// clean up leftover VM nets and mark everything stopped
-	vmList := vm.GetAllDB()
+	vmList, err := vm.GetAllDB()
+	if err != nil {
+		return fmt.Errorf("error cleaning up net: %w", err)
+	}
+
 	for _, aVM := range vmList {
 		slog.Debug("cleaning up VM net(s)", "name", aVM.Name)
 		aVM.NetCleanup()
@@ -121,7 +132,7 @@ func cleanupNet() {
 	}
 
 	// destroy all the bridges we know about
-	err := _switch.DestroyBridges()
+	err = _switch.DestroyBridges()
 	if err != nil {
 		panic(err)
 	}
@@ -152,6 +163,8 @@ func cleanupNet() {
 			slog.Error("error running command", "stdOutBytes", stdOutBytes, "stdErrBytes", stdErrBytes, "rc", rc, "err", err)
 		}
 	}
+
+	return nil
 }
 
 func cleanupDB() {
@@ -173,8 +186,18 @@ func cleanupDB() {
 	}
 }
 
-func cleanupSystem() {
-	cleanupVms()
-	cleanupNet()
+func cleanupSystem() error {
+	err := cleanupVms()
+	if err != nil {
+		return err
+	}
+
+	err = cleanupNet()
+	if err != nil {
+		return err
+	}
+
 	cleanupDB()
+
+	return nil
 }

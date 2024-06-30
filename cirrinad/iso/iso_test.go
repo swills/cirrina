@@ -25,8 +25,8 @@ func TestGetAll(t *testing.T) {
 		{
 			name: "testGetAllIsos",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE `isos`.`deleted_at` IS NULL"),
@@ -70,13 +70,10 @@ func TestGetAll(t *testing.T) {
 			},
 			want: []*ISO{
 				{
-					Model: gorm.Model{
-						ID:        0,
-						CreatedAt: createUpdateTime,
-						UpdatedAt: createUpdateTime,
-						DeletedAt: gorm.DeletedAt{},
-					},
 					ID:          "0ecf2f76-d421-4de9-8c55-ee57e0d3b15c",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					DeletedAt:   gorm.DeletedAt{},
 					Name:        "FreeBSD-13.1-RELEASE-amd64-dvd1.iso",
 					Description: "some description",
 					Path:        "/bhyve/isos/FreeBSD-13.1-RELEASE-amd64-dvd1.iso",
@@ -84,13 +81,10 @@ func TestGetAll(t *testing.T) {
 					Checksum:    "326c7a07a393972d3fcd47deaa08e2b932d9298d96e9b4f63a17a2730f93384abc5feb1f511436dc91fcc8b6f56ed25b43dc91d9cdfc700d2655f7e35420d494", //nolint:lll
 				},
 				{
-					Model: gorm.Model{
-						ID:        0,
-						CreatedAt: createUpdateTime,
-						UpdatedAt: createUpdateTime,
-						DeletedAt: gorm.DeletedAt{},
-					},
 					ID:          "ac7d8dc2-df5e-4643-8f2c-9e9064094932",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					DeletedAt:   gorm.DeletedAt{},
 					Name:        "FreeBSD-13.1-RELEASE-amd64-disc1.iso",
 					Description: "some description",
 					Path:        "/bhyve/isos/FreeBSD-13.1-RELEASE-amd64-disc1.iso",
@@ -151,8 +145,8 @@ func TestGetByID(t *testing.T) {
 		{
 			name: "Success1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -185,11 +179,10 @@ func TestGetByID(t *testing.T) {
 			},
 			args: args{id: "ac7d8dc2-df5e-4643-8f2c-9e9064094932"},
 			want: &ISO{
-				Model: gorm.Model{
-					CreatedAt: createUpdateTime,
-					UpdatedAt: createUpdateTime,
-				},
 				ID:          "ac7d8dc2-df5e-4643-8f2c-9e9064094932",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				DeletedAt:   gorm.DeletedAt{},
 				Name:        "FreeBSD-13.1-RELEASE-amd64-disc1.iso",
 				Description: "some description",
 				Path:        "/bhyve/isos/FreeBSD-13.1-RELEASE-amd64-disc1.iso",
@@ -201,8 +194,8 @@ func TestGetByID(t *testing.T) {
 		{
 			name: "fail1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -229,8 +222,8 @@ func TestGetByID(t *testing.T) {
 		{
 			name: "fail2",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -333,8 +326,8 @@ func TestGetByName(t *testing.T) {
 		{
 			name: "success1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -367,11 +360,10 @@ func TestGetByName(t *testing.T) {
 			},
 			args: args{name: "FreeBSD-13.1-RELEASE-amd64-disc1.iso"},
 			want: &ISO{
-				Model: gorm.Model{
-					CreatedAt: createUpdateTime,
-					UpdatedAt: createUpdateTime,
-				},
 				ID:          "ac7d8dc2-df5e-4643-8f2c-9e9064094932",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				DeletedAt:   gorm.DeletedAt{},
 				Name:        "FreeBSD-13.1-RELEASE-amd64-disc1.iso",
 				Description: "some description",
 				Path:        "/bhyve/isos/FreeBSD-13.1-RELEASE-amd64-disc1.iso",
@@ -383,8 +375,8 @@ func TestGetByName(t *testing.T) {
 		{
 			name: "fail1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -398,8 +390,8 @@ func TestGetByName(t *testing.T) {
 		{
 			name: "fail2",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -483,8 +475,8 @@ func Test_isoExistsDB(t *testing.T) {
 			name: "fail1",
 			args: args{"someIso.iso"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -511,8 +503,8 @@ func Test_isoExistsDB(t *testing.T) {
 			name: "fail2",
 			args: args{"someIso.iso"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -526,8 +518,8 @@ func Test_isoExistsDB(t *testing.T) {
 			name: "success",
 			args: args{"FreeBSD-13.1-RELEASE-amd64-disc1.iso"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -728,8 +720,8 @@ func TestDelete(t *testing.T) {
 		{
 			name: "success1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -778,8 +770,8 @@ func TestDelete(t *testing.T) {
 		{
 			name: "fail2",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -792,8 +784,8 @@ func TestDelete(t *testing.T) {
 		{
 			name: "fail3",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -865,6 +857,8 @@ func TestDelete(t *testing.T) {
 }
 
 func TestISO_Save(t *testing.T) {
+	createUpdateTime := time.Now()
+
 	type fields struct {
 		Model       gorm.Model
 		ID          string
@@ -884,8 +878,8 @@ func TestISO_Save(t *testing.T) {
 		{
 			name: "success1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -918,8 +912,8 @@ func TestISO_Save(t *testing.T) {
 		{
 			name: "fail1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -958,8 +952,10 @@ func TestISO_Save(t *testing.T) {
 			testCase.mockClosure(testDB, mock)
 
 			iso := &ISO{
-				Model:       testCase.fields.Model,
 				ID:          testCase.fields.ID,
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				DeletedAt:   gorm.DeletedAt{},
 				Name:        testCase.fields.Name,
 				Description: testCase.fields.Description,
 				Path:        testCase.fields.Path,
@@ -1011,8 +1007,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "fail1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -1035,8 +1031,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "fail2",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -1083,8 +1079,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "fail3",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -1123,8 +1119,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "fail4",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -1163,8 +1159,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "fail5",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -1203,8 +1199,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "fail6",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -1222,13 +1218,14 @@ func TestCreate(t *testing.T) {
 								"path",
 								"size",
 								"checksum",
+								"config_id",
 							},
 						),
 					)
 				mock.ExpectBegin()
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
-						"INSERT INTO `isos` (`created_at`,`updated_at`,`deleted_at`,`description`,`size`,`checksum`,`id`,`name`,`path`) VALUES (?,?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`,`path`", //nolint:lll
+						"INSERT INTO `isos` (`created_at`,`updated_at`,`deleted_at`,`description`,`size`,`checksum`,`id`,`name`,`path`) VALUES (?,?,?,?,?,?,?,?,?) RETURNING `id`,`name`,`path`", //nolint:lll
 					),
 				).
 					WithArgs(
@@ -1262,8 +1259,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "fail7",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -1287,7 +1284,7 @@ func TestCreate(t *testing.T) {
 				mock.ExpectBegin()
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
-						"INSERT INTO `isos` (`created_at`,`updated_at`,`deleted_at`,`description`,`size`,`checksum`,`id`,`name`,`path`) VALUES (?,?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`,`path`", //nolint:lll
+						"INSERT INTO `isos` (`created_at`,`updated_at`,`deleted_at`,`description`,`size`,`checksum`,`id`,`name`,`path`) VALUES (?,?,?,?,?,?,?,?,?) RETURNING `id`,`name`,`path`", //nolint:lll
 					),
 				).
 					WithArgs(
@@ -1305,9 +1302,11 @@ func TestCreate(t *testing.T) {
 						sqlmock.NewRows(
 							[]string{
 								"id",
-								"id",
 								"name",
 								"path",
+								"size",
+								"checksum",
+								"config_id",
 							}),
 					)
 				mock.ExpectCommit()
@@ -1328,8 +1327,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "success1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					isoDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `isos` WHERE name = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
@@ -1347,12 +1346,13 @@ func TestCreate(t *testing.T) {
 								"path",
 								"size",
 								"checksum",
+								"config_id",
 							},
 						),
 					)
 				mock.ExpectBegin()
 				mock.ExpectQuery(
-					regexp.QuoteMeta("INSERT INTO `isos` (`created_at`,`updated_at`,`deleted_at`,`description`,`size`,`checksum`,`id`,`name`,`path`) VALUES (?,?,?,?,?,?,?,?,?) RETURNING `id`,`id`,`name`,`path`"), //nolint:lll
+					regexp.QuoteMeta("INSERT INTO `isos` (`created_at`,`updated_at`,`deleted_at`,`description`,`size`,`checksum`,`id`,`name`,`path`) VALUES (?,?,?,?,?,?,?,?,?) RETURNING `id`,`name`,`path`"), //nolint:lll
 				).
 					WithArgs(
 						sqlmock.AnyArg(),
@@ -1369,15 +1369,19 @@ func TestCreate(t *testing.T) {
 						sqlmock.NewRows(
 							[]string{
 								"id",
-								"id",
 								"name",
 								"path",
+								"size",
+								"checksum",
+								"config_id",
 							}).
 							AddRow(
 								"a24e5161-5800-4ed4-95cf-c774b9c5bbd6",
-								"a24e5161-5800-4ed4-95cf-c774b9c5bbd6",
 								"some.iso",
 								"/some/path/some.iso",
+								"1234",
+								"abc123",
+								"5ebdb5c0-262c-4c70-ad7a-1c48478d5b52",
 							),
 					)
 				mock.ExpectCommit()

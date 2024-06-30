@@ -1345,6 +1345,7 @@ func TestFailAllPending(t *testing.T) {
 			want: 1,
 		},
 	}
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
@@ -1413,6 +1414,7 @@ func TestDBInitialized(t *testing.T) {
 			want: false,
 		},
 	}
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {

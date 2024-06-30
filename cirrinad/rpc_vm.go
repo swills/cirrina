@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"cirrina/cirrina"
+	"cirrina/cirrinad/iso"
 	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm"
@@ -854,7 +855,24 @@ func (s *server) SetVMISOs(_ context.Context, setISOReq *cirrina.SetISOReq) (*ci
 		return &res, errNotFound
 	}
 
-	err = vmInst.AttachIsos(setISOReq.GetIsoid())
+	isoIDStrs := setISOReq.GetIsoid()
+
+	var isoIDs []iso.ISO
+
+	for _, i := range isoIDStrs {
+		var thisIso *iso.ISO
+
+		thisIso, err = iso.GetByID(i)
+		if err != nil {
+			slog.Error("error getting iso", "iso", thisIso, "err", err)
+
+			return &res, errIsoNotFound
+		}
+
+		isoIDs = append(isoIDs, *thisIso)
+	}
+
+	err = vmInst.AttachIsos(isoIDs)
 	if err != nil {
 		return &res, fmt.Errorf("error attaching ISO: %w", err)
 	}
@@ -945,14 +963,9 @@ func (s *server) GetVMISOs(vmID *cirrina.VMID, stream cirrina.VMInfo_GetVMISOsSe
 		return errNotFound
 	}
 
-	isos, err := vmInst.GetISOs()
-	if err != nil {
-		return fmt.Errorf("error getting ISOs: %w", err)
-	}
-
 	var isoID cirrina.ISOID
 
-	for _, e := range isos {
+	for _, e := range vmInst.ISOs {
 		isoID.Value = e.ID
 
 		err := stream.Send(&isoID)

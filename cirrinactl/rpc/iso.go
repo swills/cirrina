@@ -32,7 +32,7 @@ func AddIso(name string, descr string) (string, error) {
 func GetIsoIDs() ([]string, error) {
 	var err error
 
-	var VMIDs []string
+	var IsoIDs []string
 
 	var res cirrina.VMInfo_GetISOsClient
 
@@ -51,10 +51,10 @@ func GetIsoIDs() ([]string, error) {
 			return []string{}, fmt.Errorf("unable to get isos: %w", err)
 		}
 
-		VMIDs = append(VMIDs, VMID.GetValue())
+		IsoIDs = append(IsoIDs, VMID.GetValue())
 	}
 
-	return VMIDs, nil
+	return IsoIDs, nil
 }
 
 func RmIso(id string) error {
