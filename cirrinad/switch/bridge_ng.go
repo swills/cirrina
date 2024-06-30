@@ -89,23 +89,6 @@ func ngGetNodes() ([]NgNode, error) {
 	return ngNodes, nil
 }
 
-func GetAllNgBridges() ([]string, error) {
-	var bridges []string
-
-	netgraphNodes, err := ngGetNodes()
-	if err != nil {
-		return nil, err
-	}
-	// loop and check for type = bridge, add to list and return list
-	for _, node := range netgraphNodes {
-		if node.NodeType == "bridge" {
-			bridges = append(bridges, node.NodeName)
-		}
-	}
-
-	return bridges, nil
-}
-
 func getNgBridgeMembers(bridge string) ([]ngPeer, error) {
 	var err error
 
@@ -407,4 +390,21 @@ func bridgeNgRemoveUplink(bridgeName string, peerName string) error {
 	}
 
 	return nil
+}
+
+func GetAllNgBridges() ([]string, error) {
+	var bridges []string
+
+	netgraphNodes, err := ngGetNodes()
+	if err != nil {
+		return nil, err
+	}
+	// loop and check for type = bridge, add to list and return list
+	for _, node := range netgraphNodes {
+		if node.NodeType == "bridge" {
+			bridges = append(bridges, node.NodeName)
+		}
+	}
+
+	return bridges, nil
 }

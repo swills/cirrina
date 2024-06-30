@@ -162,6 +162,64 @@ func netStartupNg(vmNic vmnic.VMNic) error {
 	return nil
 }
 
+// cleanup tap/vmnet type nic
+func cleanupIfNic(vmNic vmnic.VMNic) error {
+	var stdOutBytes []byte
+
+	var stdErrBytes []byte
+
+	var returnCode int
+
+	var err error
+
+	if vmNic.NetDev != "" {
+		stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
+			config.Config.Sys.Sudo, []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"},
+		)
+		if err != nil {
+			slog.Error("failed to destroy network interface",
+				"stdOutBytes", stdOutBytes,
+				"stdErrBytes", stdErrBytes,
+				"returnCode", returnCode,
+				"err", err,
+			)
+		}
+	}
+
+	if vmNic.InstEpair != "" {
+		err = epair.DestroyEpair(vmNic.InstEpair)
+		if err != nil {
+			slog.Error("failed to destroy epair", "err", err)
+		}
+	}
+
+	if vmNic.InstBridge != "" {
+		err = vmswitch.DestroyIfBridge(vmNic.InstBridge, false)
+		if err != nil {
+			slog.Error("failed to destroy switch", "err", err)
+		}
+	}
+	// tap/vmnet nics may be connected to an epair which is connected
+	// to a netgraph pipe for purposes for rate limiting
+	if vmNic.InstEpair != "" {
+		err = epair.NgDestroyPipe(vmNic.InstEpair + "a")
+		if err != nil {
+			slog.Error("failed to ng pipe", "err", err)
+		}
+
+		err = epair.NgDestroyPipe(vmNic.InstEpair + "b")
+		if err != nil {
+			slog.Error("failed to ng pipe", "err", err)
+		}
+	}
+
+	if err != nil {
+		return fmt.Errorf("error cleaning up NIC: %w", err)
+	}
+
+	return nil
+}
+
 func (vm *VM) netStartup() error {
 	vmNicsList, err := vmnic.GetNics(vm.Config.ID)
 	if err != nil {
@@ -190,81 +248,6 @@ func (vm *VM) netStartup() error {
 			slog.Debug("unknown net type, can't set up")
 
 			return errVMUnknownNetDevType
-		}
-	}
-
-	return nil
-}
-
-// NetCleanup clean up all of a VMs nics
-func (vm *VM) NetCleanup() {
-	vmNicsList, err := vmnic.GetNics(vm.Config.ID)
-	if err != nil {
-		slog.Error("failed to get nics", "err", err)
-
-		return
-	}
-
-	for _, vmNic := range vmNicsList {
-		switch {
-		case vmNic.NetDevType == "TAP" || vmNic.NetDevType == "VMNET":
-			err = cleanupIfNic(vmNic)
-			if err != nil {
-				slog.Error("error cleaning up nic", "vmNic", vmNic, "err", err)
-			}
-		case vmNic.NetDevType == "NETGRAPH":
-			// nothing to do for netgraph
-		default:
-			slog.Error("unknown net type, can't clean up")
-		}
-
-		vmNic.NetDev = ""
-		vmNic.InstEpair = ""
-		vmNic.InstBridge = ""
-		err = vmNic.Save()
-
-		if err != nil {
-			slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
-		}
-	}
-}
-
-// SetNics sets the list of nics attached to a VM to the list passed in
-func (vm *VM) SetNics(nicIDs []string) error {
-	defer vm.mu.Unlock()
-	vm.mu.Lock()
-	if vm.Status != STOPPED {
-		return errVMNotStopped
-	}
-
-	// remove all nics from VM
-	err := vm.removeAllNicsFromVM()
-	if err != nil {
-		return err
-	}
-
-	// check that these nics can be attached to this VM
-	err = vm.validateNics(nicIDs)
-	if err != nil {
-		return err
-	}
-
-	// add the nics
-	for _, nicID := range nicIDs {
-		vmNic, err := vmnic.GetByID(nicID)
-		if err != nil {
-			slog.Error("error looking up nic", "err", err)
-
-			return fmt.Errorf("error getting NIC: %w", err)
-		}
-
-		vmNic.ConfigID = vm.Config.ID
-
-		err = vmNic.Save()
-		if err != nil {
-			slog.Error("error saving NIC", "err", err)
-
-			return fmt.Errorf("error saving NIC: %w", err)
 		}
 	}
 
@@ -359,59 +342,76 @@ func (vm *VM) removeAllNicsFromVM() error {
 	return nil
 }
 
-// cleanup tap/vmnet type nic
-func cleanupIfNic(vmNic vmnic.VMNic) error {
-	var stdOutBytes []byte
-
-	var stdErrBytes []byte
-
-	var returnCode int
-
-	var err error
-
-	if vmNic.NetDev != "" {
-		stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
-			config.Config.Sys.Sudo, []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"},
-		)
-		if err != nil {
-			slog.Error("failed to destroy network interface",
-				"stdOutBytes", stdOutBytes,
-				"stdErrBytes", stdErrBytes,
-				"returnCode", returnCode,
-				"err", err,
-			)
-		}
-	}
-
-	if vmNic.InstEpair != "" {
-		err = epair.DestroyEpair(vmNic.InstEpair)
-		if err != nil {
-			slog.Error("failed to destroy epair", "err", err)
-		}
-	}
-
-	if vmNic.InstBridge != "" {
-		err = vmswitch.DestroyIfBridge(vmNic.InstBridge, false)
-		if err != nil {
-			slog.Error("failed to destroy switch", "err", err)
-		}
-	}
-	// tap/vmnet nics may be connected to an epair which is connected
-	// to a netgraph pipe for purposes for rate limiting
-	if vmNic.InstEpair != "" {
-		err = epair.NgDestroyPipe(vmNic.InstEpair + "a")
-		if err != nil {
-			slog.Error("failed to ng pipe", "err", err)
-		}
-
-		err = epair.NgDestroyPipe(vmNic.InstEpair + "b")
-		if err != nil {
-			slog.Error("failed to ng pipe", "err", err)
-		}
-	}
-
+// NetCleanup clean up all of a VMs nics
+func (vm *VM) NetCleanup() {
+	vmNicsList, err := vmnic.GetNics(vm.Config.ID)
 	if err != nil {
-		return fmt.Errorf("error cleaning up NIC: %w", err)
+		slog.Error("failed to get nics", "err", err)
+
+		return
+	}
+
+	for _, vmNic := range vmNicsList {
+		switch {
+		case vmNic.NetDevType == "TAP" || vmNic.NetDevType == "VMNET":
+			err = cleanupIfNic(vmNic)
+			if err != nil {
+				slog.Error("error cleaning up nic", "vmNic", vmNic, "err", err)
+			}
+		case vmNic.NetDevType == "NETGRAPH":
+			// nothing to do for netgraph
+		default:
+			slog.Error("unknown net type, can't clean up")
+		}
+
+		vmNic.NetDev = ""
+		vmNic.InstEpair = ""
+		vmNic.InstBridge = ""
+		err = vmNic.Save()
+
+		if err != nil {
+			slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+		}
+	}
+}
+
+// SetNics sets the list of nics attached to a VM to the list passed in
+func (vm *VM) SetNics(nicIDs []string) error {
+	defer vm.mu.Unlock()
+	vm.mu.Lock()
+	if vm.Status != STOPPED {
+		return errVMNotStopped
+	}
+
+	// remove all nics from VM
+	err := vm.removeAllNicsFromVM()
+	if err != nil {
+		return err
+	}
+
+	// check that these nics can be attached to this VM
+	err = vm.validateNics(nicIDs)
+	if err != nil {
+		return err
+	}
+
+	// add the nics
+	for _, nicID := range nicIDs {
+		vmNic, err := vmnic.GetByID(nicID)
+		if err != nil {
+			slog.Error("error looking up nic", "err", err)
+
+			return fmt.Errorf("error getting NIC: %w", err)
+		}
+
+		vmNic.ConfigID = vm.Config.ID
+
+		err = vmNic.Save()
+		if err != nil {
+			slog.Error("error saving NIC", "err", err)
+
+			return fmt.Errorf("error saving NIC: %w", err)
+		}
 	}
 
 	return nil

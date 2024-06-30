@@ -55,6 +55,22 @@ type VMCloneReqData struct {
 	NewVMName string `json:"new_vm_name"`
 }
 
+// validVMReqType Check if Request type is valid for VMs
+func validVMReqType(aReqType reqType) bool {
+	switch aReqType {
+	case VMSTART:
+		return true
+	case VMSTOP:
+		return true
+	case VMDELETE:
+		return true
+	case NICCLONE:
+		return false
+	default:
+		return false
+	}
+}
+
 // CreateNicCloneReq creates a request to clone a NIC
 func CreateNicCloneReq(nicID string, newName string) (Request, error) {
 	var err error
@@ -93,22 +109,6 @@ func CreateNicCloneReq(nicID string, newName string) (Request, error) {
 	}
 
 	return newReq, nil
-}
-
-// validVMReqType Check if Request type is valid for VMs
-func validVMReqType(aReqType reqType) bool {
-	switch aReqType {
-	case VMSTART:
-		return true
-	case VMSTOP:
-		return true
-	case VMDELETE:
-		return true
-	case NICCLONE:
-		return false
-	default:
-		return false
-	}
 }
 
 // CreateVMReq create Request for a VM type operation only
@@ -181,36 +181,6 @@ func GetUnStarted() Request {
 	return rs
 }
 
-// Start marks a request as started
-func (req *Request) Start() {
-	db := GetReqDB()
-	req.StartedAt.Time = time.Now()
-	req.StartedAt.Valid = true
-	db.Model(&req).Limit(1).Updates(req)
-}
-
-// Succeeded marks a request as completed successfully
-func (req *Request) Succeeded() {
-	db := GetReqDB()
-	db.Model(&req).Limit(1).Updates(
-		Request{
-			Successful: true,
-			Complete:   true,
-		},
-	)
-}
-
-// Failed marks a request as having completed with failure
-func (req *Request) Failed() {
-	db := GetReqDB()
-	db.Model(&req).Limit(1).Updates(
-		Request{
-			Successful: false,
-			Complete:   true,
-		},
-	)
-}
-
 // PendingReqExists return pending request IDs for given object ID
 func PendingReqExists(objID string) []string {
 	var reqIDs []string
@@ -274,4 +244,34 @@ func DBInitialized() bool {
 	db := GetReqDB()
 
 	return db.Migrator().HasColumn(Request{}, "id")
+}
+
+// Start marks a request as started
+func (req *Request) Start() {
+	db := GetReqDB()
+	req.StartedAt.Time = time.Now()
+	req.StartedAt.Valid = true
+	db.Model(&req).Limit(1).Updates(req)
+}
+
+// Succeeded marks a request as completed successfully
+func (req *Request) Succeeded() {
+	db := GetReqDB()
+	db.Model(&req).Limit(1).Updates(
+		Request{
+			Successful: true,
+			Complete:   true,
+		},
+	)
+}
+
+// Failed marks a request as having completed with failure
+func (req *Request) Failed() {
+	db := GetReqDB()
+	db.Model(&req).Limit(1).Updates(
+		Request{
+			Successful: false,
+			Complete:   true,
+		},
+	)
 }

@@ -27,6 +27,47 @@ type ISO struct {
 
 var pathExistsFunc = util.PathExists
 
+func validateIso(isoInst *ISO) error {
+	if !util.ValidIsoName(isoInst.Name) {
+		return errIsoInvalidName
+	}
+
+	return nil
+}
+
+func isoExistsDB(isoName string) (bool, error) {
+	var err error
+
+	_, err = GetByName(isoName)
+
+	if err != nil {
+		if !errors.Is(err, errIsoNotFound) {
+			slog.Error("error checking db for iso", "name", isoName, "err", err)
+
+			return true, err // fail safe
+		}
+
+		return false, nil
+	}
+
+	return true, nil
+}
+
+func isoExistsFS(name string) (bool, error) {
+	isoPathExists, err := pathExistsFunc(name)
+	if err != nil {
+		slog.Error("error checking if iso exists", "name", name, "err", err)
+
+		return true, fmt.Errorf("error checking if iso exists: %w", err)
+	}
+
+	if isoPathExists {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func Create(isoInst *ISO) error {
 	// check DB
 	exists, err := isoExistsDB(isoInst.Name)
@@ -118,26 +159,6 @@ func GetByName(name string) (*ISO, error) {
 	return result, nil
 }
 
-func (iso *ISO) Save() error {
-	db := GetIsoDB()
-
-	res := db.Model(&iso).
-		Updates(map[string]interface{}{
-			"name":        &iso.Name,
-			"description": &iso.Description,
-			"path":        &iso.Path,
-			"size":        &iso.Size,
-			"checksum":    &iso.Checksum,
-		},
-		)
-
-	if res.Error != nil {
-		return errIsoInternalDB
-	}
-
-	return nil
-}
-
 func Delete(isoID string) error {
 	if isoID == "" {
 		return errIsoIDEmptyOrInvalid
@@ -160,9 +181,21 @@ func Delete(isoID string) error {
 	return nil
 }
 
-func validateIso(isoInst *ISO) error {
-	if !util.ValidIsoName(isoInst.Name) {
-		return errIsoInvalidName
+func (iso *ISO) Save() error {
+	db := GetIsoDB()
+
+	res := db.Model(&iso).
+		Updates(map[string]interface{}{
+			"name":        &iso.Name,
+			"description": &iso.Description,
+			"path":        &iso.Path,
+			"size":        &iso.Size,
+			"checksum":    &iso.Checksum,
+		},
+		)
+
+	if res.Error != nil {
+		return errIsoInternalDB
 	}
 
 	return nil
@@ -170,37 +203,4 @@ func validateIso(isoInst *ISO) error {
 
 func (iso *ISO) GetPath() string {
 	return filepath.Join(config.Config.Disk.VM.Path.Iso, iso.Name)
-}
-
-func isoExistsDB(isoName string) (bool, error) {
-	var err error
-
-	_, err = GetByName(isoName)
-
-	if err != nil {
-		if !errors.Is(err, errIsoNotFound) {
-			slog.Error("error checking db for iso", "name", isoName, "err", err)
-
-			return true, err // fail safe
-		}
-
-		return false, nil
-	}
-
-	return true, nil
-}
-
-func isoExistsFS(name string) (bool, error) {
-	isoPathExists, err := pathExistsFunc(name)
-	if err != nil {
-		slog.Error("error checking if iso exists", "name", name, "err", err)
-
-		return true, fmt.Errorf("error checking if iso exists: %w", err)
-	}
-
-	if isoPathExists {
-		return true, nil
-	}
-
-	return false, nil
 }

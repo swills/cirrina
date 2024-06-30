@@ -10,40 +10,6 @@ import (
 	"cirrina/cirrinad/util"
 )
 
-func GetAllIfBridges() ([]string, error) {
-	var err error
-
-	var bridges []string
-
-	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd("/sbin/ifconfig", []string{"-g", "bridge"})
-	if err != nil {
-		slog.Error("ifconfig error",
-			"stdOutBytes", stdOutBytes,
-			"stdErrBytes", stdErrBytes,
-			"returnCode", returnCode,
-			"err", err,
-		)
-
-		return nil, fmt.Errorf("ifconfig error: %w", err)
-	}
-
-	for _, line := range strings.Split(string(stdOutBytes), "\n") {
-		if len(line) == 0 {
-			continue
-		}
-
-		textFields := strings.Fields(line)
-		if len(textFields) != 1 {
-			continue
-		}
-
-		aBridgeName := textFields[0]
-		bridges = append(bridges, aBridgeName)
-	}
-
-	return bridges, nil
-}
-
 func getIfBridgeMembers(name string) ([]string, error) {
 	var members []string
 
@@ -169,6 +135,40 @@ func bridgeIfDeleteMember(bridgeName string, memberName string) error {
 	}
 
 	return nil
+}
+
+func GetAllIfBridges() ([]string, error) {
+	var err error
+
+	var bridges []string
+
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd("/sbin/ifconfig", []string{"-g", "bridge"})
+	if err != nil {
+		slog.Error("ifconfig error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return nil, fmt.Errorf("ifconfig error: %w", err)
+	}
+
+	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+		if len(line) == 0 {
+			continue
+		}
+
+		textFields := strings.Fields(line)
+		if len(textFields) != 1 {
+			continue
+		}
+
+		aBridgeName := textFields[0]
+		bridges = append(bridges, aBridgeName)
+	}
+
+	return bridges, nil
 }
 
 func CreateIfBridgeWithMembers(bridgeName string, bridgeMembers []string) error {

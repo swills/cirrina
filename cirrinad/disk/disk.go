@@ -34,6 +34,15 @@ type ListType struct {
 	DiskList map[string]*Disk
 }
 
+type InfoServicer interface {
+	GetSize(name string) (uint64, error)
+	GetUsage(name string) (uint64, error)
+	SetSize(name string, newSize uint64) error
+	Exists(name string) (bool, error)
+	Create(name string, size uint64) error
+	GetAll() ([]string, error)
+}
+
 var List = &ListType{
 	DiskList: make(map[string]*Disk),
 }
@@ -46,13 +55,82 @@ var FileInfoFetcherImpl FileInfoFetcher = FileInfoCmds{}
 var ZfsInfoFetcherImpl ZfsVolInfoFetcher = ZfsVolInfoCmds{}
 var GetByNameFunc = GetByName
 
-type InfoServicer interface {
-	GetSize(name string) (uint64, error)
-	GetUsage(name string) (uint64, error)
-	SetSize(name string, newSize uint64) error
-	Exists(name string) (bool, error)
-	Create(name string, size uint64) error
-	GetAll() ([]string, error)
+func diskDevTypeValid(diskDevType string) bool {
+	switch diskDevType {
+	case "FILE":
+		return true
+	case "ZVOL":
+		return true
+	default:
+		return false
+	}
+}
+
+func diskTypeValid(diskType string) bool {
+	// check disk type
+	switch diskType {
+	case "NVME":
+		return true
+	case "AHCI-HD":
+		return true
+	case "VIRTIO-BLK":
+		return true
+	default:
+		return false
+	}
+}
+
+func validateDisk(diskInst *Disk) error {
+	if !util.ValidDiskName(diskInst.Name) {
+		return errDiskInvalidName
+	}
+
+	if !diskTypeValid(diskInst.Type) {
+		return errDiskInvalidType
+	}
+
+	if !diskDevTypeValid(diskInst.DevType) {
+		return errDiskInvalidDevType
+	}
+
+	if diskInst.DevType == "ZVOL" && config.Config.Disk.VM.Path.Zpool == "" {
+		return errDiskZPoolNotConfigured
+	}
+
+	return nil
+}
+
+// diskExistsCacheDB checks if a disk exists in the in-memory cache or in the database
+func diskExistsCacheDB(diskInst *Disk) (bool, error) {
+	var err error
+
+	// check in memory cache for disk
+	memDiskInst, err := GetByNameFunc(diskInst.Name)
+
+	if err != nil {
+		// if errDiskNotFound, check other places just to be sure
+		// if not errDiskNotFound, there must be some internal issue, play it safe
+		if !errors.Is(err, errDiskNotFound) {
+			slog.Error("error checking db for disk", "name", diskInst.Name, "err", err)
+
+			// assume disks exists if there's an error checking to be on safe side
+			return true, err
+		}
+	}
+
+	// check db for disk
+	if memDiskInst != nil && memDiskInst.Name != "" {
+		return true, nil
+	}
+
+	allDisks := GetAllDB()
+	for _, dbDiskInst := range allDisks {
+		if dbDiskInst.Name == diskInst.Name {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func Create(diskInst *Disk, size string) error {
@@ -133,34 +211,9 @@ func Create(diskInst *Disk, size string) error {
 
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
-	initOneDisk(diskInst)
+	diskInst.initOneDisk()
 
 	return nil
-}
-
-func diskDevTypeValid(diskDevType string) bool {
-	switch diskDevType {
-	case "FILE":
-		return true
-	case "ZVOL":
-		return true
-	default:
-		return false
-	}
-}
-
-func diskTypeValid(diskType string) bool {
-	// check disk type
-	switch diskType {
-	case "NVME":
-		return true
-	case "AHCI-HD":
-		return true
-	case "VIRTIO-BLK":
-		return true
-	default:
-		return false
-	}
 }
 
 func GetAllDB() []*Disk {
@@ -199,29 +252,6 @@ func GetByName(name string) (*Disk, error) {
 	return nil, errDiskNotFound
 }
 
-func (d *Disk) Save() error {
-	db := getDiskDB()
-
-	res := db.Model(&d).
-		Updates(map[string]interface{}{
-			"name":        &d.Name,
-			"description": &d.Description,
-			"type":        &d.Type,
-			"dev_type":    &d.DevType,
-			"disk_cache":  &d.DiskCache,
-			"disk_direct": &d.DiskDirect,
-		},
-		)
-
-	if res.Error != nil {
-		slog.Error("error saving disk", "res", res)
-
-		return errDiskInternalDB
-	}
-
-	return nil
-}
-
 func Delete(diskID string) error {
 	if diskID == "" {
 		return errDiskIDEmptyOrInvalid
@@ -238,6 +268,29 @@ func Delete(diskID string) error {
 
 	res := db.Limit(1).Delete(&Disk{ID: diskID})
 	if res.RowsAffected != 1 {
+		slog.Error("error saving disk", "res", res)
+
+		return errDiskInternalDB
+	}
+
+	return nil
+}
+
+func (d *Disk) Save() error {
+	db := getDiskDB()
+
+	res := db.Model(&d).
+		Updates(map[string]interface{}{
+			"name":        &d.Name,
+			"description": &d.Description,
+			"type":        &d.Type,
+			"dev_type":    &d.DevType,
+			"disk_cache":  &d.DiskCache,
+			"disk_direct": &d.DiskDirect,
+		},
+		)
+
+	if res.Error != nil {
 		slog.Error("error saving disk", "res", res)
 
 		return errDiskInternalDB
@@ -294,59 +347,6 @@ func (d *Disk) Unlock() {
 
 // initOneDisk initializes and adds a Disk to the in memory cache of Disks
 // note, callers must lock the in memory cache via List.Mu.Lock()
-func initOneDisk(d *Disk) {
+func (d *Disk) initOneDisk() {
 	List.DiskList[d.ID] = d
-}
-
-func validateDisk(diskInst *Disk) error {
-	if !util.ValidDiskName(diskInst.Name) {
-		return errDiskInvalidName
-	}
-
-	if !diskTypeValid(diskInst.Type) {
-		return errDiskInvalidType
-	}
-
-	if !diskDevTypeValid(diskInst.DevType) {
-		return errDiskInvalidDevType
-	}
-
-	if diskInst.DevType == "ZVOL" && config.Config.Disk.VM.Path.Zpool == "" {
-		return errDiskZPoolNotConfigured
-	}
-
-	return nil
-}
-
-// diskExistsCacheDB checks if a disk exists in the in-memory cache or in the database
-func diskExistsCacheDB(diskInst *Disk) (bool, error) {
-	var err error
-
-	// check in memory cache for disk
-	memDiskInst, err := GetByNameFunc(diskInst.Name)
-
-	if err != nil {
-		// if errDiskNotFound, check other places just to be sure
-		// if not errDiskNotFound, there must be some internal issue, play it safe
-		if !errors.Is(err, errDiskNotFound) {
-			slog.Error("error checking db for disk", "name", diskInst.Name, "err", err)
-
-			// assume disks exists if there's an error checking to be on safe side
-			return true, err
-		}
-	}
-
-	// check db for disk
-	if memDiskInst != nil && memDiskInst.Name != "" {
-		return true, nil
-	}
-
-	allDisks := GetAllDB()
-	for _, dbDiskInst := range allDisks {
-		if dbDiskInst.Name == diskInst.Name {
-			return true, nil
-		}
-	}
-
-	return false, nil
 }

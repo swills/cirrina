@@ -66,16 +66,16 @@ func getSwitchDB() *gorm.DB {
 	return instance.switchDB
 }
 
-func (d *Switch) BeforeCreate(_ *gorm.DB) error {
-	if d.ID == "" {
-		d.ID = uuid.NewString()
+func (s *Switch) BeforeCreate(_ *gorm.DB) error {
+	if s.ID == "" {
+		s.ID = uuid.NewString()
 	}
 
 	return nil
 }
 
-func (d *Switch) AfterCreate(_ *gorm.DB) error {
-	return bringUpNewSwitch(d)
+func (s *Switch) AfterCreate(_ *gorm.DB) error {
+	return bringUpNewSwitch(s)
 }
 
 func DBAutoMigrate() {

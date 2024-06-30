@@ -34,6 +34,154 @@ var GetIntGroupsFunc = GetIntGroups
 var NetInterfacesFunc = net.Interfaces
 var osOpenFunc = os.Open
 
+func parseNetstatSocket(socket map[string]interface{}) (int, error) {
+	var portInt int
+
+	var err error
+
+	if socket["protocol"] != "tcp4" && socket["protocol"] != "tcp46" && socket["protocol"] != "tcp6" {
+		return 0, errNoTCPSocket
+	}
+
+	state, valid := socket["tcp-state"].(string)
+	if !valid {
+		return 0, errMissingTCPStat
+	}
+
+	realState := strings.TrimSpace(state)
+	if realState != "LISTEN" {
+		return 0, errNoListenPort
+	}
+
+	local, valid := socket["local"].(map[string]interface{})
+	if !valid {
+		return 0, errNoListenSocket
+	}
+
+	port, valid := local["port"]
+	if !valid {
+		return 0, errPortNotFound
+	}
+
+	p, valid := port.(string)
+	if !valid {
+		return 0, errPortNotParsable
+	}
+
+	portInt, err = strconv.Atoi(p)
+	if err != nil {
+		return 0, errInvalidPort
+	}
+
+	return portInt, nil
+}
+
+func parseNetstatJSONOutput(netstatOutput []byte) ([]int, error) {
+	var result map[string]interface{}
+
+	err := json.Unmarshal(netstatOutput, &result)
+	if err != nil {
+		return nil, fmt.Errorf("failed parsing netstat json output: %w", err)
+	}
+
+	statistics, valid := result["statistics"].(map[string]interface{})
+	if !valid {
+		return nil, errFailedParsing
+	}
+
+	sockets, valid := statistics["socket"].([]interface{})
+	if !valid {
+		return nil, errSocketNotFound
+	}
+
+	var localPortList []int
+
+	for _, value := range sockets {
+		socket, valid := value.(map[string]interface{})
+		if !valid {
+			continue
+		}
+
+		portInt, err := parseNetstatSocket(socket)
+		if err != nil {
+			continue
+		}
+
+		if !ContainsInt(localPortList, portInt) {
+			localPortList = append(localPortList, portInt)
+		}
+	}
+
+	return localPortList, nil
+}
+
+func parseDiskSizeSuffix(diskSize string) (string, uint64) {
+	var trimmedSize string
+
+	var multiplier uint64
+
+	switch {
+	case strings.HasSuffix(diskSize, "b"):
+		trimmedSize = strings.TrimSuffix(diskSize, "b")
+		multiplier = 1
+	case strings.HasSuffix(diskSize, "B"):
+		trimmedSize = strings.TrimSuffix(diskSize, "B")
+		multiplier = 1
+	case strings.HasSuffix(diskSize, "k"):
+		trimmedSize = strings.TrimSuffix(diskSize, "k")
+		multiplier = 1024
+	case strings.HasSuffix(diskSize, "K"):
+		trimmedSize = strings.TrimSuffix(diskSize, "K")
+		multiplier = 1024
+	case strings.HasSuffix(diskSize, "m"):
+		trimmedSize = strings.TrimSuffix(diskSize, "m")
+		multiplier = 1024 * 1024
+	case strings.HasSuffix(diskSize, "M"):
+		trimmedSize = strings.TrimSuffix(diskSize, "M")
+		multiplier = 1024 * 1024
+	case strings.HasSuffix(diskSize, "g"):
+		trimmedSize = strings.TrimSuffix(diskSize, "g")
+		multiplier = 1024 * 1024 * 1024
+	case strings.HasSuffix(diskSize, "G"):
+		trimmedSize = strings.TrimSuffix(diskSize, "G")
+		multiplier = 1024 * 1024 * 1024
+	case strings.HasSuffix(diskSize, "t"):
+		trimmedSize = strings.TrimSuffix(diskSize, "t")
+		multiplier = 1024 * 1024 * 1024 * 1024
+	case strings.HasSuffix(diskSize, "T"):
+		trimmedSize = strings.TrimSuffix(diskSize, "T")
+		multiplier = 1024 * 1024 * 1024 * 1024
+	default:
+		trimmedSize = diskSize
+		multiplier = 1
+	}
+
+	return trimmedSize, multiplier
+}
+
+func captureReader(ioReader io.Reader) ([]byte, error) {
+	var out []byte
+
+	buf := make([]byte, 1024)
+
+	for {
+		n, err := ioReader.Read(buf)
+		if n > 0 {
+			d := buf[:n]
+			out = append(out, d...)
+		}
+
+		if err != nil {
+			// Read returns io.EOF at the end of file, which is not an error for us
+			if err == io.EOF {
+				err = nil
+			}
+
+			return out, err
+		}
+	}
+}
+
 func PathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err != nil {
@@ -127,29 +275,6 @@ func ContainsInt(elems []int, v int) bool {
 	return false
 }
 
-func captureReader(ioReader io.Reader) ([]byte, error) {
-	var out []byte
-
-	buf := make([]byte, 1024)
-
-	for {
-		n, err := ioReader.Read(buf)
-		if n > 0 {
-			d := buf[:n]
-			out = append(out, d...)
-		}
-
-		if err != nil {
-			// Read returns io.EOF at the end of file, which is not an error for us
-			if err == io.EOF {
-				err = nil
-			}
-
-			return out, err
-		}
-	}
-}
-
 // RunCmd execute a system command and return stdout, stderr, return code and any internal errors
 // encountered running the command
 func RunCmd(cmdName string, cmdArgs []string) ([]byte, []byte, int, error) {
@@ -218,87 +343,6 @@ func RunCmd(cmdName string, cmdArgs []string) ([]byte, []byte, int, error) {
 	}
 
 	return outResult, errResult, returnCode, nil
-}
-
-func parseNetstatSocket(socket map[string]interface{}) (int, error) {
-	var portInt int
-
-	var err error
-
-	if socket["protocol"] != "tcp4" && socket["protocol"] != "tcp46" && socket["protocol"] != "tcp6" {
-		return 0, errNoTCPSocket
-	}
-
-	state, valid := socket["tcp-state"].(string)
-	if !valid {
-		return 0, errMissingTCPStat
-	}
-
-	realState := strings.TrimSpace(state)
-	if realState != "LISTEN" {
-		return 0, errNoListenPort
-	}
-
-	local, valid := socket["local"].(map[string]interface{})
-	if !valid {
-		return 0, errNoListenSocket
-	}
-
-	port, valid := local["port"]
-	if !valid {
-		return 0, errPortNotFound
-	}
-
-	p, valid := port.(string)
-	if !valid {
-		return 0, errPortNotParsable
-	}
-
-	portInt, err = strconv.Atoi(p)
-	if err != nil {
-		return 0, errInvalidPort
-	}
-
-	return portInt, nil
-}
-
-func parseNetstatJSONOutput(netstatOutput []byte) ([]int, error) {
-	var result map[string]interface{}
-
-	err := json.Unmarshal(netstatOutput, &result)
-	if err != nil {
-		return nil, fmt.Errorf("failed parsing netstat json output: %w", err)
-	}
-
-	statistics, valid := result["statistics"].(map[string]interface{})
-	if !valid {
-		return nil, errFailedParsing
-	}
-
-	sockets, valid := statistics["socket"].([]interface{})
-	if !valid {
-		return nil, errSocketNotFound
-	}
-
-	var localPortList []int
-
-	for _, value := range sockets {
-		socket, valid := value.(map[string]interface{})
-		if !valid {
-			continue
-		}
-
-		portInt, err := parseNetstatSocket(socket)
-		if err != nil {
-			continue
-		}
-
-		if !ContainsInt(localPortList, portInt) {
-			localPortList = append(localPortList, portInt)
-		}
-	}
-
-	return localPortList, nil
 }
 
 func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (int, error) {
@@ -663,50 +707,6 @@ func ParseDiskSize(diskSize string) (uint64, error) {
 	}
 
 	return finalSize, nil
-}
-
-func parseDiskSizeSuffix(diskSize string) (string, uint64) {
-	var trimmedSize string
-
-	var multiplier uint64
-
-	switch {
-	case strings.HasSuffix(diskSize, "b"):
-		trimmedSize = strings.TrimSuffix(diskSize, "b")
-		multiplier = 1
-	case strings.HasSuffix(diskSize, "B"):
-		trimmedSize = strings.TrimSuffix(diskSize, "B")
-		multiplier = 1
-	case strings.HasSuffix(diskSize, "k"):
-		trimmedSize = strings.TrimSuffix(diskSize, "k")
-		multiplier = 1024
-	case strings.HasSuffix(diskSize, "K"):
-		trimmedSize = strings.TrimSuffix(diskSize, "K")
-		multiplier = 1024
-	case strings.HasSuffix(diskSize, "m"):
-		trimmedSize = strings.TrimSuffix(diskSize, "m")
-		multiplier = 1024 * 1024
-	case strings.HasSuffix(diskSize, "M"):
-		trimmedSize = strings.TrimSuffix(diskSize, "M")
-		multiplier = 1024 * 1024
-	case strings.HasSuffix(diskSize, "g"):
-		trimmedSize = strings.TrimSuffix(diskSize, "g")
-		multiplier = 1024 * 1024 * 1024
-	case strings.HasSuffix(diskSize, "G"):
-		trimmedSize = strings.TrimSuffix(diskSize, "G")
-		multiplier = 1024 * 1024 * 1024
-	case strings.HasSuffix(diskSize, "t"):
-		trimmedSize = strings.TrimSuffix(diskSize, "t")
-		multiplier = 1024 * 1024 * 1024 * 1024
-	case strings.HasSuffix(diskSize, "T"):
-		trimmedSize = strings.TrimSuffix(diskSize, "T")
-		multiplier = 1024 * 1024 * 1024 * 1024
-	default:
-		trimmedSize = diskSize
-		multiplier = 1
-	}
-
-	return trimmedSize, multiplier
 }
 
 func GetHostMaxVMCpus() (uint16, error) {

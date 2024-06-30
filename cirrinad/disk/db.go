@@ -94,6 +94,6 @@ func CacheInit() {
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
 	for _, diskInst := range GetAllDB() {
-		initOneDisk(diskInst)
+		diskInst.initOneDisk()
 	}
 }
