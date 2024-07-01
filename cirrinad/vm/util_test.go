@@ -5,6 +5,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/go-test/deep"
+	"gorm.io/gorm"
+
 	"cirrina/cirrinad/cirrinadtest"
 	"cirrina/cirrinad/util"
 )
@@ -206,4 +209,78 @@ func Test_findProcNameBadJson(_ *testing.T) {
 	}
 
 	os.Exit(1)
+}
+
+//nolint:paralleltest
+func TestGetAll(t *testing.T) {
+	tests := []struct {
+		name        string
+		mockClosure func()
+		want        []*VM
+	}{
+		{
+			name: "Success1",
+			mockClosure: func() {
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+			},
+			want: nil,
+		},
+		{
+			name: "Success2",
+			mockClosure: func() {
+				testVM := VM{
+					ID:          "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+					Name:        "",
+					Description: "",
+					Status:      "",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 2,
+						},
+						VMID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM.ID] = &testVM
+			},
+			want: []*VM{
+				{
+					ID:          "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+					Name:        "",
+					Description: "",
+					Status:      "",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 2,
+						},
+						VMID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				},
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mockClosure()
+
+			got := GetAll()
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
 }

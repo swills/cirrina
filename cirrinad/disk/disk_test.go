@@ -528,8 +528,12 @@ func TestGetByName(t *testing.T) {
 			wantErr:     true,
 		},
 	}
+
 	for _, testCase := range tests {
+		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mockClosure()
+
 			got, err := GetByName(testCase.args.name)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("GetByName() error = %v, wantErr %v", err, testCase.wantErr)
