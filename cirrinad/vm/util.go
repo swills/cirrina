@@ -18,72 +18,6 @@ import (
 	"cirrina/cirrinad/vmnic"
 )
 
-func GetVMLogPath(logpath string) error {
-	var err error
-
-	var logPathExists bool
-
-	logPathExists, err = util.PathExists(logpath)
-	if err != nil {
-		return fmt.Errorf("error getting VM log path: %w", err)
-	}
-
-	if !logPathExists {
-		err = os.MkdirAll(logpath, 0o755)
-		if err != nil {
-			return fmt.Errorf("error getting VM log path: %w", err)
-		}
-	}
-
-	return nil
-}
-
-// initOneVM initializes and adds a VM to the in memory cache of VMs
-// note, callers must lock the in memory cache via List.Mu.Lock()
-func initOneVM(vmInst *VM) {
-	vmLogPath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name
-
-	err := GetVMLogPath(vmLogPath)
-	if err != nil {
-		panic(err)
-	}
-
-	vmLogFilePath := vmLogPath + "/log"
-
-	vmLogFile, err := os.OpenFile(vmLogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err != nil {
-		slog.Error("failed to open VM log file", "err", err)
-	}
-
-	programLevel := new(slog.LevelVar) // Info by default
-	vmLogger := slog.New(slog.NewTextHandler(vmLogFile, &slog.HandlerOptions{Level: programLevel}))
-
-	vmInst.log = *vmLogger
-
-	switch strings.ToLower(config.Config.Log.Level) {
-	case "debug":
-		programLevel.Set(slog.LevelDebug)
-	case "info":
-		programLevel.Set(slog.LevelInfo)
-	case "warn":
-		programLevel.Set(slog.LevelWarn)
-	case "error":
-		programLevel.Set(slog.LevelError)
-	default:
-		programLevel.Set(slog.LevelInfo)
-	}
-
-	List.VMList[vmInst.ID] = vmInst
-}
-
-func AutoStartVMs() {
-	for _, vmInst := range List.VMList {
-		if vmInst.Config.AutoStart {
-			go doAutostart(vmInst)
-		}
-	}
-}
-
 func doAutostart(vmInst *VM) {
 	slog.Debug(
 		"AutoStartVMs sleeping for auto start delay",
@@ -96,165 +30,6 @@ func doAutostart(vmInst *VM) {
 	if err != nil {
 		slog.Error("auto start failed", "vm", vmInst.ID, "name", vmInst.Name, "err", err)
 	}
-}
-
-func GetAll() []*VM {
-	var allVMs []*VM
-	for _, value := range List.VMList {
-		allVMs = append(allVMs, value)
-	}
-
-	return allVMs
-}
-
-func GetByName(name string) (*VM, error) {
-	defer List.Mu.RUnlock()
-	List.Mu.RLock()
-	for _, t := range List.VMList {
-		if t.Name == name {
-			return t, nil
-		}
-	}
-
-	return &VM{}, errVMNotFound
-}
-
-func GetByID(id string) (*VM, error) {
-	defer List.Mu.RUnlock()
-	List.Mu.RLock()
-
-	vmInst, valid := List.VMList[id]
-	if valid {
-		return vmInst, nil
-	}
-
-	return nil, errVMNotFound
-}
-
-func LogAllVMStatus() {
-	defer List.Mu.Unlock()
-	List.Mu.Lock()
-	for _, vmInst := range List.VMList {
-		if vmInst.Status != RUNNING {
-			slog.Info("vm",
-				"id", vmInst.ID,
-				"name", vmInst.Name,
-				"cpus", vmInst.Config.CPU,
-				"state", vmInst.Status,
-				"pid", nil,
-			)
-		} else {
-			if vmInst.proc == nil {
-				vmInst.SetStopped()
-				vmInst.MaybeForceKillVM()
-				slog.Info("vm",
-					"id", vmInst.ID,
-					"name", vmInst.Name,
-					"cpus", vmInst.Config.CPU,
-					"state", vmInst.Status,
-					"pid", nil,
-				)
-			} else {
-				slog.Info("vm",
-					"id", vmInst.ID,
-					"name", vmInst.Name,
-					"cpus", vmInst.Config.CPU,
-					"state", vmInst.Status,
-					"pid", vmInst.proc.Pid(),
-				)
-			}
-		}
-	}
-}
-
-func GetRunningVMs() int {
-	count := 0
-	defer List.Mu.RUnlock()
-	List.Mu.RLock()
-	for _, vmInst := range List.VMList {
-		if vmInst.Status != STOPPED {
-			count++
-		}
-	}
-
-	return count
-}
-
-func KillVMs() {
-	defer List.Mu.RUnlock()
-	List.Mu.RLock()
-	for _, vmInst := range List.VMList {
-		if vmInst.Status != STOPPED {
-			go func(aVmInst *VM) {
-				err := aVmInst.Stop()
-				if err != nil {
-					slog.Error("error stopping VM", "err", err)
-				}
-			}(vmInst)
-		}
-	}
-}
-
-func GetUsedVncPorts() []int {
-	var ret []int
-	defer List.Mu.RUnlock()
-	List.Mu.RLock()
-
-	// TODO -- this was initially meant to avoid two VMs using the same VNC port
-	// but want to allow that as long as they aren't running at the same time -- unfortunately, at this point,
-	// where we are starting the VM, it's too late to check and return an error and fail the startup request
-	// need to add a check in VM startup request processing to check that and return error
-	//
-	// right now, the behavior is to simply move to a different port
-	for _, vmInst := range List.VMList {
-		if vmInst.Status != STOPPED {
-			ret = append(ret, int(vmInst.VNCPort))
-		}
-	}
-
-	return ret
-}
-
-func GetUsedDebugPorts() []int {
-	var ret []int
-	defer List.Mu.RUnlock()
-	List.Mu.RLock()
-	for _, vmInst := range List.VMList {
-		if vmInst.Status != STOPPED {
-			ret = append(ret, int(vmInst.DebugPort))
-		}
-	}
-
-	return ret
-}
-
-func GetUsedNetPorts() []string {
-	var ret []string
-	defer List.Mu.RUnlock()
-	List.Mu.RLock()
-	for _, vmInst := range List.VMList {
-		vmNicsList, err := vmnic.GetNics(vmInst.Config.ID)
-		if err != nil {
-			slog.Error("GetUsedNetPorts failed to get nics", "err", err)
-		}
-
-		for _, vmNic := range vmNicsList {
-			ret = append(ret, vmNic.NetDev)
-		}
-	}
-
-	return ret
-}
-
-func IsNetPortUsed(netPort string) bool {
-	usedNetPorts := GetUsedNetPorts()
-	for _, port := range usedNetPorts {
-		if port == netPort {
-			return true
-		}
-	}
-
-	return false
 }
 
 func ensureComDevReadable(comDev string) error {
@@ -446,6 +221,106 @@ func findProcName(pid uint32) string {
 	return procName
 }
 
+func getUsedVncPorts() []int {
+	var ret []int
+	defer List.Mu.RUnlock()
+	List.Mu.RLock()
+
+	// TODO -- this was initially meant to avoid two VMs using the same VNC port
+	// but want to allow that as long as they aren't running at the same time -- unfortunately, at this point,
+	// where we are starting the VM, it's too late to check and return an error and fail the startup request
+	// need to add a check in VM startup request processing to check that and return error
+	//
+	// right now, the behavior is to simply move to a different port
+	for _, vmInst := range List.VMList {
+		if vmInst.Status != STOPPED {
+			ret = append(ret, int(vmInst.VNCPort))
+		}
+	}
+
+	return ret
+}
+
+func getUsedDebugPorts() []int {
+	var ret []int
+	defer List.Mu.RUnlock()
+	List.Mu.RLock()
+	for _, vmInst := range List.VMList {
+		if vmInst.Status != STOPPED {
+			ret = append(ret, int(vmInst.DebugPort))
+		}
+	}
+
+	return ret
+}
+
+func getUsedNetPorts() []string {
+	var ret []string
+	defer List.Mu.RUnlock()
+	List.Mu.RLock()
+	for _, vmInst := range List.VMList {
+		vmNicsList, err := vmnic.GetNics(vmInst.Config.ID)
+		if err != nil {
+			slog.Error("getUsedNetPorts failed to get nics", "err", err)
+		}
+
+		for _, vmNic := range vmNicsList {
+			ret = append(ret, vmNic.NetDev)
+		}
+	}
+
+	return ret
+}
+
+// initOneVM initializes and adds a VM to the in memory cache of VMs
+// note, callers must lock the in memory cache via List.Mu.Lock()
+func initOneVM(vmInst *VM) {
+	vmLogPath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name
+
+	err := GetVMLogPath(vmLogPath)
+	if err != nil {
+		panic(err)
+	}
+
+	vmLogFilePath := vmLogPath + "/log"
+
+	vmLogFile, err := os.OpenFile(vmLogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		slog.Error("failed to open VM log file", "err", err)
+	}
+
+	programLevel := new(slog.LevelVar) // Info by default
+	vmLogger := slog.New(slog.NewTextHandler(vmLogFile, &slog.HandlerOptions{Level: programLevel}))
+
+	vmInst.log = *vmLogger
+
+	switch strings.ToLower(config.Config.Log.Level) {
+	case "debug":
+		programLevel.Set(slog.LevelDebug)
+	case "info":
+		programLevel.Set(slog.LevelInfo)
+	case "warn":
+		programLevel.Set(slog.LevelWarn)
+	case "error":
+		programLevel.Set(slog.LevelError)
+	default:
+		programLevel.Set(slog.LevelInfo)
+	}
+
+	List.VMList[vmInst.ID] = vmInst
+}
+
+func isNetPortUsed(netPort string) bool {
+	usedNetPorts := getUsedNetPorts()
+	for _, port := range usedNetPorts {
+		if port == netPort {
+			return true
+		}
+	}
+
+	return false
+}
+
 func parsePsJSONOutput(psJSONOutput []byte) (string, error) {
 	var result map[string]interface{}
 
@@ -526,4 +401,129 @@ func startSerialPort(comDev string, comSpeed uint) (*serial.Port, error) {
 	slog.Debug("startSerialLogger", "opened", comReadDev)
 
 	return comReader, nil
+}
+
+func AutoStartVMs() {
+	for _, vmInst := range List.VMList {
+		if vmInst.Config.AutoStart {
+			go doAutostart(vmInst)
+		}
+	}
+}
+
+func GetAll() []*VM {
+	var allVMs []*VM
+	for _, value := range List.VMList {
+		allVMs = append(allVMs, value)
+	}
+
+	return allVMs
+}
+
+func GetByID(id string) (*VM, error) {
+	defer List.Mu.RUnlock()
+	List.Mu.RLock()
+
+	vmInst, valid := List.VMList[id]
+	if valid {
+		return vmInst, nil
+	}
+
+	return nil, errVMNotFound
+}
+
+func GetByName(name string) (*VM, error) {
+	defer List.Mu.RUnlock()
+	List.Mu.RLock()
+	for _, t := range List.VMList {
+		if t.Name == name {
+			return t, nil
+		}
+	}
+
+	return &VM{}, errVMNotFound
+}
+
+func GetRunningVMs() int {
+	count := 0
+	defer List.Mu.RUnlock()
+	List.Mu.RLock()
+	for _, vmInst := range List.VMList {
+		if vmInst.Status != STOPPED {
+			count++
+		}
+	}
+
+	return count
+}
+
+func GetVMLogPath(logpath string) error {
+	var err error
+
+	var logPathExists bool
+
+	logPathExists, err = util.PathExists(logpath)
+	if err != nil {
+		return fmt.Errorf("error getting VM log path: %w", err)
+	}
+
+	if !logPathExists {
+		err = os.MkdirAll(logpath, 0o755)
+		if err != nil {
+			return fmt.Errorf("error getting VM log path: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func LogAllVMStatus() {
+	defer List.Mu.Unlock()
+	List.Mu.Lock()
+	for _, vmInst := range List.VMList {
+		if vmInst.Status != RUNNING {
+			slog.Info("vm",
+				"id", vmInst.ID,
+				"name", vmInst.Name,
+				"cpus", vmInst.Config.CPU,
+				"state", vmInst.Status,
+				"pid", nil,
+			)
+		} else {
+			if vmInst.proc == nil {
+				vmInst.SetStopped()
+				vmInst.MaybeForceKillVM()
+				slog.Info("vm",
+					"id", vmInst.ID,
+					"name", vmInst.Name,
+					"cpus", vmInst.Config.CPU,
+					"state", vmInst.Status,
+					"pid", nil,
+				)
+			} else {
+				slog.Info("vm",
+					"id", vmInst.ID,
+					"name", vmInst.Name,
+					"cpus", vmInst.Config.CPU,
+					"state", vmInst.Status,
+					"pid", vmInst.proc.Pid(),
+				)
+			}
+		}
+	}
+}
+
+func KillVMs() {
+	defer List.Mu.RUnlock()
+	List.Mu.RLock()
+	for _, vmInst := range List.VMList {
+		if vmInst.Status != STOPPED {
+			go func(aVmInst *VM) {
+				err := aVmInst.Stop()
+				if err != nil {
+					slog.Error("error stopping VM", "err", err)
+				}
+			}(vmInst)
+		}
+	}
 }

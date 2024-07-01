@@ -278,7 +278,7 @@ func (vm *VM) getDebugArg() []string {
 	}
 
 	if vm.Config.DebugPort == "AUTO" {
-		usedDebugPorts := GetUsedDebugPorts()
+		usedDebugPorts := getUsedDebugPorts()
 
 		debugListenPortInt, err = util.GetFreeTCPPort(int(firstDebugPort), usedDebugPorts)
 		if err != nil {
@@ -395,7 +395,7 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 	var err error
 
 	if vm.Config.VNCPort == "AUTO" {
-		usedVncPorts := GetUsedVncPorts()
+		usedVncPorts := getUsedVncPorts()
 
 		vncListenPortInt, err = util.GetFreeTCPPort(int(firstVncPort), usedVncPorts)
 		if err != nil {
@@ -598,7 +598,7 @@ func GetTapDev() (string, string, error) {
 
 	for !freeTapDevFound {
 		tapDev = "tap" + strconv.Itoa(tapNum)
-		if !util.ContainsStr(netDevs, tapDev) && !IsNetPortUsed(tapDev) {
+		if !util.ContainsStr(netDevs, tapDev) && !isNetPortUsed(tapDev) {
 			freeTapDevFound = true
 		} else {
 			tapNum++
@@ -624,7 +624,7 @@ func GetVmnetDev() (string, string, error) {
 
 	for !freeVmnetDevFound {
 		vmnetDev = "vmnet" + strconv.Itoa(vmnetNum)
-		if !util.ContainsStr(netDevs, vmnetDev) && !IsNetPortUsed(vmnetDev) {
+		if !util.ContainsStr(netDevs, vmnetDev) && !isNetPortUsed(vmnetDev) {
 			freeVmnetDevFound = true
 		} else {
 			vmnetNum++
