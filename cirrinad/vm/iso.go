@@ -6,7 +6,7 @@ import (
 	"cirrina/cirrinad/iso"
 )
 
-func (vm *VM) AttachIsos(isos []iso.ISO) error {
+func (vm *VM) AttachIsos(isos []*iso.ISO) error {
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 

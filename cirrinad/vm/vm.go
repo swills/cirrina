@@ -99,8 +99,8 @@ type VM struct {
 	mu          sync.RWMutex
 	log         slog.Logger
 	Config      Config
-	ISOs        []iso.ISO `gorm:"-:all"` // -- ignore this, we're doing it ourselves now
-	Com1Dev     string    // TODO make a com struct and put these in it?
+	ISOs        []*iso.ISO `gorm:"-:all"` // -- ignore this, we're doing it ourselves now
+	Com1Dev     string     // TODO make a com struct and put these in it?
 	Com2Dev     string
 	Com3Dev     string
 	Com4Dev     string

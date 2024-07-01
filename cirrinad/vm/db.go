@@ -225,8 +225,8 @@ func CacheInit() {
 	}
 }
 
-func getIsosForVM(vmID string, vmDB *gorm.DB) ([]iso.ISO, error) {
-	var returnISOs []iso.ISO
+func getIsosForVM(vmID string, vmDB *gorm.DB) ([]*iso.ISO, error) {
+	var returnISOs []*iso.ISO
 
 	res := vmDB.Table("vm_isos").Select([]string{"vm_id", "iso_id", "position"}).
 		Where("vm_id LIKE ?", vmID).Order("position")
@@ -276,7 +276,7 @@ func getIsosForVM(vmID string, vmDB *gorm.DB) ([]iso.ISO, error) {
 			slog.Error("error looking up VM ISO", "err", err)
 		}
 
-		returnISOs = append(returnISOs, *thisVMIso)
+		returnISOs = append(returnISOs, thisVMIso)
 	}
 
 	return returnISOs, nil

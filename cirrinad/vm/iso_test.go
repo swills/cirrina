@@ -27,7 +27,7 @@ func TestVM_AttachIsos(t *testing.T) {
 		VNCPort     int32
 		DebugPort   int32
 		Config      Config
-		ISOs        []iso.ISO
+		ISOs        []*iso.ISO
 		Com1Dev     string
 		Com2Dev     string
 		Com3Dev     string
@@ -39,7 +39,7 @@ func TestVM_AttachIsos(t *testing.T) {
 	}
 
 	type args struct {
-		ISOs []iso.ISO
+		ISOs []*iso.ISO
 	}
 
 	tests := []struct {
@@ -179,7 +179,7 @@ func TestVM_AttachIsos(t *testing.T) {
 				Com3write: false,
 				Com4write: false,
 			},
-			args: args{ISOs: []iso.ISO{
+			args: args{ISOs: []*iso.ISO{
 				{
 					ID:        "6e37ef3f-7199-42de-8d2c-9d7001500acd",
 					CreatedAt: time.Time{},
@@ -332,7 +332,7 @@ func TestVM_AttachIsos(t *testing.T) {
 				Com3write: false,
 				Com4write: false,
 			},
-			args: args{ISOs: []iso.ISO{
+			args: args{ISOs: []*iso.ISO{
 				{
 					ID:        "6e37ef3f-7199-42de-8d2c-9d7001500acd",
 					CreatedAt: time.Time{},
@@ -458,7 +458,7 @@ func TestVM_AttachIsos(t *testing.T) {
 				Com3write: false,
 				Com4write: false,
 			},
-			args: args{ISOs: []iso.ISO{
+			args: args{ISOs: []*iso.ISO{
 				{
 					ID:        "6e37ef3f-7199-42de-8d2c-9d7001500acd",
 					CreatedAt: time.Time{},
@@ -583,7 +583,7 @@ func TestVM_AttachIsos(t *testing.T) {
 				Com3write: false,
 				Com4write: false,
 			},
-			args: args{ISOs: []iso.ISO{
+			args: args{ISOs: []*iso.ISO{
 				{
 					ID:        "6e37ef3f-7199-42de-8d2c-9d7001500acd",
 					CreatedAt: time.Time{},

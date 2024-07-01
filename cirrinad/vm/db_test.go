@@ -544,7 +544,7 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 						Riops: 300,
 						Wiops: 300,
 					},
-					ISOs: []iso.ISO{
+					ISOs: []*iso.ISO{
 						{
 							ID:        "c2c82cc7-7549-497b-8e21-1ac563aad239",
 							CreatedAt: createUpdateTime,
