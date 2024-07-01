@@ -69,7 +69,7 @@ func NewFileInfoService(impl FileInfoFetcher) FileInfoService {
 	return d
 }
 
-func (osFS) Open(name string) (MyFile, error) { return os.Open(name) } //nolint:wrapcheck,ireturn
+func (osFS) Open(name string) (MyFile, error) { return os.Open(name) } //nolint:wrapcheck
 
 func (osFS) Stat(name string) (os.FileInfo, error) { return os.Stat(name) } //nolint:wrapcheck
 
