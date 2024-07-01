@@ -118,6 +118,9 @@ issues:
     - path: 'cirrinad/iso/iso_test.go'
       linters:
         - paralleltest
+    - path: 'cirrinad/disk/file.go'
+      linters:
+        - ireturn
     - path: 'cirrinad/disk/disk_test.go'
       linters:
         - paralleltest
