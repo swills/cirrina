@@ -13,6 +13,7 @@ import (
 	"gorm.io/gorm/logger"
 
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
 	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/vm"
@@ -121,6 +122,7 @@ func CustomMigrate() {
 	vmDB := vm.GetVMDB()
 	reqDB := requests.GetReqDB()
 	isoDB := iso.GetIsoDB()
+	diskDB := disk.GetDiskDB()
 
 	schemaVersion := getSchemaVersion()
 	// 2024022401 - copy nics from config.nics to vm_nics.config_id
@@ -140,6 +142,15 @@ func CustomMigrate() {
 
 	// 2024062703 - delete is_os from config
 	migration2024062703(schemaVersion, vmDB)
+
+	// 2024063001 - add vm_disks
+	migration2024063001(schemaVersion, diskDB)
+
+	// 2024063002 - migrate old disk data to new table
+	migration2024063002(schemaVersion, diskDB)
+
+	// 2024063003 - delete disks from config
+	migration2024063003(schemaVersion, diskDB)
 
 	slog.Debug("finished custom migration")
 }
@@ -263,7 +274,7 @@ func migration2024062701(schemaVersion uint32, vmDB *gorm.DB) {
 			if !vmDB.Migrator().HasTable("vm_isos") {
 				//nolint:lll
 				vmIsoCreateTableRawSQL := `CREATE TABLE "vm_isos" (
-    vm_id  text default null
+    vm_id text default null
       constraint fk_vm_isos_vm
       references vms,
     iso_id text default null
@@ -280,25 +291,10 @@ func migration2024062701(schemaVersion uint32, vmDB *gorm.DB) {
 				if res.Error != nil {
 					panic(res.Error)
 				}
-
-				setSchemaVersion(2024062701)
 			}
 		}
-	}
-}
 
-func migration2024062703(schemaVersion uint32, vmDB *gorm.DB) {
-	if schemaVersion < 2024062703 {
-		haveOldISOsColumn := vmDB.Migrator().HasColumn(&vm.Config{}, "is_os")
-
-		if haveOldISOsColumn {
-			err := vmDB.Migrator().DropColumn(&vm.Config{}, "is_os")
-			if err != nil {
-				panic(err)
-			}
-
-			setSchemaVersion(2024062703)
-		}
+		setSchemaVersion(2024062701)
 	}
 }
 
@@ -346,5 +342,112 @@ func migration2024062702(schemaVersion uint32, vmDB *gorm.DB) {
 		}
 
 		setSchemaVersion(2024062702)
+	}
+}
+
+func migration2024062703(schemaVersion uint32, vmDB *gorm.DB) {
+	if schemaVersion < 2024062703 {
+		haveOldISOsColumn := vmDB.Migrator().HasColumn(&vm.Config{}, "is_os")
+
+		if haveOldISOsColumn {
+			err := vmDB.Migrator().DropColumn(&vm.Config{}, "is_os")
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		setSchemaVersion(2024062703)
+	}
+}
+
+func migration2024063001(schemaVersion uint32, vmDB *gorm.DB) {
+	if schemaVersion < 2024063001 {
+		if vm.DBInitialized() {
+			if !vmDB.Migrator().HasTable("vm_disks") {
+				//nolint:lll
+				vmDiskCreateTableRawSQL := `CREATE TABLE "vm_disks" (
+    vm_id text default null
+      constraint fk_vm_disks_vm
+      references vms,
+    disk_id text default null
+      constraint fk_vm_disks_disk
+      references disks,
+    position integer not null,
+    primary key (vm_id, disk_id, position),
+    CONSTRAINT ` + "`" + `fk_vm_disks_vm` + "`" + ` FOREIGN KEY (` + "`" + `vm_id` + "`" + `) REFERENCES ` + "`" + `vms` + "`" + `(` + "`" + `id` + "`" + `),
+    CONSTRAINT ` + "`" + `fk_vm_disks_disk` + "`" + ` FOREIGN KEY (` + "`" + `disk_id` + "`" + `) REFERENCES ` + "`" + `disks` + "`" + `(` + "`" + `id` + "`" + `)
+);
+`
+
+				res := vmDB.Exec(vmDiskCreateTableRawSQL)
+				if res.Error != nil {
+					panic(res.Error)
+				}
+			}
+		}
+
+		setSchemaVersion(2024063001)
+	}
+}
+
+func migration2024063002(schemaVersion uint32, vmDB *gorm.DB) {
+	if schemaVersion < 2024063002 {
+		type Result struct {
+			VMID  string
+			Disks string
+		}
+
+		haveOldISOsColumn := vmDB.Migrator().HasColumn(&vm.Config{}, "disks")
+
+		if haveOldISOsColumn {
+			var result []Result
+
+			res := vmDB.Raw("SELECT vm_id, disks from configs where deleted_at is null and disks != \"\"").Scan(&result)
+			if res.Error != nil {
+				panic(res.Error)
+			}
+
+			for _, val := range result {
+				diskList := strings.Split(val.Disks, ",")
+				position := 0
+
+				type newVMDisks struct {
+					VMID     string
+					DiskID   string
+					Position int
+				}
+
+				var newVMDisksData []newVMDisks
+
+				for _, DiskV := range diskList {
+					if DiskV != "" {
+						newVMDisksData = append(newVMDisksData, newVMDisks{VMID: val.VMID, DiskID: DiskV, Position: position})
+					}
+
+					position++
+				}
+
+				for _, v := range newVMDisksData {
+					vmDB.Exec("INSERT INTO vm_disks (vm_id, disk_id, position) VALUES (?,?,?)", v.VMID, v.DiskID, v.Position)
+				}
+			}
+		}
+
+		setSchemaVersion(2024063002)
+	}
+}
+
+func migration2024063003(schemaVersion uint32, vmDB *gorm.DB) {
+	if schemaVersion < 2024063003 {
+		haveOldDisksColumn := vmDB.Migrator().HasColumn(&vm.Config{}, "disks")
+
+		if haveOldDisksColumn {
+			err := vmDB.Migrator().DropColumn(&vm.Config{}, "disks")
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		setSchemaVersion(2024062703)
 	}
 }

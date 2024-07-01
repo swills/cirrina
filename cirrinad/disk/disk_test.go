@@ -28,8 +28,8 @@ func TestGetAllDB(t *testing.T) {
 		{
 			name: "testDisksGetAllDB",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `disks` WHERE `disks`.`deleted_at` IS NULL"),
@@ -628,8 +628,8 @@ func TestDisk_Save(t *testing.T) {
 		{
 			name: "success1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -661,8 +661,8 @@ func TestDisk_Save(t *testing.T) {
 		{
 			name: "success2",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -694,8 +694,8 @@ func TestDisk_Save(t *testing.T) {
 		{
 			name: "success3",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -727,8 +727,8 @@ func TestDisk_Save(t *testing.T) {
 		{
 			name: "success4",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -760,8 +760,8 @@ func TestDisk_Save(t *testing.T) {
 		{
 			name: "success5",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -794,8 +794,8 @@ func TestDisk_Save(t *testing.T) {
 		{
 			name: "success6",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -827,8 +827,8 @@ func TestDisk_Save(t *testing.T) {
 		{
 			name: "error1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -861,8 +861,8 @@ func TestDisk_Save(t *testing.T) {
 		{
 			name: "error2",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -965,8 +965,8 @@ func TestDelete(t *testing.T) {
 				}
 				List.DiskList[diskInst.ID] = diskInst
 
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -1010,8 +1010,8 @@ func TestDelete(t *testing.T) {
 				}
 				List.DiskList[diskInst.ID] = diskInst
 
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 			},
 			args: args{
@@ -1039,8 +1039,8 @@ func TestDelete(t *testing.T) {
 				}
 				List.DiskList[diskInst.ID] = diskInst
 
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -1138,8 +1138,8 @@ func Test_diskExists(t *testing.T) {
 				return nil, errDiskNotFound
 			},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `disks` WHERE `disks`.`deleted_at` IS NULL"),
@@ -1196,8 +1196,8 @@ func Test_diskExists(t *testing.T) {
 				return nil, errDiskNotFound
 			},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `disks` WHERE `disks`.`deleted_at` IS NULL"),
@@ -1437,8 +1437,8 @@ func TestCreate(t *testing.T) {
 				},
 			}, size: "1g"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectQuery(
@@ -1474,8 +1474,8 @@ func TestCreate(t *testing.T) {
 				},
 			}, size: "1g"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectQuery(
@@ -1511,8 +1511,8 @@ func TestCreate(t *testing.T) {
 				},
 			}, size: "1g"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectQuery(
@@ -1548,8 +1548,8 @@ func TestCreate(t *testing.T) {
 				},
 			}, size: "1g"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					diskDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					DiskDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectQuery(

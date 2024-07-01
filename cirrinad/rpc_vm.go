@@ -967,6 +967,10 @@ func (s *server) GetVMISOs(vmID *cirrina.VMID, stream cirrina.VMInfo_GetVMISOsSe
 	var isoID cirrina.ISOID
 
 	for _, e := range vmInst.ISOs {
+		if e == nil {
+			continue
+		}
+
 		isoID.Value = e.ID
 
 		err := stream.Send(&isoID)
@@ -995,14 +999,13 @@ func (s *server) GetVMDisks(vmID *cirrina.VMID, stream cirrina.VMInfo_GetVMDisks
 		return errNotFound
 	}
 
-	disks, err := vmInst.GetDisks()
-	if err != nil {
-		return fmt.Errorf("error getting disks: %w", err)
-	}
-
 	var diskID cirrina.DiskId
 
-	for _, e := range disks {
+	for _, e := range vmInst.Disks {
+		if vmInst.Disks == nil {
+			continue
+		}
+
 		diskID.Value = e.ID
 
 		err := stream.Send(&diskID)

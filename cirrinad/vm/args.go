@@ -49,6 +49,10 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 	devCount := 0
 
 	for _, isoItem := range vm.ISOs {
+		if isoItem == nil {
+			continue
+		}
+
 		if isoItem.Path == "" {
 			slog.Error("empty iso path, correcting", "iso", isoItem.Name, "id", isoItem.ID, "path", isoItem.Path)
 			isoItem.Path = config.Config.Disk.VM.Path.Iso + string(os.PathSeparator) + isoItem.Name
@@ -143,15 +147,19 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 
 	var diskString []string
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
-	diskIDs := strings.Split(vm.Config.Disks, ",")
-	for _, diskID := range diskIDs {
-		if diskID == "" {
+
+	for _, diskItem := range vm.Disks {
+		if diskItem == nil {
 			continue
 		}
 
-		thisDisk, err := disk.GetByID(diskID)
+		if diskItem.ID == "" {
+			continue
+		}
+
+		thisDisk, err := disk.GetByID(diskItem.ID)
 		if err != nil {
-			slog.Error("error getting disk, skipping", "diskID", diskID, "err", err)
+			slog.Error("error getting disk, skipping", "diskID", diskItem.ID, "err", err)
 
 			continue
 		}
@@ -161,14 +169,14 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 		}
 
 		if sataDevCount > maxSataDevs {
-			slog.Error("sata dev count exceeded, skipping disk", "diskID", diskID)
+			slog.Error("sata dev count exceeded, skipping disk", "diskID", diskItem.ID)
 
 			continue
 		}
 
 		oneHdString, err := vm.getOneDiskArg(thisDisk)
 		if err != nil || oneHdString == "" {
-			slog.Error("error adding disk, skipping", "diskID", diskID, "err", err)
+			slog.Error("error adding disk, skipping", "diskID", diskItem.ID, "err", err)
 
 			continue
 		}

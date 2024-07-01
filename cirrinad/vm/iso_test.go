@@ -10,6 +10,7 @@ import (
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/cirrinadtest"
+	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
 )
 
@@ -28,6 +29,7 @@ func TestVM_AttachIsos(t *testing.T) {
 		DebugPort   int32
 		Config      Config
 		ISOs        []*iso.ISO
+		Disks       []*disk.Disk
 		Com1Dev     string
 		Com2Dev     string
 		Com3Dev     string
@@ -58,9 +60,9 @@ func TestVM_AttachIsos(t *testing.T) {
 
 				mock.ExpectBegin()
 				mock.ExpectExec(
-					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`disks`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
 				).
-					WithArgs(true, false, false, true, false, 0, "AUTO", false, 115200, "AUTO", false, 115200, "AUTO", false, 115200, false, "AUTO", false, 115200, 2, false, "AUTO", false, true, "a41d1cf4-1d33-4b9f-9efd-f8a2e7f2208b", true, "", true, true, "us_unix", 120, 1024, 0, 10, false, 0, true, 1, 0, true, 1080, 1920, false, "/dev/dsp0", "/dev/dsp0", true, true, true, true, "AUTO", false, 0, 0, true, sqlmock.AnyArg(), 1). //nolint:lll
+					WithArgs(true, false, false, true, false, 0, "AUTO", false, 115200, "AUTO", false, 115200, "AUTO", false, 115200, false, "AUTO", false, 115200, 2, false, "AUTO", false, true, true, "", true, true, "us_unix", 120, 1024, 0, 10, false, 0, true, 1, 0, true, 1080, 1920, false, "/dev/dsp0", "/dev/dsp0", true, true, true, true, "AUTO", false, 0, 0, true, sqlmock.AnyArg(), 1). //nolint:lll
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
 
@@ -87,6 +89,14 @@ func TestVM_AttachIsos(t *testing.T) {
 				).
 					WithArgs("dcc6cfde-25f0-4e8c-80d2-fa7f4f4054bb", "6e37ef3f-7199-42de-8d2c-9d7001500acd", 0).
 					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_disks` WHERE `vm_id` = ?"),
+				).
+					WithArgs("dcc6cfde-25f0-4e8c-80d2-fa7f4f4054bb").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectBegin()
 				mock.ExpectCommit()
 			},
 			fields: fields{
@@ -149,7 +159,6 @@ func TestVM_AttachIsos(t *testing.T) {
 					Com4Dev:          "AUTO",
 					Com4Log:          false,
 					ExtraArgs:        "",
-					Disks:            "a41d1cf4-1d33-4b9f-9efd-f8a2e7f2208b",
 					Com1Speed:        115200,
 					Com2Speed:        115200,
 					Com3Speed:        115200,
@@ -170,6 +179,7 @@ func TestVM_AttachIsos(t *testing.T) {
 					Wiops: 0,
 				},
 				ISOs:      nil,
+				Disks:     nil,
 				Com1Dev:   "AUTO",
 				Com2Dev:   "AUTO",
 				Com3Dev:   "AUTO",
@@ -206,9 +216,9 @@ func TestVM_AttachIsos(t *testing.T) {
 
 				mock.ExpectBegin()
 				mock.ExpectExec(
-					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`disks`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
 				).
-					WithArgs(true, false, false, true, false, 0, "AUTO", false, 115200, "AUTO", false, 115200, "AUTO", false, 115200, false, "AUTO", false, 115200, 2, false, "AUTO", false, true, "a41d1cf4-1d33-4b9f-9efd-f8a2e7f2208b", true, "", true, true, "us_unix", 120, 1024, 0, 10, false, 0, true, 1, 0, true, 1080, 1920, false, "/dev/dsp0", "/dev/dsp0", true, true, true, true, "AUTO", false, 0, 0, true, sqlmock.AnyArg(), 1). //nolint:lll
+					WithArgs(true, false, false, true, false, 0, "AUTO", false, 115200, "AUTO", false, 115200, "AUTO", false, 115200, false, "AUTO", false, 115200, 2, false, "AUTO", false, true, true, "", true, true, "us_unix", 120, 1024, 0, 10, false, 0, true, 1, 0, true, 1080, 1920, false, "/dev/dsp0", "/dev/dsp0", true, true, true, true, "AUTO", false, 0, 0, true, sqlmock.AnyArg(), 1). //nolint:lll
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
 
@@ -240,6 +250,14 @@ func TestVM_AttachIsos(t *testing.T) {
 				).
 					WithArgs("dcc6cfde-25f0-4e8c-80d2-fa7f4f4054bb", "63c64708-6fc5-4a8b-858a-e1341b462013", 1).
 					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_disks` WHERE `vm_id` = ?"),
+				).
+					WithArgs("dcc6cfde-25f0-4e8c-80d2-fa7f4f4054bb").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectBegin()
 				mock.ExpectCommit()
 			},
 			fields: fields{
@@ -302,7 +320,6 @@ func TestVM_AttachIsos(t *testing.T) {
 					Com4Dev:          "AUTO",
 					Com4Log:          false,
 					ExtraArgs:        "",
-					Disks:            "a41d1cf4-1d33-4b9f-9efd-f8a2e7f2208b",
 					Com1Speed:        115200,
 					Com2Speed:        115200,
 					Com3Speed:        115200,
@@ -323,6 +340,7 @@ func TestVM_AttachIsos(t *testing.T) {
 					Wiops: 0,
 				},
 				ISOs:      nil,
+				Disks:     nil,
 				Com1Dev:   "AUTO",
 				Com2Dev:   "AUTO",
 				Com3Dev:   "AUTO",
@@ -428,7 +446,6 @@ func TestVM_AttachIsos(t *testing.T) {
 					Com4Dev:          "AUTO",
 					Com4Log:          false,
 					ExtraArgs:        "",
-					Disks:            "a41d1cf4-1d33-4b9f-9efd-f8a2e7f2208b",
 					Com1Speed:        115200,
 					Com2Speed:        115200,
 					Com3Speed:        115200,
@@ -449,6 +466,7 @@ func TestVM_AttachIsos(t *testing.T) {
 					Wiops: 0,
 				},
 				ISOs:      nil,
+				Disks:     nil,
 				Com1Dev:   "AUTO",
 				Com2Dev:   "AUTO",
 				Com3Dev:   "AUTO",
@@ -486,9 +504,9 @@ func TestVM_AttachIsos(t *testing.T) {
 
 				mock.ExpectBegin()
 				mock.ExpectExec(
-					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`disks`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
 				).
-					WithArgs(true, false, false, true, false, 0, "AUTO", false, 115200, "AUTO", false, 115200, "AUTO", false, 115200, false, "AUTO", false, 115200, 2, false, "AUTO", false, true, "a41d1cf4-1d33-4b9f-9efd-f8a2e7f2208b", true, "", true, true, "us_unix", 120, 1024, 0, 10, false, 0, true, 1, 0, true, 1080, 1920, false, "/dev/dsp0", "/dev/dsp0", true, true, true, true, "AUTO", false, 0, 0, true, sqlmock.AnyArg(), 1). //nolint:lll
+					WithArgs(true, false, false, true, false, 0, "AUTO", false, 115200, "AUTO", false, 115200, "AUTO", false, 115200, false, "AUTO", false, 115200, 2, false, "AUTO", false, true, true, "", true, true, "us_unix", 120, 1024, 0, 10, false, 0, true, 1, 0, true, 1080, 1920, false, "/dev/dsp0", "/dev/dsp0", true, true, true, true, "AUTO", false, 0, 0, true, sqlmock.AnyArg(), 1). //nolint:lll
 					// does not matter what error is returned
 					WillReturnError(gorm.ErrInvalidField)
 				mock.ExpectRollback()
@@ -553,7 +571,6 @@ func TestVM_AttachIsos(t *testing.T) {
 					Com4Dev:          "AUTO",
 					Com4Log:          false,
 					ExtraArgs:        "",
-					Disks:            "a41d1cf4-1d33-4b9f-9efd-f8a2e7f2208b",
 					Com1Speed:        115200,
 					Com2Speed:        115200,
 					Com3Speed:        115200,
@@ -574,6 +591,7 @@ func TestVM_AttachIsos(t *testing.T) {
 					Wiops: 0,
 				},
 				ISOs:      nil,
+				Disks:     nil,
 				Com1Dev:   "AUTO",
 				Com2Dev:   "AUTO",
 				Com3Dev:   "AUTO",
@@ -607,7 +625,7 @@ func TestVM_AttachIsos(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testDB, mock := cirrinadtest.NewMockDB("isoTest")
 			testCase.mockClosure(testDB, mock)
 
 			testVM := &VM{

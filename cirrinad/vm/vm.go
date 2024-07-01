@@ -12,6 +12,7 @@ import (
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
 	"cirrina/cirrinad/util"
 )
@@ -66,7 +67,6 @@ type Config struct {
 	Com4Dev          string `gorm:"default:AUTO"`
 	Com4Log          bool   `gorm:"default:False;check:com4_log IN(0,1)"`
 	ExtraArgs        string
-	Disks            string
 	Com1Speed        uint32       `gorm:"default:115200;check:com1_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"` //nolint:lll
 	Com2Speed        uint32       `gorm:"default:115200;check:com2_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"` //nolint:lll
 	Com3Speed        uint32       `gorm:"default:115200;check:com3_speed IN(115200,57600,38400,19200,9600,4800,2400,1200,600,300,200,150,134,110,75,50)"` //nolint:lll
@@ -99,8 +99,9 @@ type VM struct {
 	mu          sync.RWMutex
 	log         slog.Logger
 	Config      Config
-	ISOs        []*iso.ISO `gorm:"-:all"` // -- ignore this, we're doing it ourselves now
-	Com1Dev     string     // TODO make a com struct and put these in it?
+	ISOs        []*iso.ISO   `gorm:"-:all"` // -- ignore this, we're doing it ourselves
+	Disks       []*disk.Disk `gorm:"-:all"` // -- ignore this, we're doing it ourselves
+	Com1Dev     string       // TODO make a com struct and put these in it?
 	Com2Dev     string
 	Com3Dev     string
 	Com4Dev     string
@@ -215,7 +216,6 @@ func (vm *VM) Save() error {
 			"com4":               &vm.Config.Com4,
 			"com4_dev":           &vm.Config.Com4Dev,
 			"extra_args":         &vm.Config.ExtraArgs,
-			"disks":              &vm.Config.Disks,
 			"com1_log":           &vm.Config.Com1Log,
 			"com2_log":           &vm.Config.Com2Log,
 			"com3_log":           &vm.Config.Com3Log,
@@ -281,12 +281,46 @@ func (vm *VM) Save() error {
 	}
 
 	// add all new isos to vm
-	err := vmDB.Transaction(func(tx *gorm.DB) error {
+	err := vmDB.Transaction(func(txDB *gorm.DB) error {
 		for i, vmISO := range vm.ISOs {
-			// N.B.: must use tx here, not vmDB
-			res = tx.Exec("INSERT INTO `vm_isos` (`vm_id`,`iso_id`, `position`) VALUES (?,?,?)", vm.ID, vmISO.ID, i)
+			if vmISO == nil {
+				continue
+			}
+			// N.B.: must use txDB here, not vmDB
+			res = txDB.Exec("INSERT INTO `vm_isos` (`vm_id`,`iso_id`, `position`) VALUES (?,?,?)", vm.ID, vmISO.ID, i)
 			if res.Error != nil || res.RowsAffected != 1 {
 				slog.Error("error adding to vm_isos", "res.Error", res.Error)
+
+				return fmt.Errorf("error updating VM: %w", res.Error)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		slog.Error("error updating VM", "err", err)
+
+		return fmt.Errorf("error updating VM: %w", err)
+	}
+
+	// delete all disks from VM
+	res = vmDB.Exec("DELETE FROM `vm_disks` WHERE `vm_id` = ?", vm.ID)
+	if res.Error != nil {
+		slog.Error("error updating VM", "res.Error", res.Error)
+
+		return fmt.Errorf("error updating VM: %w", res.Error)
+	}
+
+	// add all new disks to vm
+	err = vmDB.Transaction(func(txDB *gorm.DB) error {
+		for i, vmDisk := range vm.Disks {
+			if vmDisk == nil {
+				continue
+			}
+			// N.B.: must use txDB here, not vmDB
+			res = txDB.Exec("INSERT INTO `vm_disks` (`vm_id`,`disk_id`, `position`) VALUES (?,?,?)", vm.ID, vmDisk.ID, i)
+			if res.Error != nil || res.RowsAffected != 1 {
+				slog.Error("error adding to vm_disks", "res.Error", res.Error)
 
 				return fmt.Errorf("error updating VM: %w", res.Error)
 			}
@@ -348,12 +382,7 @@ func (vm *VM) Start() error {
 
 	events := make(chan supervisor.Event)
 
-	err = vm.lockDisks()
-	if err != nil {
-		slog.Error("Failed locking disks", "err", err)
-
-		return err
-	}
+	vm.lockDisks()
 
 	cmdName, cmdArgs := vm.generateCommandLine()
 	vm.log.Info("start", "cmd", cmdName, "args", cmdArgs)
@@ -510,14 +539,7 @@ func vmDaemon(events chan supervisor.Event, thisVM *VM) {
 			thisVM.NetCleanup()
 			thisVM.killComLoggers()
 			thisVM.SetStopped()
-
-			err := thisVM.unlockDisks()
-			if err != nil {
-				slog.Debug("failed unlock disks", "err", err)
-
-				return
-			}
-
+			thisVM.unlockDisks()
 			thisVM.MaybeForceKillVM()
 			thisVM.log.Info("closing loop we are done")
 

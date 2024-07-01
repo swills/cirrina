@@ -5,7 +5,6 @@
 * Make sure iso, nic, disk switch are uniform, ie, take same args for all funcs
   * For example, iso delete takes string, nic delete takes object
 * Convert NICs to using custom join table, in order to preserve order
-* Convert disks to using custom join table
 * Convert all UUIDs from strings to UUID type
 * Convert all paths from strings to path/filepath
 * Convert all bool in database to `sql.NullBool`

@@ -13,6 +13,7 @@ import (
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/cirrinadtest"
+	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
 )
 
@@ -20,14 +21,117 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 	createUpdateTime := time.Now()
 
 	tests := []struct {
-		name           string
-		mockVMClosure  func(testDB *gorm.DB, mock sqlmock.Sqlmock)
-		mockISOClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
-		want           []*VM
-		wantErr        bool
+		name            string
+		mockVMClosure   func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockISOClosure  func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockDiskClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		want            []*VM
+		wantErr         bool
 	}{
 		{
 			name: "testVMGetAllDB",
+			mockDiskClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				disk1 := &disk.Disk{
+					ID:          "1f78cf92-6dc3-4a29-bdd2-0eff351bb2d8",
+					Name:        "aSecondTestDisk",
+					Description: "some second test disk description",
+					Type:        "NVME",
+					DevType:     "ILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk2 := &disk.Disk{
+					ID:          "44e8ad0d-53a3-4ef5-9611-9289d1b2b331",
+					Name:        "aTestDisk",
+					Description: "some test disk description",
+					Type:        "NVME",
+					DevType:     "ILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+
+				disk.List.DiskList[disk1.ID] = disk1
+				disk.List.DiskList[disk2.ID] = disk2
+
+				disk.Instance = &disk.Singleton{ // prevents parallel testing
+					DiskDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `disks` WHERE id = ? AND `disks`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("44e8ad0d-53a3-4ef5-9611-9289d1b2b331").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"dev_type",
+								"disk_cache",
+								"disk_direct",
+							}).
+							AddRow(
+								"44e8ad0d-53a3-4ef5-9611-9289d1b2b331",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"aTestDisk",
+								"some test disk description",
+								"NVME",
+								"FILE",
+								1,
+								0,
+							),
+					)
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `disks` WHERE id = ? AND `disks`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("1f78cf92-6dc3-4a29-bdd2-0eff351bb2d8").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"dev_type",
+								"disk_cache",
+								"disk_direct",
+							}).
+							AddRow(
+								"1f78cf92-6dc3-4a29-bdd2-0eff351bb2d8",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"aSecondTestDisk",
+								"some second test disk description",
+								"NVME",
+								"FILE",
+								1,
+								0,
+							),
+					)
+			},
 			mockISOClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				iso.Instance = &iso.Singleton{ // prevents parallel testing
 					ISODB: testDB,
@@ -198,7 +302,6 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 							"com4_dev",
 							"com4_log",
 							"extra_args",
-							"disks",
 							"com1_speed",
 							"com2_speed",
 							"com3_speed",
@@ -260,7 +363,6 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 								"AUTO",
 								0,
 								"",
-								"7d588080-585d-489e-975c-0290fe1be2e0",
 								115200,
 								115200,
 								115200,
@@ -323,7 +425,6 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 							"AUTO",
 							0,
 							"",
-							"8967e7a4-c0c6-4aee-8cfe-43e5d953ca71",
 							115200,
 							115200,
 							115200,
@@ -350,12 +451,25 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 					WithArgs("38d38177-2309-48a1-8076-0687caa803fb").
 					WillReturnRows(sqlmock.NewRows([]string{"vm_id", "iso_id", "position"}))
 				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT vm_id,disk_id,position FROM `vm_disks` WHERE vm_id LIKE ? ORDER BY position"),
+				).
+					WithArgs("38d38177-2309-48a1-8076-0687caa803fb").
+					WillReturnRows(sqlmock.NewRows([]string{"vm_id", "disk_id", "position"}))
+				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT vm_id,iso_id,position FROM `vm_isos` WHERE vm_id LIKE ? ORDER BY position"),
 				).
 					WithArgs("263ca626-7e08-4534-8670-06339bcd2381").
 					WillReturnRows(sqlmock.NewRows([]string{"vm_id", "iso_id", "position"}).
 						AddRow("263ca626-7e08-4534-8670-06339bcd2381", "c2c82cc7-7549-497b-8e21-1ac563aad239", 0).
 						AddRow("263ca626-7e08-4534-8670-06339bcd2381", "c6e1c826-42a6-4e12-a10f-80ee4845063c", 1),
+					)
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT vm_id,disk_id,position FROM `vm_disks` WHERE vm_id LIKE ? ORDER BY position"),
+				).
+					WithArgs("263ca626-7e08-4534-8670-06339bcd2381").
+					WillReturnRows(sqlmock.NewRows([]string{"vm_id", "disk_id", "position"}).
+						AddRow("263ca626-7e08-4534-8670-06339bcd2381", "44e8ad0d-53a3-4ef5-9611-9289d1b2b331", 0).
+						AddRow("263ca626-7e08-4534-8670-06339bcd2381", "1f78cf92-6dc3-4a29-bdd2-0eff351bb2d8", 1),
 					)
 			},
 			want: []*VM{
@@ -419,7 +533,6 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 						Com4Dev:          "AUTO",
 						Com4Log:          false,
 						ExtraArgs:        "",
-						Disks:            "7d588080-585d-489e-975c-0290fe1be2e0",
 						Com1Speed:        115200,
 						Com2Speed:        115200,
 						Com3Speed:        115200,
@@ -440,6 +553,7 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 						Wiops: 300,
 					},
 					ISOs:      nil,
+					Disks:     nil,
 					Com1Dev:   "",
 					Com2Dev:   "",
 					Com3Dev:   "",
@@ -524,7 +638,6 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 						Com4Dev:          "AUTO",
 						Com4Log:          false,
 						ExtraArgs:        "",
-						Disks:            "8967e7a4-c0c6-4aee-8cfe-43e5d953ca71",
 						Com1Speed:        115200,
 						Com2Speed:        115200,
 						Com3Speed:        115200,
@@ -574,6 +687,38 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 							Checksum:    "259f034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3e3b630ba3", //nolint:lll
 						},
 					},
+					Disks: []*disk.Disk{
+						{
+							ID:          "44e8ad0d-53a3-4ef5-9611-9289d1b2b331",
+							Name:        "aTestDisk",
+							Description: "some test disk description",
+							Type:        "NVME",
+							DevType:     "ILE",
+							DiskCache: sql.NullBool{
+								Bool:  true,
+								Valid: true,
+							},
+							DiskDirect: sql.NullBool{
+								Bool:  false,
+								Valid: true,
+							},
+						},
+						{
+							ID:          "1f78cf92-6dc3-4a29-bdd2-0eff351bb2d8",
+							Name:        "aSecondTestDisk",
+							Description: "some second test disk description",
+							Type:        "NVME",
+							DevType:     "ILE",
+							DiskCache: sql.NullBool{
+								Bool:  true,
+								Valid: true,
+							},
+							DiskDirect: sql.NullBool{
+								Bool:  false,
+								Valid: true,
+							},
+						},
+					},
 					Com1Dev:   "",
 					Com2Dev:   "",
 					Com3Dev:   "",
@@ -605,7 +750,10 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 			isoTestDB, isoMock := cirrinadtest.NewMockDB("isoTest")
 			testCase.mockISOClosure(isoTestDB, isoMock)
 
-			vmTestDB, VMmock := cirrinadtest.NewMockDB("diskTest")
+			diskTestDB, diskMock := cirrinadtest.NewMockDB("diskTest")
+			testCase.mockDiskClosure(diskTestDB, diskMock)
+
+			vmTestDB, VMmock := cirrinadtest.NewMockDB("vmTest")
 			testCase.mockVMClosure(vmTestDB, VMmock)
 
 			got, err := GetAllDB()

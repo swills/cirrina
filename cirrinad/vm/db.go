@@ -13,6 +13,7 @@ import (
 	"gorm.io/gorm/logger"
 
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
 )
 
@@ -282,6 +283,63 @@ func getIsosForVM(vmID string, vmDB *gorm.DB) ([]*iso.ISO, error) {
 	return returnISOs, nil
 }
 
+func getDisksForVM(vmID string, vmDB *gorm.DB) ([]*disk.Disk, error) {
+	var returnDisks []*disk.Disk
+
+	res := vmDB.Table("vm_disks").Select([]string{"vm_id", "disk_id", "position"}).
+		Where("vm_id LIKE ?", vmID).Order("position")
+
+	rows, rowErr := res.Rows()
+	if rowErr != nil {
+		slog.Error("error getting vm_disks rows", "rowErr", rowErr)
+
+		return returnDisks, fmt.Errorf("error getting VM Disks: %w", rowErr)
+	}
+
+	err := rows.Err()
+	if err != nil {
+		slog.Error("error getting vm_disks rows", "err", err)
+
+		return returnDisks, fmt.Errorf("error getting VM Diss: %w", rowErr)
+	}
+
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	for rows.Next() {
+		var vmDisksVMID string
+
+		var vmDisksDiskID string
+
+		var vmDisksPosition int
+
+		err = rows.Scan(&vmDisksVMID, &vmDisksDiskID, &vmDisksPosition)
+		if err != nil {
+			slog.Error("error scanning vm_disks", "err", err)
+
+			continue
+		}
+
+		slog.Debug("found a vm_disk",
+			"vmDisksVMID", vmDisksVMID,
+			"vmDisksDiskID", vmDisksDiskID,
+			"vmDisksPosition", vmDisksPosition,
+		)
+
+		var thisVMDisk *disk.Disk
+
+		thisVMDisk, err = disk.GetByID(vmDisksDiskID)
+		if err != nil {
+			slog.Error("error looking up VM Disk", "err", err)
+		}
+
+		returnDisks = append(returnDisks, thisVMDisk)
+	}
+
+	return returnDisks, nil
+}
+
 func GetAllDB() ([]*VM, error) {
 	var result []*VM
 
@@ -296,12 +354,19 @@ func GetAllDB() ([]*VM, error) {
 		return result, res.Error
 	}
 
-	// manually load VM ISOs because GORM can't do what is needed in terms of allowing duplicates or
+	// manually load VM Disks/ISOs because GORM can't do what is needed in terms of allowing duplicates or
 	// preserving position
 	for _, vmResult := range result {
 		vmResult.ISOs, err = getIsosForVM(vmResult.ID, vmDB)
 		if err != nil {
 			slog.Error("failed getting isos for VM", "err", err)
+
+			return result, err
+		}
+
+		vmResult.Disks, err = getDisksForVM(vmResult.ID, vmDB)
+		if err != nil {
+			slog.Error("failed getting disks for VM", "err", err)
 
 			return result, err
 		}

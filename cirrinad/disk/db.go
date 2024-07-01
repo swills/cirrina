@@ -15,15 +15,15 @@ import (
 	"cirrina/cirrinad/config"
 )
 
-type singleton struct {
-	diskDB *gorm.DB
+type Singleton struct {
+	DiskDB *gorm.DB
 }
 
-var instance *singleton
+var Instance *Singleton
 
 var once sync.Once
 
-func getDiskDB() *gorm.DB {
+func GetDiskDB() *gorm.DB {
 	noColorLogger := logger.New(
 		log.New(os.Stdout, "DiskDb: ", log.LstdFlags),
 		logger.Config{
@@ -36,11 +36,11 @@ func getDiskDB() *gorm.DB {
 
 	once.Do(func() {
 		// allow override for testing
-		if instance != nil {
+		if Instance != nil {
 			return
 		}
 
-		instance = &singleton{}
+		Instance = &Singleton{}
 
 		diskDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
@@ -61,10 +61,10 @@ func getDiskDB() *gorm.DB {
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
 
-		instance.diskDB = diskDB
+		Instance.DiskDB = diskDB
 	})
 
-	return instance.diskDB
+	return Instance.DiskDB
 }
 
 func (d *Disk) BeforeCreate(_ *gorm.DB) error {
@@ -77,7 +77,7 @@ func (d *Disk) BeforeCreate(_ *gorm.DB) error {
 }
 
 func DBAutoMigrate() {
-	diskDB := getDiskDB()
+	diskDB := GetDiskDB()
 
 	err := diskDB.AutoMigrate(&Disk{})
 	if err != nil {

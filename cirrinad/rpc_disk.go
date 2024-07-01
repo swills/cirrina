@@ -447,12 +447,11 @@ func getDiskVM(diskUUID uuid.UUID) (*vm.VM, error) {
 	var aVM *vm.VM
 
 	for _, thisVM := range allVMs {
-		thisVMDisks, err := thisVM.GetDisks()
-		if err != nil {
-			return nil, fmt.Errorf("error getting disk: %w", err)
-		}
+		for _, vmDisk := range thisVM.Disks {
+			if vmDisk == nil {
+				continue
+			}
 
-		for _, vmDisk := range thisVMDisks {
 			if vmDisk.ID == diskUUID.String() {
 				if found {
 					slog.Error("GetDiskVm disk in use by more than one VM",

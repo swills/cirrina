@@ -50,7 +50,7 @@ var List = &ListType{
 var pathExistsFunc = util.PathExists
 var diskExistsCacheDBFunc = diskExistsCacheDB
 var validateDiskFunc = validateDisk
-var getDiskDBFunc = getDiskDB
+var getDiskDBFunc = GetDiskDB
 var FileInfoFetcherImpl FileInfoFetcher = FileInfoCmds{}
 var ZfsInfoFetcherImpl ZfsVolInfoFetcher = ZfsVolInfoCmds{}
 var GetByNameFunc = GetByName
@@ -219,7 +219,7 @@ func Create(diskInst *Disk, size string) error {
 func GetAllDB() []*Disk {
 	var result []*Disk
 
-	db := getDiskDB()
+	db := GetDiskDB()
 	db.Find(&result)
 
 	return result
@@ -264,7 +264,7 @@ func Delete(diskID string) error {
 
 	delete(List.DiskList, diskID)
 
-	db := getDiskDB()
+	db := GetDiskDB()
 
 	res := db.Limit(1).Delete(&Disk{ID: diskID})
 	if res.RowsAffected != 1 {
@@ -277,7 +277,7 @@ func Delete(diskID string) error {
 }
 
 func (d *Disk) Save() error {
-	db := getDiskDB()
+	db := GetDiskDB()
 
 	res := db.Model(&d).
 		Updates(map[string]interface{}{

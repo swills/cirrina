@@ -3,37 +3,29 @@ package vm
 import (
 	"fmt"
 	"log/slog"
-	"strings"
 
 	"github.com/google/uuid"
 
 	"cirrina/cirrinad/disk"
 )
 
-func (vm *VM) lockDisks() error {
-	vmDisks, err := vm.GetDisks()
-	if err != nil {
-		return err
-	}
+func (vm *VM) lockDisks() {
+	for _, vmDisk := range vm.Disks {
+		if vmDisk == nil {
+			continue
+		}
 
-	for _, vmDisk := range vmDisks {
 		vmDisk.Lock()
 	}
-
-	return nil
 }
 
-func (vm *VM) unlockDisks() error {
-	vmDisks, err := vm.GetDisks()
-	if err != nil {
-		return err
-	}
-
-	for _, vmDisk := range vmDisks {
+func (vm *VM) unlockDisks() {
+	for _, vmDisk := range vm.Disks {
+		if vmDisk == nil {
+			continue
+		}
 		vmDisk.Unlock()
 	}
-
-	return nil
 }
 
 // validateDisks check if disks can be attached to a VM
@@ -69,12 +61,7 @@ func validateDisks(diskids []string, thisVM *VM) error {
 
 		slog.Debug("checking if disk is attached to another VM", "disk", aDisk)
 
-		diskIsAttached, err := diskAttached(aDisk, thisVM)
-		if err != nil {
-			return err
-		}
-
-		if diskIsAttached {
+		if diskAttached(aDisk, thisVM) {
 			return errVMDiskAttached
 		}
 	}
@@ -83,41 +70,21 @@ func validateDisks(diskids []string, thisVM *VM) error {
 }
 
 // diskAttached check if disk is attached to another VM besides this one
-func diskAttached(aDisk string, thisVM *VM) (bool, error) {
+func diskAttached(aDisk string, thisVM *VM) bool {
 	allVms := GetAll()
 	for _, aVM := range allVms {
-		vmDisks, err := aVM.GetDisks()
-		if err != nil {
-			return true, err
-		}
+		for _, aVMDisk := range aVM.Disks {
+			if aVMDisk == nil {
+				continue
+			}
 
-		for _, aVMDisk := range vmDisks {
 			if aDisk == aVMDisk.ID && aVM.ID != thisVM.ID {
-				return true, nil
+				return true
 			}
 		}
 	}
 
-	return false, nil
-}
-
-func (vm *VM) GetDisks() ([]*disk.Disk, error) {
-	var disks []*disk.Disk
-	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
-	for _, configValue := range strings.Split(vm.Config.Disks, ",") {
-		if configValue == "" {
-			continue
-		}
-
-		aDisk, err := disk.GetByID(configValue)
-		if err == nil {
-			disks = append(disks, aDisk)
-		} else {
-			slog.Error("bad disk", "disk", configValue, "vm", vm.ID)
-		}
-	}
-
-	return disks, nil
+	return false
 }
 
 func (vm *VM) AttachDisks(diskids []string) error {
@@ -131,21 +98,6 @@ func (vm *VM) AttachDisks(diskids []string) error {
 	if err != nil {
 		return err
 	}
-
-	// build disk list string to put into DB
-	var disksConfigVal string
-
-	count := 0
-	for _, diskID := range diskids {
-		if count > 0 {
-			disksConfigVal += ","
-		}
-
-		disksConfigVal += diskID
-		count++
-	}
-
-	vm.Config.Disks = disksConfigVal
 
 	err = vm.Save()
 	if err != nil {
