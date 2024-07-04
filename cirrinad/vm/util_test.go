@@ -388,3 +388,100 @@ func TestGetByID(t *testing.T) {
 		})
 	}
 }
+
+//nolint:paralleltest
+func Test_getUsedVncPorts(t *testing.T) {
+	tests := []struct {
+		name        string
+		mockClosure func()
+		want        []int
+	}{
+		{
+			name: "NoneUsed",
+			mockClosure: func() {
+				testVM := VM{
+					Status: "STOPPED",
+				}
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM.ID] = &testVM
+			},
+			want: nil,
+		},
+		{
+			name: "OneUsed",
+			mockClosure: func() {
+				testVM := VM{
+					Status:  "RUNNING",
+					VNCPort: 5900,
+				}
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM.ID] = &testVM
+			},
+			want: []int{5900},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mockClosure()
+
+			got := getUsedVncPorts()
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest
+func Test_getUsedDebugPorts(t *testing.T) {
+	tests := []struct {
+		name        string
+		mockClosure func()
+		want        []int
+	}{
+		{
+			name: "NoneUsed",
+			mockClosure: func() {
+				testVM := VM{
+					Status: "STOPPED",
+				}
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM.ID] = &testVM
+			},
+			want: nil,
+		},
+		{
+			name: "OneUsed",
+			mockClosure: func() {
+				testVM := VM{
+					Status:    "RUNNING",
+					DebugPort: 3434,
+				}
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM.ID] = &testVM
+			},
+			want: []int{3434},
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mockClosure()
+
+			got := getUsedDebugPorts()
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
