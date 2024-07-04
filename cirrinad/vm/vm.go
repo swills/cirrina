@@ -135,6 +135,69 @@ var (
 	}
 )
 
+func vmDaemon(events chan supervisor.Event, thisVM *VM) {
+	for {
+		select {
+		case msg := <-thisVM.proc.Stdout():
+			thisVM.log.Info("output", "stdout", *msg)
+		case msg := <-thisVM.proc.Stderr():
+			thisVM.log.Info("output", "stderr", *msg)
+		case event := <-events:
+			switch event.Code {
+			case "ProcessStart":
+				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
+				vmPid := findChildProcName(uint32(thisVM.proc.Pid()), "bhyve")
+
+				if vmPid == 0 {
+					slog.Error("failed to find vm PID, continuing anyway")
+				}
+
+				thisVM.SetRunning(int(vmPid))
+				slog.Debug("vmDaemon ProcessStart", "bhyvePid", thisVM.BhyvePid, "sudoPid", thisVM.proc.Pid(), "realPid", vmPid)
+				thisVM.setupComLoggers()
+				thisVM.applyResourceLimits(vmPid)
+			case "ProcessDone":
+				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
+			case "ProcessCrashed":
+				thisVM.log.Info("exited, destroying")
+				thisVM.MaybeForceKillVM()
+			default:
+				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
+			}
+		case <-thisVM.proc.DoneNotifier():
+			slog.Debug("vm stopped",
+				"vm_name", thisVM.Name,
+			)
+			thisVM.log.Info("stopped")
+			thisVM.NetCleanup()
+			thisVM.killComLoggers()
+			thisVM.SetStopped()
+			thisVM.unlockDisks()
+			thisVM.MaybeForceKillVM()
+			thisVM.log.Info("closing loop we are done")
+
+			return
+		}
+	}
+}
+
+func validateVM(vmInst *VM) error {
+	if !util.ValidVMName(vmInst.Name) {
+		return errVMInvalidName
+	}
+
+	return nil
+}
+
+func vmExists(vmName string) (bool, error) {
+	_, err := GetByName(vmName)
+	if err == nil {
+		return true, errVMDupe
+	}
+
+	return false, nil
+}
+
 func Create(vmInst *VM) error {
 	vmAlreadyExists, err := vmExists(vmInst.Name)
 	if err != nil {
@@ -500,67 +563,4 @@ func (vm *VM) MaybeForceKillVM() {
 			"err", err,
 		)
 	}
-}
-
-func vmDaemon(events chan supervisor.Event, thisVM *VM) {
-	for {
-		select {
-		case msg := <-thisVM.proc.Stdout():
-			thisVM.log.Info("output", "stdout", *msg)
-		case msg := <-thisVM.proc.Stderr():
-			thisVM.log.Info("output", "stderr", *msg)
-		case event := <-events:
-			switch event.Code {
-			case "ProcessStart":
-				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
-				vmPid := findChildProcName(uint32(thisVM.proc.Pid()), "bhyve")
-
-				if vmPid == 0 {
-					slog.Error("failed to find vm PID, continuing anyway")
-				}
-
-				thisVM.SetRunning(int(vmPid))
-				slog.Debug("vmDaemon ProcessStart", "bhyvePid", thisVM.BhyvePid, "sudoPid", thisVM.proc.Pid(), "realPid", vmPid)
-				thisVM.setupComLoggers()
-				thisVM.applyResourceLimits(vmPid)
-			case "ProcessDone":
-				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
-			case "ProcessCrashed":
-				thisVM.log.Info("exited, destroying")
-				thisVM.MaybeForceKillVM()
-			default:
-				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
-			}
-		case <-thisVM.proc.DoneNotifier():
-			slog.Debug("vm stopped",
-				"vm_name", thisVM.Name,
-			)
-			thisVM.log.Info("stopped")
-			thisVM.NetCleanup()
-			thisVM.killComLoggers()
-			thisVM.SetStopped()
-			thisVM.unlockDisks()
-			thisVM.MaybeForceKillVM()
-			thisVM.log.Info("closing loop we are done")
-
-			return
-		}
-	}
-}
-
-func validateVM(vmInst *VM) error {
-	if !util.ValidVMName(vmInst.Name) {
-		return errVMInvalidName
-	}
-
-	return nil
-}
-
-func vmExists(vmName string) (bool, error) {
-	_, err := GetByName(vmName)
-	if err == nil {
-		return true, errVMDupe
-	}
-
-	return false, nil
 }

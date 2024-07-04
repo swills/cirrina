@@ -284,3 +284,107 @@ func TestGetAll(t *testing.T) {
 		})
 	}
 }
+
+//nolint:paralleltest
+func TestGetByID(t *testing.T) {
+	type args struct {
+		id string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func()
+		args        args
+		want        *VM
+		wantErr     bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func() {
+				testVM := VM{
+					ID:          "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+					Name:        "noName",
+					Description: "no description",
+					Status:      "STOPPED",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 2,
+						},
+						VMID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM.ID] = &testVM
+			},
+			args: args{id: "7563edac-3a68-4950-9dec-ca53dd8c7fca"},
+			want: &VM{
+				ID:          "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+				Name:        "noName",
+				Description: "no description",
+				Status:      "STOPPED",
+				Config: Config{
+					Model: gorm.Model{
+						ID: 2,
+					},
+					VMID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+					CPU:  2,
+					Mem:  1024,
+				},
+				ISOs:  nil,
+				Disks: nil,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Failure",
+			mockClosure: func() {
+				testVM := VM{
+					ID:          "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+					Name:        "noName",
+					Description: "no description",
+					Status:      "STOPPED",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 2,
+						},
+						VMID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM.ID] = &testVM
+			},
+			args:    args{id: "3da3352e-e541-4327-87c3-85b15ce8ac2f"},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mockClosure()
+
+			got, err := GetByID(testCase.args.id)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetByID() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
