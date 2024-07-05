@@ -14,11 +14,11 @@ import (
 	"cirrina/cirrinad/config"
 )
 
-type singleton struct {
-	vmNicDB *gorm.DB
+type Singleton struct {
+	VMNicDB *gorm.DB
 }
 
-var instance *singleton
+var Instance *Singleton
 
 var once sync.Once
 
@@ -35,11 +35,11 @@ func GetVMNicDB() *gorm.DB {
 
 	once.Do(func() {
 		// allow override for testing
-		if instance != nil {
+		if Instance != nil {
 			return
 		}
 
-		instance = &singleton{}
+		Instance = &Singleton{}
 
 		vmNicDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
@@ -60,10 +60,10 @@ func GetVMNicDB() *gorm.DB {
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
 
-		instance.vmNicDB = vmNicDB
+		Instance.VMNicDB = vmNicDB
 	})
 
-	return instance.vmNicDB
+	return Instance.VMNicDB
 }
 
 func (vmNic *VMNic) BeforeCreate(_ *gorm.DB) error {

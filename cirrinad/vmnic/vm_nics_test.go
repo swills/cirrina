@@ -131,8 +131,8 @@ func TestGetByName(t *testing.T) {
 		{
 			name: "getSomeNic",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
@@ -204,8 +204,8 @@ func TestGetByName(t *testing.T) {
 		{
 			name: "testGetByName_error",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
@@ -219,8 +219,8 @@ func TestGetByName(t *testing.T) {
 		{
 			name: "testGetByName_notfound",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
@@ -257,8 +257,8 @@ func TestGetByName(t *testing.T) {
 			name: "testGetByName_emptyName",
 			args: args{name: ""},
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 			},
 			want:    nil,
@@ -314,8 +314,8 @@ func TestGetAll(t *testing.T) {
 		{
 			name: "testGetAllNics",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE `vm_nics`.`deleted_at` IS NULL"),
@@ -473,8 +473,8 @@ func TestGetByID(t *testing.T) {
 		{
 			name: "testGetByID_success",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE id = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
@@ -547,8 +547,8 @@ func TestGetByID(t *testing.T) {
 		{
 			name: "testGetByID_error",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE id = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
@@ -562,8 +562,8 @@ func TestGetByID(t *testing.T) {
 		{
 			name: "testGetByID_notfound",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE id = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
@@ -599,8 +599,8 @@ func TestGetByID(t *testing.T) {
 		{
 			name: "testGetByID_empty",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 			},
 			args:    args{id: ""},
@@ -927,8 +927,8 @@ func TestVMNic_Delete(t *testing.T) {
 		{
 			name: "err1",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 			},
 			fields: fields{
@@ -939,8 +939,8 @@ func TestVMNic_Delete(t *testing.T) {
 		{
 			name: "err2",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 			},
 			fields: fields{
@@ -951,8 +951,8 @@ func TestVMNic_Delete(t *testing.T) {
 		{
 			name: "err3",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -970,8 +970,8 @@ func TestVMNic_Delete(t *testing.T) {
 		{
 			name: "success1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -1071,8 +1071,8 @@ func TestVMNic_Save(t *testing.T) {
 		{
 			name: "success1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -1111,8 +1111,8 @@ func TestVMNic_Save(t *testing.T) {
 		{
 			name: "error1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -1221,8 +1221,8 @@ func TestGetNics(t *testing.T) {
 			name: "success1",
 			args: args{vmConfigID: 321},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
@@ -1252,8 +1252,8 @@ func TestGetNics(t *testing.T) {
 			name: "success2",
 			args: args{vmConfigID: 321},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
@@ -1392,8 +1392,8 @@ func TestVMNic_SetSwitch(t *testing.T) {
 		{
 			name: "success1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -1436,8 +1436,8 @@ func TestVMNic_SetSwitch(t *testing.T) {
 		{
 			name: "error1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -1544,8 +1544,8 @@ func Test_nicExists(t *testing.T) {
 			name: "successTrue1",
 			args: args{nicName: "test2024030401_int0"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
@@ -1599,8 +1599,8 @@ func Test_nicExists(t *testing.T) {
 			name: "successFalse1",
 			args: args{nicName: "test2024030401_int0"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
@@ -1635,8 +1635,8 @@ func Test_nicExists(t *testing.T) {
 			name: "error1",
 			args: args{nicName: "test2024030401_int0"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
@@ -1882,8 +1882,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "success1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
@@ -1947,8 +1947,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "success2",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
@@ -2012,8 +2012,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "success3",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
@@ -2077,8 +2077,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "success4",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
@@ -2142,8 +2142,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "error1InvalidNic",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 			},
 			args: args{&VMNic{
@@ -2173,8 +2173,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "error2NicExists",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
@@ -2248,8 +2248,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "error2NicExistsErr",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
@@ -2283,8 +2283,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "errDb1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
@@ -2345,8 +2345,8 @@ func TestCreate(t *testing.T) {
 		{
 			name: "errorNoRows",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					vmNicDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),

@@ -233,9 +233,11 @@ func getUsedVncPorts() []int {
 	//
 	// right now, the behavior is to simply move to a different port
 	for _, vmInst := range List.VMList {
-		if vmInst.Status != STOPPED {
-			ret = append(ret, int(vmInst.VNCPort))
+		if vmInst.Status == STOPPED {
+			continue
 		}
+
+		ret = append(ret, int(vmInst.VNCPort))
 	}
 
 	return ret
@@ -246,9 +248,11 @@ func getUsedDebugPorts() []int {
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
 	for _, vmInst := range List.VMList {
-		if vmInst.Status != STOPPED {
-			ret = append(ret, int(vmInst.DebugPort))
+		if vmInst.Status == STOPPED {
+			continue
 		}
+
+		ret = append(ret, int(vmInst.DebugPort))
 	}
 
 	return ret
@@ -258,10 +262,17 @@ func getUsedNetPorts() []string {
 	var ret []string
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
+
 	for _, vmInst := range List.VMList {
+		if vmInst.Status == STOPPED {
+			continue
+		}
+
 		vmNicsList, err := vmnic.GetNics(vmInst.Config.ID)
 		if err != nil {
 			slog.Error("getUsedNetPorts failed to get nics", "err", err)
+
+			continue
 		}
 
 		for _, vmNic := range vmNicsList {
