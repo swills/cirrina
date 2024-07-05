@@ -1121,6 +1121,57 @@ func Test_ensureComDevReadable(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
+func Test_findChildProcName(t *testing.T) {
+	type args struct {
+		startPid uint32
+		procName string
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		want        uint32
+	}{
+		{
+			name:        "OkDepthZero",
+			mockCmdFunc: "Test_findChildProcNameOkDepthZero",
+			args:        args{startPid: 12345, procName: "sleep"},
+			want:        12345,
+		},
+		{
+			name:        "OkDepthOne",
+			mockCmdFunc: "Test_findChildProcNameOkDepthOne",
+			args:        args{startPid: 54321, procName: "ls"},
+			want:        12345,
+		},
+		{
+			name:        "NotFound",
+			mockCmdFunc: "Test_findChildProcNameNotFound",
+			args:        args{startPid: 54321, procName: "something"},
+			want:        0,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			got := findChildProcName(testCase.args.startPid, testCase.args.procName)
+			if got != testCase.want {
+				t.Errorf("findChildProcName() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 func RandomString(n int) string {
@@ -1280,8 +1331,6 @@ func Test_findChildPidPgrepNonNumeric(_ *testing.T) {
 	os.Exit(1)
 }
 
-// Test_ensureComDevReadableDifferentUid
-
 //nolint:paralleltest
 func Test_ensureComDevReadableChownError(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
@@ -1316,6 +1365,106 @@ func Test_ensureComDevReadableChownOK(_ *testing.T) {
 	for i, v := range os.Args {
 		fmt.Printf("arg %d: %s\n", i, v) //nolint:forbidigo
 	}
+
+	os.Exit(1)
+}
+
+//nolint:paralleltest
+func Test_findChildProcNameOkDepthZero(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	// findProcName pid = 12345
+	if len(cmdWithArgs) == 5 && cmdWithArgs[0] == "/bin/ps" && cmdWithArgs[1] == "--libxo" && cmdWithArgs[2] == "json" && cmdWithArgs[3] == "-p" { //nolint:lll
+		fmt.Printf("{\"process-information\": {\"process\": [{\"pid\":\"12345\",\"terminal-name\":\"28 \",\"state\":\"SC+\",\"cpu-time\":\"0:00.00\",\"command\":\"sleep 1024\"}]}}\n") //nolint:lll,forbidigo
+		os.Exit(0)
+	}
+
+	for i, v := range os.Args {
+		fmt.Printf("arg %d: %s\n", i, v) //nolint:forbidigo
+	}
+
+	os.Exit(1)
+}
+
+//nolint:paralleltest,cyclop
+func Test_findChildProcNameOkDepthOne(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	// findProcName pid = 54321
+	if len(cmdWithArgs) == 5 && cmdWithArgs[0] == "/bin/ps" && cmdWithArgs[1] == "--libxo" && cmdWithArgs[2] == "json" && cmdWithArgs[3] == "-p" && cmdWithArgs[4] == "54321" { //nolint:lll
+		fmt.Printf("{\"process-information\": {\"process\": [{\"pid\":\"54321\",\"terminal-name\":\"28 \",\"state\":\"SC+\",\"cpu-time\":\"0:00.00\",\"command\":\"sleep 1024\"}]}}\n") //nolint:lll,forbidigo
+		os.Exit(0)
+	}
+
+	// findChildPid pid = 54321
+	if len(cmdWithArgs) == 4 && cmdWithArgs[1] == "/bin/pgrep" && cmdWithArgs[2] == "-P" && cmdWithArgs[3] == "54321" { //nolint:lll
+		fmt.Printf("12345\n") //nolint:forbidigo
+		os.Exit(0)
+	}
+
+	// findProcName pid = 12345
+	if len(cmdWithArgs) == 5 && cmdWithArgs[0] == "/bin/ps" && cmdWithArgs[1] == "--libxo" && cmdWithArgs[2] == "json" && cmdWithArgs[3] == "-p" && cmdWithArgs[4] == "12345" { //nolint:lll
+		fmt.Printf("{\"process-information\": {\"process\": [{\"pid\":\"12345\",\"terminal-name\":\"28 \",\"state\":\"SC+\",\"cpu-time\":\"0:00.00\",\"command\":\"ls something\"}]}}\n") //nolint:lll,forbidigo
+		os.Exit(0)
+	}
+
+	fmt.Printf("cmdWithArgs: %+v", cmdWithArgs) //nolint:forbidigo
+
+	for i, v := range os.Args {
+		fmt.Printf("arg %d: \"%s\" ", i, v) //nolint:forbidigo
+	}
+
+	fmt.Printf("\n") //nolint:forbidigo
+
+	os.Exit(1)
+}
+
+//nolint:paralleltest,cyclop
+func Test_findChildProcNameNotFound(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	// findProcName pid = 54321
+	if len(cmdWithArgs) == 5 && cmdWithArgs[0] == "/bin/ps" && cmdWithArgs[1] == "--libxo" && cmdWithArgs[2] == "json" && cmdWithArgs[3] == "-p" && cmdWithArgs[4] == "54321" { //nolint:lll
+		fmt.Printf("{\"process-information\": {\"process\": [{\"pid\":\"54321\",\"terminal-name\":\"28 \",\"state\":\"SC+\",\"cpu-time\":\"0:00.00\",\"command\":\"sleep 1024\"}]}}\n") //nolint:lll,forbidigo
+		os.Exit(0)
+	}
+
+	// findChildPid pid = 54321
+	if len(cmdWithArgs) == 4 && cmdWithArgs[1] == "/bin/pgrep" && cmdWithArgs[2] == "-P" && cmdWithArgs[3] == "54321" { //nolint:lll
+		fmt.Printf("12345\n") //nolint:forbidigo
+		os.Exit(0)
+	}
+
+	// findProcName pid = 12345
+	if len(cmdWithArgs) == 5 && cmdWithArgs[0] == "/bin/ps" && cmdWithArgs[1] == "--libxo" && cmdWithArgs[2] == "json" && cmdWithArgs[3] == "-p" && cmdWithArgs[4] == "12345" { //nolint:lll
+		fmt.Printf("{\"process-information\": {\"process\": [{\"pid\":\"12345\",\"terminal-name\":\"28 \",\"state\":\"SC+\",\"cpu-time\":\"0:00.00\",\"command\":\"ls something\"}]}}\n") //nolint:lll,forbidigo
+		os.Exit(0)
+	}
+
+	// findChildPid pid = 12345
+	if len(cmdWithArgs) == 4 && cmdWithArgs[1] == "/bin/pgrep" && cmdWithArgs[2] == "-P" && cmdWithArgs[3] == "54321" { //nolint:lll
+		os.Exit(0)
+	}
+
+	fmt.Printf("cmdWithArgs: %+v", cmdWithArgs) //nolint:forbidigo
+
+	for i, v := range os.Args {
+		fmt.Printf("arg %d: \"%s\" ", i, v) //nolint:forbidigo
+	}
+
+	fmt.Printf("\n") //nolint:forbidigo
 
 	os.Exit(1)
 }
