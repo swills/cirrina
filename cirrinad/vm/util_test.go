@@ -1,8 +1,12 @@
 package vm
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
+	"math/rand"
 	"os"
+	"path/filepath"
 	"regexp"
 	"testing"
 	"time"
@@ -910,7 +914,225 @@ func Test_findChildPid(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest,gocognit
+func Test_ensureComDevReadable(t *testing.T) {
+	type args struct {
+		comDev string
+	}
+
+	tests := []struct {
+		name             string
+		mockCmdFunc      string
+		args             args
+		wantErr          bool
+		wantPath         bool
+		wantPathErr      bool
+		wantStat         bool
+		wantStatErr      bool
+		wantStatDir      bool
+		wantUIDGidErr    bool
+		wantDifferentUID bool
+	}{
+		{
+			name:        "nonsense",
+			args:        args{comDev: "someCrap"},
+			wantErr:     true,
+			wantPath:    false,
+			wantPathErr: false,
+		},
+		{
+			name:        "pathError",
+			args:        args{comDev: "/dev/nmdm-test2001010101-com1-A"},
+			wantErr:     true,
+			wantPath:    false,
+			wantPathErr: true,
+		},
+		{
+			name:        "pathDoesNotExist",
+			args:        args{comDev: "/dev/nmdm-test2001010101-com1-A"},
+			wantErr:     true,
+			wantPath:    false,
+			wantPathErr: false,
+		},
+		{
+			name:        "statErr",
+			args:        args{comDev: "/dev/nmdm-test2001010101-com1-A"},
+			wantErr:     true,
+			wantPath:    true,
+			wantPathErr: false,
+			wantStat:    true,
+			wantStatDir: false,
+			wantStatErr: true,
+		},
+		{
+			name:        "statDir",
+			args:        args{comDev: "/dev/nmdm-test2001010101-com1-A"},
+			wantErr:     true,
+			wantPath:    true,
+			wantPathErr: false,
+			wantStat:    true,
+			wantStatDir: true,
+			wantStatErr: false,
+		},
+		{
+			name:        "statNil",
+			args:        args{comDev: "/dev/nmdm-test2001010101-com1-A"},
+			wantErr:     true,
+			wantPath:    true,
+			wantPathErr: false,
+			wantStat:    false,
+			wantStatDir: false,
+			wantStatErr: false,
+		},
+		{
+			name:          "getUidGidErr",
+			args:          args{comDev: "/dev/nmdm-test2001010101-com1-A"},
+			wantErr:       true,
+			wantPath:      true,
+			wantPathErr:   false,
+			wantStat:      true,
+			wantStatDir:   false,
+			wantStatErr:   false,
+			wantUIDGidErr: true,
+		},
+		{
+			name:             "ChownError",
+			mockCmdFunc:      "Test_ensureComDevReadableChownError",
+			args:             args{comDev: "/dev/nmdm-test2001010101-com1-A"},
+			wantErr:          true,
+			wantPath:         true,
+			wantPathErr:      false,
+			wantStat:         true,
+			wantStatDir:      false,
+			wantStatErr:      false,
+			wantUIDGidErr:    false,
+			wantDifferentUID: true,
+		},
+		{
+			name:             "ChownOk",
+			mockCmdFunc:      "Test_ensureComDevReadableChownOk",
+			args:             args{comDev: "/dev/nmdm-test2001010101-com1-A"},
+			wantErr:          false,
+			wantPath:         true,
+			wantPathErr:      false,
+			wantStat:         true,
+			wantStatDir:      false,
+			wantStatErr:      false,
+			wantUIDGidErr:    false,
+			wantDifferentUID: true,
+		},
+		{
+			name:             "NothingToDo",
+			mockCmdFunc:      "Test_ensureComDevReadableChownOk",
+			args:             args{comDev: "/dev/nmdm-test2001010101-com1-A"},
+			wantErr:          false,
+			wantPath:         true,
+			wantPathErr:      false,
+			wantStat:         true,
+			wantStatDir:      false,
+			wantStatErr:      false,
+			wantUIDGidErr:    false,
+			wantDifferentUID: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			pathExistsFunc = func(_ string) (bool, error) {
+				if testCase.wantPathErr {
+					return true, errors.New("another error") //nolint:goerr113
+				}
+
+				if testCase.wantPath {
+					return true, nil
+				}
+
+				return false, nil
+			}
+
+			//nolint:nestif
+			statFunc = func(_ string) (fs.FileInfo, error) {
+				if testCase.wantStatErr {
+					return nil, errors.New("some stat error") //nolint:goerr113
+				}
+
+				if testCase.wantStatDir {
+					statSlash, err := os.Stat("/")
+					if err != nil {
+						t.Errorf("failed building fake stat: %s", err.Error())
+					}
+
+					return statSlash, nil
+				} else if testCase.wantStat {
+					randFile := filepath.Join("/tmp", RandomString(12))
+
+					_, err := os.Create(randFile)
+					if err != nil {
+						t.Errorf("failed building fake stat: %s", err.Error())
+					}
+
+					err = os.Chmod(randFile, 0x0755)
+					if err != nil {
+						t.Errorf("failed building fake stat: %s", err.Error())
+					}
+
+					statFile, err := os.Stat(randFile)
+					if err != nil {
+						t.Errorf("failed building fake stat: %s", err.Error())
+					}
+
+					return statFile, nil
+				}
+
+				return nil, nil //nolint:nilnil
+			}
+
+			GetMyUIDGIDFunc = func() (uint32, uint32, error) {
+				if testCase.wantUIDGidErr {
+					return 0, 0, errors.New("some error") //nolint:goerr113
+				}
+
+				myUID, _, err := util.GetMyUIDGID()
+				if err != nil {
+					t.Errorf("unable to get my real uid when building test: %s", err.Error())
+				}
+
+				if testCase.wantDifferentUID {
+					return myUID + 1, 0, nil // gid unused
+				}
+
+				return myUID, 0, nil // gid unused
+			}
+
+			err := ensureComDevReadable(testCase.args.comDev)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("ensureComDevReadable() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
 // test helpers from here down
+
+func RandomString(n int) string {
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+	s := make([]rune, n)
+	for i := range s {
+		s[i] = letters[rand.Intn(len(letters))]
+	}
+
+	return string(s)
+}
 
 //nolint:paralleltest
 func Test_findProcNameSleep(_ *testing.T) {
@@ -1048,6 +1270,46 @@ func Test_findChildPidPgrepNonNumeric(_ *testing.T) {
 
 	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/bin/pgrep" && cmdWithArgs[1] == "-P" && cmdWithArgs[2] == "54321" { //nolint:lll
 		fmt.Printf("12345a\n") //nolint:forbidigo
+		os.Exit(0)
+	}
+
+	for i, v := range os.Args {
+		fmt.Printf("arg %d: %s\n", i, v) //nolint:forbidigo
+	}
+
+	os.Exit(1)
+}
+
+// Test_ensureComDevReadableDifferentUid
+
+//nolint:paralleltest
+func Test_ensureComDevReadableChownError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[4:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/usr/sbin/chown" && cmdWithArgs[2] == "/dev/nmdm-test2001010101-com1-B" { //nolint:lll
+		os.Exit(1)
+	}
+
+	for i, v := range os.Args {
+		fmt.Printf("arg %d: %s\n", i, v) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_ensureComDevReadableChownOK(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[4:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/usr/sbin/chown" && cmdWithArgs[2] == "/dev/nmdm-test2001010101-com1-B" { //nolint:lll
 		os.Exit(0)
 	}
 

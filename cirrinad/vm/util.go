@@ -18,6 +18,10 @@ import (
 	"cirrina/cirrinad/vmnic"
 )
 
+var pathExistsFunc = util.PathExists
+var statFunc = os.Stat
+var GetMyUIDGIDFunc = util.GetMyUIDGID
+
 func doAutostart(vmInst *VM) {
 	slog.Debug(
 		"AutoStartVMs sleeping for auto start delay",
@@ -43,7 +47,7 @@ func ensureComDevReadable(comDev string) error {
 	comReadDev := comBaseDev + "B"
 	slog.Debug("Checking com dev readable", "comDev", comDev, "comReadDev", comReadDev)
 
-	exists, err := util.PathExists(comReadDev)
+	exists, err := pathExistsFunc(comReadDev)
 	if err != nil {
 		return fmt.Errorf("error checking vm com dev: %w", err)
 	}
@@ -52,9 +56,13 @@ func ensureComDevReadable(comDev string) error {
 		return errVMComDevNonexistent
 	}
 
-	comReadFileInfo, err := os.Stat(comReadDev)
+	comReadFileInfo, err := statFunc(comReadDev)
 	if err != nil {
 		return fmt.Errorf("error checking vm com dev: %w", err)
+	}
+
+	if comReadFileInfo == nil {
+		return errVMComDevNonexistent
 	}
 
 	if comReadFileInfo.IsDir() {
@@ -72,7 +80,7 @@ func ensureComDevReadable(comDev string) error {
 		return errVMTypeConversionFailure
 	}
 
-	myUID, _, err := util.GetMyUIDGID()
+	myUID, _, err := GetMyUIDGIDFunc()
 	if err != nil {
 		return fmt.Errorf("failure getting my UID/GID: %w", err)
 	}

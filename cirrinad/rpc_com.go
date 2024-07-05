@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	"os"
 	"strconv"
@@ -337,7 +338,10 @@ func comIntStreamSendFromDev(stream cirrina.VMInfo_Com1InteractiveServer, vmInst
 	}
 
 	if err != nil && !errors.Is(err, io.EOF) {
-		slog.Error("ComInteractive error reading com port", "err", err)
+		// another goroutine may have already closed it, which is fine, no need to log that here
+		if !errors.Is(err, fs.ErrClosed) {
+			slog.Error("ComInteractive error reading com port", "err", err)
+		}
 
 		return true
 	}

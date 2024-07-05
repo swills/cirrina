@@ -2009,6 +2009,7 @@ func TestPathExists(t *testing.T) {
 			wantErr: true,
 		},
 	}
+
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			got, err := PathExists(testCase.args.path)
