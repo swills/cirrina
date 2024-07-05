@@ -706,3 +706,193 @@ func Test_getUsedNetPorts(t *testing.T) {
 		})
 	}
 }
+
+//nolint:paralleltest
+func Test_isNetPortUsed(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		netPort string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		want        bool
+	}{
+		{
+			name: "PortIsUsed",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+
+				testVM := VM{
+					ID:          "c6a9839e-3a7d-488d-b3f5-379aeea8718d",
+					Name:        "testVm",
+					Description: "a test VM without a nic",
+					Status:      "RUNNING",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 123,
+						},
+						VMID: "c6a9839e-3a7d-488d-b3f5-379aeea8718d",
+					},
+				}
+
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM.ID] = &testVM
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WithArgs(123).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"mac",
+						"net_type",
+						"net_dev_type",
+						"switch_id",
+						"net_dev",
+						"rate_limit",
+						"rate_in",
+						"rate_out",
+						"inst_bridge",
+						"inst_epair",
+						"config_id",
+					}).AddRow(
+						"623a6641-fb63-4e58-bcca-cb7e569e8083",
+						createUpdateTime,
+						createUpdateTime,
+						nil,
+						"aNic",
+						"a description",
+						"00:11:22:33:44:55",
+						"VIRTIONET",
+						"TAP",
+						"6093f6a1-82dc-4281-891f-549606f299dd",
+						"tap0",
+						false,
+						0,
+						0,
+						nil,
+						nil,
+						123,
+					),
+					)
+			},
+			args: args{netPort: "tap0"},
+			want: true,
+		},
+		{
+			name: "PortIsNotUsed",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+
+				testVM := VM{
+					ID:          "c6a9839e-3a7d-488d-b3f5-379aeea8718d",
+					Name:        "testVm",
+					Description: "a test VM without a nic",
+					Status:      "RUNNING",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 123,
+						},
+						VMID: "c6a9839e-3a7d-488d-b3f5-379aeea8718d",
+					},
+				}
+
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM.ID] = &testVM
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WithArgs(123).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"mac",
+						"net_type",
+						"net_dev_type",
+						"switch_id",
+						"net_dev",
+						"rate_limit",
+						"rate_in",
+						"rate_out",
+						"inst_bridge",
+						"inst_epair",
+						"config_id",
+					}).AddRow(
+						"623a6641-fb63-4e58-bcca-cb7e569e8083",
+						createUpdateTime,
+						createUpdateTime,
+						nil,
+						"aNic",
+						"a description",
+						"00:11:22:33:44:55",
+						"VIRTIONET",
+						"TAP",
+						"6093f6a1-82dc-4281-891f-549606f299dd",
+						"tap0",
+						false,
+						0,
+						0,
+						nil,
+						nil,
+						123,
+					),
+					)
+			},
+			args: args{netPort: "tap1"},
+			want: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+
+			testCase.mockClosure(testDB, mock)
+
+			got := isNetPortUsed(testCase.args.netPort)
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
