@@ -166,55 +166,6 @@ func Test_findProcName(t *testing.T) {
 	}
 }
 
-// test helpers from here down
-
-//nolint:paralleltest
-func Test_findProcNameSleep(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
-	}
-
-	cmdWithArgs := os.Args[3:]
-
-	if len(cmdWithArgs) == 5 && cmdWithArgs[0] == "/bin/ps" && cmdWithArgs[1] == "--libxo" && cmdWithArgs[2] == "json" && cmdWithArgs[3] == "-p" { //nolint:lll
-		fmt.Printf("{\"process-information\": {\"process\": [{\"pid\":\"12345\",\"terminal-name\":\"28 \",\"state\":\"SC+\",\"cpu-time\":\"0:00.00\",\"command\":\"sleep 1024\"}]}}\n") //nolint:lll,forbidigo
-		os.Exit(0)
-	}
-
-	os.Exit(1)
-}
-
-//nolint:paralleltest
-func Test_findProcNameError(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
-	}
-
-	cmdWithArgs := os.Args[3:]
-
-	if len(cmdWithArgs) == 5 && cmdWithArgs[0] == "/bin/ps" && cmdWithArgs[1] == "--libxo" && cmdWithArgs[2] == "json" && cmdWithArgs[3] == "-p" { //nolint:lll
-		os.Exit(1)
-	}
-
-	os.Exit(0)
-}
-
-//nolint:paralleltest
-func Test_findProcNameBadJson(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
-	}
-
-	cmdWithArgs := os.Args[3:]
-
-	if len(cmdWithArgs) == 5 && cmdWithArgs[0] == "/bin/ps" && cmdWithArgs[1] == "--libxo" && cmdWithArgs[2] == "json" && cmdWithArgs[3] == "-p" { //nolint:lll
-		fmt.Printf("{\"process-information\": {\"process\": [{\"pid\":\"12345\",\"terminal-name\":\"28 \",\"state\":\"SC+\",\"cpu-time\":\"0:00.00\",\"comm") //nolint:lll,forbidigo
-		os.Exit(0)
-	}
-
-	os.Exit(1)
-}
-
 //nolint:paralleltest
 func TestGetAll(t *testing.T) {
 	tests := []struct {
@@ -895,4 +846,214 @@ func Test_isNetPortUsed(t *testing.T) {
 			}
 		})
 	}
+}
+
+//nolint:paralleltest
+func Test_findChildPid(t *testing.T) {
+	type args struct {
+		findPid uint32
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		want        uint32
+	}{
+		{
+			name:        "Simple",
+			mockCmdFunc: "Test_findChildPidSimple",
+			args:        args{findPid: 54321},
+			want:        12345,
+		},
+		{
+			name:        "PgrepError",
+			mockCmdFunc: "Test_findChildPidPgrepError",
+			args:        args{findPid: 54321},
+			want:        0,
+		},
+		{
+			name:        "PgrepExtraFields",
+			mockCmdFunc: "Test_findChildPidPgrepExtraFields",
+			args:        args{findPid: 54321},
+			want:        0,
+		},
+		{
+			name:        "PgrepExtraLines",
+			mockCmdFunc: "Test_findChildPidPgrepExtraLines",
+			args:        args{findPid: 54321},
+			want:        0,
+		},
+		{
+			name:        "PgrepNonNumeric",
+			mockCmdFunc: "Test_findChildPidPgrepNonNumeric",
+			args:        args{findPid: 54321},
+			want:        0,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			got := findChildPid(testCase.args.findPid)
+			if got != testCase.want {
+				t.Errorf("findChildPid() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+// test helpers from here down
+
+//nolint:paralleltest
+func Test_findProcNameSleep(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 5 && cmdWithArgs[0] == "/bin/ps" && cmdWithArgs[1] == "--libxo" && cmdWithArgs[2] == "json" && cmdWithArgs[3] == "-p" { //nolint:lll
+		fmt.Printf("{\"process-information\": {\"process\": [{\"pid\":\"12345\",\"terminal-name\":\"28 \",\"state\":\"SC+\",\"cpu-time\":\"0:00.00\",\"command\":\"sleep 1024\"}]}}\n") //nolint:lll,forbidigo
+		os.Exit(0)
+	}
+
+	os.Exit(1)
+}
+
+//nolint:paralleltest
+func Test_findProcNameError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 5 && cmdWithArgs[0] == "/bin/ps" && cmdWithArgs[1] == "--libxo" && cmdWithArgs[2] == "json" && cmdWithArgs[3] == "-p" { //nolint:lll
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_findProcNameBadJson(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 5 && cmdWithArgs[0] == "/bin/ps" && cmdWithArgs[1] == "--libxo" && cmdWithArgs[2] == "json" && cmdWithArgs[3] == "-p" { //nolint:lll
+		fmt.Printf("{\"process-information\": {\"process\": [{\"pid\":\"12345\",\"terminal-name\":\"28 \",\"state\":\"SC+\",\"cpu-time\":\"0:00.00\",\"comm") //nolint:lll,forbidigo
+		os.Exit(0)
+	}
+
+	os.Exit(1)
+}
+
+//nolint:paralleltest
+func Test_findChildPidSimple(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[4:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/bin/pgrep" && cmdWithArgs[1] == "-P" && cmdWithArgs[2] == "54321" { //nolint:lll
+		fmt.Printf("12345\n") //nolint:forbidigo
+		os.Exit(0)
+	}
+
+	for i, v := range os.Args {
+		fmt.Printf("arg %d: %s\n", i, v) //nolint:forbidigo
+	}
+
+	os.Exit(1)
+}
+
+//nolint:paralleltest
+func Test_findChildPidPgrepError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[4:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/bin/pgrep" && cmdWithArgs[1] == "-P" && cmdWithArgs[2] == "54321" { //nolint:lll
+		os.Exit(1)
+	}
+
+	for i, v := range os.Args {
+		fmt.Printf("arg %d: %s\n", i, v) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_findChildPidPgrepExtraFields(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[4:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/bin/pgrep" && cmdWithArgs[1] == "-P" && cmdWithArgs[2] == "54321" { //nolint:lll
+		fmt.Printf("12345 garbage\n") //nolint:forbidigo
+		os.Exit(0)
+	}
+
+	for i, v := range os.Args {
+		fmt.Printf("arg %d: %s\n", i, v) //nolint:forbidigo
+	}
+
+	os.Exit(1)
+}
+
+//nolint:paralleltest
+func Test_findChildPidPgrepExtraLines(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[4:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/bin/pgrep" && cmdWithArgs[1] == "-P" && cmdWithArgs[2] == "54321" { //nolint:lll
+		fmt.Printf("12345\n12345\n") //nolint:forbidigo
+		os.Exit(0)
+	}
+
+	for i, v := range os.Args {
+		fmt.Printf("arg %d: %s\n", i, v) //nolint:forbidigo
+	}
+
+	os.Exit(1)
+}
+
+//nolint:paralleltest
+func Test_findChildPidPgrepNonNumeric(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[4:]
+
+	if len(cmdWithArgs) == 3 && cmdWithArgs[0] == "/bin/pgrep" && cmdWithArgs[1] == "-P" && cmdWithArgs[2] == "54321" { //nolint:lll
+		fmt.Printf("12345a\n") //nolint:forbidigo
+		os.Exit(0)
+	}
+
+	for i, v := range os.Args {
+		fmt.Printf("arg %d: %s\n", i, v) //nolint:forbidigo
+	}
+
+	os.Exit(1)
 }

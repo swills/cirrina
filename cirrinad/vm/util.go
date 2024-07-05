@@ -129,6 +129,8 @@ func findChildPid(findPid uint32) uint32 {
 			"returnCode", returnCode,
 			"err", err,
 		)
+
+		return 0
 	}
 
 	found := false
@@ -143,6 +145,8 @@ func findChildPid(findPid uint32) uint32 {
 
 		if fl > 1 {
 			slog.Debug("FindChildPid pgrep extra fields", "line", line)
+
+			return 0
 		}
 
 		var tempPid1 uint64
@@ -161,6 +165,8 @@ func findChildPid(findPid uint32) uint32 {
 			childPid = tempPid2
 		} else {
 			slog.Debug("FindChildPid found too many child procs")
+
+			return 0
 		}
 	}
 
