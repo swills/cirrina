@@ -329,7 +329,7 @@ func (d *Disk) VerifyExists() (bool, error) {
 	}
 
 	// perhaps it's not necessary to check the volume -- as long as there's a /dev/zvol entry, we're fine, right?
-	exists, err = util.PathExists(diskPath)
+	exists, err = pathExistsFunc(diskPath)
 	if err != nil {
 		return exists, fmt.Errorf("failed checking disk exists: %w", err)
 	}

@@ -431,6 +431,7 @@ func TestGetByID(t *testing.T) {
 			wantErr:     true,
 		},
 	}
+
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
@@ -1644,6 +1645,118 @@ func TestCreate(t *testing.T) {
 			err = mockDB.ExpectationsWereMet()
 			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+func TestDisk_VerifyExists(t *testing.T) {
+	type fields struct {
+		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		DeletedAt   gorm.DeletedAt
+		Name        string
+		Description string
+		Type        string
+		DevType     string
+		DiskCache   sql.NullBool
+		DiskDirect  sql.NullBool
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func()
+		fields      fields
+		want        bool
+		wantErr     bool
+		wantPath    bool
+		wantPathErr bool
+	}{
+		{
+			name: "FileOk",
+			mockClosure: func() {
+				config.Config.Disk.VM.Path.Image = "/some/path"
+			},
+			fields: fields{
+				DevType: "FILE",
+			},
+			want:        true,
+			wantErr:     false,
+			wantPath:    true,
+			wantPathErr: false,
+		},
+		{
+			name: "ZVOLOk",
+			mockClosure: func() {
+				config.Config.Disk.VM.Path.Image = "/some/path"
+			},
+			fields: fields{
+				DevType: "ZVOL",
+			},
+			want:        true,
+			wantErr:     false,
+			wantPath:    true,
+			wantPathErr: false,
+		},
+		{
+			name: "FileErr",
+			mockClosure: func() {
+				config.Config.Disk.VM.Path.Image = "/some/path"
+			},
+			fields: fields{
+				DevType: "FILE",
+			},
+			want:        true,
+			wantErr:     true,
+			wantPath:    true,
+			wantPathErr: true,
+		},
+		{
+			name: "ZVOLErr",
+			mockClosure: func() {
+				config.Config.Disk.VM.Path.Image = "/some/path"
+			},
+			fields: fields{
+				DevType: "ZVOL",
+			},
+			want:        true,
+			wantErr:     true,
+			wantPath:    true,
+			wantPathErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mockClosure()
+
+			pathExistsFunc = func(_ string) (bool, error) {
+				if testCase.wantPathErr {
+					return true, errors.New("another error") //nolint:goerr113
+				}
+
+				if testCase.wantPath {
+					return true, nil
+				}
+
+				return false, nil
+			}
+
+			testDisk := &Disk{
+				DevType: testCase.fields.DevType,
+			}
+
+			got, err := testDisk.VerifyExists()
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("VerifyExists() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("VerifyExists() got = %v, want %v", got, testCase.want)
 			}
 		})
 	}
