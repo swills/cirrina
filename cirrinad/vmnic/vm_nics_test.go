@@ -1320,6 +1320,21 @@ func TestGetNics(t *testing.T) {
 				ConfigID:    321,
 			}},
 		},
+		{
+			name: "dberr",
+			args: args{vmConfigID: 321},
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+			},
+			want:    nil,
+			wantErr: true,
+		},
 	}
 
 	for _, testCase := range tests {
