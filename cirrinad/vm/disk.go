@@ -99,6 +99,19 @@ func (vm *VM) AttachDisks(diskids []string) error {
 		return err
 	}
 
+	vm.Disks = []*disk.Disk{}
+
+	for _, diskID := range diskids {
+		var aDisk *disk.Disk
+
+		aDisk, err = disk.GetByID(diskID)
+		if err != nil {
+			return fmt.Errorf("error attaching disk: %w", err)
+		}
+
+		vm.Disks = append(vm.Disks, aDisk)
+	}
+
 	err = vm.Save()
 	if err != nil {
 		slog.Error("error saving VM", "err", err)

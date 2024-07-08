@@ -250,9 +250,13 @@ func Create(vmInst *VM) error {
 	return nil
 }
 
-//nolint:funlen
+//nolint:funlen,cyclop
 func (vm *VM) Save() error {
 	vmDB := GetVMDB()
+
+	if vm.ID == "" || vm.Config.ID == 0 {
+		return errVMInternalDB
+	}
 
 	res := vmDB.Model(&vm.Config).
 		Updates(map[string]interface{}{
