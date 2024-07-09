@@ -374,9 +374,3 @@ func GetAllDB() ([]*VM, error) {
 
 	return result, nil
 }
-
-func DBInitialized() bool {
-	db := GetVMDB()
-
-	return db.Migrator().HasColumn(VM{}, "id")
-}

@@ -228,7 +228,9 @@ func migration2024022401(schemaVersion uint32, vmNicDB *gorm.DB, vmDB *gorm.DB) 
 
 func migration2024022402(schemaVersion uint32, vmDB *gorm.DB) {
 	if schemaVersion < 2024022402 {
-		if vm.DBInitialized() {
+		db := vm.GetVMDB()
+
+		if db.Migrator().HasColumn(vm.VM{}, "id") {
 			if vmDB.Migrator().HasColumn(&vm.Config{}, "nics") {
 				slog.Debug("removing config.nics")
 
@@ -270,7 +272,9 @@ func migration2024022403(schemaVersion uint32, reqDB *gorm.DB) {
 
 func migration2024062701(schemaVersion uint32, vmDB *gorm.DB) {
 	if schemaVersion < 2024062701 {
-		if vm.DBInitialized() {
+		db := vm.GetVMDB()
+
+		if db.Migrator().HasColumn(vm.VM{}, "id") {
 			if !vmDB.Migrator().HasTable("vm_isos") {
 				//nolint:lll
 				vmIsoCreateTableRawSQL := `CREATE TABLE "vm_isos" (
@@ -362,7 +366,9 @@ func migration2024062703(schemaVersion uint32, vmDB *gorm.DB) {
 
 func migration2024063001(schemaVersion uint32, vmDB *gorm.DB) {
 	if schemaVersion < 2024063001 {
-		if vm.DBInitialized() {
+		db := vm.GetVMDB()
+
+		if db.Migrator().HasColumn(vm.VM{}, "id") {
 			if !vmDB.Migrator().HasTable("vm_disks") {
 				//nolint:lll
 				vmDiskCreateTableRawSQL := `CREATE TABLE "vm_disks" (
