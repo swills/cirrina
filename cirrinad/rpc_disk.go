@@ -216,15 +216,28 @@ func (s *server) GetDiskVM(_ context.Context, diskID *cirrina.DiskId) (*cirrina.
 		return &pvmID, errInvalidID
 	}
 
-	var aVM *vm.VM
+	diskInst, err := disk.GetByID(diskUUID.String())
+	if err != nil {
+		slog.Error("error getting disk", "disk", diskID.GetValue(), "err", err)
 
-	aVM, err = getDiskVM(diskUUID)
+		return &pvmID, errNotFound
+	}
+
+	if diskInst.Name == "" {
+		slog.Debug("disk not found")
+
+		return &pvmID, errNotFound
+	}
+
+	var diskVM *vm.VM
+
+	diskVM, err = getDiskVM(diskUUID)
 	if err != nil {
 		return &cirrina.VMID{}, err
 	}
 
-	if aVM != nil {
-		pvmID.Value = aVM.ID
+	if diskVM != nil {
+		pvmID.Value = diskVM.ID
 	}
 
 	return &pvmID, nil
