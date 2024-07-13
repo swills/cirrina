@@ -267,18 +267,17 @@ func (s *server) SetDiskInfo(_ context.Context, diu *cirrina.DiskInfoUpdate) (*c
 	}
 
 	if diu.DiskType != nil {
-		switch diu.GetDiskType() {
-		case cirrina.DiskType_NVME:
-			diskInst.Type = "NVME"
-		case cirrina.DiskType_AHCIHD:
-			diskInst.Type = "AHCI-HD"
-		case cirrina.DiskType_VIRTIOBLK:
-			diskInst.Type = "VIRTIO-BLK"
-		default:
-			return &res, errDiskInvalidType
+		diskInst.Type, err = mapDiskTypeTypeToDBString(diu.GetDiskType())
+		if err != nil {
+			return &res, fmt.Errorf("error: %w", err)
 		}
+	}
 
-		slog.Debug("SetDiskInfo", "type", diskInst.Type)
+	if diu.DiskDevType != nil {
+		diskInst.DevType, err = mapDiskDevTypeTypeToDBString(diu.GetDiskDevType())
+		if err != nil {
+			return &res, fmt.Errorf("error: %w", err)
+		}
 	}
 
 	if diu.Cache != nil {

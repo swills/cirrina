@@ -1386,3 +1386,293 @@ func Test_server_GetDisks(t *testing.T) {
 		})
 	}
 }
+
+//nolint:paralleltest,maintidx
+func Test_server_SetDiskInfo(t *testing.T) {
+	type args struct {
+		diu *cirrina.DiskInfoUpdate
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		want        *cirrina.ReqBool
+		wantErr     bool
+	}{
+		{
+			name:        "emptyUUID",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			args: args{
+				diu: &cirrina.DiskInfoUpdate{
+					Id: "",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:        "badUUID",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			args: args{
+				diu: &cirrina.DiskInfoUpdate{
+					Id: "garbage",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:        "getByIDError",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			args: args{
+				diu: &cirrina.DiskInfoUpdate{
+					Id: "7746cd3b-8ec9-4b04-b7be-2fd79f580dc4",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "badDiskType",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+				diskInst := &disk.Disk{
+					ID:          "7746cd3b-8ec9-4b04-b7be-2fd79f580dc4",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: false,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			args: args{
+				diu: &cirrina.DiskInfoUpdate{
+					Id: "7746cd3b-8ec9-4b04-b7be-2fd79f580dc4",
+					Description: func() *string {
+						desc := "some description"
+
+						return &desc
+					}(),
+					DiskType: func() *cirrina.DiskType {
+						f := cirrina.DiskType(-1)
+
+						return &f
+					}(),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "badDiskDevType",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+				diskInst := &disk.Disk{
+					ID:          "7746cd3b-8ec9-4b04-b7be-2fd79f580dc4",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: false,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			args: args{
+				diu: &cirrina.DiskInfoUpdate{
+					Id: "7746cd3b-8ec9-4b04-b7be-2fd79f580dc4",
+					Description: func() *string {
+						desc := "some description"
+
+						return &desc
+					}(),
+					DiskDevType: func() *cirrina.DiskDevType {
+						f := cirrina.DiskDevType(-1)
+
+						return &f
+					}(),
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "dbError",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				disk.Instance = &disk.Singleton{ // prevents parallel testing
+					DiskDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `disks` SET `description`=?,`dev_type`=?,`disk_cache`=?,`disk_direct`=?,`name`=?,`type`=?,`updated_at`=? WHERE `disks`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some new description", "FILE", true, false, "yetAnotherDisk", "NVME", sqlmock.AnyArg(), "7746cd3b-8ec9-4b04-b7be-2fd79f580dc4"). //nolint:lll
+					WillReturnError(errInvalidRequest)
+				mock.ExpectCommit()
+
+				diskInst := &disk.Disk{
+					ID:          "7746cd3b-8ec9-4b04-b7be-2fd79f580dc4",
+					Name:        "yetAnotherDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: false,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			args: args{
+				diu: &cirrina.DiskInfoUpdate{
+					Id: "7746cd3b-8ec9-4b04-b7be-2fd79f580dc4",
+					Description: func() *string {
+						desc := "some new description"
+
+						return &desc
+					}(),
+					DiskType: func() *cirrina.DiskType {
+						f := cirrina.DiskType_NVME
+
+						return &f
+					}(),
+					DiskDevType: func() *cirrina.DiskDevType {
+						f := cirrina.DiskDevType_FILE
+
+						return &f
+					}(),
+					Cache:  func() *bool { f := true; return &f }(),  //nolint:nlreturn
+					Direct: func() *bool { f := false; return &f }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				disk.Instance = &disk.Singleton{ // prevents parallel testing
+					DiskDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `disks` SET `description`=?,`dev_type`=?,`disk_cache`=?,`disk_direct`=?,`name`=?,`type`=?,`updated_at`=? WHERE `disks`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("some new description", "FILE", true, false, "yetAnotherDisk", "NVME", sqlmock.AnyArg(), "7746cd3b-8ec9-4b04-b7be-2fd79f580dc4"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				diskInst := &disk.Disk{
+					ID:          "7746cd3b-8ec9-4b04-b7be-2fd79f580dc4",
+					Name:        "yetAnotherDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: false,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			args: args{
+				diu: &cirrina.DiskInfoUpdate{
+					Id: "7746cd3b-8ec9-4b04-b7be-2fd79f580dc4",
+					Description: func() *string {
+						desc := "some new description"
+
+						return &desc
+					}(),
+					DiskType: func() *cirrina.DiskType {
+						f := cirrina.DiskType_NVME
+
+						return &f
+					}(),
+					DiskDevType: func() *cirrina.DiskDevType {
+						f := cirrina.DiskDevType_FILE
+
+						return &f
+					}(),
+					Cache:  func() *bool { f := true; return &f }(),  //nolint:nlreturn
+					Direct: func() *bool { f := false; return &f }(), //nolint:nlreturn
+				},
+			},
+			want:    &cirrina.ReqBool{Success: true},
+			wantErr: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			// clear out list(s) from other parallel test runs
+			disk.List.DiskList = map[string]*disk.Disk{}
+
+			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testCase.mockClosure(testDB, mock)
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			got, err := client.SetDiskInfo(context.Background(), testCase.args.diu)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("SetDiskInfo() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
