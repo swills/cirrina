@@ -24,6 +24,7 @@ import (
 	"cirrina/cirrinad/cirrinadtest"
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
+	"cirrina/cirrinad/vm"
 )
 
 //nolint:paralleltest,maintidx,gocognit
@@ -711,6 +712,331 @@ func Test_server_GetDiskInfo(t *testing.T) {
 			got, err := client.GetDiskInfo(context.Background(), testCase.args.diskID)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("GetDiskInfo() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest,maintidx
+func Test_server_RemoveDisk(t *testing.T) {
+	type args struct {
+		diskID *cirrina.DiskId
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		want        *cirrina.ReqBool
+		wantErr     bool
+	}{
+		{
+			name: "badUUID",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+			},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "garbage",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "doesNotExist",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+				diskInst := &disk.Disk{
+					ID:          "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "fb81d8bc-7b66-4172-aec1-d633a5043d2b",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "diskNameEmpty",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+				diskInst := &disk.Disk{
+					ID:          "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+					Name:        "",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "getDiskVMErrorUsedByTwo",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+				diskInst := &disk.Disk{
+					ID:          "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+
+				testVM1 := vm.VM{
+					ID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 2,
+						},
+						VMID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs: nil,
+					Disks: []*disk.Disk{{
+						ID: "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+					}},
+				}
+				testVM2 := vm.VM{
+					ID: "4a8bae96-632c-48d1-aee7-6c428639004c",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 3,
+						},
+						VMID: "4a8bae96-632c-48d1-aee7-6c428639004c",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs: nil,
+					Disks: []*disk.Disk{{
+						ID: "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+					}},
+				}
+				vm.List.VMList[testVM1.ID] = &testVM1
+				vm.List.VMList[testVM2.ID] = &testVM2
+			},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "getDiskVMErrorInUse",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+				diskInst := &disk.Disk{
+					ID:          "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+
+				testVM1 := vm.VM{
+					ID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 2,
+						},
+						VMID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs: nil,
+					Disks: []*disk.Disk{{
+						ID: "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+					}},
+				}
+
+				// clear out list from other parallel test runs
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "diskDeleteError",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				disk.Instance = &disk.Singleton{ // prevents parallel testing
+					DiskDB: testDB,
+				}
+
+				diskInst := &disk.Disk{
+					ID:          "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+
+				disk.List.DiskList[diskInst.ID] = diskInst
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `disks` SET `deleted_at`=? WHERE `disks`.`id` = ? AND `disks`.`deleted_at` IS NULL"),
+				).
+					WithArgs(sqlmock.AnyArg(), "0d4a0338-0b68-4645-b99d-9cbb30df272d").
+					WillReturnError(errInvalidRequest)
+				mock.ExpectRollback()
+			},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				disk.Instance = &disk.Singleton{ // prevents parallel testing
+					DiskDB: testDB,
+				}
+
+				diskInst := &disk.Disk{
+					ID:          "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+
+				disk.List.DiskList[diskInst.ID] = diskInst
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `disks` SET `deleted_at`=? WHERE `disks`.`id` = ? AND `disks`.`deleted_at` IS NULL"),
+				).
+					WithArgs(sqlmock.AnyArg(), "0d4a0338-0b68-4645-b99d-9cbb30df272d").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+				},
+			},
+			want:    &cirrina.ReqBool{Success: true},
+			wantErr: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			// clear out list(s) from other parallel test runs
+			disk.List.DiskList = map[string]*disk.Disk{}
+			vm.List.VMList = map[string]*vm.VM{}
+
+			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testCase.mockClosure(testDB, mock)
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			got, err := client.RemoveDisk(context.Background(), testCase.args.diskID)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("RemoveDisk() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}

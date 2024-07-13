@@ -262,16 +262,17 @@ func Delete(diskID string) error {
 		return errDiskIDEmptyOrInvalid
 	}
 
-	delete(List.DiskList, diskID)
-
 	db := GetDiskDB()
 
 	res := db.Limit(1).Delete(&Disk{ID: diskID})
-	if res.RowsAffected != 1 {
+
+	if res.Error != nil || res.RowsAffected != 1 {
 		slog.Error("error saving disk", "res", res)
 
 		return errDiskInternalDB
 	}
+
+	delete(List.DiskList, diskID)
 
 	return nil
 }
