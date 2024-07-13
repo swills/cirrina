@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"io"
 	"log"
 	"net"
 	"regexp"
@@ -1277,6 +1278,105 @@ func Test_server_GetDiskVM(t *testing.T) {
 				t.Errorf("RemoveDisk() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest
+func Test_server_GetDisks(t *testing.T) {
+	tests := []struct {
+		name        string
+		mockClosure func()
+		want        []string
+		wantErr     bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "0d4a0338-0b68-4645-b99d-9cbb30df272d",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			want: []string{"0d4a0338-0b68-4645-b99d-9cbb30df272d"},
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			// clear out list(s) from other parallel test runs
+			disk.List.DiskList = map[string]*disk.Disk{}
+			vm.List.VMList = map[string]*vm.VM{}
+
+			testCase.mockClosure()
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var res cirrina.VMInfo_GetDisksClient
+
+			var got []string
+
+			var VMDisk *cirrina.DiskId
+
+			ctx := context.Background()
+
+			res, err = client.GetDisks(ctx, &cirrina.DisksQuery{})
+
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetDisks() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			for {
+				VMDisk, err = res.Recv()
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				got = append(got, VMDisk.GetValue())
 			}
 
 			diff := deep.Equal(got, testCase.want)
