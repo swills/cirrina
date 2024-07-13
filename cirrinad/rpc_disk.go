@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	"github.com/google/uuid"
 
@@ -102,10 +101,6 @@ func (s *server) GetDiskInfo(_ context.Context, diskID *cirrina.DiskId) (*cirrin
 
 	var diskInst *disk.Disk
 
-	var diskSizeNum uint64
-
-	var diskUsageNum uint64
-
 	diskInst, err = validateGetDiskInfoRequest(diskID)
 	if err != nil {
 		return &cirrina.DiskInfo{}, err
@@ -140,50 +135,21 @@ func (s *server) GetDiskInfo(_ context.Context, diskID *cirrina.DiskId) (*cirrin
 
 	switch diskInfo.GetDiskDevType() {
 	case cirrina.DiskDevType_FILE:
-		diskService = disk.NewFileInfoService(nil)
-
+		diskService = disk.NewFileInfoService(disk.FileInfoFetcherImpl)
 	case cirrina.DiskDevType_ZVOL:
 		if config.Config.Disk.VM.Path.Zpool == "" {
 			return &cirrina.DiskInfo{}, errDiskZPoolNotConfigured
 		}
 
-		diskService = disk.NewZfsVolInfoService(nil)
+		diskService = disk.NewZfsVolInfoService(disk.ZfsInfoFetcherImpl)
 	default:
 		return &cirrina.DiskInfo{}, errDiskInvalidDevType
 	}
 
-	err = GetDiskInfo(diskService, diskInst, &diskInfo)
+	err = getDiskInfo(diskService, diskInst, &diskInfo)
 	if err != nil {
 		return &cirrina.DiskInfo{}, err
 	}
-
-	if diskInfo.GetDiskDevType() == cirrina.DiskDevType_FILE && strings.HasSuffix(diskInfo.GetName(), ".img") {
-		*diskInfo.Name = strings.TrimSuffix(diskInfo.GetName(), ".img")
-	}
-
-	diskPath := diskInst.GetPath()
-
-	diskSizeNum, err = diskService.GetSize(diskPath)
-	if err != nil {
-		slog.Error("GetDiskInfoFile error getting disk size", "err", err)
-
-		return &cirrina.DiskInfo{}, fmt.Errorf("error stating disk path: %w", err)
-	}
-
-	diskUsageNum, err = diskService.GetUsage(diskPath)
-	if err != nil {
-		slog.Error("GetDiskInfoFile error getting disk usage", "err", err)
-
-		return &cirrina.DiskInfo{}, fmt.Errorf("error stating disk file: %w", err)
-	}
-
-	diskSize := strconv.FormatUint(diskSizeNum, 10)
-	diskUsage := strconv.FormatUint(diskUsageNum, 10)
-
-	diskInfo.Size = &diskSize
-	diskInfo.SizeNum = &diskSizeNum
-	diskInfo.Usage = &diskUsage
-	diskInfo.UsageNum = &diskUsageNum
 
 	return &diskInfo, nil
 }
@@ -650,7 +616,7 @@ func mapDiskTypeDBStringToType(diskType string) (*cirrina.DiskType, error) {
 	}
 }
 
-func GetDiskInfo(diskService disk.InfoServicer, diskInst *disk.Disk, diskInfo *cirrina.DiskInfo) error {
+func getDiskInfo(diskService disk.InfoServicer, diskInst *disk.Disk, diskInfo *cirrina.DiskInfo) error {
 	diskPath := diskInst.GetPath()
 
 	diskSizeNum, err := diskService.GetSize(diskPath)

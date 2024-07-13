@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log"
 	"net"
@@ -32,10 +33,6 @@ func Test_server_AddDisk(t *testing.T) {
 	diskTypeNVME := cirrina.DiskType_NVME
 	// diskDevTypeZVol := cirrina.DiskDevType_ZVOL
 
-	type fields struct {
-		UnimplementedVMInfoServer cirrina.UnimplementedVMInfoServer
-	}
-
 	type args struct {
 		diskInfo *cirrina.DiskInfo
 	}
@@ -43,7 +40,6 @@ func Test_server_AddDisk(t *testing.T) {
 	tests := []struct {
 		name          string
 		mockClosure   func(testDB *gorm.DB, mock sqlmock.Sqlmock)
-		fields        fields
 		args          args
 		want          *cirrina.DiskId
 		wantExists    bool
@@ -54,9 +50,6 @@ func Test_server_AddDisk(t *testing.T) {
 		{
 			name: "nilName",
 			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
-			},
-			fields: fields{
-				UnimplementedVMInfoServer: cirrina.UnimplementedVMInfoServer{},
 			},
 			args: args{
 				diskInfo: &cirrina.DiskInfo{
@@ -112,9 +105,6 @@ func Test_server_AddDisk(t *testing.T) {
 								0,
 							),
 					)
-			},
-			fields: fields{
-				UnimplementedVMInfoServer: cirrina.UnimplementedVMInfoServer{},
 			},
 			args: args{
 				diskInfo: &cirrina.DiskInfo{
@@ -181,9 +171,6 @@ func Test_server_AddDisk(t *testing.T) {
 					WillReturnRows(sqlmock.NewRows([]string{"id"}).
 						AddRow("c916ca6e-eb6b-400c-86ec-824b84ae71d3"))
 				mock.ExpectCommit()
-			},
-			fields: fields{
-				UnimplementedVMInfoServer: cirrina.UnimplementedVMInfoServer{},
 			},
 			args: args{
 				diskInfo: &cirrina.DiskInfo{
@@ -252,9 +239,6 @@ func Test_server_AddDisk(t *testing.T) {
 					WillReturnRows(sqlmock.NewRows([]string{"id"}).
 						AddRow("c916ca6e-eb6b-400c-86ec-824b84ae71d3"))
 				mock.ExpectCommit()
-			},
-			fields: fields{
-				UnimplementedVMInfoServer: cirrina.UnimplementedVMInfoServer{},
 			},
 			args: args{
 				diskInfo: &cirrina.DiskInfo{
@@ -372,6 +356,368 @@ func Test_server_AddDisk(t *testing.T) {
 			err = mockDB.ExpectationsWereMet()
 			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest,maintidx
+func Test_server_GetDiskInfo(t *testing.T) {
+	type args struct {
+		diskID *cirrina.DiskId
+	}
+
+	tests := []struct {
+		name           string
+		mockClosure    func()
+		args           args
+		want           *cirrina.DiskInfo
+		wantErr        bool
+		wantExists     bool
+		wantExistsErr  bool
+		wantSize       uint64
+		wantSizeErr    bool
+		wantZvolConfig bool
+	}{
+		{
+			name:        "invalidRequest",
+			mockClosure: func() {},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "94e8241c-2aff-473",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:        "diskNotFound",
+			mockClosure: func() {},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "94e8241c-2aff-4768-9975-9f67d2467ad3",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "invalidDiskCacheInCache",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "94e8241c-2aff-4768-9975-9f67d2467ad3",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "garbage",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: false,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "94e8241c-2aff-4768-9975-9f67d2467ad3",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "invalidDiskDirectInCache",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "94e8241c-2aff-4768-9975-9f67d2467ad3",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "garbage",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: false,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "94e8241c-2aff-4768-9975-9f67d2467ad3",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "invalidDiskTypeInCache",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "94e8241c-2aff-4768-9975-9f67d2467ad3",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "garbage",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "94e8241c-2aff-4768-9975-9f67d2467ad3",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "invalidDiskDevTypeInCache",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "94e8241c-2aff-4768-9975-9f67d2467ad3",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "garbage",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "94e8241c-2aff-4768-9975-9f67d2467ad3",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "diskDoesNotExistInSystemFile",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "94e8241c-2aff-4768-9975-9f67d2467ad3",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "94e8241c-2aff-4768-9975-9f67d2467ad3",
+				},
+			},
+			want:        nil,
+			wantErr:     true,
+			wantSizeErr: true,
+		},
+		{
+			name: "diskDoesNotExistInSystemZVOLUnconfig",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "94e8241c-2aff-4768-9975-9f67d2467ad3",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "ZVOL",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "94e8241c-2aff-4768-9975-9f67d2467ad3",
+				},
+			},
+			want:        nil,
+			wantErr:     true,
+			wantSizeErr: true,
+		},
+		{
+			name: "diskDoesNotExistInSystemZVOL",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "94e8241c-2aff-4768-9975-9f67d2467ad3",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "ZVOL",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "94e8241c-2aff-4768-9975-9f67d2467ad3",
+				},
+			},
+			want:           nil,
+			wantErr:        true,
+			wantSizeErr:    true,
+			wantZvolConfig: true,
+		},
+		{
+			name: "Success",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "94e8241c-2aff-4768-9975-9f67d2467ad3",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			args: args{
+				diskID: &cirrina.DiskId{
+					Value: "94e8241c-2aff-4768-9975-9f67d2467ad3",
+				},
+			},
+			want: &cirrina.DiskInfo{
+				Name:        func() *string { name := "aDisk"; return &name }(),                                             //nolint:nlreturn,lll
+				Description: func() *string { desc := "a description"; return &desc }(),                                     //nolint:nlreturn,lll
+				Size:        func() *string { size := "712717171"; return &size }(),                                         //nolint:nlreturn,lll
+				DiskType:    func() *cirrina.DiskType { diskType := cirrina.DiskType_NVME; return &diskType }(),             //nolint:nlreturn,lll
+				DiskDevType: func() *cirrina.DiskDevType { diskDevType := cirrina.DiskDevType_FILE; return &diskDevType }(), //nolint:nlreturn,lll
+				Usage:       func() *string { size := "712717171"; return &size }(),                                         //nolint:nlreturn,lll
+				SizeNum:     func() *uint64 { var size uint64 = 712717171; return &size }(),                                 //nolint:nlreturn,lll
+				UsageNum:    func() *uint64 { var size uint64 = 712717171; return &size }(),                                 //nolint:nlreturn,lll
+				Cache:       func() *bool { cache := true; return &cache }(),                                                //nolint:nlreturn,lll
+				Direct:      func() *bool { direct := false; return &direct }(),                                             //nolint:nlreturn,lll
+			},
+			wantExists: true,
+			wantSize:   712717171,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			config.Config.Disk.Default.Size = "1G"
+			if testCase.wantZvolConfig {
+				config.Config.Disk.VM.Path.Zpool = "/some/bogus/path"
+			}
+
+			ctrl := gomock.NewController(t)
+
+			fileMock := disk.NewMockFileInfoFetcher(ctrl)
+			disk.FileInfoFetcherImpl = fileMock
+
+			t.Cleanup(func() { disk.FileInfoFetcherImpl = disk.FileInfoCmds{} })
+
+			zfsMock := disk.NewMockZfsVolInfoFetcher(ctrl)
+			disk.ZfsInfoFetcherImpl = zfsMock
+
+			t.Cleanup(func() { disk.ZfsInfoFetcherImpl = disk.ZfsVolInfoCmds{} })
+
+			testCase.mockClosure()
+
+			var sizeErr error
+
+			if testCase.wantSizeErr {
+				sizeErr = errors.New("bogus size error") //nolint:goerr113
+			}
+
+			// file is default type
+			diskVal := disk.List.DiskList[testCase.args.diskID.GetValue()]
+			if diskVal != nil && diskVal.DevType == "FILE" {
+				fileMock.EXPECT().FetchFileSize(gomock.Any()).MaxTimes(1).Return(testCase.wantSize, sizeErr)
+				fileMock.EXPECT().FetchFileUsage(gomock.Any()).MaxTimes(1).Return(testCase.wantSize, sizeErr)
+			}
+
+			if diskVal != nil && diskVal.DevType == "ZVOL" {
+				zfsMock.EXPECT().FetchZfsVolumeSize(gomock.Any()).MaxTimes(1).Return(testCase.wantSize, sizeErr)
+			}
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			got, err := client.GetDiskInfo(context.Background(), testCase.args.diskID)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetDiskInfo() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}
