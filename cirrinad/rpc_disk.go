@@ -314,6 +314,10 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 		slog.Error("cannot receive image info")
 	}
 
+	if req == nil {
+		return errInvalidRequest
+	}
+
 	diskUploadReq := req.GetDiskuploadinfo()
 
 	diskInst, err := validateDiskReq(diskUploadReq)
