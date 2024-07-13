@@ -314,6 +314,9 @@ func (s *server) GetDisks(_ *cirrina.DisksQuery, stream cirrina.VMInfo_GetDisksS
 	return nil
 }
 
+var osOpenFileFunc = os.OpenFile
+var osCreateFunc = os.Create
+
 func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 	var res cirrina.ReqBool
 
@@ -324,6 +327,8 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 	req, err := stream.Recv()
 	if err != nil {
 		slog.Error("cannot receive image info")
+
+		return fmt.Errorf("unable to receive from stream: %w", err)
 	}
 
 	if req == nil {
@@ -343,14 +348,14 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 	case "ZVOL":
 		diskPath = filepath.Join("/dev/zvol/", diskPath)
 
-		diskFile, err = os.OpenFile(diskPath, os.O_RDWR, 0644)
+		diskFile, err = osOpenFileFunc(diskPath, os.O_RDWR, 0644)
 		if err != nil {
 			slog.Error("Failed to open disk file", "err", err.Error())
 
 			return fmt.Errorf("failed creating disk file: %w", err)
 		}
 	case "FILE":
-		diskFile, err = os.Create(diskPath)
+		diskFile, err = osCreateFunc(diskPath)
 		if err != nil {
 			slog.Error("Failed to open disk file", "err", err.Error())
 
@@ -377,18 +382,6 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 		return err
 	}
 
-	// save to db
-	err = diskInst.Save()
-	if err != nil {
-		slog.Error("UploadDisk", "msg", "Failed saving to db")
-
-		err2 := stream.SendAndClose(&res)
-		if err2 != nil {
-			slog.Error("UploadDisk failed sending error response, ignoring", "err", err, "err2", err2)
-		}
-
-		return nil
-	}
 	// we're done, return success to client
 	res.Success = true
 
