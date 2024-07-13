@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"errors"
+	"log"
+	"net"
 	"regexp"
 	"testing"
 	"time"
@@ -10,6 +12,11 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-test/deep"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/reflection"
+	"google.golang.org/grpc/resolver"
+	"google.golang.org/grpc/test/bufconn"
 	"gorm.io/gorm"
 
 	"cirrina/cirrina"
@@ -18,7 +25,7 @@ import (
 	"cirrina/cirrinad/disk"
 )
 
-//nolint:paralleltest,maintidx
+//nolint:paralleltest,maintidx,gocognit
 func Test_server_AddDisk(t *testing.T) {
 	createUpdateTime := time.Now()
 	diskDevTypeFile := cirrina.DiskDevType_FILE
@@ -30,7 +37,6 @@ func Test_server_AddDisk(t *testing.T) {
 	}
 
 	type args struct {
-		in0      context.Context //nolint:containedctx
 		diskInfo *cirrina.DiskInfo
 	}
 
@@ -53,7 +59,6 @@ func Test_server_AddDisk(t *testing.T) {
 				UnimplementedVMInfoServer: cirrina.UnimplementedVMInfoServer{},
 			},
 			args: args{
-				in0: nil,
 				diskInfo: &cirrina.DiskInfo{
 					Name:        nil,
 					Description: nil,
@@ -67,9 +72,7 @@ func Test_server_AddDisk(t *testing.T) {
 					Direct:      nil,
 				},
 			},
-			want: &cirrina.DiskId{
-				Value: "",
-			},
+			want:    nil,
 			wantErr: true,
 		},
 		{
@@ -114,7 +117,6 @@ func Test_server_AddDisk(t *testing.T) {
 				UnimplementedVMInfoServer: cirrina.UnimplementedVMInfoServer{},
 			},
 			args: args{
-				in0: nil,
 				diskInfo: &cirrina.DiskInfo{
 					Name:        func() *string { name := "someDisk"; return &name }(), //nolint:nlreturn
 					Description: nil,
@@ -184,7 +186,6 @@ func Test_server_AddDisk(t *testing.T) {
 				UnimplementedVMInfoServer: cirrina.UnimplementedVMInfoServer{},
 			},
 			args: args{
-				in0: nil,
 				diskInfo: &cirrina.DiskInfo{
 					Name:        func() *string { name := "someDisk"; return &name }(), //nolint:nlreturn
 					Description: nil,
@@ -256,7 +257,6 @@ func Test_server_AddDisk(t *testing.T) {
 				UnimplementedVMInfoServer: cirrina.UnimplementedVMInfoServer{},
 			},
 			args: args{
-				in0: nil,
 				diskInfo: &cirrina.DiskInfo{
 					Name:        func() *string { name := "someDisk2"; return &name }(), //nolint:nlreturn
 					Description: nil,
@@ -309,21 +309,43 @@ func Test_server_AddDisk(t *testing.T) {
 			}
 
 			// file is default type
-			if testCase.args.diskInfo.DiskDevType == nil || *testCase.args.diskInfo.DiskDevType == cirrina.DiskDevType_FILE { //nolint:protogetter,lll
+			if testCase.args.diskInfo.GetDiskDevType() == cirrina.DiskDevType_FILE {
 				fileMock.EXPECT().CheckExists(gomock.Any()).MaxTimes(1).Return(testCase.wantExists, existsErr)
 				fileMock.EXPECT().Add(gomock.Any(), gomock.Any()).MaxTimes(1).Return(createErr)
 			}
 
-			if testCase.args.diskInfo.DiskDevType != nil && *testCase.args.diskInfo.DiskDevType == cirrina.DiskDevType_ZVOL { //nolint:protogetter,lll
+			if testCase.args.diskInfo.GetDiskDevType() == cirrina.DiskDevType_ZVOL {
 				zfsMock.EXPECT().CheckExists(gomock.Any()).MaxTimes(1).Return(testCase.wantExists, existsErr)
 				zfsMock.EXPECT().Add(gomock.Any(), gomock.Any()).MaxTimes(1).Return(createErr)
 			}
 
-			s := &server{
-				UnimplementedVMInfoServer: testCase.fields.UnimplementedVMInfoServer,
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
 			}
 
-			got, err := s.AddDisk(testCase.args.in0, testCase.args.diskInfo)
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			got, err := client.AddDisk(context.Background(), testCase.args.diskInfo)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("AddDisk() error = %v, wantErr %v", err, testCase.wantErr)
 
