@@ -365,7 +365,7 @@ func validateZpoolConf() {
 			"stdOutBytes", stdOutBytes,
 			"stdErrBytes", stdErrBytes,
 			"rc", rc,
-			"err", err.Error(),
+			"err", err,
 		)
 		os.Exit(1)
 	}
@@ -385,7 +385,7 @@ func checkZpoolCapacity(poolName string) {
 			"stdOutBytes", stdOutBytes,
 			"stdErrBytes", stdErrBytes,
 			"rc", rc,
-			"err", err.Error(),
+			"err", err,
 		)
 		os.Exit(1)
 	}
@@ -658,7 +658,7 @@ func validateSysctlSeeOtherGIDs() {
 			"stdOutBytes", stdOutBytes,
 			"stdErrBytes", stdErrBytes,
 			"rc", rc,
-			"err", err.Error(),
+			"err", err,
 		)
 		os.Exit(1)
 	}
@@ -677,7 +677,7 @@ func validateSysctlSeeOtherUIDs() {
 			"stdOutBytes", stdOutBytes,
 			"stdErrBytes", stdErrBytes,
 			"rc", rc,
-			"err", err.Error(),
+			"err", err,
 		)
 		os.Exit(1)
 	}
@@ -696,16 +696,12 @@ func validateSysctlSecureLevel() {
 			"stdOutBytes", stdOutBytes,
 			"stdErrBytes", stdErrBytes,
 			"rc", rc,
-			"err", err.Error(),
+			"err", err,
 		)
 		os.Exit(1)
 	}
 
 	secureLevelStr := strings.TrimSpace(string(stdOutBytes))
-	if err != nil {
-		slog.Error("Failed checking sysctl kern.securelevel", "secureLevelStr", secureLevelStr)
-		os.Exit(1)
-	}
 
 	secureLevel, err := strconv.ParseInt(secureLevelStr, 10, 8)
 	if err != nil {
