@@ -15,6 +15,8 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"cirrina/cirrina"
 	"cirrina/cirrinad/config"
@@ -339,7 +341,9 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 
 	diskInst, err := validateDiskReq(diskUploadReq)
 	if err != nil {
-		return err
+		_ = stream.SendAndClose(&cirrina.ReqBool{Success: false})
+
+		return status.Errorf(codes.InvalidArgument, "request invalid: %s", err.Error())
 	}
 
 	diskPath := diskInst.GetPath()
@@ -352,17 +356,23 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 		if err != nil {
 			slog.Error("Failed to open disk file", "err", err.Error())
 
-			return fmt.Errorf("failed creating disk file: %w", err)
+			_ = stream.SendAndClose(&cirrina.ReqBool{Success: false})
+
+			return fmt.Errorf("failed opening disk file: %w", err)
 		}
 	case "FILE":
 		diskFile, err = osCreateFunc(diskPath)
 		if err != nil {
-			slog.Error("Failed to open disk file", "err", err.Error())
+			slog.Error("Failed to creating disk file", "err", err.Error())
+
+			_ = stream.SendAndClose(&cirrina.ReqBool{Success: false})
 
 			return fmt.Errorf("failed creating disk file: %w", err)
 		}
 	default:
-		return errDiskInvalidType
+		_ = stream.SendAndClose(&cirrina.ReqBool{Success: false})
+
+		return status.Errorf(codes.InvalidArgument, "request invalid: %s", errDiskInvalidType.Error())
 	}
 
 	defer diskInst.Unlock()

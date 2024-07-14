@@ -1678,7 +1678,7 @@ func Test_server_SetDiskInfo(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest
+//nolint:paralleltest,maintidx
 func Test_server_UploadDisk(t *testing.T) {
 	tests := []struct {
 		name                   string
@@ -1754,6 +1754,552 @@ func Test_server_UploadDisk(t *testing.T) {
 			wantSetupError: false,
 			wantSendErr:    false,
 		},
+		{
+			name: "badreq",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+				osCreateFunc = func(_ string) (*os.File, error) {
+					f, _ := os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+
+					return f, nil
+				}
+
+				osOpenFileFunc = func(_ string, _ int, _ os.FileMode) (*os.File, error) {
+					return os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+				}
+
+				diskInst := &disk.Disk{
+					ID:          "dd29c150-b1ed-4518-bd49-c09a6c5ed431",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadDiskClient) error {
+				setupReq := &cirrina.DiskImageRequest{
+					Data: &cirrina.DiskImageRequest_Diskuploadinfo{
+						Diskuploadinfo: &cirrina.DiskUploadInfo{
+							Diskid:    &cirrina.DiskId{Value: ""},
+							Size:      0,
+							Sha512Sum: "",
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(stream cirrina.VMInfo_UploadDiskClient) error {
+				dataReq := &cirrina.DiskImageRequest{
+					Data: &cirrina.DiskImageRequest_Image{
+						Image: []byte{
+							0x62, 0xf3, 0x4c, 0x65, 0xc4, 0x32, 0x0e, 0x1d, 0xf6, 0x34, 0xb3, 0x5c, 0xaf, 0x48, 0x32, 0x2a,
+							0x0b, 0x03, 0xda, 0x72, 0x23, 0x30, 0xcf, 0x4f, 0xb8, 0x10, 0x05, 0x0c, 0x13, 0xc4, 0xf8, 0x28,
+							0x91, 0x48, 0xc4, 0x55, 0x63, 0x62, 0xba, 0x5d, 0xdb, 0xa5, 0x1b, 0xd3, 0x7c, 0x5c, 0x76, 0x63,
+							0x56, 0x9c, 0x10, 0x68, 0xcc, 0xea, 0x04, 0x79, 0x42, 0x88, 0x9d, 0xcb, 0xa5, 0xbf, 0xf1, 0x2d,
+							0x3c, 0xce, 0x99, 0xaa, 0x77, 0xca, 0x84, 0xa6, 0x7c, 0x40, 0xf7, 0x4f, 0xc4, 0xfb, 0xca, 0xe7,
+							0x15, 0x79, 0x3e, 0x21, 0x93, 0x70, 0x9a, 0xab, 0xf5, 0xa6, 0x7b, 0x3f, 0x43, 0xb2, 0xd0, 0xac,
+							0xb9, 0xd1, 0x63, 0x7d, 0x77, 0xe8, 0x47, 0x6f, 0x46, 0x23, 0x26, 0x87, 0x1a, 0x9c, 0x33, 0x58,
+							0xa3, 0x9b, 0x22, 0x48, 0xb6, 0xcd, 0x9b, 0xd3, 0x80, 0x2c, 0x1f, 0x33, 0x8b, 0x31, 0x0d, 0x82,
+						},
+					},
+				}
+
+				return stream.Send(dataReq)
+			},
+			wantErr:        false,
+			wantSetupError: true,
+			wantSendErr:    false,
+		},
+		{
+			name: "openFileFail",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+				osCreateFunc = func(_ string) (*os.File, error) {
+					return nil, errors.New("bogus create error") //nolint:goerr113
+				}
+
+				osOpenFileFunc = func(_ string, _ int, _ os.FileMode) (*os.File, error) {
+					return nil, errors.New("bogus open error") //nolint:goerr113
+				}
+
+				diskInst := &disk.Disk{
+					ID:          "dd29c150-b1ed-4518-bd49-c09a6c5ed431",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadDiskClient) error {
+				setupReq := &cirrina.DiskImageRequest{
+					Data: &cirrina.DiskImageRequest_Diskuploadinfo{
+						Diskuploadinfo: &cirrina.DiskUploadInfo{
+							Diskid:    &cirrina.DiskId{Value: "dd29c150-b1ed-4518-bd49-c09a6c5ed431"},
+							Size:      128,
+							Sha512Sum: "9c5dd1250baddae1c12a54f8782dc8903065aa53408000a72cef0868d2914b6a5285f4c7b3ddb493f758515ba906fafc7491db6157c0d164f028cfdc35b9fe89", //nolint:lll
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(stream cirrina.VMInfo_UploadDiskClient) error {
+				dataReq := &cirrina.DiskImageRequest{
+					Data: &cirrina.DiskImageRequest_Image{
+						Image: []byte{
+							0x62, 0xf3, 0x4c, 0x65, 0xc4, 0x32, 0x0e, 0x1d, 0xf6, 0x34, 0xb3, 0x5c, 0xaf, 0x48, 0x32, 0x2a,
+							0x0b, 0x03, 0xda, 0x72, 0x23, 0x30, 0xcf, 0x4f, 0xb8, 0x10, 0x05, 0x0c, 0x13, 0xc4, 0xf8, 0x28,
+							0x91, 0x48, 0xc4, 0x55, 0x63, 0x62, 0xba, 0x5d, 0xdb, 0xa5, 0x1b, 0xd3, 0x7c, 0x5c, 0x76, 0x63,
+							0x56, 0x9c, 0x10, 0x68, 0xcc, 0xea, 0x04, 0x79, 0x42, 0x88, 0x9d, 0xcb, 0xa5, 0xbf, 0xf1, 0x2d,
+							0x3c, 0xce, 0x99, 0xaa, 0x77, 0xca, 0x84, 0xa6, 0x7c, 0x40, 0xf7, 0x4f, 0xc4, 0xfb, 0xca, 0xe7,
+							0x15, 0x79, 0x3e, 0x21, 0x93, 0x70, 0x9a, 0xab, 0xf5, 0xa6, 0x7b, 0x3f, 0x43, 0xb2, 0xd0, 0xac,
+							0xb9, 0xd1, 0x63, 0x7d, 0x77, 0xe8, 0x47, 0x6f, 0x46, 0x23, 0x26, 0x87, 0x1a, 0x9c, 0x33, 0x58,
+							0xa3, 0x9b, 0x22, 0x48, 0xb6, 0xcd, 0x9b, 0xd3, 0x80, 0x2c, 0x1f, 0x33, 0x8b, 0x31, 0x0d, 0x82,
+						},
+					},
+				}
+
+				return stream.Send(dataReq)
+			},
+			wantErr:        false,
+			wantSetupError: true,
+			wantSendErr:    false,
+		},
+		{
+			name: "missingDisk",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+				osCreateFunc = func(_ string) (*os.File, error) {
+					f, _ := os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+
+					return f, nil
+				}
+
+				osOpenFileFunc = func(_ string, _ int, _ os.FileMode) (*os.File, error) {
+					return os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+				}
+
+				diskInst := &disk.Disk{
+					ID:          "dd29c150-b1ed-4518-bd49-c09a6c5ed431",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadDiskClient) error {
+				setupReq := &cirrina.DiskImageRequest{
+					Data: &cirrina.DiskImageRequest_Diskuploadinfo{
+						Diskuploadinfo: &cirrina.DiskUploadInfo{
+							Diskid:    &cirrina.DiskId{Value: "a5137fb0-05c6-4551-856e-79a6b6d1608d"},
+							Size:      128,
+							Sha512Sum: "9c5dd1250baddae1c12a54f8782dc8903065aa53408000a72cef0868d2914b6a5285f4c7b3ddb493f758515ba906fafc7491db6157c0d164f028cfdc35b9fe89", //nolint:lll
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(stream cirrina.VMInfo_UploadDiskClient) error {
+				dataReq := &cirrina.DiskImageRequest{
+					Data: &cirrina.DiskImageRequest_Image{
+						Image: []byte{
+							0x62, 0xf3, 0x4c, 0x65, 0xc4, 0x32, 0x0e, 0x1d, 0xf6, 0x34, 0xb3, 0x5c, 0xaf, 0x48, 0x32, 0x2a,
+							0x0b, 0x03, 0xda, 0x72, 0x23, 0x30, 0xcf, 0x4f, 0xb8, 0x10, 0x05, 0x0c, 0x13, 0xc4, 0xf8, 0x28,
+							0x91, 0x48, 0xc4, 0x55, 0x63, 0x62, 0xba, 0x5d, 0xdb, 0xa5, 0x1b, 0xd3, 0x7c, 0x5c, 0x76, 0x63,
+							0x56, 0x9c, 0x10, 0x68, 0xcc, 0xea, 0x04, 0x79, 0x42, 0x88, 0x9d, 0xcb, 0xa5, 0xbf, 0xf1, 0x2d,
+							0x3c, 0xce, 0x99, 0xaa, 0x77, 0xca, 0x84, 0xa6, 0x7c, 0x40, 0xf7, 0x4f, 0xc4, 0xfb, 0xca, 0xe7,
+							0x15, 0x79, 0x3e, 0x21, 0x93, 0x70, 0x9a, 0xab, 0xf5, 0xa6, 0x7b, 0x3f, 0x43, 0xb2, 0xd0, 0xac,
+							0xb9, 0xd1, 0x63, 0x7d, 0x77, 0xe8, 0x47, 0x6f, 0x46, 0x23, 0x26, 0x87, 0x1a, 0x9c, 0x33, 0x58,
+							0xa3, 0x9b, 0x22, 0x48, 0xb6, 0xcd, 0x9b, 0xd3, 0x80, 0x2c, 0x1f, 0x33, 0x8b, 0x31, 0x0d, 0x82,
+						},
+					},
+				}
+
+				return stream.Send(dataReq)
+			},
+			wantErr:        false,
+			wantSetupError: true,
+			wantSendErr:    false,
+		},
+		{
+			name: "diskUsedByTwoVMs",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+				osCreateFunc = func(_ string) (*os.File, error) {
+					f, _ := os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+
+					return f, nil
+				}
+
+				osOpenFileFunc = func(_ string, _ int, _ os.FileMode) (*os.File, error) {
+					return os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+				}
+
+				diskInst := &disk.Disk{
+					ID:          "dd29c150-b1ed-4518-bd49-c09a6c5ed431",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+
+				testVM1 := vm.VM{
+					ID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 2,
+						},
+						VMID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs: nil,
+					Disks: []*disk.Disk{{
+						ID: "dd29c150-b1ed-4518-bd49-c09a6c5ed431",
+					}},
+				}
+				testVM2 := vm.VM{
+					ID: "4a8bae96-632c-48d1-aee7-6c428639004c",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 3,
+						},
+						VMID: "4a8bae96-632c-48d1-aee7-6c428639004c",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs: nil,
+					Disks: []*disk.Disk{{
+						ID: "dd29c150-b1ed-4518-bd49-c09a6c5ed431",
+					}},
+				}
+				vm.List.VMList[testVM1.ID] = &testVM1
+				vm.List.VMList[testVM2.ID] = &testVM2
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadDiskClient) error {
+				setupReq := &cirrina.DiskImageRequest{
+					Data: &cirrina.DiskImageRequest_Diskuploadinfo{
+						Diskuploadinfo: &cirrina.DiskUploadInfo{
+							Diskid:    &cirrina.DiskId{Value: "dd29c150-b1ed-4518-bd49-c09a6c5ed431"},
+							Size:      128,
+							Sha512Sum: "9c5dd1250baddae1c12a54f8782dc8903065aa53408000a72cef0868d2914b6a5285f4c7b3ddb493f758515ba906fafc7491db6157c0d164f028cfdc35b9fe89", //nolint:lll
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(stream cirrina.VMInfo_UploadDiskClient) error {
+				dataReq := &cirrina.DiskImageRequest{
+					Data: &cirrina.DiskImageRequest_Image{
+						Image: []byte{
+							0x62, 0xf3, 0x4c, 0x65, 0xc4, 0x32, 0x0e, 0x1d, 0xf6, 0x34, 0xb3, 0x5c, 0xaf, 0x48, 0x32, 0x2a,
+							0x0b, 0x03, 0xda, 0x72, 0x23, 0x30, 0xcf, 0x4f, 0xb8, 0x10, 0x05, 0x0c, 0x13, 0xc4, 0xf8, 0x28,
+							0x91, 0x48, 0xc4, 0x55, 0x63, 0x62, 0xba, 0x5d, 0xdb, 0xa5, 0x1b, 0xd3, 0x7c, 0x5c, 0x76, 0x63,
+							0x56, 0x9c, 0x10, 0x68, 0xcc, 0xea, 0x04, 0x79, 0x42, 0x88, 0x9d, 0xcb, 0xa5, 0xbf, 0xf1, 0x2d,
+							0x3c, 0xce, 0x99, 0xaa, 0x77, 0xca, 0x84, 0xa6, 0x7c, 0x40, 0xf7, 0x4f, 0xc4, 0xfb, 0xca, 0xe7,
+							0x15, 0x79, 0x3e, 0x21, 0x93, 0x70, 0x9a, 0xab, 0xf5, 0xa6, 0x7b, 0x3f, 0x43, 0xb2, 0xd0, 0xac,
+							0xb9, 0xd1, 0x63, 0x7d, 0x77, 0xe8, 0x47, 0x6f, 0x46, 0x23, 0x26, 0x87, 0x1a, 0x9c, 0x33, 0x58,
+							0xa3, 0x9b, 0x22, 0x48, 0xb6, 0xcd, 0x9b, 0xd3, 0x80, 0x2c, 0x1f, 0x33, 0x8b, 0x31, 0x0d, 0x82,
+						},
+					},
+				}
+
+				return stream.Send(dataReq)
+			},
+			wantErr:        false,
+			wantSetupError: true,
+			wantSendErr:    false,
+		},
+		{
+			name: "diskUsedByRunningVM",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+				osCreateFunc = func(_ string) (*os.File, error) {
+					f, _ := os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+
+					return f, nil
+				}
+
+				osOpenFileFunc = func(_ string, _ int, _ os.FileMode) (*os.File, error) {
+					return os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+				}
+
+				diskInst := &disk.Disk{
+					ID:          "dd29c150-b1ed-4518-bd49-c09a6c5ed431",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+
+				testVM1 := vm.VM{
+					ID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 2,
+						},
+						VMID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs: nil,
+					Disks: []*disk.Disk{
+						{
+							ID: "dd29c150-b1ed-4518-bd49-c09a6c5ed431",
+						},
+					},
+					Status: "RUNNING",
+				}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadDiskClient) error {
+				setupReq := &cirrina.DiskImageRequest{
+					Data: &cirrina.DiskImageRequest_Diskuploadinfo{
+						Diskuploadinfo: &cirrina.DiskUploadInfo{
+							Diskid:    &cirrina.DiskId{Value: "dd29c150-b1ed-4518-bd49-c09a6c5ed431"},
+							Size:      128,
+							Sha512Sum: "9c5dd1250baddae1c12a54f8782dc8903065aa53408000a72cef0868d2914b6a5285f4c7b3ddb493f758515ba906fafc7491db6157c0d164f028cfdc35b9fe89", //nolint:lll
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(stream cirrina.VMInfo_UploadDiskClient) error {
+				dataReq := &cirrina.DiskImageRequest{
+					Data: &cirrina.DiskImageRequest_Image{
+						Image: []byte{
+							0x62, 0xf3, 0x4c, 0x65, 0xc4, 0x32, 0x0e, 0x1d, 0xf6, 0x34, 0xb3, 0x5c, 0xaf, 0x48, 0x32, 0x2a,
+							0x0b, 0x03, 0xda, 0x72, 0x23, 0x30, 0xcf, 0x4f, 0xb8, 0x10, 0x05, 0x0c, 0x13, 0xc4, 0xf8, 0x28,
+							0x91, 0x48, 0xc4, 0x55, 0x63, 0x62, 0xba, 0x5d, 0xdb, 0xa5, 0x1b, 0xd3, 0x7c, 0x5c, 0x76, 0x63,
+							0x56, 0x9c, 0x10, 0x68, 0xcc, 0xea, 0x04, 0x79, 0x42, 0x88, 0x9d, 0xcb, 0xa5, 0xbf, 0xf1, 0x2d,
+							0x3c, 0xce, 0x99, 0xaa, 0x77, 0xca, 0x84, 0xa6, 0x7c, 0x40, 0xf7, 0x4f, 0xc4, 0xfb, 0xca, 0xe7,
+							0x15, 0x79, 0x3e, 0x21, 0x93, 0x70, 0x9a, 0xab, 0xf5, 0xa6, 0x7b, 0x3f, 0x43, 0xb2, 0xd0, 0xac,
+							0xb9, 0xd1, 0x63, 0x7d, 0x77, 0xe8, 0x47, 0x6f, 0x46, 0x23, 0x26, 0x87, 0x1a, 0x9c, 0x33, 0x58,
+							0xa3, 0x9b, 0x22, 0x48, 0xb6, 0xcd, 0x9b, 0xd3, 0x80, 0x2c, 0x1f, 0x33, 0x8b, 0x31, 0x0d, 0x82,
+						},
+					},
+				}
+
+				return stream.Send(dataReq)
+			},
+			wantErr:        false,
+			wantSetupError: true,
+			wantSendErr:    false,
+		},
+		{
+			name: "diskUsedByStartingVM",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+				osCreateFunc = func(_ string) (*os.File, error) {
+					f, _ := os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+
+					return f, nil
+				}
+
+				osOpenFileFunc = func(_ string, _ int, _ os.FileMode) (*os.File, error) {
+					return os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+				}
+
+				diskInst := &disk.Disk{
+					ID:          "dd29c150-b1ed-4518-bd49-c09a6c5ed431",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+
+				testVM1 := vm.VM{
+					ID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 2,
+						},
+						VMID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs: nil,
+					Disks: []*disk.Disk{
+						{
+							ID: "dd29c150-b1ed-4518-bd49-c09a6c5ed431",
+						},
+					},
+					Status: "STARTING",
+				}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadDiskClient) error {
+				setupReq := &cirrina.DiskImageRequest{
+					Data: &cirrina.DiskImageRequest_Diskuploadinfo{
+						Diskuploadinfo: &cirrina.DiskUploadInfo{
+							Diskid:    &cirrina.DiskId{Value: "dd29c150-b1ed-4518-bd49-c09a6c5ed431"},
+							Size:      128,
+							Sha512Sum: "9c5dd1250baddae1c12a54f8782dc8903065aa53408000a72cef0868d2914b6a5285f4c7b3ddb493f758515ba906fafc7491db6157c0d164f028cfdc35b9fe89", //nolint:lll
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(stream cirrina.VMInfo_UploadDiskClient) error {
+				dataReq := &cirrina.DiskImageRequest{
+					Data: &cirrina.DiskImageRequest_Image{
+						Image: []byte{
+							0x62, 0xf3, 0x4c, 0x65, 0xc4, 0x32, 0x0e, 0x1d, 0xf6, 0x34, 0xb3, 0x5c, 0xaf, 0x48, 0x32, 0x2a,
+							0x0b, 0x03, 0xda, 0x72, 0x23, 0x30, 0xcf, 0x4f, 0xb8, 0x10, 0x05, 0x0c, 0x13, 0xc4, 0xf8, 0x28,
+							0x91, 0x48, 0xc4, 0x55, 0x63, 0x62, 0xba, 0x5d, 0xdb, 0xa5, 0x1b, 0xd3, 0x7c, 0x5c, 0x76, 0x63,
+							0x56, 0x9c, 0x10, 0x68, 0xcc, 0xea, 0x04, 0x79, 0x42, 0x88, 0x9d, 0xcb, 0xa5, 0xbf, 0xf1, 0x2d,
+							0x3c, 0xce, 0x99, 0xaa, 0x77, 0xca, 0x84, 0xa6, 0x7c, 0x40, 0xf7, 0x4f, 0xc4, 0xfb, 0xca, 0xe7,
+							0x15, 0x79, 0x3e, 0x21, 0x93, 0x70, 0x9a, 0xab, 0xf5, 0xa6, 0x7b, 0x3f, 0x43, 0xb2, 0xd0, 0xac,
+							0xb9, 0xd1, 0x63, 0x7d, 0x77, 0xe8, 0x47, 0x6f, 0x46, 0x23, 0x26, 0x87, 0x1a, 0x9c, 0x33, 0x58,
+							0xa3, 0x9b, 0x22, 0x48, 0xb6, 0xcd, 0x9b, 0xd3, 0x80, 0x2c, 0x1f, 0x33, 0x8b, 0x31, 0x0d, 0x82,
+						},
+					},
+				}
+
+				return stream.Send(dataReq)
+			},
+			wantErr:        false,
+			wantSetupError: true,
+			wantSendErr:    false,
+		},
+		{
+			name: "diskUsedByStoppingVM",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+				osCreateFunc = func(_ string) (*os.File, error) {
+					f, _ := os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+
+					return f, nil
+				}
+
+				osOpenFileFunc = func(_ string, _ int, _ os.FileMode) (*os.File, error) {
+					return os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+				}
+
+				diskInst := &disk.Disk{
+					ID:          "dd29c150-b1ed-4518-bd49-c09a6c5ed431",
+					Name:        "aDisk",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+
+				testVM1 := vm.VM{
+					ID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 2,
+						},
+						VMID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs: nil,
+					Disks: []*disk.Disk{
+						{
+							ID: "dd29c150-b1ed-4518-bd49-c09a6c5ed431",
+						},
+					},
+					Status: "STOPPING",
+				}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadDiskClient) error {
+				setupReq := &cirrina.DiskImageRequest{
+					Data: &cirrina.DiskImageRequest_Diskuploadinfo{
+						Diskuploadinfo: &cirrina.DiskUploadInfo{
+							Diskid:    &cirrina.DiskId{Value: "dd29c150-b1ed-4518-bd49-c09a6c5ed431"},
+							Size:      128,
+							Sha512Sum: "9c5dd1250baddae1c12a54f8782dc8903065aa53408000a72cef0868d2914b6a5285f4c7b3ddb493f758515ba906fafc7491db6157c0d164f028cfdc35b9fe89", //nolint:lll
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(stream cirrina.VMInfo_UploadDiskClient) error {
+				dataReq := &cirrina.DiskImageRequest{
+					Data: &cirrina.DiskImageRequest_Image{
+						Image: []byte{
+							0x62, 0xf3, 0x4c, 0x65, 0xc4, 0x32, 0x0e, 0x1d, 0xf6, 0x34, 0xb3, 0x5c, 0xaf, 0x48, 0x32, 0x2a,
+							0x0b, 0x03, 0xda, 0x72, 0x23, 0x30, 0xcf, 0x4f, 0xb8, 0x10, 0x05, 0x0c, 0x13, 0xc4, 0xf8, 0x28,
+							0x91, 0x48, 0xc4, 0x55, 0x63, 0x62, 0xba, 0x5d, 0xdb, 0xa5, 0x1b, 0xd3, 0x7c, 0x5c, 0x76, 0x63,
+							0x56, 0x9c, 0x10, 0x68, 0xcc, 0xea, 0x04, 0x79, 0x42, 0x88, 0x9d, 0xcb, 0xa5, 0xbf, 0xf1, 0x2d,
+							0x3c, 0xce, 0x99, 0xaa, 0x77, 0xca, 0x84, 0xa6, 0x7c, 0x40, 0xf7, 0x4f, 0xc4, 0xfb, 0xca, 0xe7,
+							0x15, 0x79, 0x3e, 0x21, 0x93, 0x70, 0x9a, 0xab, 0xf5, 0xa6, 0x7b, 0x3f, 0x43, 0xb2, 0xd0, 0xac,
+							0xb9, 0xd1, 0x63, 0x7d, 0x77, 0xe8, 0x47, 0x6f, 0x46, 0x23, 0x26, 0x87, 0x1a, 0x9c, 0x33, 0x58,
+							0xa3, 0x9b, 0x22, 0x48, 0xb6, 0xcd, 0x9b, 0xd3, 0x80, 0x2c, 0x1f, 0x33, 0x8b, 0x31, 0x0d, 0x82,
+						},
+					},
+				}
+
+				return stream.Send(dataReq)
+			},
+			wantErr:        false,
+			wantSetupError: true,
+			wantSendErr:    false,
+		},
 	}
 
 	for _, testCase := range tests {
@@ -1796,10 +2342,17 @@ func Test_server_UploadDisk(t *testing.T) {
 				t.Errorf("UploadDisk() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 
-			setupErr := testCase.mockStreamSetupReqFunc(stream)
+			_ = testCase.mockStreamSetupReqFunc(stream)
 
-			if (setupErr != nil) != testCase.wantSetupError {
-				t.Errorf("UploadDisk() setupError = %v, wantSetupErro %v", setupErr, testCase.wantSetupError)
+			if testCase.wantSetupError {
+				var rb cirrina.ReqBool
+
+				err = stream.RecvMsg(&rb)
+				if err == nil {
+					t.Errorf("UploadDisk() err = %v, wantSetupErr %v", err, testCase.wantSetupError)
+				}
+
+				return
 			}
 
 			sendErr := testCase.mockStreamSendReqFunc(stream)
