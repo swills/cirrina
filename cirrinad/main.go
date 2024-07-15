@@ -352,6 +352,7 @@ func initConfig() {
 	viper.SetDefault("log.path", "/var/log/cirrinad/cirrinad.log")
 	viper.SetDefault("log.level", "info")
 
+	viper.SetDefault("network.grpc.timeout", "60")
 	viper.SetDefault("network.grpc.ip", "0.0.0.0")
 	viper.SetDefault("network.grpc.port", 50051)
 	// We use the "00:18:25" private OUI from

@@ -4,8 +4,10 @@ import (
 	"log/slog"
 	"net"
 	"strconv"
+	"time"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 
 	"cirrina/cirrina"
@@ -24,7 +26,13 @@ func rpcServer() {
 		slog.Error("failed to listen for rpc", "listenAddress", listenAddress, "err", err)
 	}
 
-	s := grpc.NewServer()
+	var opts []grpc.ServerOption
+
+	opts = append(opts, grpc.KeepaliveParams(keepalive.ServerParameters{
+		Time: time.Duration(config.Config.Network.Grpc.Timeout) * time.Second,
+	}))
+
+	s := grpc.NewServer(opts...)
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
 	cirrina.RegisterVMInfoServer(s, &server{})

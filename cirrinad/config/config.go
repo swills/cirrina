@@ -28,8 +28,9 @@ type Info struct {
 	Network struct {
 		Grpc struct {
 			// TODO separate settings for IPv4 and IPv6 IP
-			IP   string
-			Port uint
+			IP      string
+			Port    uint
+			Timeout uint64 `default:"60"` // in seconds
 		}
 		Mac struct {
 			Oui string
