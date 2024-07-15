@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"reflect"
 	"regexp"
 	"testing"
 	"time"
@@ -1939,6 +1940,69 @@ func Test_server_UploadDisk(t *testing.T) {
 			wantSetupError: true,
 		},
 		{
+			name: "diskNoName",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+				osCreateFunc = func(_ string) (*os.File, error) {
+					f, _ := os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+
+					return f, nil
+				}
+
+				osOpenFileFunc = func(_ string, _ int, _ os.FileMode) (*os.File, error) {
+					return os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+				}
+
+				diskInst := &disk.Disk{
+					ID:          "a5137fb0-05c6-4551-856e-79a6b6d1608d",
+					Name:        "",
+					Description: "a description",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadDiskClient) error {
+				setupReq := &cirrina.DiskImageRequest{
+					Data: &cirrina.DiskImageRequest_Diskuploadinfo{
+						Diskuploadinfo: &cirrina.DiskUploadInfo{
+							Diskid:    &cirrina.DiskId{Value: "a5137fb0-05c6-4551-856e-79a6b6d1608d"},
+							Size:      128,
+							Sha512Sum: "9c5dd1250baddae1c12a54f8782dc8903065aa53408000a72cef0868d2914b6a5285f4c7b3ddb493f758515ba906fafc7491db6157c0d164f028cfdc35b9fe89", //nolint:lll
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(stream cirrina.VMInfo_UploadDiskClient) error {
+				dataReq := &cirrina.DiskImageRequest{
+					Data: &cirrina.DiskImageRequest_Image{
+						Image: []byte{
+							0x62, 0xf3, 0x4c, 0x65, 0xc4, 0x32, 0x0e, 0x1d, 0xf6, 0x34, 0xb3, 0x5c, 0xaf, 0x48, 0x32, 0x2a,
+							0x0b, 0x03, 0xda, 0x72, 0x23, 0x30, 0xcf, 0x4f, 0xb8, 0x10, 0x05, 0x0c, 0x13, 0xc4, 0xf8, 0x28,
+							0x91, 0x48, 0xc4, 0x55, 0x63, 0x62, 0xba, 0x5d, 0xdb, 0xa5, 0x1b, 0xd3, 0x7c, 0x5c, 0x76, 0x63,
+							0x56, 0x9c, 0x10, 0x68, 0xcc, 0xea, 0x04, 0x79, 0x42, 0x88, 0x9d, 0xcb, 0xa5, 0xbf, 0xf1, 0x2d,
+							0x3c, 0xce, 0x99, 0xaa, 0x77, 0xca, 0x84, 0xa6, 0x7c, 0x40, 0xf7, 0x4f, 0xc4, 0xfb, 0xca, 0xe7,
+							0x15, 0x79, 0x3e, 0x21, 0x93, 0x70, 0x9a, 0xab, 0xf5, 0xa6, 0x7b, 0x3f, 0x43, 0xb2, 0xd0, 0xac,
+							0xb9, 0xd1, 0x63, 0x7d, 0x77, 0xe8, 0x47, 0x6f, 0x46, 0x23, 0x26, 0x87, 0x1a, 0x9c, 0x33, 0x58,
+							0xa3, 0x9b, 0x22, 0x48, 0xb6, 0xcd, 0x9b, 0xd3, 0x80, 0x2c, 0x1f, 0x33, 0x8b, 0x31, 0x0d, 0x82,
+						},
+					},
+				}
+
+				return stream.Send(dataReq)
+			},
+			wantSetupError: true,
+		},
+		{
 			name: "diskUsedByTwoVMs",
 			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
 				osCreateFunc = func(_ string) (*os.File, error) {
@@ -2552,6 +2616,276 @@ func Test_server_UploadDisk(t *testing.T) {
 
 			if !reply.GetSuccess() && !testCase.wantErr {
 				t.Errorf("UploadDisk() success = %v, wantErr %v", reply.GetSuccess(), testCase.wantErr)
+			}
+		})
+	}
+}
+
+func Test_validateDiskReq(t *testing.T) {
+	type args struct {
+		diskUploadReq *cirrina.DiskUploadInfo
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    *disk.Disk
+		wantErr bool
+	}{
+		{
+			name:    "nilReq",
+			args:    args{diskUploadReq: nil},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "nilDiskID",
+			args:    args{diskUploadReq: &cirrina.DiskUploadInfo{Diskid: nil}},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := validateDiskReq(testCase.args.diskUploadReq)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("validateDiskReq() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func Test_mapDiskDevTypeTypeToDBString(t *testing.T) {
+	type args struct {
+		diskDevType cirrina.DiskDevType
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name:    "file",
+			args:    args{diskDevType: cirrina.DiskDevType_FILE},
+			want:    "FILE",
+			wantErr: false,
+		},
+		{
+			name:    "zvol",
+			args:    args{diskDevType: cirrina.DiskDevType_ZVOL},
+			want:    "ZVOL",
+			wantErr: false,
+		},
+		{
+			name:    "error",
+			args:    args{diskDevType: -1},
+			want:    "",
+			wantErr: true,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := mapDiskDevTypeTypeToDBString(testCase.args.diskDevType)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("mapDiskDevTypeTypeToDBString() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func Test_mapDiskDevTypeDBStringToType(t *testing.T) {
+	type args struct {
+		diskDevType string
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    *cirrina.DiskDevType
+		wantErr bool
+	}{
+		{
+			name:    "file",
+			args:    args{diskDevType: "FILE"},
+			want:    func() *cirrina.DiskDevType { f := cirrina.DiskDevType_FILE; return &f }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name:    "zvol",
+			args:    args{diskDevType: "ZVOL"},
+			want:    func() *cirrina.DiskDevType { f := cirrina.DiskDevType_ZVOL; return &f }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name:    "error",
+			args:    args{diskDevType: "garbage"},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := mapDiskDevTypeDBStringToType(testCase.args.diskDevType)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("mapDiskDevTypeDBStringToType() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func Test_mapDiskTypeTypeToDBString(t *testing.T) {
+	type args struct {
+		diskType cirrina.DiskType
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name:    "nvme",
+			args:    args{diskType: cirrina.DiskType_NVME},
+			want:    "NVME",
+			wantErr: false,
+		},
+		{
+			name:    "ahcihd",
+			args:    args{diskType: cirrina.DiskType_AHCIHD},
+			want:    "AHCI-HD",
+			wantErr: false,
+		},
+		{
+			name:    "virtioblk",
+			args:    args{diskType: cirrina.DiskType_VIRTIOBLK},
+			want:    "VIRTIO-BLK",
+			wantErr: false,
+		},
+		{
+			name:    "error",
+			args:    args{diskType: -1},
+			want:    "",
+			wantErr: true,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := mapDiskTypeTypeToDBString(testCase.args.diskType)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("mapDiskTypeTypeToDBString() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("mapDiskTypeTypeToDBString() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func Test_mapDiskTypeDBStringToType(t *testing.T) {
+	type args struct {
+		diskType string
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    *cirrina.DiskType
+		wantErr bool
+	}{
+		{
+			name:    "nvme",
+			args:    args{diskType: "NVME"},
+			want:    func() *cirrina.DiskType { f := cirrina.DiskType_NVME; return &f }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name:    "ahcihd",
+			args:    args{diskType: "AHCI-HD"},
+			want:    func() *cirrina.DiskType { f := cirrina.DiskType_AHCIHD; return &f }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name:    "virtioblk",
+			args:    args{diskType: "VIRTIO-BLK"},
+			want:    func() *cirrina.DiskType { f := cirrina.DiskType_VIRTIOBLK; return &f }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name:    "error",
+			args:    args{diskType: "garbage"},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := mapDiskTypeDBStringToType(testCase.args.diskType)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("mapDiskTypeDBStringToType() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if !reflect.DeepEqual(got, testCase.want) {
+				t.Errorf("mapDiskTypeDBStringToType() got = %v, want %v", got, testCase.want)
 			}
 		})
 	}
