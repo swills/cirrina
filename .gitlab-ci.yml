@@ -7,7 +7,6 @@ stages:
 variables:
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${CI_PROJECT_NAME}"
   VER: ${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHORT_SHA}
-  FF_TIMESTAMPS: true
 
 cirrinad:
   stage: build
