@@ -15,8 +15,6 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 
 	"cirrina/cirrina"
 	"cirrina/cirrinad/config"
@@ -320,30 +318,23 @@ var osOpenFileFunc = os.OpenFile
 var osCreateFunc = os.Create
 
 func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
-	var res cirrina.ReqBool
-
 	var diskFile *os.File
 
-	res.Success = false
-
 	req, err := stream.Recv()
-	if err != nil {
-		slog.Error("cannot receive image info")
-
+	if err != nil || req == nil {
 		return fmt.Errorf("unable to receive from stream: %w", err)
-	}
-
-	if req == nil {
-		return errInvalidRequest
 	}
 
 	diskUploadReq := req.GetDiskuploadinfo()
 
 	diskInst, err := validateDiskReq(diskUploadReq)
 	if err != nil {
-		_ = stream.SendAndClose(&cirrina.ReqBool{Success: false})
+		err = stream.SendAndClose(&cirrina.ReqBool{Success: false})
+		if err != nil {
+			return fmt.Errorf("failed validating disk upload request: %w", err)
+		}
 
-		return status.Errorf(codes.InvalidArgument, "request invalid: %s", err.Error())
+		return nil
 	}
 
 	diskPath := diskInst.GetPath()
@@ -356,23 +347,34 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 		if err != nil {
 			slog.Error("Failed to open disk file", "err", err.Error())
 
-			_ = stream.SendAndClose(&cirrina.ReqBool{Success: false})
+			err = stream.SendAndClose(&cirrina.ReqBool{Success: false})
+			if err != nil {
+				return fmt.Errorf("failed to open disk: %w", err)
+			}
 
-			return fmt.Errorf("failed opening disk file: %w", err)
+			return nil
 		}
 	case "FILE":
 		diskFile, err = osCreateFunc(diskPath)
 		if err != nil {
 			slog.Error("Failed to creating disk file", "err", err.Error())
 
-			_ = stream.SendAndClose(&cirrina.ReqBool{Success: false})
+			err = stream.SendAndClose(&cirrina.ReqBool{Success: false})
+			if err != nil {
+				return fmt.Errorf("failed to open disk: %w", err)
+			}
 
-			return fmt.Errorf("failed creating disk file: %w", err)
+			return nil
 		}
 	default:
-		_ = stream.SendAndClose(&cirrina.ReqBool{Success: false})
+		slog.Error("request invalid, bad disk type")
 
-		return status.Errorf(codes.InvalidArgument, "request invalid: %s", errDiskInvalidType.Error())
+		err = stream.SendAndClose(&cirrina.ReqBool{Success: false})
+		if err != nil {
+			return fmt.Errorf("error returning status: %w", err)
+		}
+
+		return nil
 	}
 
 	defer diskInst.Unlock()
@@ -382,22 +384,17 @@ func (s *server) UploadDisk(stream cirrina.VMInfo_UploadDiskServer) error {
 	if err != nil {
 		slog.Error("error during disk upload", "err", err)
 
-		err2 := stream.SendAndClose(&res)
-		if err2 != nil {
-			slog.Error("UploadIso cannot send error response", "err", err, "err2", err2)
-
-			return err
+		err = stream.SendAndClose(&cirrina.ReqBool{Success: false})
+		if err != nil {
+			return fmt.Errorf("error during disk upload: %w", err)
 		}
 
-		return err
+		return nil
 	}
 
-	// we're done, return success to client
-	res.Success = true
-
-	err = stream.SendAndClose(&res)
+	err = stream.SendAndClose(&cirrina.ReqBool{Success: true})
 	if err != nil {
-		slog.Error("UploadDisk cannot send response", "err", err)
+		return fmt.Errorf("error returning status: %w", err)
 	}
 
 	return nil
@@ -540,6 +537,10 @@ func receiveDiskFile(stream cirrina.VMInfo_UploadDiskServer, diskUploadReq *cirr
 
 		chunk := req.GetImage()
 		imageSize += uint64(len(chunk))
+
+		if imageSize > diskUploadReq.GetSize() {
+			return errDiskSizeFailure
+		}
 
 		_, err = diskFileBuffer.Write(chunk)
 		if err != nil {
