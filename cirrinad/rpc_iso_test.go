@@ -22,6 +22,7 @@ import (
 	"cirrina/cirrina"
 	"cirrina/cirrinad/cirrinadtest"
 	"cirrina/cirrinad/iso"
+	"cirrina/cirrinad/vm"
 )
 
 func Test_server_GetISOs(t *testing.T) {
@@ -608,6 +609,306 @@ func Test_server_AddISO(t *testing.T) {
 			client := cirrina.NewVMInfoClient(conn)
 
 			got, err := client.AddISO(context.Background(), testCase.args.isoInfo)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("AddISO() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest,maintidx
+func Test_server_RemoveISO(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		isoID *cirrina.ISOID
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		want        *cirrina.ReqBool
+		wantErr     bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).WithArgs("515df28c-c52d-4fa1-b696-f02f10b1ae1b").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							},
+						).AddRow(
+							"515df28c-c52d-4fa1-b696-f02f10b1ae1b",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"machaela.iso",
+							"a very normally named iso",
+							"/some/stupid/iso/path/machaela.iso",
+							"123436789123",
+							"totalGarbage",
+						),
+					)
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `isos` WHERE `isos`.`id` = ?"),
+				).
+					WithArgs("515df28c-c52d-4fa1-b696-f02f10b1ae1b").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args: args{
+				isoID: func() *cirrina.ISOID {
+					isoID := cirrina.ISOID{Value: "515df28c-c52d-4fa1-b696-f02f10b1ae1b"}
+
+					return &isoID
+				}(),
+			},
+			want: func() *cirrina.ReqBool { r := cirrina.ReqBool{Success: true}; return &r }(), //nolint:nlreturn
+		},
+		{
+			name: "badUUID",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).WithArgs("515df28c-c52d-4fa1-b696-f02f10b1ae1b").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							},
+						).AddRow(
+							"515df28c-c52d-4fa1-b696-f02f10b1ae1b",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"machaela.iso",
+							"a very normally named iso",
+							"/some/stupid/iso/path/machaela.iso",
+							"123436789123",
+							"totalGarbage",
+						),
+					)
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `isos` WHERE `isos`.`id` = ?"),
+				).
+					WithArgs("515df28c-c52d-4fa1-b696-f02f10b1ae1b").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args: args{
+				isoID: func() *cirrina.ISOID {
+					isoID := cirrina.ISOID{Value: "515df28c-c52d-4fa"}
+
+					return &isoID
+				}(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "isoInUse",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+				vm.List.VMList = map[string]*vm.VM{}
+
+				testVM1 := vm.VM{
+					ID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 2,
+						},
+						VMID: "7563edac-3a68-4950-9dec-ca53dd8c7fca",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs: []*iso.ISO{
+						{
+							ID:          "74793f48-a7ae-4895-b62d-440f9652d8df",
+							Name:        "makaela.iso",
+							Description: "",
+							Path:        "",
+							Size:        0,
+							Checksum:    "",
+						},
+					},
+					Disks: nil,
+				}
+				vm.List.VMList[testVM1.ID] = &testVM1
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).WithArgs("74793f48-a7ae-4895-b62d-440f9652d8df").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							},
+						).AddRow(
+							"74793f48-a7ae-4895-b62d-440f9652d8df",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"makaela.iso",
+							"another normally named iso",
+							"/some/stupid/iso/path/makaela.iso",
+							"12821789123",
+							"totalGarbageStuff",
+						),
+					)
+			},
+			args: args{
+				isoID: func() *cirrina.ISOID {
+					isoID := cirrina.ISOID{Value: "74793f48-a7ae-4895-b62d-440f9652d8df"}
+
+					return &isoID
+				}(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "Success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).WithArgs("515df28c-c52d-4fa1-b696-f02f10b1ae1b").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							},
+						).AddRow(
+							"515df28c-c52d-4fa1-b696-f02f10b1ae1b",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"machaela.iso",
+							"a very normally named iso",
+							"/some/stupid/iso/path/machaela.iso",
+							"123436789123",
+							"totalGarbage",
+						),
+					)
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `isos` WHERE `isos`.`id` = ?"),
+				).
+					WillReturnError(gorm.ErrInvalidData)
+			},
+			args: args{
+				isoID: func() *cirrina.ISOID {
+					isoID := cirrina.ISOID{Value: "515df28c-c52d-4fa1-b696-f02f10b1ae1b"}
+
+					return &isoID
+				}(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("isoTest")
+
+			testCase.mockClosure(testDB, mock)
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			got, err := client.RemoveISO(context.Background(), testCase.args.isoID)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("AddISO() error = %v, wantErr %v", err, testCase.wantErr)
 

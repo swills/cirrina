@@ -265,27 +265,12 @@ func (s *server) RemoveISO(_ context.Context, isoID *cirrina.ISOID) (*cirrina.Re
 
 	var isoUUID uuid.UUID
 
-	var isoInst *iso.ISO
-
 	res := cirrina.ReqBool{}
 	res.Success = false
 
 	isoUUID, err = uuid.Parse(isoID.GetValue())
 	if err != nil {
 		return &res, errInvalidID
-	}
-
-	isoInst, err = iso.GetByID(isoUUID.String())
-	if err != nil {
-		slog.Error("error getting iso", "id", isoUUID.String(), "err", err)
-
-		return &res, errNotFound
-	}
-
-	if isoInst.Name == "" {
-		slog.Debug("iso not found")
-
-		return &res, errNotFound
 	}
 
 	// check that iso is not in use by a VM
