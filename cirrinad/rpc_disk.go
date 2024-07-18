@@ -512,8 +512,7 @@ func validateDiskReq(diskUploadReq *cirrina.DiskUploadInfo) (*disk.Disk, error) 
 	return diskInst, nil
 }
 
-func receiveDiskFile(stream cirrina.VMInfo_UploadDiskServer, diskUploadReq *cirrina.DiskUploadInfo,
-	diskFile *os.File,
+func receiveDiskFile(stream cirrina.VMInfo_UploadDiskServer, diskUploadReq *cirrina.DiskUploadInfo, diskFile *os.File,
 ) error {
 	var err error
 

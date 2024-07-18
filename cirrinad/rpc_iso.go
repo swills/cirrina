@@ -109,7 +109,7 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 
 	var isoFile *os.File
 
-	isoFile, err = os.Create(isoInst.Path)
+	isoFile, err = osCreateFunc(isoInst.Path)
 	if err != nil {
 		slog.Error("Failed to open iso file", "err", err.Error())
 
@@ -120,12 +120,12 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 	if err != nil {
 		slog.Error("error during upload", "err", err)
 
-		err2 := stream.SendAndClose(&res)
-		if err2 != nil {
-			slog.Error("failed sending error response, ignoring", "err", err, "err2", err2)
+		err = stream.SendAndClose(&cirrina.ReqBool{Success: false})
+		if err != nil {
+			return fmt.Errorf("error during iso upload: %w", err)
 		}
 
-		return err
+		return nil
 	}
 
 	// save to db
@@ -140,12 +140,10 @@ func (s *server) UploadIso(stream cirrina.VMInfo_UploadIsoServer) error {
 
 		return nil
 	}
-	// we're done, return success to client
-	res.Success = true
 
-	err = stream.SendAndClose(&res)
+	err = stream.SendAndClose(&cirrina.ReqBool{Success: true})
 	if err != nil {
-		slog.Error("cannot send and close", "err", err)
+		return fmt.Errorf("error returning status: %w", err)
 	}
 
 	return nil
@@ -218,6 +216,10 @@ func receiveIsoFile(stream cirrina.VMInfo_UploadIsoServer, isoUploadReq *cirrina
 
 		chunk := req.GetImage()
 		imageSize += uint64(len(chunk))
+
+		if imageSize > isoUploadReq.GetSize() {
+			return errIsoUploadSize
+		}
 
 		_, err = isoFileBuffer.Write(chunk)
 		if err != nil {

@@ -2,6 +2,8 @@
 # TODO
 
 * Finish writing tests
+* Add setting for maximum disk/iso size and check them during upload
+* Check that we have enough space for a disk/iso before allowing upload
 * Make sure iso, nic, disk switch are uniform, ie, take same args for all funcs
   * For example, iso delete takes string, nic delete takes object
 * Convert NICs to using custom join table, in order to preserve order

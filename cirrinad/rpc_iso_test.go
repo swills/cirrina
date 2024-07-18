@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
 	"regexp"
 	"testing"
 	"time"
@@ -918,6 +919,845 @@ func Test_server_RemoveISO(t *testing.T) {
 			diff := deep.Equal(got, testCase.want)
 			if diff != nil {
 				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest,maintidx
+func Test_server_UploadIso(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	tests := []struct {
+		name                   string
+		mockClosure            func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockStreamSetupReqFunc func(stream cirrina.VMInfo_UploadIsoClient) error
+		mockStreamSendReqFunc  func(stream cirrina.VMInfo_UploadIsoClient) error
+		wantErr                bool
+		wantSetupError         bool
+		wantSendError          bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3753c1dd-48f4-49ca-a415-53a9ee9e2a2f").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"narf.iso",
+								"some description",
+								"/narf.iso",
+								1047048192,
+								"259e034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3e3b630ba2", //nolint:lll
+							),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `isos` SET `checksum`=?,`description`=?,`name`=?,`path`=?,`size`=?,`updated_at`=? WHERE `isos`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).WithArgs(
+					"41da9689eaf006adb0c7a8c7517b8c4e5f5814978cfbfc297c5e3aa25652042ab1fd940aaf42b87bd775d9d1ed81bcca3571828da4b787e4ed4c91d39ae70da5", //nolint:lll
+					"some description",
+					"narf.iso",
+					"/narf.iso",
+					128,
+					sqlmock.AnyArg(),
+					"3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+				).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				osCreateFunc = func(_ string) (*os.File, error) {
+					f, _ := os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+
+					return f, nil
+				}
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				setupReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Isouploadinfo{
+						Isouploadinfo: &cirrina.ISOUploadInfo{
+							Isoid: &cirrina.ISOID{
+								Value: "3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+							},
+							Size:      128,
+							Sha512Sum: "41da9689eaf006adb0c7a8c7517b8c4e5f5814978cfbfc297c5e3aa25652042ab1fd940aaf42b87bd775d9d1ed81bcca3571828da4b787e4ed4c91d39ae70da5", //nolint:lll
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				dataReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Image{
+						Image: []byte{
+							0xc3, 0x41, 0xa5, 0x28, 0x6c, 0xc6, 0x05, 0xc1, 0x01, 0x0f, 0xff, 0x30, 0x9e, 0x94, 0x19, 0x21,
+							0x73, 0xca, 0x80, 0x81, 0xbb, 0xe7, 0x7d, 0xe6, 0xe2, 0xc3, 0x69, 0xbd, 0xa5, 0xf6, 0x95, 0x28,
+							0x9f, 0x98, 0x78, 0xa4, 0x82, 0x2e, 0x18, 0xa0, 0xb2, 0xde, 0xbd, 0x86, 0x2c, 0xfa, 0xb9, 0xc3,
+							0xe4, 0xfe, 0x0b, 0x78, 0x27, 0x19, 0x92, 0xe2, 0xf5, 0x1f, 0xea, 0xc1, 0x0a, 0x0c, 0x7d, 0x86,
+							0x50, 0x6f, 0xa4, 0x87, 0xda, 0x3d, 0xc6, 0xc1, 0xa0, 0xba, 0x90, 0xe4, 0xec, 0x44, 0x17, 0x79,
+							0x1f, 0x04, 0xc4, 0x04, 0x67, 0x55, 0xae, 0x2d, 0xd3, 0x33, 0x80, 0xf2, 0x11, 0x59, 0xf2, 0x6a,
+							0x7b, 0xb5, 0xdf, 0xd2, 0xf8, 0xb6, 0x8a, 0xfb, 0xf8, 0x6f, 0x22, 0x6e, 0xdd, 0x09, 0xda, 0x36,
+							0xed, 0xae, 0x51, 0x6c, 0xde, 0x2b, 0x58, 0x68, 0x3c, 0x16, 0x2b, 0x99, 0x36, 0x97, 0xa3, 0x25,
+						},
+					},
+				}
+
+				return stream.Send(dataReq)
+			},
+		},
+		{
+			name: "badReq",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3753c1dd-48f4-49ca-a415-53a9ee9e2a2f").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"narf.iso",
+								"some description",
+								"/narf.iso",
+								1047048192,
+								"259e034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3e3b630ba2", //nolint:lll
+							),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `isos` SET `checksum`=?,`description`=?,`name`=?,`path`=?,`size`=?,`updated_at`=? WHERE `isos`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).WithArgs(
+					"41da9689eaf006adb0c7a8c7517b8c4e5f5814978cfbfc297c5e3aa25652042ab1fd940aaf42b87bd775d9d1ed81bcca3571828da4b787e4ed4c91d39ae70da5", //nolint:lll
+					"some description",
+					"narf.iso",
+					"/narf.iso",
+					128,
+					sqlmock.AnyArg(),
+					"3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+				).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				osCreateFunc = func(_ string) (*os.File, error) {
+					f, _ := os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+
+					return f, nil
+				}
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				setupReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Isouploadinfo{
+						Isouploadinfo: nil,
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				dataReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Image{
+						Image: []byte{
+							0xc3, 0x41, 0xa5, 0x28, 0x6c, 0xc6, 0x05, 0xc1, 0x01, 0x0f, 0xff, 0x30, 0x9e, 0x94, 0x19, 0x21,
+							0x73, 0xca, 0x80, 0x81, 0xbb, 0xe7, 0x7d, 0xe6, 0xe2, 0xc3, 0x69, 0xbd, 0xa5, 0xf6, 0x95, 0x28,
+							0x9f, 0x98, 0x78, 0xa4, 0x82, 0x2e, 0x18, 0xa0, 0xb2, 0xde, 0xbd, 0x86, 0x2c, 0xfa, 0xb9, 0xc3,
+							0xe4, 0xfe, 0x0b, 0x78, 0x27, 0x19, 0x92, 0xe2, 0xf5, 0x1f, 0xea, 0xc1, 0x0a, 0x0c, 0x7d, 0x86,
+							0x50, 0x6f, 0xa4, 0x87, 0xda, 0x3d, 0xc6, 0xc1, 0xa0, 0xba, 0x90, 0xe4, 0xec, 0x44, 0x17, 0x79,
+							0x1f, 0x04, 0xc4, 0x04, 0x67, 0x55, 0xae, 0x2d, 0xd3, 0x33, 0x80, 0xf2, 0x11, 0x59, 0xf2, 0x6a,
+							0x7b, 0xb5, 0xdf, 0xd2, 0xf8, 0xb6, 0x8a, 0xfb, 0xf8, 0x6f, 0x22, 0x6e, 0xdd, 0x09, 0xda, 0x36,
+							0xed, 0xae, 0x51, 0x6c, 0xde, 0x2b, 0x58, 0x68, 0x3c, 0x16, 0x2b, 0x99, 0x36, 0x97, 0xa3, 0x25,
+						},
+					},
+				}
+
+				return stream.Send(dataReq)
+			},
+			wantSetupError: true,
+		},
+		{
+			name: "badUUID",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				setupReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Isouploadinfo{
+						Isouploadinfo: &cirrina.ISOUploadInfo{
+							Isoid: &cirrina.ISOID{
+								Value: "3753c1dd-48f4-49",
+							},
+							Size:      128,
+							Sha512Sum: "41da9689eaf006adb0c7a8c7517b8c4e5f5814978cfbfc297c5e3aa25652042ab1fd940aaf42b87bd775d9d1ed81bcca3571828da4b787e4ed4c91d39ae70da5", //nolint:lll
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(_ cirrina.VMInfo_UploadIsoClient) error {
+				return nil
+			},
+			wantSetupError: true,
+		},
+		{
+			name: "isoNotFound",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3753c1dd-48f4-49ca-a415-53a9ee9e2a2f").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}),
+					)
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				setupReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Isouploadinfo{
+						Isouploadinfo: &cirrina.ISOUploadInfo{
+							Isoid: &cirrina.ISOID{
+								Value: "3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+							},
+							Size:      128,
+							Sha512Sum: "41da9689eaf006adb0c7a8c7517b8c4e5f5814978cfbfc297c5e3aa25652042ab1fd940aaf42b87bd775d9d1ed81bcca3571828da4b787e4ed4c91d39ae70da5", //nolint:lll
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(_ cirrina.VMInfo_UploadIsoClient) error {
+				return nil
+			},
+			wantSetupError: true,
+		},
+		{
+			name: "isoBlankName",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3753c1dd-48f4-49ca-a415-53a9ee9e2a2f").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"",
+								"some description",
+								"/narf.iso",
+								1047048192,
+								"259e034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3e3b630ba2", //nolint:lll
+							),
+					)
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				setupReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Isouploadinfo{
+						Isouploadinfo: &cirrina.ISOUploadInfo{
+							Isoid: &cirrina.ISOID{
+								Value: "3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+							},
+							Size:      128,
+							Sha512Sum: "41da9689eaf006adb0c7a8c7517b8c4e5f5814978cfbfc297c5e3aa25652042ab1fd940aaf42b87bd775d9d1ed81bcca3571828da4b787e4ed4c91d39ae70da5", //nolint:lll
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(_ cirrina.VMInfo_UploadIsoClient) error {
+				return nil
+			},
+			wantSetupError: true,
+		},
+		{
+			name: "osCreateFileFail",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3753c1dd-48f4-49ca-a415-53a9ee9e2a2f").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"narf.iso",
+								"some description",
+								"/narf.iso",
+								1047048192,
+								"259e034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3e3b630ba2", //nolint:lll
+							),
+					)
+
+				osCreateFunc = func(_ string) (*os.File, error) {
+					return nil, errors.New("bogus create error") //nolint:goerr113
+				}
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				setupReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Isouploadinfo{
+						Isouploadinfo: &cirrina.ISOUploadInfo{
+							Isoid: &cirrina.ISOID{
+								Value: "3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+							},
+							Size:      128,
+							Sha512Sum: "41da9689eaf006adb0c7a8c7517b8c4e5f5814978cfbfc297c5e3aa25652042ab1fd940aaf42b87bd775d9d1ed81bcca3571828da4b787e4ed4c91d39ae70da5", //nolint:lll
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				dataReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Image{
+						Image: []byte{
+							0xc3, 0x41, 0xa5, 0x28, 0x6c, 0xc6, 0x05, 0xc1, 0x01, 0x0f, 0xff, 0x30, 0x9e, 0x94, 0x19, 0x21,
+							0x73, 0xca, 0x80, 0x81, 0xbb, 0xe7, 0x7d, 0xe6, 0xe2, 0xc3, 0x69, 0xbd, 0xa5, 0xf6, 0x95, 0x28,
+							0x9f, 0x98, 0x78, 0xa4, 0x82, 0x2e, 0x18, 0xa0, 0xb2, 0xde, 0xbd, 0x86, 0x2c, 0xfa, 0xb9, 0xc3,
+							0xe4, 0xfe, 0x0b, 0x78, 0x27, 0x19, 0x92, 0xe2, 0xf5, 0x1f, 0xea, 0xc1, 0x0a, 0x0c, 0x7d, 0x86,
+							0x50, 0x6f, 0xa4, 0x87, 0xda, 0x3d, 0xc6, 0xc1, 0xa0, 0xba, 0x90, 0xe4, 0xec, 0x44, 0x17, 0x79,
+							0x1f, 0x04, 0xc4, 0x04, 0x67, 0x55, 0xae, 0x2d, 0xd3, 0x33, 0x80, 0xf2, 0x11, 0x59, 0xf2, 0x6a,
+							0x7b, 0xb5, 0xdf, 0xd2, 0xf8, 0xb6, 0x8a, 0xfb, 0xf8, 0x6f, 0x22, 0x6e, 0xdd, 0x09, 0xda, 0x36,
+							0xed, 0xae, 0x51, 0x6c, 0xde, 0x2b, 0x58, 0x68, 0x3c, 0x16, 0x2b, 0x99, 0x36, 0x97, 0xa3, 0x25,
+						},
+					},
+				}
+
+				return stream.Send(dataReq)
+			},
+			wantSetupError: true,
+		},
+		{
+			name: "sizeTooSmall",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3753c1dd-48f4-49ca-a415-53a9ee9e2a2f").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"narf.iso",
+								"some description",
+								"/narf.iso",
+								1047048192,
+								"259e034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3e3b630ba2", //nolint:lll
+							),
+					)
+
+				osCreateFunc = func(_ string) (*os.File, error) {
+					f, _ := os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+
+					return f, nil
+				}
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				setupReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Isouploadinfo{
+						Isouploadinfo: &cirrina.ISOUploadInfo{
+							Isoid: &cirrina.ISOID{
+								Value: "3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+							},
+							Size:      64,
+							Sha512Sum: "41da9689eaf006adb0c7a8c7517b8c4e5f5814978cfbfc297c5e3aa25652042ab1fd940aaf42b87bd775d9d1ed81bcca3571828da4b787e4ed4c91d39ae70da5", //nolint:lll
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				dataReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Image{
+						Image: []byte{
+							0xc3, 0x41, 0xa5, 0x28, 0x6c, 0xc6, 0x05, 0xc1, 0x01, 0x0f, 0xff, 0x30, 0x9e, 0x94, 0x19, 0x21,
+							0x73, 0xca, 0x80, 0x81, 0xbb, 0xe7, 0x7d, 0xe6, 0xe2, 0xc3, 0x69, 0xbd, 0xa5, 0xf6, 0x95, 0x28,
+							0x9f, 0x98, 0x78, 0xa4, 0x82, 0x2e, 0x18, 0xa0, 0xb2, 0xde, 0xbd, 0x86, 0x2c, 0xfa, 0xb9, 0xc3,
+							0xe4, 0xfe, 0x0b, 0x78, 0x27, 0x19, 0x92, 0xe2, 0xf5, 0x1f, 0xea, 0xc1, 0x0a, 0x0c, 0x7d, 0x86,
+							0x50, 0x6f, 0xa4, 0x87, 0xda, 0x3d, 0xc6, 0xc1, 0xa0, 0xba, 0x90, 0xe4, 0xec, 0x44, 0x17, 0x79,
+							0x1f, 0x04, 0xc4, 0x04, 0x67, 0x55, 0xae, 0x2d, 0xd3, 0x33, 0x80, 0xf2, 0x11, 0x59, 0xf2, 0x6a,
+							0x7b, 0xb5, 0xdf, 0xd2, 0xf8, 0xb6, 0x8a, 0xfb, 0xf8, 0x6f, 0x22, 0x6e, 0xdd, 0x09, 0xda, 0x36,
+							0xed, 0xae, 0x51, 0x6c, 0xde, 0x2b, 0x58, 0x68, 0x3c, 0x16, 0x2b, 0x99, 0x36, 0x97, 0xa3, 0x25,
+						},
+					},
+				}
+				_ = stream.Send(dataReq)
+
+				return stream.CloseSend()
+			},
+			wantSendError: true,
+		},
+		{
+			name: "sizeTooLarge",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3753c1dd-48f4-49ca-a415-53a9ee9e2a2f").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"narf.iso",
+								"some description",
+								"/narf.iso",
+								1047048192,
+								"259e034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3e3b630ba2", //nolint:lll
+							),
+					)
+
+				osCreateFunc = func(_ string) (*os.File, error) {
+					f, _ := os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+
+					return f, nil
+				}
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				setupReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Isouploadinfo{
+						Isouploadinfo: &cirrina.ISOUploadInfo{
+							Isoid: &cirrina.ISOID{
+								Value: "3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+							},
+							Size:      256,
+							Sha512Sum: "41da9689eaf006adb0c7a8c7517b8c4e5f5814978cfbfc297c5e3aa25652042ab1fd940aaf42b87bd775d9d1ed81bcca3571828da4b787e4ed4c91d39ae70da5", //nolint:lll
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				dataReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Image{
+						Image: []byte{
+							0xc3, 0x41, 0xa5, 0x28, 0x6c, 0xc6, 0x05, 0xc1, 0x01, 0x0f, 0xff, 0x30, 0x9e, 0x94, 0x19, 0x21,
+							0x73, 0xca, 0x80, 0x81, 0xbb, 0xe7, 0x7d, 0xe6, 0xe2, 0xc3, 0x69, 0xbd, 0xa5, 0xf6, 0x95, 0x28,
+							0x9f, 0x98, 0x78, 0xa4, 0x82, 0x2e, 0x18, 0xa0, 0xb2, 0xde, 0xbd, 0x86, 0x2c, 0xfa, 0xb9, 0xc3,
+							0xe4, 0xfe, 0x0b, 0x78, 0x27, 0x19, 0x92, 0xe2, 0xf5, 0x1f, 0xea, 0xc1, 0x0a, 0x0c, 0x7d, 0x86,
+							0x50, 0x6f, 0xa4, 0x87, 0xda, 0x3d, 0xc6, 0xc1, 0xa0, 0xba, 0x90, 0xe4, 0xec, 0x44, 0x17, 0x79,
+							0x1f, 0x04, 0xc4, 0x04, 0x67, 0x55, 0xae, 0x2d, 0xd3, 0x33, 0x80, 0xf2, 0x11, 0x59, 0xf2, 0x6a,
+							0x7b, 0xb5, 0xdf, 0xd2, 0xf8, 0xb6, 0x8a, 0xfb, 0xf8, 0x6f, 0x22, 0x6e, 0xdd, 0x09, 0xda, 0x36,
+							0xed, 0xae, 0x51, 0x6c, 0xde, 0x2b, 0x58, 0x68, 0x3c, 0x16, 0x2b, 0x99, 0x36, 0x97, 0xa3, 0x25,
+						},
+					},
+				}
+				_ = stream.Send(dataReq)
+
+				return stream.CloseSend()
+			},
+			wantSendError: true,
+		},
+		{
+			name: "dbErr",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3753c1dd-48f4-49ca-a415-53a9ee9e2a2f").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"narf.iso",
+								"some description",
+								"/narf.iso",
+								1047048192,
+								"259e034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3e3b630ba2", //nolint:lll
+							),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `isos` SET `checksum`=?,`description`=?,`name`=?,`path`=?,`size`=?,`updated_at`=? WHERE `isos`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).WithArgs(
+					"41da9689eaf006adb0c7a8c7517b8c4e5f5814978cfbfc297c5e3aa25652042ab1fd940aaf42b87bd775d9d1ed81bcca3571828da4b787e4ed4c91d39ae70da5", //nolint:lll
+					"some description",
+					"narf.iso",
+					"/narf.iso",
+					128,
+					sqlmock.AnyArg(),
+					"3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+				).
+					WillReturnError(errInvalidRequest)
+
+				osCreateFunc = func(_ string) (*os.File, error) {
+					f, _ := os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+
+					return f, nil
+				}
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				setupReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Isouploadinfo{
+						Isouploadinfo: &cirrina.ISOUploadInfo{
+							Isoid: &cirrina.ISOID{
+								Value: "3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+							},
+							Size:      128,
+							Sha512Sum: "41da9689eaf006adb0c7a8c7517b8c4e5f5814978cfbfc297c5e3aa25652042ab1fd940aaf42b87bd775d9d1ed81bcca3571828da4b787e4ed4c91d39ae70da5", //nolint:lll
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				dataReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Image{
+						Image: []byte{
+							0xc3, 0x41, 0xa5, 0x28, 0x6c, 0xc6, 0x05, 0xc1, 0x01, 0x0f, 0xff, 0x30, 0x9e, 0x94, 0x19, 0x21,
+							0x73, 0xca, 0x80, 0x81, 0xbb, 0xe7, 0x7d, 0xe6, 0xe2, 0xc3, 0x69, 0xbd, 0xa5, 0xf6, 0x95, 0x28,
+							0x9f, 0x98, 0x78, 0xa4, 0x82, 0x2e, 0x18, 0xa0, 0xb2, 0xde, 0xbd, 0x86, 0x2c, 0xfa, 0xb9, 0xc3,
+							0xe4, 0xfe, 0x0b, 0x78, 0x27, 0x19, 0x92, 0xe2, 0xf5, 0x1f, 0xea, 0xc1, 0x0a, 0x0c, 0x7d, 0x86,
+							0x50, 0x6f, 0xa4, 0x87, 0xda, 0x3d, 0xc6, 0xc1, 0xa0, 0xba, 0x90, 0xe4, 0xec, 0x44, 0x17, 0x79,
+							0x1f, 0x04, 0xc4, 0x04, 0x67, 0x55, 0xae, 0x2d, 0xd3, 0x33, 0x80, 0xf2, 0x11, 0x59, 0xf2, 0x6a,
+							0x7b, 0xb5, 0xdf, 0xd2, 0xf8, 0xb6, 0x8a, 0xfb, 0xf8, 0x6f, 0x22, 0x6e, 0xdd, 0x09, 0xda, 0x36,
+							0xed, 0xae, 0x51, 0x6c, 0xde, 0x2b, 0x58, 0x68, 0x3c, 0x16, 0x2b, 0x99, 0x36, 0x97, 0xa3, 0x25,
+						},
+					},
+				}
+
+				return stream.Send(dataReq)
+			},
+			wantErr: true,
+		},
+		{
+			name: "badChecksum",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3753c1dd-48f4-49ca-a415-53a9ee9e2a2f").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"narf.iso",
+								"some description",
+								"/narf.iso",
+								1047048192,
+								"259e034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3e3b630ba2", //nolint:lll
+							),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `isos` SET `checksum`=?,`description`=?,`name`=?,`path`=?,`size`=?,`updated_at`=? WHERE `isos`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).WithArgs(
+					"41da9689eaf006adb0c7a8c7517b8c4e5f5814978cfbfc297c5e3aa25652042ab1fd940aaf42b87bd775d9d1ed81bcca3571828da4b787e4ed4c91d39ae70da5", //nolint:lll
+					"some description",
+					"narf.iso",
+					"/narf.iso",
+					128,
+					sqlmock.AnyArg(),
+					"3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+				).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				osCreateFunc = func(_ string) (*os.File, error) {
+					f, _ := os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
+
+					return f, nil
+				}
+			},
+			mockStreamSetupReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				setupReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Isouploadinfo{
+						Isouploadinfo: &cirrina.ISOUploadInfo{
+							Isoid: &cirrina.ISOID{
+								Value: "3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
+							},
+							Size:      128,
+							Sha512Sum: "31da9689eaf006adb0c7a8c7517b8c4e5f5814978cfbfc297c5e3aa25652042ab1fd940aaf42b87bd775d9d1ed81bcca3571828da4b787e4ed4c91d39ae70da5", //nolint:lll
+						},
+					},
+				}
+
+				return stream.Send(setupReq)
+			},
+			mockStreamSendReqFunc: func(stream cirrina.VMInfo_UploadIsoClient) error {
+				dataReq := &cirrina.ISOImageRequest{
+					Data: &cirrina.ISOImageRequest_Image{
+						Image: []byte{
+							0xc3, 0x41, 0xa5, 0x28, 0x6c, 0xc6, 0x05, 0xc1, 0x01, 0x0f, 0xff, 0x30, 0x9e, 0x94, 0x19, 0x21,
+							0x73, 0xca, 0x80, 0x81, 0xbb, 0xe7, 0x7d, 0xe6, 0xe2, 0xc3, 0x69, 0xbd, 0xa5, 0xf6, 0x95, 0x28,
+							0x9f, 0x98, 0x78, 0xa4, 0x82, 0x2e, 0x18, 0xa0, 0xb2, 0xde, 0xbd, 0x86, 0x2c, 0xfa, 0xb9, 0xc3,
+							0xe4, 0xfe, 0x0b, 0x78, 0x27, 0x19, 0x92, 0xe2, 0xf5, 0x1f, 0xea, 0xc1, 0x0a, 0x0c, 0x7d, 0x86,
+							0x50, 0x6f, 0xa4, 0x87, 0xda, 0x3d, 0xc6, 0xc1, 0xa0, 0xba, 0x90, 0xe4, 0xec, 0x44, 0x17, 0x79,
+							0x1f, 0x04, 0xc4, 0x04, 0x67, 0x55, 0xae, 0x2d, 0xd3, 0x33, 0x80, 0xf2, 0x11, 0x59, 0xf2, 0x6a,
+							0x7b, 0xb5, 0xdf, 0xd2, 0xf8, 0xb6, 0x8a, 0xfb, 0xf8, 0x6f, 0x22, 0x6e, 0xdd, 0x09, 0xda, 0x36,
+							0xed, 0xae, 0x51, 0x6c, 0xde, 0x2b, 0x58, 0x68, 0x3c, 0x16, 0x2b, 0x99, 0x36, 0x97, 0xa3, 0x25,
+						},
+					},
+				}
+
+				return stream.Send(dataReq)
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("isoTest")
+
+			testCase.mockClosure(testDB, mock)
+
+			lis := bufconn.Listen(1024 * 1024)
+
+			testServer := grpc.NewServer()
+			reflection.Register(testServer)
+			cirrina.RegisterVMInfoServer(testServer, &server{})
+
+			go func() {
+				if err := testServer.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			stream, _ := client.UploadIso(context.Background())
+
+			_ = testCase.mockStreamSetupReqFunc(stream)
+
+			if testCase.wantSetupError {
+				var rb cirrina.ReqBool
+
+				_ = stream.RecvMsg(&rb)
+
+				if rb.GetSuccess() {
+					t.Errorf("UploadIso() err = %v, wantSetupErr %v", err, testCase.wantSetupError)
+				}
+
+				return
+			}
+
+			_ = testCase.mockStreamSendReqFunc(stream)
+
+			if testCase.wantSendError {
+				var rb cirrina.ReqBool
+
+				_ = stream.RecvMsg(&rb)
+
+				if rb.GetSuccess() {
+					t.Errorf("UploadIso() err = %v, wantSendError %v", err, testCase.wantSendError)
+				}
+
+				return
+			}
+
+			reply, _ := stream.CloseAndRecv()
+
+			if !reply.GetSuccess() && !testCase.wantErr {
+				t.Errorf("UploadIso() success = %v, wantErr %v", reply.GetSuccess(), testCase.wantErr)
 			}
 		})
 	}
