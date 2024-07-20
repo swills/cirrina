@@ -54,7 +54,7 @@ func TestVM_AttachIsos(t *testing.T) {
 		{
 			name: "AddOneISO",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
+				Instance = &singleton{ // prevents parallel testing
 					vmDB: testDB,
 				}
 
@@ -210,7 +210,7 @@ func TestVM_AttachIsos(t *testing.T) {
 		{
 			name: "AddTwoISOs",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
+				Instance = &singleton{ // prevents parallel testing
 					vmDB: testDB,
 				}
 
@@ -498,7 +498,7 @@ func TestVM_AttachIsos(t *testing.T) {
 		{
 			name: "ErrorSaving",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
+				Instance = &singleton{ // prevents parallel testing
 					vmDB: testDB,
 				}
 

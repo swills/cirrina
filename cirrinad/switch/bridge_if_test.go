@@ -350,6 +350,12 @@ func TestCreateIfBridgeWithMembers(t *testing.T) {
 			args:        args{bridgeName: "bridge0", bridgeMembers: []string{"tap0"}},
 			wantErr:     true,
 		},
+		{
+			name:        "emptyBridgeName",
+			mockCmdFunc: "TestCreateIfBridgeWithMembersError3",
+			args:        args{bridgeName: "", bridgeMembers: []string{"tap0"}},
+			wantErr:     true,
+		},
 	}
 
 	for _, testCase := range tests {

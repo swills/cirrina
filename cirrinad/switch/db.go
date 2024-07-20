@@ -14,11 +14,11 @@ import (
 	"cirrina/cirrinad/config"
 )
 
-type singleton struct {
-	switchDB *gorm.DB
+type Singleton struct {
+	SwitchDB *gorm.DB
 }
 
-var instance *singleton
+var Instance *Singleton
 
 var once sync.Once
 
@@ -35,11 +35,11 @@ func getSwitchDB() *gorm.DB {
 
 	once.Do(func() {
 		// allow override for testing
-		if instance != nil {
+		if Instance != nil {
 			return
 		}
 
-		instance = &singleton{}
+		Instance = &Singleton{}
 
 		switchDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
@@ -60,10 +60,10 @@ func getSwitchDB() *gorm.DB {
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
 
-		instance.switchDB = switchDB
+		Instance.SwitchDB = switchDB
 	})
 
-	return instance.switchDB
+	return Instance.SwitchDB
 }
 
 func (s *Switch) BeforeCreate(_ *gorm.DB) error {

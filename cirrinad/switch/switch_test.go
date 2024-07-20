@@ -28,8 +28,8 @@ func TestGetAll(t *testing.T) {
 		{
 			name: "testGetAllSwitches",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -143,8 +143,8 @@ func TestGetByName(t *testing.T) {
 		{
 			name: "testGetByName_bridge0",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -189,8 +189,8 @@ func TestGetByName(t *testing.T) {
 		{
 			name: "testGetByName_error",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -205,8 +205,8 @@ func TestGetByName(t *testing.T) {
 		{
 			name: "testGetByName_notfound",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE name = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -232,8 +232,8 @@ func TestGetByName(t *testing.T) {
 		{
 			name: "testGetByName_emptyName",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 			},
 			args:    args{name: ""},
@@ -296,8 +296,8 @@ func TestGetByID(t *testing.T) {
 		{
 			name: "testGetByID_success",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -342,8 +342,8 @@ func TestGetByID(t *testing.T) {
 		{
 			name: "testGetByID_error",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -357,8 +357,8 @@ func TestGetByID(t *testing.T) {
 		{
 			name: "testGetByID_notfound",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -525,8 +525,8 @@ func TestParseSwitchID(t *testing.T) {
 		{
 			name: "success1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -562,8 +562,8 @@ func TestParseSwitchID(t *testing.T) {
 		{
 			name: "errorEmptySwitchID",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 			},
 			args:    args{switchID: "", netDevType: "TAP"},
@@ -573,8 +573,8 @@ func TestParseSwitchID(t *testing.T) {
 		{
 			name: "errBadSwitchID",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 			},
 			args:    args{switchID: "bogusSwitchId", netDevType: "TAP"},
@@ -584,8 +584,8 @@ func TestParseSwitchID(t *testing.T) {
 		{
 			name: "errorGettingSwitchID",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -599,8 +599,8 @@ func TestParseSwitchID(t *testing.T) {
 		{
 			name: "errReturnedEmptySwitchName",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -637,8 +637,8 @@ func TestParseSwitchID(t *testing.T) {
 		{
 			name: "errorSwitchTypeMismatchIF",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -675,8 +675,8 @@ func TestParseSwitchID(t *testing.T) {
 		{
 			name: "errorSwitchTypeMismatchNG",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -713,8 +713,8 @@ func TestParseSwitchID(t *testing.T) {
 		{
 			name: "errorSwitchTypeUnknown",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -1578,8 +1578,8 @@ func Test_switchExists(t *testing.T) {
 		{
 			name: "success1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -1617,8 +1617,8 @@ func Test_switchExists(t *testing.T) {
 		{
 			name: "error1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -1647,8 +1647,8 @@ func Test_switchExists(t *testing.T) {
 		{
 			name: "error2",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -1719,8 +1719,8 @@ func TestSwitch_Save(t *testing.T) {
 		{
 			name: "success1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -1744,8 +1744,8 @@ func TestSwitch_Save(t *testing.T) {
 		{
 			name: "error1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -1828,8 +1828,8 @@ func TestDelete(t *testing.T) {
 				}}
 			},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -1879,8 +1879,8 @@ func TestDelete(t *testing.T) {
 				}}
 			},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -1920,8 +1920,8 @@ func TestDelete(t *testing.T) {
 				}}
 			},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -1971,8 +1971,8 @@ func TestDelete(t *testing.T) {
 				}}
 			},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -2150,8 +2150,8 @@ func Test_setUplinkIf(t *testing.T) {
 			name:        "success1",
 			mockCmdFunc: "Test_setUplinkIfSuccess1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -2178,8 +2178,8 @@ func Test_setUplinkIf(t *testing.T) {
 			name:        "MemberCheckError",
 			mockCmdFunc: "Test_setUplinkIfMemberCheckError",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 			},
 			args: args{
@@ -2198,8 +2198,8 @@ func Test_setUplinkIf(t *testing.T) {
 			name:        "MemberInUse1",
 			mockCmdFunc: "Test_setUplinkIfMemberInUse1",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 			},
 			args: args{
@@ -2218,8 +2218,8 @@ func Test_setUplinkIf(t *testing.T) {
 			name:        "AddMemberError1",
 			mockCmdFunc: "Test_setUplinkIfAddMemberError1",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 			},
 			args: args{
@@ -2238,8 +2238,8 @@ func Test_setUplinkIf(t *testing.T) {
 			name:        "SaveError",
 			mockCmdFunc: "Test_setUplinkIfSuccess1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -2319,8 +2319,8 @@ func Test_setUplinkNG(t *testing.T) {
 			name:        "success1",
 			mockCmdFunc: "Test_setUplinkNGSuccess1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -2347,8 +2347,8 @@ func Test_setUplinkNG(t *testing.T) {
 			name:        "MemberUsedError",
 			mockCmdFunc: "Test_setUplinkNGMemberUsedError",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 			},
 			args: args{
@@ -2367,8 +2367,8 @@ func Test_setUplinkNG(t *testing.T) {
 			name:        "MemberAlreadyUsed",
 			mockCmdFunc: "Test_setUplinkNGMemberAlreadyUsed",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 			},
 			args: args{
@@ -2387,8 +2387,8 @@ func Test_setUplinkNG(t *testing.T) {
 			name:        "MemberAddError",
 			mockCmdFunc: "Test_setUplinkNGMemberAddError",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 			},
 			args: args{
@@ -2407,8 +2407,8 @@ func Test_setUplinkNG(t *testing.T) {
 			name:        "SaveError",
 			mockCmdFunc: "Test_setUplinkNGSuccess1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -2503,8 +2503,8 @@ func TestSwitch_SetUplink(t *testing.T) {
 			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
 			mockCmdFunc:         "Test_setUplinkIfSuccess1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -2533,8 +2533,8 @@ func TestSwitch_SetUplink(t *testing.T) {
 			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
 			mockCmdFunc:         "Test_setUplinkNgSuccess1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -2563,8 +2563,8 @@ func TestSwitch_SetUplink(t *testing.T) {
 			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
 			mockCmdFunc:         "Test_setUplinkIfSuccess1",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 			},
 			fields: fields{
@@ -2585,8 +2585,8 @@ func TestSwitch_SetUplink(t *testing.T) {
 			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
 			mockCmdFunc:         "Test_setUplinkIfSuccess1",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 			},
 			fields: fields{
@@ -2682,8 +2682,8 @@ func TestSwitch_UnsetUplink(t *testing.T) {
 			name:        "SwitchIFSuccess",
 			mockCmdFunc: "Test_bridgeIfDeleteMemberSuccess1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -2708,8 +2708,8 @@ func TestSwitch_UnsetUplink(t *testing.T) {
 			name:        "SwitchNGSuccess",
 			mockCmdFunc: "Test_bridgeNgDeleteMemberSuccess1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -2734,8 +2734,8 @@ func TestSwitch_UnsetUplink(t *testing.T) {
 			name:        "SwitchIFDeleteMemberError",
 			mockCmdFunc: "Test_bridgeIfDeleteMemberError1",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 			},
 			fields: fields{
@@ -2751,8 +2751,8 @@ func TestSwitch_UnsetUplink(t *testing.T) {
 			name:        "SwitchIFSaveError",
 			mockCmdFunc: "Test_bridgeIfDeleteMemberSuccess1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -2777,8 +2777,8 @@ func TestSwitch_UnsetUplink(t *testing.T) {
 			name:        "SwitchNGRemoveUplinkError",
 			mockCmdFunc: "Test_bridgeNgRemoveUplinkError1",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 			},
 			fields: fields{
@@ -2794,8 +2794,8 @@ func TestSwitch_UnsetUplink(t *testing.T) {
 			name:        "SwitchNGSaveError",
 			mockCmdFunc: "Test_bridgeNgDeleteMemberSuccess1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -2820,8 +2820,8 @@ func TestSwitch_UnsetUplink(t *testing.T) {
 			name:        "InvalidSwitchType",
 			mockCmdFunc: "Test_bridgeIfDeleteMemberSuccess1",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 			},
 			fields: fields{
@@ -2902,8 +2902,8 @@ func TestGetNgDev(t *testing.T) {
 			name:        "success",
 			mockCmdFunc: "TestGetNgDevSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -2943,8 +2943,8 @@ func TestGetNgDev(t *testing.T) {
 			name:        "SwitchLookupFailure",
 			mockCmdFunc: "TestGetNgDevSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -2964,8 +2964,8 @@ func TestGetNgDev(t *testing.T) {
 			name:        "GetNgBridgeMembersError",
 			mockCmdFunc: "TestGetNgDevGetBridgeMembersError",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
@@ -3148,8 +3148,8 @@ func TestDestroyBridges(t *testing.T) {
 			name:        "Success",
 			mockCmdFunc: "TestDestroyBridgesSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -3195,8 +3195,8 @@ func TestDestroyBridges(t *testing.T) {
 			name:        "GetAllIfBridgesError",
 			mockCmdFunc: "TestDestroyBridgesGetAllIfBridgesError",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -3242,8 +3242,8 @@ func TestDestroyBridges(t *testing.T) {
 			name:        "GetAllNgBridgesError",
 			mockCmdFunc: "TestDestroyBridgesGetAllNgBridgesError",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -3289,8 +3289,8 @@ func TestDestroyBridges(t *testing.T) {
 			name:        "DestroyIfBridgeError",
 			mockCmdFunc: "TestDestroyBridgesDestroyIfBridgeError",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -3336,8 +3336,8 @@ func TestDestroyBridges(t *testing.T) {
 			name:        "DestroyNgBridgeError",
 			mockCmdFunc: "TestDestroyBridgesDestroyNgBridgeError",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -3437,8 +3437,8 @@ func TestCreateBridges(t *testing.T) {
 			name:        "Success",
 			mockCmdFunc: "TestCreateBridgesSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -3484,8 +3484,8 @@ func TestCreateBridges(t *testing.T) {
 			name:        "BuildIfBridgeError",
 			mockCmdFunc: "TestCreateBridgesBuildIfBridgeError",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -3531,8 +3531,8 @@ func TestCreateBridges(t *testing.T) {
 			name:        "BuildNgBridgeError",
 			mockCmdFunc: "TestCreateBridgesBuildNgBridgeError",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -3634,8 +3634,8 @@ func TestCreate(t *testing.T) {
 			mockCmdFunc:     "TestCreateSuccess",
 			hostIntStubFunc: StubHostInterfacesSuccess1,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -3681,8 +3681,8 @@ func TestCreate(t *testing.T) {
 			hostIntStubFunc: StubHostInterfacesSuccess1,
 			mockCmdFunc:     "TestCreateBringUpNewSwitchError",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -3728,8 +3728,8 @@ func TestCreate(t *testing.T) {
 			mockCmdFunc:     "TestCreateSuccess",
 			hostIntStubFunc: StubHostInterfacesSuccess1,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -3774,8 +3774,8 @@ func TestCreate(t *testing.T) {
 			mockCmdFunc:     "TestCreateSuccess",
 			hostIntStubFunc: StubHostInterfacesSuccess1,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -3820,8 +3820,8 @@ func TestCreate(t *testing.T) {
 			mockCmdFunc:     "Test_validateSwitchIfInvalidUplink",
 			hostIntStubFunc: StubHostInterfacesSuccess1,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -3859,8 +3859,8 @@ func TestCreate(t *testing.T) {
 			mockCmdFunc:     "TestCreateSwitchAlreadyExists",
 			hostIntStubFunc: StubHostInterfacesSuccess1,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -3907,8 +3907,8 @@ func TestCreate(t *testing.T) {
 			mockCmdFunc:     "TestCreateSuccess",
 			hostIntStubFunc: StubHostInterfacesSuccess1,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					switchDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(

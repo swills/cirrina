@@ -196,7 +196,7 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 					)
 			},
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
+				Instance = &singleton{ // prevents parallel testing
 					vmDB: testDB,
 				}
 				mock.ExpectQuery(

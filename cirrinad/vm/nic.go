@@ -32,6 +32,7 @@ func netStartupIf(vmNic vmnic.VMNic) error {
 	if vmNic.SwitchID == "" {
 		return nil
 	}
+
 	// Add interface to bridge
 	thisSwitch, err := vmswitch.GetByID(vmNic.SwitchID)
 	if err != nil {

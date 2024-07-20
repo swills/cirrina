@@ -433,7 +433,7 @@ func TestVM_AttachDisks(t *testing.T) {
 		{
 			name: "NotStopped",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
+				Instance = &singleton{ // prevents parallel testing
 					vmDB: testDB,
 				}
 			},
@@ -484,7 +484,7 @@ func TestVM_AttachDisks(t *testing.T) {
 		{
 			name: "BadDisk",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
+				Instance = &singleton{ // prevents parallel testing
 					vmDB: testDB,
 				}
 
@@ -552,7 +552,7 @@ func TestVM_AttachDisks(t *testing.T) {
 		{
 			name: "AddOneDisk",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
+				Instance = &singleton{ // prevents parallel testing
 					vmDB: testDB,
 				}
 
@@ -714,7 +714,7 @@ func TestVM_AttachDisks(t *testing.T) {
 		{
 			name: "AddTwoDisks",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
+				Instance = &singleton{ // prevents parallel testing
 					vmDB: testDB,
 				}
 
@@ -897,7 +897,7 @@ func TestVM_AttachDisks(t *testing.T) {
 		{
 			name: "SaveError",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
+				Instance = &singleton{ // prevents parallel testing
 					vmDB: testDB,
 				}
 

@@ -172,6 +172,10 @@ func GetAllIfBridges() ([]string, error) {
 }
 
 func CreateIfBridgeWithMembers(bridgeName string, bridgeMembers []string) error {
+	if bridgeName == "" {
+		return errSwitchInvalidBridgeNameIF
+	}
+
 	err := createIfBridge(bridgeName)
 	if err != nil {
 		return err

@@ -21,7 +21,7 @@ type singleton struct {
 	vmDB *gorm.DB
 }
 
-var instance *singleton
+var Instance *singleton
 
 var dbInitialized bool
 
@@ -41,12 +41,12 @@ func GetVMDB() *gorm.DB {
 	)
 
 	// allow override for testing
-	if instance != nil {
-		return instance.vmDB
+	if Instance != nil {
+		return Instance.vmDB
 	}
 
 	if !dbInitialized {
-		instance = &singleton{}
+		Instance = &singleton{}
 		vmDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
 			&gorm.Config{
@@ -67,11 +67,11 @@ func GetVMDB() *gorm.DB {
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
 
-		instance.vmDB = vmDB
+		Instance.vmDB = vmDB
 		dbInitialized = true
 	}
 
-	return instance.vmDB
+	return Instance.vmDB
 }
 
 func (vm *VM) SetRunning(pid int) {
