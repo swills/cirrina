@@ -171,51 +171,52 @@ func cleanupIfNic(vmNic vmnic.VMNic) error {
 
 	var returnCode int
 
-	var err error
+	var err1, err2, err3, err4, err5 error
 
 	if vmNic.NetDev != "" {
-		stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
+		stdOutBytes, stdErrBytes, returnCode, err1 = util.RunCmd(
 			config.Config.Sys.Sudo, []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"},
 		)
-		if err != nil {
+		if err1 != nil {
+			// don't return error just in case the other bits are populated
 			slog.Error("failed to destroy network interface",
 				"stdOutBytes", stdOutBytes,
 				"stdErrBytes", stdErrBytes,
 				"returnCode", returnCode,
-				"err", err,
+				"err", err1,
 			)
 		}
 	}
 
 	if vmNic.InstEpair != "" {
-		err = epair.DestroyEpair(vmNic.InstEpair)
-		if err != nil {
-			slog.Error("failed to destroy epair", "err", err)
+		err2 = epair.DestroyEpair(vmNic.InstEpair)
+		if err2 != nil {
+			slog.Error("failed to destroy epair", "err", err2)
 		}
 	}
 
 	if vmNic.InstBridge != "" {
-		err = vmswitch.DestroyIfBridge(vmNic.InstBridge, false)
-		if err != nil {
-			slog.Error("failed to destroy switch", "err", err)
+		err3 = vmswitch.DestroyIfBridge(vmNic.InstBridge, false)
+		if err3 != nil {
+			slog.Error("failed to destroy switch", "err", err3)
 		}
 	}
 	// tap/vmnet nics may be connected to an epair which is connected
 	// to a netgraph pipe for purposes for rate limiting
 	if vmNic.InstEpair != "" {
-		err = epair.NgDestroyPipe(vmNic.InstEpair + "a")
-		if err != nil {
-			slog.Error("failed to ng pipe", "err", err)
+		err4 = epair.NgDestroyPipe(vmNic.InstEpair + "a")
+		if err4 != nil {
+			slog.Error("failed to ng pipe", "err", err4)
 		}
 
-		err = epair.NgDestroyPipe(vmNic.InstEpair + "b")
-		if err != nil {
-			slog.Error("failed to ng pipe", "err", err)
+		err5 = epair.NgDestroyPipe(vmNic.InstEpair + "b")
+		if err5 != nil {
+			slog.Error("failed to ng pipe", "err", err5)
 		}
 	}
 
-	if err != nil {
-		return fmt.Errorf("error cleaning up NIC: %w", err)
+	if err1 != nil || err2 != nil || err3 != nil || err4 != nil || err5 != nil {
+		return errVMNICCleanupError
 	}
 
 	return nil

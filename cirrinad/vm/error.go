@@ -45,8 +45,9 @@ var (
 )
 
 var (
-	errVMNICInvalid  = errors.New("nic id not specified or invalid")
-	errVMNICNotFound = errors.New("nic not found")
-	errVMNicDupe     = errors.New("nic may only be added once")
-	errVMNicAttached = errors.New("nic already attached")
+	errVMNICInvalid      = errors.New("nic id not specified or invalid")
+	errVMNICNotFound     = errors.New("nic not found")
+	errVMNicDupe         = errors.New("nic may only be added once")
+	errVMNicAttached     = errors.New("nic already attached")
+	errVMNICCleanupError = errors.New("error cleaning up NIC, see logs")
 )

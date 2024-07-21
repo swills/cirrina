@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -2406,6 +2407,220 @@ func Test_netStartupNg(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
+func Test_cleanupIfNic(t *testing.T) {
+	type args struct {
+		vmNic vmnic.VMNic
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		wantErr     bool
+	}{
+		{
+			name:        "SuccessNoRateLimit",
+			mockCmdFunc: "Test_cleanupIfNicSuccess",
+			args: args{
+				vmNic: vmnic.VMNic{
+					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
+					Name:        "fladsorp",
+					Description: "a silly nic",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "21b42894-d0da-410f-b45c-afcdddae15b2",
+					RateLimit:   false,
+					RateIn:      0,
+					RateOut:     0,
+					InstBridge:  "",
+					InstEpair:   "",
+					ConfigID:    25,
+				},
+			},
+		},
+		{
+			name:        "SuccessRateLimit",
+			mockCmdFunc: "Test_cleanupIfNicSuccess",
+			args: args{
+				vmNic: vmnic.VMNic{
+					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
+					Name:        "fladsorp",
+					Description: "a silly nic",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "21b42894-d0da-410f-b45c-afcdddae15b2",
+					RateLimit:   true,
+					RateIn:      500000,
+					RateOut:     250000,
+					InstBridge:  "bridge32766",
+					InstEpair:   "epair32766",
+					ConfigID:    25,
+				},
+			},
+		},
+		{
+			name:        "Fail1",
+			mockCmdFunc: "Test_cleanupIfNicFail1",
+			args: args{
+				vmNic: vmnic.VMNic{
+					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
+					Name:        "fladsorp",
+					Description: "a silly nic",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "21b42894-d0da-410f-b45c-afcdddae15b2",
+					RateLimit:   true,
+					RateIn:      500000,
+					RateOut:     250000,
+					InstBridge:  "bridge32766",
+					InstEpair:   "epair32766",
+					ConfigID:    25,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:        "Fail2",
+			mockCmdFunc: "Test_cleanupIfNicFail2",
+			args: args{
+				vmNic: vmnic.VMNic{
+					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
+					Name:        "fladsorp",
+					Description: "a silly nic",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "21b42894-d0da-410f-b45c-afcdddae15b2",
+					RateLimit:   true,
+					RateIn:      500000,
+					RateOut:     250000,
+					InstBridge:  "bridge32766",
+					InstEpair:   "epair32766",
+					ConfigID:    25,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:        "Fail3",
+			mockCmdFunc: "Test_cleanupIfNicFail3",
+			args: args{
+				vmNic: vmnic.VMNic{
+					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
+					Name:        "fladsorp",
+					Description: "a silly nic",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "21b42894-d0da-410f-b45c-afcdddae15b2",
+					RateLimit:   true,
+					RateIn:      500000,
+					RateOut:     250000,
+					InstBridge:  "bridge32766",
+					InstEpair:   "epair32766",
+					ConfigID:    25,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:        "Fail4",
+			mockCmdFunc: "Test_cleanupIfNicFail4",
+			args: args{
+				vmNic: vmnic.VMNic{
+					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
+					Name:        "fladsorp",
+					Description: "a silly nic",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "21b42894-d0da-410f-b45c-afcdddae15b2",
+					RateLimit:   true,
+					RateIn:      500000,
+					RateOut:     250000,
+					InstBridge:  "bridge32766",
+					InstEpair:   "epair32766",
+					ConfigID:    25,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:        "Fail5",
+			mockCmdFunc: "Test_cleanupIfNicFail5",
+			args: args{
+				vmNic: vmnic.VMNic{
+					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
+					Name:        "fladsorp",
+					Description: "a silly nic",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "21b42894-d0da-410f-b45c-afcdddae15b2",
+					RateLimit:   true,
+					RateIn:      500000,
+					RateOut:     250000,
+					InstBridge:  "bridge32766",
+					InstEpair:   "epair32766",
+					ConfigID:    25,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:        "FailAll",
+			mockCmdFunc: "Test_cleanupIfNicFailAll",
+			args: args{
+				vmNic: vmnic.VMNic{
+					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
+					Name:        "fladsorp",
+					Description: "a silly nic",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "21b42894-d0da-410f-b45c-afcdddae15b2",
+					RateLimit:   true,
+					RateIn:      500000,
+					RateOut:     250000,
+					InstBridge:  "bridge32766",
+					InstEpair:   "epair32766",
+					ConfigID:    25,
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			err := cleanupIfNic(testCase.args.vmNic)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("cleanupIfNic() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 //nolint:paralleltest
@@ -2559,6 +2774,121 @@ func Test_setupVMNicRateLimitSuccess(_ *testing.T) {
 func Test_netStartupIfSetupRateLimitOK(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_cleanupIfNicSuccess(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_cleanupIfNicFail1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/sbin/ifconfig" && cmdWithArgs[2] == "tap0" && cmdWithArgs[3] == "destroy" { //nolint:lll
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_cleanupIfNicFail2(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/sbin/ifconfig" && cmdWithArgs[2] == "epair32766a" && cmdWithArgs[3] == "destroy" { //nolint:lll
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_cleanupIfNicFail3(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/sbin/ifconfig" && cmdWithArgs[2] == "bridge32766" && cmdWithArgs[3] == "destroy" { //nolint:lll
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_cleanupIfNicFail4(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/usr/sbin/ngctl" && strings.HasSuffix(cmdWithArgs[3], "a_pipe:") {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_cleanupIfNicFail5(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/usr/sbin/ngctl" && strings.HasSuffix(cmdWithArgs[3], "b_pipe:") {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest,cyclop
+func Test_cleanupIfNicFailAll(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/sbin/ifconfig" && cmdWithArgs[2] == "tap0" && cmdWithArgs[3] == "destroy" { //nolint:lll
+		os.Exit(1)
+	}
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/sbin/ifconfig" && cmdWithArgs[2] == "epair32766a" && cmdWithArgs[3] == "destroy" { //nolint:lll
+		os.Exit(1)
+	}
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/sbin/ifconfig" && cmdWithArgs[2] == "bridge32766" && cmdWithArgs[3] == "destroy" { //nolint:lll
+		os.Exit(1)
+	}
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/usr/sbin/ngctl" && strings.HasSuffix(cmdWithArgs[3], "a_pipe:") {
+		os.Exit(1)
+	}
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/usr/sbin/ngctl" && strings.HasSuffix(cmdWithArgs[3], "b_pipe:") {
+		os.Exit(1)
 	}
 
 	os.Exit(0)
