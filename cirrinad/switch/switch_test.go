@@ -1857,8 +1857,8 @@ func TestDelete(t *testing.T) {
 							"em0",
 						),
 					)
-				mock.ExpectBegin()
 
+				mock.ExpectBegin()
 				mock.ExpectExec(
 					regexp.QuoteMeta(
 						"DELETE FROM `switches` WHERE `switches`.`id` = ?",

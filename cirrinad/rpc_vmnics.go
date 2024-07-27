@@ -28,6 +28,7 @@ func (s *server) AddVMNic(_ context.Context, vmNicInfo *cirrina.VmNicInfo) (*cir
 
 	vmNicInst.Name = vmNicInfo.GetName()
 
+	// only set if specified, so can't use getters here
 	if vmNicInfo.Description != nil {
 		vmNicInst.Description = vmNicInfo.GetDescription()
 	}

@@ -92,6 +92,8 @@ linters:
     - gosec
 
 issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
   exclude-rules:
     - path: 'cirrinactl/rpc/vm_com.go'
       linters:
