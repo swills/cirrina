@@ -158,9 +158,7 @@ func (s *server) GetVMNicInfo(_ context.Context, vmNicID *cirrina.VmNicId) (*cir
 	return &pvmnicinfo, nil
 }
 
-func (s *server) SetVMNicSwitch(_ context.Context,
-	setVMNicSwitchReq *cirrina.SetVmNicSwitchReq,
-) (*cirrina.ReqBool, error) {
+func (s *server) SetVMNicSwitch(_ context.Context, setVMNicSwitchReq *cirrina.SetVmNicSwitchReq) (*cirrina.ReqBool, error) { //nolint:lll
 	var res cirrina.ReqBool
 	res.Success = false
 
