@@ -19,6 +19,8 @@
 * Actually delete disks from the database
 * Add a force kill function for OSs that won't shut down properly and when you don't want to wait
 * Add feature to remove CD after first boot
+* Add a "wipe disk" feature
+* Add a "remove disk" feature to actually destroy a disk that was deleted from DB (or does not exist)
 * have all cirrinactl commands which use server make a call to hostPing() before doing anything with the server
 * Use consistent terminology:
   * destroy, remove -> always use remove?
