@@ -137,6 +137,8 @@ func (s *server) GetVMNicInfo(_ context.Context, vmNicID *cirrina.VmNicId) (*cir
 		pvmnicinfo.Nettype = &NetTypeE1000
 	default:
 		slog.Error("Invalid net type", "vmnicid", vmNic.ID, "nettype", vmNic.NetType)
+
+		return nil, vmnic.ErrInvalidNic
 	}
 
 	switch vmNic.NetDevType {
@@ -148,6 +150,8 @@ func (s *server) GetVMNicInfo(_ context.Context, vmNicID *cirrina.VmNicId) (*cir
 		pvmnicinfo.Netdevtype = &NetDevTypeNETGRAPH
 	default:
 		slog.Error("Invalid net dev type", "vmnicid", vmNic.ID, "netdevtype", vmNic.NetDevType)
+
+		return nil, vmnic.ErrInvalidNic
 	}
 
 	pvmnicinfo.Switchid = &vmNic.SwitchID
@@ -155,6 +159,25 @@ func (s *server) GetVMNicInfo(_ context.Context, vmNicID *cirrina.VmNicId) (*cir
 	pvmnicinfo.Ratelimit = &vmNic.RateLimit
 	pvmnicinfo.Ratein = &vmNic.RateIn
 	pvmnicinfo.Rateout = &vmNic.RateOut
+
+	allVMs := vm.GetAll()
+	found := false
+
+	for _, thisVM := range allVMs {
+		if thisVM.Config.ID == vmNic.ConfigID {
+			if found {
+				slog.Error("GetVmNicVm nic in use by more than one VM",
+					"nicid", nicUUID.String(),
+					"vmid", thisVM.ID,
+				)
+
+				return nil, errNicInUseByMultipleVMs
+			}
+
+			found = true
+			pvmnicinfo.Vmid = &thisVM.ID
+		}
+	}
 
 	return &pvmnicinfo, nil
 }

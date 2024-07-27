@@ -99,9 +99,11 @@ func GetVMNicInfo(nicID string) (NicInfo, error) {
 		}
 	}
 
-	info.VMName, err = NicGetVM(nicID)
-	if err != nil {
-		info.VMName = ""
+	if res.GetVmid() != "" {
+		info.VMName, err = VMIdToName(res.GetVmid())
+		if err != nil {
+			info.VMName = ""
+		}
 	}
 
 	info.RateLimited = res.GetRatelimit()
@@ -214,34 +216,6 @@ func GetVMNicsAll() ([]string, error) {
 	}
 
 	return allNics, nil
-}
-
-func NicGetVM(nicID string) (string, error) {
-	var err error
-
-	if nicID == "" {
-		return "", errNicEmptyID
-	}
-
-	var res *cirrina.VMID
-
-	res, err = serverClient.GetVMNicVM(defaultServerContext, &cirrina.VmNicId{Value: nicID})
-	if err != nil {
-		return "", fmt.Errorf("unable to get nic VM: %w", err)
-	}
-
-	if res.GetValue() == "" {
-		return "", nil
-	}
-
-	var res2 string
-
-	res2, err = VMIdToName(res.GetValue())
-	if err != nil {
-		return "", err
-	}
-
-	return res2, nil
 }
 
 func CloneNic(nicID string, newName string) (string, error) {
