@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"io"
 	"log"
 	"net"
 	"regexp"
@@ -1023,6 +1025,189 @@ func Test_server_AddVMNic(t *testing.T) {
 				t.Errorf("AddVMNic() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest
+func Test_server_GetVMNicsAll(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		want        []string
+		wantErr     bool
+	}{
+		{
+			name: "none",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `vm_nics` WHERE `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"mac",
+								"net_type",
+								"net_dev_type",
+								"switch_id",
+								"net_dev",
+								"rate_limit",
+								"rate_in",
+								"rate_out",
+								"inst_bridge",
+								"inst_epair",
+								"config_id",
+							}))
+			},
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name: "one",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `vm_nics` WHERE `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"mac",
+								"net_type",
+								"net_dev_type",
+								"switch_id",
+								"net_dev",
+								"rate_limit",
+								"rate_in",
+								"rate_out",
+								"inst_bridge",
+								"inst_epair",
+								"config_id",
+							}).
+							AddRow(
+								"e332414e-177e-4272-87db-e6cc1914d41b",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"someVM_int0",
+								"some VMs nic",
+								"AUTO",
+								"VIRTIONET",
+								"TAP",
+								"f48a7dbf-31db-4659-845b-33e350123d32",
+								"tap0",
+								false,
+								0,
+								0,
+								"",
+								"",
+								123,
+							),
+					)
+			},
+			want:    []string{"e332414e-177e-4272-87db-e6cc1914d41b"},
+			wantErr: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testCase.mockClosure(testDB, mock)
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var res cirrina.VMInfo_GetVMNicsClient
+
+			var got []string
+
+			var VMNic *cirrina.VmNicId
+
+			ctx := context.Background()
+
+			res, err = client.GetVMNicsAll(ctx, &cirrina.VmNicsQuery{})
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetVMNicsAll() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			for {
+				VMNic, err = res.Recv()
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				got = append(got, VMNic.GetValue())
 			}
 
 			diff := deep.Equal(got, testCase.want)
