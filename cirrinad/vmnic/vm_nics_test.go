@@ -1226,25 +1226,26 @@ func TestGetNics(t *testing.T) {
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
-				).WillReturnRows(sqlmock.NewRows([]string{
-					"id",
-					"created_at",
-					"updated_at",
-					"deleted_at",
-					"name",
-					"description",
-					"mac",
-					"net_type",
-					"net_dev_type",
-					"switch_id",
-					"net_dev",
-					"rate_limit",
-					"rate_in",
-					"rate_out",
-					"inst_bridge",
-					"inst_epair",
-					"config_id",
-				}))
+				).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"mac",
+						"net_type",
+						"net_dev_type",
+						"switch_id",
+						"net_dev",
+						"rate_limit",
+						"rate_in",
+						"rate_out",
+						"inst_bridge",
+						"inst_epair",
+						"config_id",
+					}))
 			},
 			want: []VMNic{},
 		},
@@ -2193,7 +2194,8 @@ func TestCreate(t *testing.T) {
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE name = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
-				).WithArgs("aTestNic2024061501_int0").
+				).
+					WithArgs("aTestNic2024061501_int0").
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{
