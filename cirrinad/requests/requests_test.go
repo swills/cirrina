@@ -33,8 +33,8 @@ func TestGetByID(t *testing.T) {
 			name: "testRequestsGetByIDSuccess",
 			args: args{id: "4aecbcd1-c39c-48e6-9a45-4a1abe06821f"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `requests` WHERE `requests`.`id` = ? AND `requests`.`deleted_at` IS NULL LIMIT 1"),
@@ -91,8 +91,8 @@ func TestGetByID(t *testing.T) {
 		{
 			name: "testGetByID_error",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `requests` WHERE `requests`.`id` = ? AND `requests`.`deleted_at` IS NULL LIMIT 1"), //nolint:lll
@@ -108,8 +108,8 @@ func TestGetByID(t *testing.T) {
 			name: "testRequestsGetByIDNotFound",
 			args: args{id: "db945c03-c8f5-4c5d-91ec-da826646d227"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `requests` WHERE `requests`.`id` = ? AND `requests`.`deleted_at` IS NULL LIMIT 1"), //nolint:lll
@@ -138,8 +138,8 @@ func TestGetByID(t *testing.T) {
 			name: "testRequestsGetByIDEmpty",
 			args: args{id: ""},
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 			},
 			want:    Request{},
@@ -204,8 +204,8 @@ func TestCreateVMReq(t *testing.T) { //nolint:maintidx
 			name: "testRequestVMStartSuccess",
 			args: args{requestType: VMSTART, vmID: "f2d857d8-7625-47da-9545-e339f0468856"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectQuery(
@@ -238,8 +238,8 @@ func TestCreateVMReq(t *testing.T) { //nolint:maintidx
 			name: "testRequestVMStopSuccess",
 			args: args{requestType: VMSTOP, vmID: "f2d857d8-7625-47da-9545-e339f0468856"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectQuery(
@@ -270,8 +270,8 @@ func TestCreateVMReq(t *testing.T) { //nolint:maintidx
 			name: "testRequestVMDeleteSuccess",
 			args: args{requestType: VMDELETE, vmID: "f2d857d8-7625-47da-9545-e339f0468856"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectQuery(
@@ -302,8 +302,8 @@ func TestCreateVMReq(t *testing.T) { //nolint:maintidx
 			name: "testtRequestVMStartError",
 			args: args{requestType: VMSTART, vmID: "f2d857d8-7625-47da-9545-e339f0468856"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectQuery(
@@ -321,8 +321,8 @@ func TestCreateVMReq(t *testing.T) { //nolint:maintidx
 			name: "testRequestVMStartSuccessWrongNumberOfRows",
 			args: args{requestType: VMSTART, vmID: "f2d857d8-7625-47da-9545-e339f0468856"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectQuery(
@@ -340,8 +340,8 @@ func TestCreateVMReq(t *testing.T) { //nolint:maintidx
 			name: "testRequestEmptyVMID",
 			args: args{requestType: VMSTART, vmID: ""},
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 			},
 			want:    Request{},
@@ -351,8 +351,8 @@ func TestCreateVMReq(t *testing.T) { //nolint:maintidx
 			name: "testRequestErrorBadType",
 			args: args{requestType: "blah", vmID: "3d245c57-a68e-41d9-adfa-a365d91f20eb"},
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 			},
 			want:         Request{},
@@ -364,8 +364,8 @@ func TestCreateVMReq(t *testing.T) { //nolint:maintidx
 			name: "testRequestVMStartDupe",
 			args: args{requestType: VMSTART, vmID: "f2d857d8-7625-47da-9545-e339f0468856"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectQuery(
@@ -385,8 +385,8 @@ func TestCreateVMReq(t *testing.T) { //nolint:maintidx
 			name: "testRequestInvalidVMID",
 			args: args{vmID: "somegarbage"},
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 			},
 			want:    Request{},
@@ -516,8 +516,8 @@ func TestCreateNicCloneReq(t *testing.T) {
 			name: "testRequestNICCloneSuccess",
 			args: args{nicID: "f2d857d8-7625-47da-9545-e339f0468856", newName: "somenic"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectQuery(
@@ -550,8 +550,8 @@ func TestCreateNicCloneReq(t *testing.T) {
 			name: "testRequestNICCloneEmptyNICID",
 			args: args{nicID: "", newName: "somenic"},
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 			},
 			want:    Request{},
@@ -561,8 +561,8 @@ func TestCreateNicCloneReq(t *testing.T) {
 			name: "testRequestNICCloneEmptyNewNICName",
 			args: args{nicID: "f2d857d8-7625-47da-9545-e339f0468856", newName: ""},
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 			},
 			want:    Request{},
@@ -572,8 +572,8 @@ func TestCreateNicCloneReq(t *testing.T) {
 			name: "testRequestNICCloneInvalidVMID",
 			args: args{nicID: "moregarbage", newName: "somenic"},
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 			},
 			want:    Request{},
@@ -582,8 +582,8 @@ func TestCreateNicCloneReq(t *testing.T) {
 		{name: "testRequestNICCloneWrongNumberOfRows",
 			args: args{nicID: "f2d857d8-7625-47da-9545-e339f0468856", newName: "somenic"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectQuery(
@@ -655,8 +655,8 @@ func TestGetUnStarted(t *testing.T) {
 		{
 			name: "TestGetUnstartedSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `requests` WHERE started_at IS NULL AND `requests`.`deleted_at` IS NULL LIMIT 1")).                               //nolint:lll
@@ -733,8 +733,8 @@ func TestRequest_Start(t *testing.T) {
 		{
 			name: "TestRequestStartSuccessful",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -823,8 +823,8 @@ func TestRequest_Succeeded(t *testing.T) {
 		{
 			name: "TestRequestSucceededSuccessful",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -914,8 +914,8 @@ func TestRequest_Failed(t *testing.T) {
 		{
 			name: "TestRequestFailedSuccessful",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -998,8 +998,8 @@ func TestPendingReqExists(t *testing.T) { //nolint:maintidx
 		{
 			name: "TestPendingReqExistsVMStartSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -1044,8 +1044,8 @@ func TestPendingReqExists(t *testing.T) { //nolint:maintidx
 		{
 			name: "TestPendingReqExistsVMStopSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -1090,8 +1090,8 @@ func TestPendingReqExists(t *testing.T) { //nolint:maintidx
 		{
 			name: "TestPendingReqExistsVMDeleteSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -1136,8 +1136,8 @@ func TestPendingReqExists(t *testing.T) { //nolint:maintidx
 		{
 			name: "TestPendingReqExistsVMStartBadJSON",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -1182,8 +1182,8 @@ func TestPendingReqExists(t *testing.T) { //nolint:maintidx
 		{
 			name: "TestPendingReqExistsNICCloneSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -1228,8 +1228,8 @@ func TestPendingReqExists(t *testing.T) { //nolint:maintidx
 		{
 			name: "TestPendingReqExistsNICCloneBadJSON",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -1315,8 +1315,8 @@ func TestFailAllPending(t *testing.T) {
 		{
 			name: "FailAllPendingNoRows",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -1331,8 +1331,8 @@ func TestFailAllPending(t *testing.T) {
 		{
 			name: "FailAllPendingOneRow",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -1388,8 +1388,8 @@ func TestDBInitialized(t *testing.T) {
 		{
 			name: "DBInitializedTrue",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
@@ -1402,8 +1402,8 @@ func TestDBInitialized(t *testing.T) {
 		{
 			name: "DBInitializedFalse",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				instance = &singleton{ // prevents parallel testing
-					reqDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					ReqDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta(

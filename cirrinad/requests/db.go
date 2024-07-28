@@ -14,11 +14,11 @@ import (
 	"cirrina/cirrinad/config"
 )
 
-type singleton struct {
-	reqDB *gorm.DB
+type Singleton struct {
+	ReqDB *gorm.DB
 }
 
-var instance *singleton
+var Instance *Singleton
 
 var dbInitialized bool
 
@@ -38,12 +38,12 @@ func GetReqDB() *gorm.DB {
 	)
 
 	// allow override for testing
-	if instance != nil {
-		return instance.reqDB
+	if Instance != nil {
+		return Instance.ReqDB
 	}
 
 	if !dbInitialized {
-		instance = &singleton{}
+		Instance = &Singleton{}
 
 		reqDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
@@ -64,11 +64,11 @@ func GetReqDB() *gorm.DB {
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
 
-		instance.reqDB = reqDB
+		Instance.ReqDB = reqDB
 		dbInitialized = true
 	}
 
-	return instance.reqDB
+	return Instance.ReqDB
 }
 
 func DBAutoMigrate() {

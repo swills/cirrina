@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"io"
 	"log"
@@ -17,10 +18,12 @@ import (
 	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/test/bufconn"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 	"gorm.io/gorm"
 
 	"cirrina/cirrina"
 	"cirrina/cirrinad/cirrinadtest"
+	"cirrina/cirrinad/requests"
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/vm"
 	"cirrina/cirrinad/vmnic"
@@ -4356,6 +4359,626 @@ func Test_server_UpdateVMNic(t *testing.T) {
 			diff := deep.Equal(got, testCase.want)
 			if diff != nil {
 				t.Errorf("compare failed: %v", diff)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest,maintidx
+func Test_server_CloneVMNic(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		cloneReq *cirrina.VmNicCloneReq
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		want        *cirrina.RequestID
+		wantErr     bool
+	}{
+		{
+			name:        "nilReq",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			args: args{
+				cloneReq: nil,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:        "nilNicID",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			args: args{
+				cloneReq: &cirrina.VmNicCloneReq{
+					Vmnicid: nil,
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:        "emptyNicID",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			args: args{
+				cloneReq: &cirrina.VmNicCloneReq{
+					Vmnicid: &cirrina.VmNicId{
+						Value: "",
+					},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:        "nilNewName",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			args: args{
+				cloneReq: &cirrina.VmNicCloneReq{
+					Vmnicid: &cirrina.VmNicId{
+						Value: "4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf",
+					},
+					NewVmNicName: nil,
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:        "emptyNewName",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			args: args{
+				cloneReq: &cirrina.VmNicCloneReq{
+					Vmnicid: &cirrina.VmNicId{
+						Value: "4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf",
+					},
+					NewVmNicName: &wrapperspb.StringValue{
+						Value: "",
+					},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:        "badUuid",
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {},
+			args: args{
+				cloneReq: &cirrina.VmNicCloneReq{
+					Vmnicid: &cirrina.VmNicId{
+						Value: "4abdb6d2-a80f-4522-8e87-a4b9",
+					},
+					NewVmNicName: &wrapperspb.StringValue{
+						Value: "test2024050503_int0",
+					},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "nicNotFound",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `vm_nics` WHERE id = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"mac",
+								"net_type",
+								"net_dev_type",
+								"switch_id",
+								"net_dev",
+								"rate_limit",
+								"rate_in",
+								"rate_out",
+								"inst_bridge",
+								"inst_epair",
+								"config_id",
+							},
+						),
+					)
+			},
+			args: args{
+				cloneReq: &cirrina.VmNicCloneReq{
+					Vmnicid: &cirrina.VmNicId{
+						Value: "4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf",
+					},
+					NewVmNicName: &wrapperspb.StringValue{
+						Value: "test2024050503_int0",
+					},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "emptyNicNameInDB",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `vm_nics` WHERE id = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"mac",
+								"net_type",
+								"net_dev_type",
+								"switch_id",
+								"net_dev",
+								"rate_limit",
+								"rate_in",
+								"rate_out",
+								"inst_bridge",
+								"inst_epair",
+								"config_id",
+							},
+						).
+							AddRow(
+								"4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"",
+								"another test nic",
+								"AUTO",
+								"VIRTIONET",
+								"TAP",
+								"",
+								"",
+								false,
+								0,
+								0,
+								"",
+								"",
+								0,
+							),
+					)
+			},
+			args: args{
+				cloneReq: &cirrina.VmNicCloneReq{
+					Vmnicid: &cirrina.VmNicId{
+						Value: "4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf",
+					},
+					NewVmNicName: &wrapperspb.StringValue{
+						Value: "test2024050503_int0",
+					},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "pendingReqExists",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+
+				requests.Instance = &requests.Singleton{
+					ReqDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `vm_nics` WHERE id = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"mac",
+								"net_type",
+								"net_dev_type",
+								"switch_id",
+								"net_dev",
+								"rate_limit",
+								"rate_in",
+								"rate_out",
+								"inst_bridge",
+								"inst_epair",
+								"config_id",
+							},
+						).
+							AddRow(
+								"4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2024072805_int0",
+								"another test nic",
+								"AUTO",
+								"VIRTIONET",
+								"TAP",
+								"",
+								"",
+								false,
+								0,
+								0,
+								"",
+								"",
+								0,
+							),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `requests` WHERE `complete` = ? AND `requests`.`deleted_at` IS NULL")).
+					WithArgs(false).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"started_at",
+								"successful",
+								"complete",
+								"type",
+								"data",
+							},
+						).
+							AddRow(
+								"60284e9f-69c0-4db8-868d-7a8e24070025",
+								createUpdateTime,
+								createUpdateTime,
+								gorm.DeletedAt{
+									Time:  time.Time{},
+									Valid: false,
+								},
+								sql.NullTime{
+									Time:  createUpdateTime,
+									Valid: true,
+								},
+								0,
+								0,
+								"NICCLONE",
+								"{\"nic_id\":\"4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf\",\"new_nic_name\":\"test2023102401_int0_clone0\"}",
+							),
+					)
+			},
+			args: args{
+				cloneReq: &cirrina.VmNicCloneReq{
+					Vmnicid: &cirrina.VmNicId{
+						Value: "4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf",
+					},
+					NewVmNicName: &wrapperspb.StringValue{
+						Value: "test2024050503_int0",
+					},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "reqCreateErr",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+
+				requests.Instance = &requests.Singleton{
+					ReqDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `vm_nics` WHERE id = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"mac",
+								"net_type",
+								"net_dev_type",
+								"switch_id",
+								"net_dev",
+								"rate_limit",
+								"rate_in",
+								"rate_out",
+								"inst_bridge",
+								"inst_epair",
+								"config_id",
+							},
+						).
+							AddRow(
+								"4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2024072805_int0",
+								"another test nic",
+								"AUTO",
+								"VIRTIONET",
+								"TAP",
+								"",
+								"",
+								false,
+								0,
+								0,
+								"",
+								"",
+								0,
+							),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `requests` WHERE `complete` = ? AND `requests`.`deleted_at` IS NULL")).
+					WithArgs(false).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"started_at",
+								"successful",
+								"complete",
+								"type",
+								"data",
+							},
+						),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `requests` (`created_at`,`updated_at`,`deleted_at`,`started_at`,`successful`,`complete`,`type`,`data`,`id`) VALUES (?,?,?,?,?,?,?,?,?) RETURNING `id`")). //nolint:lll
+					WithArgs(
+						sqlmock.AnyArg(), sqlmock.AnyArg(), nil, nil, false,
+						false, "NICCLONE", "{\"nic_id\":\"4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf\",\"new_nic_name\":\"test2024050503_int0\"}", sqlmock.AnyArg(), //nolint:lll
+					).
+					WillReturnError(gorm.ErrInvalidData)
+
+				mock.ExpectRollback()
+			},
+			args: args{
+				cloneReq: &cirrina.VmNicCloneReq{
+					Vmnicid: &cirrina.VmNicId{
+						Value: "4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf",
+					},
+					NewVmNicName: &wrapperspb.StringValue{
+						Value: "test2024050503_int0",
+					},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "reqCreateSuccess",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+
+				requests.Instance = &requests.Singleton{
+					ReqDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `vm_nics` WHERE id = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"mac",
+								"net_type",
+								"net_dev_type",
+								"switch_id",
+								"net_dev",
+								"rate_limit",
+								"rate_in",
+								"rate_out",
+								"inst_bridge",
+								"inst_epair",
+								"config_id",
+							},
+						).
+							AddRow(
+								"4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2024072805_int0",
+								"another test nic",
+								"AUTO",
+								"VIRTIONET",
+								"TAP",
+								"",
+								"",
+								false,
+								0,
+								0,
+								"",
+								"",
+								0,
+							),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `requests` WHERE `complete` = ? AND `requests`.`deleted_at` IS NULL")).
+					WithArgs(false).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"started_at",
+								"successful",
+								"complete",
+								"type",
+								"data",
+							},
+						),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `requests` (`created_at`,`updated_at`,`deleted_at`,`started_at`,`successful`,`complete`,`type`,`data`,`id`) VALUES (?,?,?,?,?,?,?,?,?) RETURNING `id`")). //nolint:lll
+					WithArgs(
+						sqlmock.AnyArg(), sqlmock.AnyArg(), nil, nil, false,
+						false, "NICCLONE", "{\"nic_id\":\"4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf\",\"new_nic_name\":\"test2024050503_int0\"}", sqlmock.AnyArg(), //nolint:lll
+					).
+					WillReturnRows(sqlmock.NewRows([]string{"id"}).
+						AddRow("0874dc01-44ef-4962-b676-ca8824ae5e9f"))
+				mock.ExpectCommit()
+			},
+			args: args{
+				cloneReq: &cirrina.VmNicCloneReq{
+					Vmnicid: &cirrina.VmNicId{
+						Value: "4abdb6d2-a80f-4522-8e87-a4b93cb4ccbf",
+					},
+					NewVmNicName: &wrapperspb.StringValue{
+						Value: "test2024050503_int0",
+					},
+				},
+			},
+			want:    &cirrina.RequestID{Value: "0874dc01-44ef-4962-b676-ca8824ae5e9f"},
+			wantErr: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testCase.mockClosure(testDB, mock)
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var got *cirrina.RequestID
+
+			ctx := context.Background()
+
+			got, err = client.CloneVMNic(ctx, testCase.args.cloneReq)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("CloneVMNic() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
 	}
