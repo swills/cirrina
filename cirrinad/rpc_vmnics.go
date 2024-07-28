@@ -394,6 +394,7 @@ func (s *server) UpdateVMNic(_ context.Context, vmNicInfoUpdate *cirrina.VmNicIn
 
 	var newRateOut uint64
 
+	// only update if set, so getters aren't useful
 	if vmNicInfoUpdate.Ratelimit == nil {
 		newRateLimit = vmNicInst.RateLimit
 	} else {
