@@ -1,8 +1,8 @@
 #!/bin/sh
 
 # PROVIDE: cirrinad
-# REQUIRE: NETWORKING SERVERS DAEMON
-# KEYWORD: shutdown
+# REQUIRE: NETWORKING SERVERS DAEMON FILESYSTEMS netif kld mountlate sysctl
+# KEYWORD: shutdown nojail
 #
 # Add the following lines to /etc/rc.conf.local or /etc/rc.conf
 # to enable this service:
