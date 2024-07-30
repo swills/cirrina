@@ -502,3 +502,48 @@ func TestVM_getMemArg(t *testing.T) {
 		})
 	}
 }
+
+func TestVM_getLPCArg(t *testing.T) {
+	type args struct {
+		slot int
+	}
+
+	tests := []struct {
+		name     string
+		args     args
+		want     []string
+		wantSlot int
+	}{
+		{
+			name: "theOnlyTestCasePossible",
+			args: args{
+				slot: 0, // does not matter
+			},
+			want:     []string{"-s", "31,lpc"},
+			wantSlot: 0,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			vm := &VM{}
+
+			got, gotSlot := vm.getLPCArg(testCase.args.slot)
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			diff = deep.Equal(gotSlot, testCase.wantSlot)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
