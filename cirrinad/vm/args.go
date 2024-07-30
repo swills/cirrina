@@ -19,6 +19,8 @@ import (
 	"cirrina/cirrinad/vmnic"
 )
 
+var getHostMaxVMCpusFunc = util.GetHostMaxVMCpus
+
 type MacHashData struct {
 	VMID    string
 	VMName  string
@@ -74,12 +76,12 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 func (vm *VM) getCPUArg() []string {
 	var vmCpus uint16
 
-	hostCpus, err := util.GetHostMaxVMCpus()
+	hostCpus, err := getHostMaxVMCpusFunc()
 	if err != nil {
 		return []string{}
 	}
 
-	if !util.NumCpusValid(vmCpus) || vm.Config.CPU > math.MaxUint16 {
+	if vm.Config.CPU > math.MaxUint16 || !util.NumCpusValid(uint16(vm.Config.CPU)) {
 		vmCpus = hostCpus
 	} else {
 		vmCpus = uint16(vm.Config.CPU)

@@ -2287,7 +2287,7 @@ func TestNumCpusValid(t *testing.T) {
 			name: "fail2",
 			args: args{numCpus: 2},
 			mockGetHostMaxVMCpus: func() (uint16, error) {
-				return 12, errInvalidNumCPUs
+				return 12, ErrInvalidNumCPUs
 			},
 			want: false,
 		},
@@ -2296,9 +2296,9 @@ func TestNumCpusValid(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			getHostMaxVMCpusFunc = testCase.mockGetHostMaxVMCpus
+			GetHostMaxVMCpusFunc = testCase.mockGetHostMaxVMCpus
 
-			t.Cleanup(func() { getHostMaxVMCpusFunc = GetHostMaxVMCpus })
+			t.Cleanup(func() { GetHostMaxVMCpusFunc = GetHostMaxVMCpus })
 
 			got := NumCpusValid(testCase.args.numCpus)
 			if got != testCase.want {

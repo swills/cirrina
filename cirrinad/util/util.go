@@ -29,7 +29,7 @@ import (
 
 // allow testing
 var execute = exec.Command
-var getHostMaxVMCpusFunc = GetHostMaxVMCpus
+var GetHostMaxVMCpusFunc = GetHostMaxVMCpus
 var GetIntGroupsFunc = GetIntGroups
 var NetInterfacesFunc = net.Interfaces
 var osOpenFunc = os.Open
@@ -727,7 +727,7 @@ func GetHostMaxVMCpus() (uint16, error) {
 	if maxCPU <= 0 || maxCPU >= math.MaxUint16 {
 		slog.Error("Failed invalid max cpus", "maxCPU", maxCPU)
 
-		return 0, errInvalidNumCPUs
+		return 0, ErrInvalidNumCPUs
 	}
 
 	return uint16(maxCPU), nil
@@ -744,7 +744,7 @@ func multiplyWillOverflow(xVal, yVal uint64) bool {
 }
 
 func NumCpusValid(numCpus uint16) bool {
-	hostCpus, err := getHostMaxVMCpusFunc()
+	hostCpus, err := GetHostMaxVMCpusFunc()
 	if err != nil {
 		slog.Error("error getting number of host cpus", "err", err)
 

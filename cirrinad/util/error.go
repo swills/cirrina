@@ -6,7 +6,7 @@ var (
 	errSocketNotFound  = errors.New("failed parsing output, socket not found")
 	errFailedParsing   = errors.New("failed parsing output")
 	errInvalidMac      = errors.New("invalid MAC address")
-	errInvalidNumCPUs  = errors.New("invalid max number of CPUs")
+	ErrInvalidNumCPUs  = errors.New("invalid max number of CPUs")
 	errMissingTCPStat  = errors.New("missing tcp-stat")
 	errNoListenSocket  = errors.New("not a listen socket")
 	errNoTCPSocket     = errors.New("not a tcp socket")

@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/go-test/deep"
+
+	"cirrina/cirrinad/util"
 )
 
 func TestVM_getKeyboardArg(t *testing.T) {
@@ -321,6 +323,134 @@ func TestVM_getMSRArg(t *testing.T) {
 			}
 
 			got := vm.getMSRArg()
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest
+func TestVM_getCPUArg(t *testing.T) {
+	type fields struct {
+		Config Config
+	}
+
+	tests := []struct {
+		name                 string
+		mockGetHostMaxVMCpus func() (uint16, error)
+		fields               fields
+		want                 []string
+	}{
+		{
+			name:                 "oneCpus",
+			mockGetHostMaxVMCpus: func() (uint16, error) { return 128, nil },
+			fields: fields{
+				Config: Config{CPU: 1},
+			},
+			want: []string{"-c", "1"},
+		},
+		{
+			name:                 "twoCpus",
+			mockGetHostMaxVMCpus: func() (uint16, error) { return 128, nil },
+			fields: fields{
+				Config: Config{CPU: 2},
+			},
+			want: []string{"-c", "2"},
+		},
+		{
+			name:                 "fourCpus",
+			mockGetHostMaxVMCpus: func() (uint16, error) { return 128, nil },
+			fields: fields{
+				Config: Config{CPU: 4},
+			},
+			want: []string{"-c", "4"},
+		},
+		{
+			name:                 "eightCpus",
+			mockGetHostMaxVMCpus: func() (uint16, error) { return 128, nil },
+			fields: fields{
+				Config: Config{CPU: 8},
+			},
+			want: []string{"-c", "8"},
+		},
+		{
+			name:                 "sixteenCpus",
+			mockGetHostMaxVMCpus: func() (uint16, error) { return 128, nil },
+			fields: fields{
+				Config: Config{CPU: 16},
+			},
+			want: []string{"-c", "16"},
+		},
+		{
+			name:                 "thirtyTwoCpus",
+			mockGetHostMaxVMCpus: func() (uint16, error) { return 32, nil },
+			fields: fields{
+				Config: Config{CPU: 32},
+			},
+			want: []string{"-c", "32"},
+		},
+		{
+			name:                 "sixtyFourCpus",
+			mockGetHostMaxVMCpus: func() (uint16, error) { return 32, nil },
+			fields: fields{
+				Config: Config{CPU: 64},
+			},
+			want: []string{"-c", "32"},
+		},
+		{
+			name:                 "ifYouGotEmWeWillUseEm",
+			mockGetHostMaxVMCpus: func() (uint16, error) { return 1024, nil },
+			fields: fields{
+				Config: Config{CPU: 1024},
+			},
+			want: []string{"-c", "1024"},
+		},
+		{
+			name:                 "maxCpusErr",
+			mockGetHostMaxVMCpus: func() (uint16, error) { return 0, util.ErrInvalidNumCPUs },
+			fields: fields{
+				Config: Config{CPU: 2},
+			},
+			want: []string{},
+		},
+		{
+			name:                 "tooManyCpus",
+			mockGetHostMaxVMCpus: func() (uint16, error) { return 4, nil },
+			fields: fields{
+				Config: Config{CPU: 5},
+			},
+			want: []string{"-c", "4"},
+		},
+		{
+			name:                 "wayTooManyCpus",
+			mockGetHostMaxVMCpus: func() (uint16, error) { return 16, nil },
+			fields: fields{
+				Config: Config{CPU: 65537},
+			},
+			want: []string{"-c", "16"},
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			getHostMaxVMCpusFunc = testCase.mockGetHostMaxVMCpus
+
+			t.Cleanup(func() { getHostMaxVMCpusFunc = util.GetHostMaxVMCpus })
+
+			util.GetHostMaxVMCpusFunc = testCase.mockGetHostMaxVMCpus
+
+			t.Cleanup(func() { util.GetHostMaxVMCpusFunc = util.GetHostMaxVMCpus })
+
+			vm := &VM{
+				Config: testCase.fields.Config,
+			}
+
+			got := vm.getCPUArg()
 
 			diff := deep.Equal(got, testCase.want)
 			if diff != nil {
