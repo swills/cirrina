@@ -2,6 +2,7 @@
 # TODO
 
 * Finish writing tests
+* Convert all usages of strconv.Atoi to strconv.ParseInt and strconv.Itoa to strconv.FormatInt
 * Add setting for maximum disk/iso size and check them during upload
 * Check that we have enough space for a disk/iso before allowing upload
 * Make sure iso, nic, disk switch are uniform, ie, take same args for all funcs
