@@ -459,3 +459,46 @@ func TestVM_getCPUArg(t *testing.T) {
 		})
 	}
 }
+
+func TestVM_getMemArg(t *testing.T) {
+	type fields struct {
+		Config Config
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		want   []string
+	}{
+		{
+			name:   "1G",
+			fields: fields{Config: Config{Mem: 1024}},
+			want:   []string{"-m", "1024m"},
+		},
+		{
+			name:   "16G",
+			fields: fields{Config: Config{Mem: 16384}},
+			want:   []string{"-m", "16384m"},
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			vm := &VM{
+				Config: testCase.fields.Config,
+			}
+
+			got := vm.getMemArg()
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}

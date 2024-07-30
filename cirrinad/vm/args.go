@@ -231,7 +231,7 @@ func (vm *VM) getHostBridgeArg(slot int) ([]string, int) {
 }
 
 func (vm *VM) getMemArg() []string {
-	return []string{"-m", strconv.Itoa(int(vm.Config.Mem)) + "m"}
+	return []string{"-m", strconv.FormatInt(int64(vm.Config.Mem), 10) + "m"}
 }
 
 func (vm *VM) getMSRArg() []string {
