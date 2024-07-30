@@ -15,6 +15,7 @@ import (
 
 	"cirrina/cirrinad/cirrinadtest"
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/util"
 )
 
 func TestGetAllDB(t *testing.T) {
@@ -1743,6 +1744,8 @@ func TestDisk_VerifyExists(t *testing.T) {
 
 				return false, nil
 			}
+
+			t.Cleanup(func() { pathExistsFunc = util.PathExists })
 
 			testDisk := &Disk{
 				DevType: testCase.fields.DevType,
