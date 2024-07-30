@@ -197,3 +197,135 @@ func TestVM_getEOPArg(t *testing.T) {
 		})
 	}
 }
+
+func TestVM_getHLTArg(t *testing.T) {
+	type fields struct {
+		Config Config
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		want   []string
+	}{
+		{
+			name:   "hltNotSet",
+			fields: fields{Config: Config{UseHLT: false}},
+			want:   []string{},
+		},
+		{
+			name:   "hltSet",
+			fields: fields{Config: Config{UseHLT: true}},
+			want:   []string{"-H"},
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			vm := &VM{
+				Config: testCase.fields.Config,
+			}
+
+			got := vm.getHLTArg()
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func TestVM_getUTCArg(t *testing.T) {
+	type fields struct {
+		Config Config
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		want   []string
+	}{
+		{
+			name:   "utcNotSet",
+			fields: fields{Config: Config{UTCTime: false}},
+			want:   []string{},
+		},
+		{
+			name:   "utcSet",
+			fields: fields{Config: Config{UTCTime: true}},
+			want:   []string{"-u"},
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			vm := &VM{
+				Config: testCase.fields.Config,
+			}
+
+			got := vm.getUTCArg()
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func TestVM_getMSRArg(t *testing.T) {
+	type fields struct {
+		Config Config
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		want   []string
+	}{
+		{
+			name:   "msrNotSet",
+			fields: fields{Config: Config{IgnoreUnknownMSR: false}},
+			want:   []string{},
+		},
+		{
+			name:   "msrSet",
+			fields: fields{Config: Config{IgnoreUnknownMSR: true}},
+			want:   []string{"-w"},
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			vm := &VM{
+				Config: testCase.fields.Config,
+			}
+
+			got := vm.getMSRArg()
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
