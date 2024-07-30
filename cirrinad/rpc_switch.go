@@ -158,9 +158,7 @@ func validateSetSwitchUplinkRequest(switchUplinkReq *cirrina.SwitchUplinkReq) (*
 	return switchInst, nil
 }
 
-func (s *server) SetSwitchUplink(_ context.Context,
-	switchUplinkReq *cirrina.SwitchUplinkReq,
-) (*cirrina.ReqBool, error) {
+func (s *server) SetSwitchUplink(_ context.Context, switchUplinkReq *cirrina.SwitchUplinkReq) (*cirrina.ReqBool, error) { //nolint:lll
 	var res cirrina.ReqBool
 
 	var err error
@@ -230,9 +228,7 @@ func (s *server) SetSwitchUplink(_ context.Context,
 	return &res, nil
 }
 
-func (s *server) SetSwitchInfo(_ context.Context,
-	switchInfoUpdate *cirrina.SwitchInfoUpdate,
-) (*cirrina.ReqBool, error) {
+func (s *server) SetSwitchInfo(_ context.Context, switchInfoUpdate *cirrina.SwitchInfoUpdate) (*cirrina.ReqBool, error) { //nolint:lll
 	var res cirrina.ReqBool
 	res.Success = false
 
