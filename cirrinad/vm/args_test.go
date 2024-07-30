@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-test/deep"
 
+	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
 )
 
@@ -541,6 +542,60 @@ func TestVM_getLPCArg(t *testing.T) {
 			}
 
 			diff = deep.Equal(gotSlot, testCase.wantSlot)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func TestVM_getROMArg(t *testing.T) {
+	type fields struct {
+		Name   string
+		Config Config
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		want   []string
+	}{
+		{
+			name: "noStore",
+			fields: fields{
+				Name:   "someTestVM",
+				Config: Config{StoreUEFIVars: false},
+			},
+			want: []string{"-l", "bootrom,/usr/local/share/uefi-firmware/BHYVE_UEFI.fd"},
+		},
+		{
+			name: "storeUEFIVars",
+			fields: fields{
+				Name:   "someTestVM",
+				Config: Config{StoreUEFIVars: true},
+			},
+			want: []string{"-l", "bootrom,/usr/local/share/uefi-firmware/BHYVE_UEFI.fd,/var/tmp/cirrinad/state/someTestVM/BHYVE_UEFI_VARS.fd"}, //nolint:lll
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			config.Config.Rom.Path = "/usr/local/share/uefi-firmware/BHYVE_UEFI.fd"
+			config.Config.Disk.VM.Path.State = "/var/tmp/cirrinad/state/"
+
+			vm := &VM{
+				Name:   testCase.fields.Name,
+				Config: testCase.fields.Config,
+			}
+
+			got := vm.getROMArg()
+
+			diff := deep.Equal(got, testCase.want)
 			if diff != nil {
 				t.Errorf("compare failed: %v", diff)
 			}
