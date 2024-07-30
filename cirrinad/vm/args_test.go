@@ -602,3 +602,47 @@ func TestVM_getROMArg(t *testing.T) {
 		})
 	}
 }
+
+func TestVM_getWireArg(t *testing.T) {
+	type fields struct {
+		Config Config
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		want   []string
+	}{
+		{
+			name:   "msrNotSet",
+			fields: fields{Config: Config{WireGuestMem: false}},
+			want:   []string{},
+		},
+		{
+			name:   "msrSet",
+			fields: fields{Config: Config{WireGuestMem: true}},
+			want:   []string{"-S"},
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			vm := &VM{
+				Config: testCase.fields.Config,
+			}
+
+			got := vm.getWireArg()
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
