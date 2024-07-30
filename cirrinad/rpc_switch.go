@@ -271,28 +271,3 @@ func uplinkInUse(vmSwitch *_switch.Switch, uplinkName string) bool {
 
 	return false
 }
-
-func mapSwitchTypeTypeToDBString(switchType cirrina.SwitchType) (string, error) {
-	switch switchType {
-	case cirrina.SwitchType_IF:
-		return "IF", nil
-	case cirrina.SwitchType_NG:
-		return "NG", nil
-	default:
-		return "", errSwitchInvalidType
-	}
-}
-
-func mapSwitchTypeDBStringToType(switchType string) (*cirrina.SwitchType, error) {
-	SwitchTypeIf := cirrina.SwitchType_IF
-	SwitchTypeNg := cirrina.SwitchType_NG
-
-	switch switchType {
-	case "IF":
-		return &SwitchTypeIf, nil
-	case "NG":
-		return &SwitchTypeNg, nil
-	default:
-		return nil, errSwitchInvalidType
-	}
-}
