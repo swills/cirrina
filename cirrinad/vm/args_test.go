@@ -111,3 +111,89 @@ func TestVM_getACPIArg(t *testing.T) {
 		})
 	}
 }
+
+func TestVM_getDPOArg(t *testing.T) {
+	type fields struct {
+		Config Config
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		want   []string
+	}{
+		{
+			name:   "dpoNotSet",
+			fields: fields{Config: Config{DestroyPowerOff: false}},
+			want:   []string{},
+		},
+		{
+			name:   "dpoSet",
+			fields: fields{Config: Config{DestroyPowerOff: true}},
+			want:   []string{"-D"},
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			vm := &VM{
+				Config: testCase.fields.Config,
+			}
+
+			got := vm.getDPOArg()
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func TestVM_getEOPArg(t *testing.T) {
+	type fields struct {
+		Config Config
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		want   []string
+	}{
+		{
+			name:   "eopNotSet",
+			fields: fields{Config: Config{ExitOnPause: false}},
+			want:   []string{},
+		},
+		{
+			name:   "eopSet",
+			fields: fields{Config: Config{ExitOnPause: true}},
+			want:   []string{"-P"},
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			vm := &VM{
+				Config: testCase.fields.Config,
+			}
+
+			got := vm.getEOPArg()
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
