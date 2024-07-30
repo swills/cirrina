@@ -32,7 +32,7 @@ func (vm *VM) applyResourceLimits(vmPid uint32) {
 	}
 
 	if vm.Config.Riops > 0 {
-		applyResourceLimitsReadIOPS(actualVMPidStr, vm)
+		applyResourceLimitReadIOPS(actualVMPidStr, vm)
 	}
 
 	if vm.Config.Wiops > 0 {
@@ -59,7 +59,7 @@ func applyResourceLimitWriteIOPS(vmPid string, vm *VM) {
 	}
 }
 
-func applyResourceLimitsReadIOPS(vmPid string, vm *VM) {
+func applyResourceLimitReadIOPS(vmPid string, vm *VM) {
 	vm.log.Debug("Setting riops limit")
 	riopsLimitStr := strconv.FormatUint(uint64(vm.Config.Riops), 10)
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
