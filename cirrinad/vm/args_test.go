@@ -646,3 +646,45 @@ func TestVM_getWireArg(t *testing.T) {
 		})
 	}
 }
+
+func TestVM_getExtraArg(t *testing.T) {
+	type fields struct {
+		Config Config
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		want   []string
+	}{
+		{
+			name: "noExtraArgs",
+			want: []string{},
+		},
+		{
+			name:   "someExtraArgs",
+			fields: fields{Config: Config{ExtraArgs: "-s blah foo"}},
+			want:   []string{"-s", "blah", "foo"},
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			vm := &VM{
+				Config: testCase.fields.Config,
+			}
+
+			got := vm.getExtraArg()
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
