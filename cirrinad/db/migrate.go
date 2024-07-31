@@ -272,12 +272,9 @@ func migration2024022403(schemaVersion uint32, reqDB *gorm.DB) {
 
 func migration2024062701(schemaVersion uint32, vmDB *gorm.DB) {
 	if schemaVersion < 2024062701 {
-		db := vm.GetVMDB()
-
-		if db.Migrator().HasColumn(vm.VM{}, "id") {
-			if !vmDB.Migrator().HasTable("vm_isos") {
-				//nolint:lll
-				vmIsoCreateTableRawSQL := `CREATE TABLE "vm_isos" (
+		if !vmDB.Migrator().HasTable("vm_isos") {
+			//nolint:lll
+			vmIsoCreateTableRawSQL := `CREATE TABLE "vm_isos" (
     vm_id text default null
       constraint fk_vm_isos_vm
       references vms,
@@ -291,10 +288,9 @@ func migration2024062701(schemaVersion uint32, vmDB *gorm.DB) {
 );
 `
 
-				res := vmDB.Exec(vmIsoCreateTableRawSQL)
-				if res.Error != nil {
-					panic(res.Error)
-				}
+			res := vmDB.Exec(vmIsoCreateTableRawSQL)
+			if res.Error != nil {
+				panic(res.Error)
 			}
 		}
 
@@ -366,12 +362,9 @@ func migration2024062703(schemaVersion uint32, vmDB *gorm.DB) {
 
 func migration2024063001(schemaVersion uint32, vmDB *gorm.DB) {
 	if schemaVersion < 2024063001 {
-		db := vm.GetVMDB()
-
-		if db.Migrator().HasColumn(vm.VM{}, "id") {
-			if !vmDB.Migrator().HasTable("vm_disks") {
-				//nolint:lll
-				vmDiskCreateTableRawSQL := `CREATE TABLE "vm_disks" (
+		if !vmDB.Migrator().HasTable("vm_disks") {
+			//nolint:lll
+			vmDiskCreateTableRawSQL := `CREATE TABLE "vm_disks" (
     vm_id text default null
       constraint fk_vm_disks_vm
       references vms,
@@ -385,10 +378,9 @@ func migration2024063001(schemaVersion uint32, vmDB *gorm.DB) {
 );
 `
 
-				res := vmDB.Exec(vmDiskCreateTableRawSQL)
-				if res.Error != nil {
-					panic(res.Error)
-				}
+			res := vmDB.Exec(vmDiskCreateTableRawSQL)
+			if res.Error != nil {
+				panic(res.Error)
 			}
 		}
 
