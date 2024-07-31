@@ -47,7 +47,8 @@ func (vm *VM) getACPIArg() []string {
 func (vm *VM) getCDArg(slot int) ([]string, int) {
 	var cdString []string
 
-	maxSataDevs := 32 - slot - 1
+	// max slot is 31, be sure to leave room for the lpc, which is currently always added
+	maxSataDevs := 31 - slot - 1
 	devCount := 0
 
 	for _, isoItem := range vm.ISOs {
@@ -67,6 +68,8 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 			cdString = append(cdString, thisCd...)
 			devCount++
 			slot++
+		} else {
+			slog.Error("unable to add iso due to lack of slots", "slot", slot, "isoName", isoItem.Name)
 		}
 	}
 

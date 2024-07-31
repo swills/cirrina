@@ -6,6 +6,7 @@ import (
 	"github.com/go-test/deep"
 
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/iso"
 	"cirrina/cirrinad/util"
 )
 
@@ -682,6 +683,135 @@ func TestVM_getExtraArg(t *testing.T) {
 			got := vm.getExtraArg()
 
 			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func TestVM_getCDArg(t *testing.T) {
+	type fields struct {
+		ISOs []*iso.ISO
+	}
+
+	type args struct {
+		slot int
+	}
+
+	tests := []struct {
+		name     string
+		fields   fields
+		args     args
+		wantArg  []string
+		wantSlot int
+	}{
+		{
+			name:     "noISOs",
+			wantArg:  nil,
+			wantSlot: 0,
+		},
+		{
+			name: "nilISOItem",
+			fields: fields{
+				ISOs: []*iso.ISO{nil},
+			},
+			args:     args{},
+			wantArg:  nil,
+			wantSlot: 0,
+		},
+		{
+			name: "emptyIsoPath",
+			fields: fields{
+				ISOs: []*iso.ISO{{
+					Name:        "aBusted.iso",
+					Description: "some busted iso instance",
+					Path:        "",
+					Size:        327680,
+					Checksum:    "notUsedHere",
+				}},
+			},
+			args:     args{slot: 4},
+			wantArg:  []string{"-s", "4:0,ahci,cd:/the/config/path/for/isos/aBusted.iso"},
+			wantSlot: 5,
+		},
+		{
+			name: "oneISO",
+			fields: fields{
+				ISOs: []*iso.ISO{{
+					Name:        "someTestThing.iso",
+					Description: "a test iso",
+					Path:        "/some/path/to/someTestThing.iso",
+					Size:        292911919,
+					Checksum:    "unusedHere",
+				}},
+			},
+			args: args{
+				slot: 2,
+			},
+			wantArg:  []string{"-s", "2:0,ahci,cd:/some/path/to/someTestThing.iso"},
+			wantSlot: 3,
+		},
+		{
+			name: "tooManyIsos",
+			fields: fields{
+				ISOs: []*iso.ISO{
+					{
+						Name:        "someTestThing.iso",
+						Description: "a test iso",
+						Path:        "/some/path/to/someTestThing.iso",
+						Size:        292911919,
+						Checksum:    "unusedHere",
+					},
+					{
+						Name:        "anotherTestIso.iso",
+						Description: "a test iso",
+						Path:        "/some/path/to/anotherTestIso.iso",
+						Size:        291413919,
+						Checksum:    "unusedHere",
+					},
+					{
+						Name:        "thirdTest.iso",
+						Description: "a test iso",
+						Path:        "/some/path/to/thirdTest.iso",
+						Size:        291413111,
+						Checksum:    "unusedHere",
+					},
+				},
+			},
+			args: args{
+				slot: 29,
+			},
+			wantArg: []string{
+				"-s", "29:0,ahci,cd:/some/path/to/someTestThing.iso",
+				"-s", "30:0,ahci,cd:/some/path/to/anotherTestIso.iso",
+			},
+			wantSlot: 31,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			config.Config.Disk.VM.Path.Iso = "/the/config/path/for/isos"
+
+			vm := &VM{
+				ISOs: testCase.fields.ISOs,
+			}
+
+			gotArg, gotSlot := vm.getCDArg(testCase.args.slot)
+
+			diff := deep.Equal(gotArg, testCase.wantArg)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			diff = deep.Equal(gotSlot, testCase.wantSlot)
 			if diff != nil {
 				t.Errorf("compare failed: %v", diff)
 			}
