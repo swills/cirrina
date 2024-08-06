@@ -818,3 +818,69 @@ func TestVM_getCDArg(t *testing.T) {
 		})
 	}
 }
+
+func TestVM_getHostBridgeArg(t *testing.T) {
+	type fields struct {
+		Config Config
+	}
+
+	type args struct {
+		slot int
+	}
+
+	tests := []struct {
+		name     string
+		fields   fields
+		args     args
+		wantArg  []string
+		wantSlot int
+	}{
+		{
+			name: "noHostBridge",
+			fields: fields{
+				Config: Config{
+					HostBridge: false,
+				},
+			},
+			args:     args{slot: 2},
+			wantArg:  []string{},
+			wantSlot: 2,
+		},
+		{
+			name: "yesHostBridge",
+			fields: fields{
+				Config: Config{
+					HostBridge: true,
+				},
+			},
+			args:     args{slot: 2},
+			wantArg:  []string{"-s", "2,hostbridge"},
+			wantSlot: 3,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			vm := &VM{
+				Config: testCase.fields.Config,
+			}
+
+			gotArg, gotSlot := vm.getHostBridgeArg(testCase.args.slot)
+
+			diff := deep.Equal(gotArg, testCase.wantArg)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			diff = deep.Equal(gotSlot, testCase.wantSlot)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
