@@ -3938,6 +3938,10 @@ func TestVM_SetNics(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
+			// clear out list(s) from other parallel test runs
+			disk.List.DiskList = map[string]*disk.Disk{}
+			List.VMList = map[string]*VM{}
+
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)

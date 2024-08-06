@@ -23,6 +23,7 @@ import (
 
 	"cirrina/cirrina"
 	"cirrina/cirrinad/cirrinadtest"
+	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/requests"
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/vm"
@@ -3461,6 +3462,10 @@ func Test_server_RemoveVMNic(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
+			// clear out list(s) from other parallel test runs
+			disk.List.DiskList = map[string]*disk.Disk{}
+			vm.List.VMList = map[string]*vm.VM{}
+
 			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 

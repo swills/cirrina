@@ -340,11 +340,17 @@ func Test_validateDisk(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validateDisk(tt.args.diskInst)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("validateDisk() error = %v, wantErr %v", err, tt.wantErr)
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			// ensure no leftover values from other tests
+			config.Config.Disk.VM.Path.Zpool = ""
+			// clear out list(s) from other parallel test runs
+			List.DiskList = map[string]*Disk{}
+
+			err := validateDisk(testCase.args.diskInst)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("validateDisk() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}
@@ -534,6 +540,9 @@ func TestGetByName(t *testing.T) {
 	for _, testCase := range tests {
 		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
+			// clear out list(s) from other parallel test runs
+			List.DiskList = map[string]*Disk{}
+
 			testCase.mockClosure()
 
 			got, err := GetByName(testCase.args.name)
