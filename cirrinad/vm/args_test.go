@@ -884,3 +884,121 @@ func TestVM_getHostBridgeArg(t *testing.T) {
 		})
 	}
 }
+
+func Test_getCom(t *testing.T) {
+	type args struct {
+		comDev string
+		vmName string
+		num    int
+	}
+
+	tests := []struct {
+		name     string
+		args     args
+		wantArgs []string
+		wantNmdm string
+	}{
+		{
+			name: "autoCom1",
+			args: args{
+				comDev: "AUTO",
+				vmName: "testVM",
+				num:    1,
+			},
+			wantNmdm: "/dev/nmdm-testVM-com1-A",
+			wantArgs: []string{"-l", "com1,/dev/nmdm-testVM-com1-A"},
+		},
+		{
+			name: "autoCom2",
+			args: args{
+				comDev: "AUTO",
+				vmName: "testVM",
+				num:    2,
+			},
+			wantNmdm: "/dev/nmdm-testVM-com2-A",
+			wantArgs: []string{"-l", "com2,/dev/nmdm-testVM-com2-A"},
+		},
+		{
+			name: "autoCom3",
+			args: args{
+				comDev: "AUTO",
+				vmName: "testVM",
+				num:    3,
+			},
+			wantNmdm: "/dev/nmdm-testVM-com3-A",
+			wantArgs: []string{"-l", "com3,/dev/nmdm-testVM-com3-A"},
+		},
+		{
+			name: "autoCom4",
+			args: args{
+				comDev: "AUTO",
+				vmName: "testVM",
+				num:    4,
+			},
+			wantNmdm: "/dev/nmdm-testVM-com4-A",
+			wantArgs: []string{"-l", "com4,/dev/nmdm-testVM-com4-A"},
+		},
+		{
+			name: "specifyCom1",
+			args: args{
+				comDev: "/dev/nmdm-somethingA",
+				vmName: "testVM",
+				num:    1,
+			},
+			wantNmdm: "/dev/nmdm-somethingA",
+			wantArgs: []string{"-l", "com1,/dev/nmdm-somethingA"},
+		},
+		{
+			name: "specifyCom2",
+			args: args{
+				comDev: "/dev/nmdm-somethingA",
+				vmName: "testVM",
+				num:    2,
+			},
+			wantNmdm: "/dev/nmdm-somethingA",
+			wantArgs: []string{"-l", "com2,/dev/nmdm-somethingA"},
+		},
+		{
+			name: "specifyCom3",
+			args: args{
+				comDev: "/dev/nmdm-somethingA",
+				vmName: "testVM",
+				num:    3,
+			},
+			wantNmdm: "/dev/nmdm-somethingA",
+			wantArgs: []string{"-l", "com3,/dev/nmdm-somethingA"},
+		},
+		{
+			name: "specifyCom4",
+			args: args{
+				comDev: "/dev/nmdm-somethingA",
+				vmName: "testVM",
+				num:    4,
+			},
+			wantNmdm: "/dev/nmdm-somethingA",
+			wantArgs: []string{"-l", "com4,/dev/nmdm-somethingA"},
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotArgs, gotNmdm := getCom(testCase.args.comDev, testCase.args.vmName, testCase.args.num)
+
+			diff := deep.Equal(gotArgs, testCase.wantArgs)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			diff = deep.Equal(gotNmdm, testCase.wantNmdm)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
