@@ -1,7 +1,7 @@
 package vm
 
 import (
-	"reflect"
+	"database/sql"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -1082,12 +1082,125 @@ func TestVM_getTabletArg(t *testing.T) {
 				t.Errorf("compare failed: %v", diff)
 			}
 
-			if !reflect.DeepEqual(gotArgs, testCase.wantArgs) {
-				t.Errorf("getTabletArg() gotArgs = %v, wantArgs %v", gotArgs, testCase.wantArgs)
+			diff = deep.Equal(gotSlot, testCase.wantSlot)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
+		})
+	}
+}
 
-			if !reflect.DeepEqual(gotSlot, testCase.wantSlot) {
-				t.Errorf("getTabletArg() gotSlot = %v, wantSlot %v", gotSlot, testCase.wantSlot)
+func Test_addPriorityArgs(t *testing.T) {
+	type args struct {
+		vm   *VM
+		args []string
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "noPriority",
+			args: args{
+				vm: &VM{
+					Config: Config{
+						Priority: 0,
+					},
+				},
+				args: []string{"/usr/bin/protect"},
+			},
+			want: []string{"/usr/bin/protect"},
+		},
+		{
+			name: "priorityTen",
+			args: args{
+				vm: &VM{
+					Config: Config{
+						Priority: 10,
+					},
+				},
+				args: []string{"/usr/bin/protect"},
+			},
+			want: []string{"/usr/bin/protect", "/usr/bin/nice", "-n", "10"},
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := addPriorityArgs(testCase.args.vm, testCase.args.args)
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func Test_addProtectArgs(t *testing.T) {
+	type args struct {
+		vm   *VM
+		args []string
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "noProtect",
+			args: args{
+				vm: &VM{
+					Config: Config{
+						Protect: sql.NullBool{
+							Bool:  false,
+							Valid: true,
+						},
+					},
+				},
+				args: []string{},
+			},
+			want: []string{},
+		},
+		{
+			name: "yesProtect",
+			args: args{
+				vm: &VM{
+					Config: Config{
+						Protect: sql.NullBool{
+							Bool:  true,
+							Valid: true,
+						},
+					},
+				},
+				args: []string{},
+			},
+			want: []string{"/usr/bin/protect"},
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := addProtectArgs(testCase.args.vm, testCase.args.args)
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}
