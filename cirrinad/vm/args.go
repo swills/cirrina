@@ -665,7 +665,7 @@ func (vm *VM) generateCommandLine() (string, []string) {
 	args = append(args, "-U", vm.ID)
 	args = addSomeArgs(args, vm)
 	args = addSlotArgs(args, hostBridgeArg, cdArg, fbufArg, tabletArg, netArg, diskArg, soundArg, lpcArg)
-	args = addComArgs(com1Arg, args, com2Arg, com3Arg, com4Arg)
+	args = addComArgs(args, com1Arg, com2Arg, com3Arg, com4Arg)
 	args = append(args, vm.getExtraArg()...)
 	args = append(args, vm.Name)
 
@@ -690,7 +690,7 @@ func addProtectArgs(vm *VM, args []string) []string {
 	return args
 }
 
-func addComArgs(com1Arg []string, args []string, com2Arg []string, com3Arg []string, com4Arg []string) []string {
+func addComArgs(args []string, com1Arg []string, com2Arg []string, com3Arg []string, com4Arg []string) []string {
 	if len(com1Arg) != 0 {
 		args = append(args, com1Arg...)
 	}

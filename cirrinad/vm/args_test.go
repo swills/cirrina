@@ -1627,6 +1627,116 @@ func Test_getMac(t *testing.T) {
 	}
 }
 
+func Test_addComArgs(t *testing.T) {
+	type args struct {
+		com1Arg []string
+		args    []string
+		com2Arg []string
+		com3Arg []string
+		com4Arg []string
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want []string
+	}{
+		{
+			name: "none",
+			args: args{
+				args:    nil,
+				com1Arg: nil,
+				com2Arg: nil,
+				com3Arg: nil,
+				com4Arg: nil,
+			},
+			want: nil,
+		},
+		{
+			name: "comOne",
+			args: args{
+				args:    nil,
+				com1Arg: []string{"-l", "com1,/dev/nmdm-test2024060101-com1-A"},
+				com2Arg: nil,
+				com3Arg: nil,
+				com4Arg: nil,
+			},
+			want: []string{"-l", "com1,/dev/nmdm-test2024060101-com1-A"},
+		},
+		{
+			name: "comTwo",
+			args: args{
+				args:    nil,
+				com1Arg: nil,
+				com2Arg: []string{"-l", "com2,/dev/nmdm-test2024060101-com2-A"},
+				com3Arg: nil,
+				com4Arg: nil,
+			},
+			want: []string{"-l", "com2,/dev/nmdm-test2024060101-com2-A"},
+		},
+		{
+			name: "comThree",
+			args: args{
+				args:    nil,
+				com1Arg: nil,
+				com2Arg: nil,
+				com3Arg: []string{"-l", "com3,/dev/nmdm-test2024060101-com3-A"},
+				com4Arg: nil,
+			},
+			want: []string{"-l", "com3,/dev/nmdm-test2024060101-com3-A"},
+		},
+		{
+			name: "comFour",
+			args: args{
+				args:    nil,
+				com1Arg: nil,
+				com2Arg: nil,
+				com3Arg: nil,
+				com4Arg: []string{"-l", "com4,/dev/nmdm-test2024060101-com4-A"},
+			},
+			want: []string{"-l", "com4,/dev/nmdm-test2024060101-com4-A"},
+		},
+		{
+			name: "comAll",
+			args: args{
+				args:    nil,
+				com1Arg: []string{"-l", "com1,/dev/nmdm-test2024060101-com1-A"},
+				com2Arg: []string{"-l", "com2,/dev/nmdm-test2024060101-com2-A"},
+				com3Arg: []string{"-l", "com3,/dev/nmdm-test2024060101-com3-A"},
+				com4Arg: []string{"-l", "com4,/dev/nmdm-test2024060101-com4-A"},
+			},
+			want: []string{
+				"-l", "com1,/dev/nmdm-test2024060101-com1-A",
+				"-l", "com2,/dev/nmdm-test2024060101-com2-A",
+				"-l", "com3,/dev/nmdm-test2024060101-com3-A",
+				"-l", "com4,/dev/nmdm-test2024060101-com4-A",
+			},
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got := addComArgs(
+				testCase.args.args,
+				testCase.args.com1Arg,
+				testCase.args.com2Arg,
+				testCase.args.com3Arg,
+				testCase.args.com4Arg,
+			)
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 func StubHostInterfacesSuccess1() ([]net.Interface, error) {
