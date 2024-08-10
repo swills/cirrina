@@ -855,7 +855,7 @@ func TestZfsVolInfoCmds_CheckExists(t *testing.T) {
 				return nil, nil
 			}
 
-			pathExistsFunc = func(_ string) (bool, error) {
+			PathExistsFunc = func(_ string) (bool, error) {
 				if testCase.wantPathErr {
 					return true, errors.New("another error") //nolint:goerr113
 				}

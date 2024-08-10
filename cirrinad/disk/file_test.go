@@ -736,7 +736,7 @@ func TestFileInfoCmds_CheckExists(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			fileInfoCmds := FileInfoCmds{}
 
-			pathExistsFunc = func(_ string) (bool, error) {
+			PathExistsFunc = func(_ string) (bool, error) {
 				if testCase.wantPathErr {
 					return true, errors.New("another error") //nolint:goerr113
 				}

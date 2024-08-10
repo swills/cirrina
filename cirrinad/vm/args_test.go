@@ -2,12 +2,15 @@ package vm
 
 import (
 	"database/sql"
+	"errors"
 	"net"
 	"testing"
 
 	"github.com/go-test/deep"
 
+	"cirrina/cirrinad/cirrinadtest"
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vmnic"
@@ -1732,6 +1735,944 @@ func Test_addComArgs(t *testing.T) {
 			diff := deep.Equal(got, testCase.want)
 			if diff != nil {
 				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest,maintidx
+func TestVM_getDiskArg(t *testing.T) {
+	type fields struct {
+		Disks []*disk.Disk
+	}
+
+	type args struct {
+		slot int
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func()
+		fields      fields
+		args        args
+		wantArgs    []string
+		wantSlot    int
+		wantPath    bool
+		wantPathErr bool
+	}{
+		{
+			name:        "None",
+			mockClosure: func() {},
+			fields: fields{
+				Disks: nil,
+			},
+			args: args{
+				slot: 3,
+			},
+			wantArgs: nil,
+			wantSlot: 3,
+		},
+		{
+			name: "OneDiskNVMEFile",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,nvme,test2024081001_hd0.img"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskNVMEFileNoCache",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,nvme,test2024081001_hd0.img,nocache"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskNVMEFileDirect",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,nvme,test2024081001_hd0.img,direct"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskAHCIFile",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "AHCI-HD",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,ahci-hd,test2024081001_hd0.img"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskAHCIFileNoCache",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "AHCI-HD",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,ahci-hd,test2024081001_hd0.img,nocache"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskAHCIFileDirect",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "AHCI-HD",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,ahci-hd,test2024081001_hd0.img,direct"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskVirtIOFile",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "VIRTIO-BLK",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,virtio-blk,test2024081001_hd0.img"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskVirtIOFileNoCache",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "VIRTIO-BLK",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,virtio-blk,test2024081001_hd0.img,nocache"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskVirtIOFileDirect",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "VIRTIO-BLK",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,virtio-blk,test2024081001_hd0.img,direct"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskNVMEZVOL",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "NVME",
+					DevType:     "ZVOL",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,nvme,/dev/zvol/test2024081001_hd0"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskNVMEZVOLNoCache",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "NVME",
+					DevType:     "ZVOL",
+					DiskCache: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,nvme,/dev/zvol/test2024081001_hd0,nocache"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskNVMEZVOLDirect",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "NVME",
+					DevType:     "ZVOL",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,nvme,/dev/zvol/test2024081001_hd0,direct"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskAHCIZVOL",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "AHCI-HD",
+					DevType:     "ZVOL",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,ahci-hd,/dev/zvol/test2024081001_hd0"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskAHCIZVOLNoCache",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "AHCI-HD",
+					DevType:     "ZVOL",
+					DiskCache: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,ahci-hd,/dev/zvol/test2024081001_hd0,nocache"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskAHCIZVOLDirect",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "AHCI-HD",
+					DevType:     "ZVOL",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,ahci-hd,/dev/zvol/test2024081001_hd0,direct"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskVirtIOZVOL",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "VIRTIO-BLK",
+					DevType:     "ZVOL",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,virtio-blk,/dev/zvol/test2024081001_hd0"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskVirtIOZVOLNoCache",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "VIRTIO-BLK",
+					DevType:     "ZVOL",
+					DiskCache: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,virtio-blk,/dev/zvol/test2024081001_hd0,nocache"},
+			wantSlot: 4,
+		},
+		{
+			name: "OneDiskVirtIOZVOLDirect",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "VIRTIO-BLK",
+					DevType:     "ZVOL",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: []string{"-s", "3,virtio-blk,/dev/zvol/test2024081001_hd0,direct"},
+			wantSlot: 4,
+		},
+		{
+			name: "ErrorCheckingExists",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPathErr: true,
+			wantArgs:    nil,
+			wantSlot:    3,
+		},
+		{
+			name: "DiskDoesNotExist",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: false,
+			wantArgs: nil,
+			wantSlot: 3,
+		},
+		{
+			name: "BadType",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "someGarbage",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: nil,
+			wantSlot: 3,
+		},
+		{
+			name: "NilDisk",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					nil,
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: nil,
+			wantSlot: 3,
+		},
+		{
+			name: "EmptyDiskID",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: nil,
+			wantSlot: 3,
+		},
+		{
+			name: "BadDiskID",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a3",
+					},
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantPath: true,
+			wantArgs: nil,
+			wantSlot: 3,
+		},
+		{
+			name: "TooManyDisks",
+			mockClosure: func() {
+				diskInst := &disk.Disk{
+					ID:          "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					Name:        "test2024081001_hd0",
+					Description: "some test disk",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk.List.DiskList[diskInst.ID] = diskInst
+			},
+			fields: fields{
+				Disks: []*disk.Disk{
+					{
+						ID: "25b5e67d-915d-4b0e-bb3a-42f3233510a2",
+					},
+				},
+			},
+			args: args{
+				slot: 31,
+			},
+			wantPath: true,
+			wantArgs: nil,
+			wantSlot: 31,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			disk.List.DiskList = map[string]*disk.Disk{}
+
+			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+
+			testCase.mockClosure()
+
+			disk.PathExistsFunc = func(_ string) (bool, error) {
+				if testCase.wantPathErr {
+					return true, errors.New("another error") //nolint:goerr113
+				}
+
+				if testCase.wantPath {
+					return true, nil
+				}
+
+				return false, nil
+			}
+
+			vm := &VM{
+				Disks: testCase.fields.Disks,
+			}
+			gotArgs, gotSlot := vm.getDiskArg(testCase.args.slot)
+
+			diff := deep.Equal(gotArgs, testCase.wantArgs)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			diff = deep.Equal(gotSlot, testCase.wantSlot)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
 	}

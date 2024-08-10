@@ -204,7 +204,7 @@ func (f FileInfoCmds) ApplyFileSize(name string, newSize uint64) error {
 
 func (f FileInfoCmds) CheckExists(name string) (bool, error) {
 	// for files, just check the name
-	diskPathExists, err := pathExistsFunc(name)
+	diskPathExists, err := PathExistsFunc(name)
 	if err != nil {
 		slog.Error("error checking if disk exists", "name", name, "err", err)
 

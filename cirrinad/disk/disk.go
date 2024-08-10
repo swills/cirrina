@@ -47,7 +47,7 @@ var List = &ListType{
 	DiskList: make(map[string]*Disk),
 }
 
-var pathExistsFunc = util.PathExists
+var PathExistsFunc = util.PathExists
 var diskExistsCacheDBFunc = diskExistsCacheDB
 var validateDiskFunc = validateDisk
 var getDiskDBFunc = GetDiskDB
@@ -330,7 +330,7 @@ func (d *Disk) VerifyExists() (bool, error) {
 	}
 
 	// perhaps it's not necessary to check the volume -- as long as there's a /dev/zvol entry, we're fine, right?
-	exists, err = pathExistsFunc(diskPath)
+	exists, err = PathExistsFunc(diskPath)
 	if err != nil {
 		return exists, fmt.Errorf("failed checking disk exists: %w", err)
 	}

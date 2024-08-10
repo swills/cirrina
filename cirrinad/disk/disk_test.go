@@ -1742,7 +1742,7 @@ func TestDisk_VerifyExists(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			testCase.mockClosure()
 
-			pathExistsFunc = func(_ string) (bool, error) {
+			PathExistsFunc = func(_ string) (bool, error) {
 				if testCase.wantPathErr {
 					return true, errors.New("another error") //nolint:goerr113
 				}
@@ -1754,7 +1754,7 @@ func TestDisk_VerifyExists(t *testing.T) {
 				return false, nil
 			}
 
-			t.Cleanup(func() { pathExistsFunc = util.PathExists })
+			t.Cleanup(func() { PathExistsFunc = util.PathExists })
 
 			testDisk := &Disk{
 				DevType: testCase.fields.DevType,

@@ -148,7 +148,7 @@ func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (string, error) {
 func (vm *VM) getDiskArg(slot int) ([]string, int) {
 	// TODO don't use one PCI slot per ahci (SATA) disk device, attach multiple disks to each controller
 	// FIXME -- this is awful but needed until we attach multiple sata disks to each controller
-	maxSataDevs := 32 - slot - 1
+	maxSataDevs := 31 - slot - 1
 	sataDevCount := 0
 
 	var diskString []string

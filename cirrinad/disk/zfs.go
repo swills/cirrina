@@ -336,7 +336,7 @@ func (e ZfsVolInfoCmds) CheckExists(name string) (bool, error) {
 		return true, nil
 	}
 
-	diskExists, err := pathExistsFunc("/dev/zvol/" + name)
+	diskExists, err := PathExistsFunc("/dev/zvol/" + name)
 	if err != nil {
 		slog.Error("error checking if disk exists", "name", name, "err", err)
 
