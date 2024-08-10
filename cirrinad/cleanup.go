@@ -17,11 +17,10 @@ import (
 )
 
 func cleanupVms() error {
+	var err error
+
 	// deal with any leftover running VMs
-	vmList, err := vm.GetAllDB()
-	if err != nil {
-		return fmt.Errorf("error cleaning VM: %w", err)
-	}
+	vmList := vm.GetAll()
 
 	for _, aVM := range vmList {
 		vmmPath := "/dev/vmm/" + aVM.Name
@@ -127,11 +126,10 @@ func killLeftoverVM(aVM *vm.VM) {
 }
 
 func cleanupNet() error {
+	var err error
+
 	// clean up leftover VM nets and mark everything stopped
-	vmList, err := vm.GetAllDB()
-	if err != nil {
-		return fmt.Errorf("error cleaning up net: %w", err)
-	}
+	vmList := vm.GetAll()
 
 	for _, aVM := range vmList {
 		slog.Debug("cleaning up VM net(s)", "name", aVM.Name)
