@@ -1356,6 +1356,225 @@ func Test_getVmnetDev(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
+func Test_getComArgs(t *testing.T) {
+	type args struct {
+		aVM *VM
+	}
+
+	tests := []struct {
+		name        string
+		args        args
+		wantCom1Arg []string
+		wantCom2Arg []string
+		wantCom3Arg []string
+		wantCom4Arg []string
+		wantCom1Dev string
+		wantCom2Dev string
+		wantCom3Dev string
+		wantCom4Dev string
+	}{
+		{
+			name: "noCom",
+			args: args{
+				aVM: &VM{
+					Name: "someTestVM",
+					Config: Config{
+						Com1:    false,
+						Com1Dev: "AUTO",
+						Com2:    false,
+						Com2Dev: "AUTO",
+						Com3:    false,
+						Com3Dev: "AUTO",
+						Com4:    false,
+						Com4Dev: "AUTO",
+					},
+					Com1Dev: "",
+					Com2Dev: "",
+					Com3Dev: "",
+					Com4Dev: "",
+				},
+			},
+			wantCom1Arg: nil,
+			wantCom2Arg: nil,
+			wantCom3Arg: nil,
+			wantCom4Arg: nil,
+			wantCom1Dev: "",
+			wantCom2Dev: "",
+			wantCom3Dev: "",
+			wantCom4Dev: "",
+		},
+		{
+			name: "onlyCom1",
+			args: args{
+				aVM: &VM{
+					Name: "someTestVM",
+					Config: Config{
+						Com1:    true,
+						Com1Dev: "AUTO",
+						Com2:    false,
+						Com2Dev: "AUTO",
+						Com3:    false,
+						Com3Dev: "AUTO",
+						Com4:    false,
+						Com4Dev: "AUTO",
+					},
+					Com1Dev: "",
+					Com2Dev: "",
+					Com3Dev: "",
+					Com4Dev: "",
+				},
+			},
+			wantCom1Arg: []string{"-l", "com1,/dev/nmdm-someTestVM-com1-A"},
+			wantCom2Arg: nil,
+			wantCom3Arg: nil,
+			wantCom4Arg: nil,
+			wantCom1Dev: "/dev/nmdm-someTestVM-com1-A",
+			wantCom2Dev: "",
+			wantCom3Dev: "",
+			wantCom4Dev: "",
+		},
+		{
+			name: "onlyCom2",
+			args: args{
+				aVM: &VM{
+					Name: "someTestVM",
+					Config: Config{
+						Com1:    false,
+						Com1Dev: "AUTO",
+						Com2:    true,
+						Com2Dev: "AUTO",
+						Com3:    false,
+						Com3Dev: "AUTO",
+						Com4:    false,
+						Com4Dev: "AUTO",
+					},
+					Com1Dev: "",
+					Com2Dev: "",
+					Com3Dev: "",
+					Com4Dev: "",
+				},
+			},
+			wantCom1Arg: nil,
+			wantCom2Arg: []string{"-l", "com2,/dev/nmdm-someTestVM-com2-A"},
+			wantCom3Arg: nil,
+			wantCom4Arg: nil,
+			wantCom1Dev: "",
+			wantCom2Dev: "/dev/nmdm-someTestVM-com2-A",
+			wantCom3Dev: "",
+			wantCom4Dev: "",
+		},
+		{
+			name: "onlyCom3",
+			args: args{
+				aVM: &VM{
+					Name: "someTestVM",
+					Config: Config{
+						Com1:    false,
+						Com1Dev: "AUTO",
+						Com2:    false,
+						Com2Dev: "AUTO",
+						Com3:    true,
+						Com3Dev: "AUTO",
+						Com4:    false,
+						Com4Dev: "AUTO",
+					},
+					Com1Dev: "",
+					Com2Dev: "",
+					Com3Dev: "",
+					Com4Dev: "",
+				},
+			},
+			wantCom1Arg: nil,
+			wantCom2Arg: nil,
+			wantCom3Arg: []string{"-l", "com3,/dev/nmdm-someTestVM-com3-A"},
+			wantCom4Arg: nil,
+			wantCom1Dev: "",
+			wantCom2Dev: "",
+			wantCom3Dev: "/dev/nmdm-someTestVM-com3-A",
+			wantCom4Dev: "",
+		},
+		{
+			name: "onlyCom4",
+			args: args{
+				aVM: &VM{
+					Name: "someTestVM",
+					Config: Config{
+						Com1:    false,
+						Com1Dev: "AUTO",
+						Com2:    false,
+						Com2Dev: "AUTO",
+						Com3:    false,
+						Com3Dev: "AUTO",
+						Com4:    true,
+						Com4Dev: "AUTO",
+					},
+					Com1Dev: "",
+					Com2Dev: "",
+					Com3Dev: "",
+					Com4Dev: "",
+				},
+			},
+			wantCom1Arg: nil,
+			wantCom2Arg: nil,
+			wantCom3Arg: nil,
+			wantCom4Arg: []string{"-l", "com4,/dev/nmdm-someTestVM-com4-A"},
+			wantCom1Dev: "",
+			wantCom2Dev: "",
+			wantCom3Dev: "",
+			wantCom4Dev: "/dev/nmdm-someTestVM-com4-A",
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			List.VMList[testCase.args.aVM.ID] = testCase.args.aVM
+
+			gotCom1Arg, gotCom2Arg, gotCom3Arg, gotCom4Arg := getComArgs(testCase.args.aVM)
+
+			diff := deep.Equal(gotCom1Arg, testCase.wantCom1Arg)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			diff = deep.Equal(gotCom2Arg, testCase.wantCom2Arg)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			diff = deep.Equal(gotCom3Arg, testCase.wantCom3Arg)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			diff = deep.Equal(gotCom4Arg, testCase.wantCom4Arg)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			diff = deep.Equal(testCase.args.aVM.Com1Dev, testCase.wantCom1Dev)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			diff = deep.Equal(testCase.args.aVM.Com2Dev, testCase.wantCom2Dev)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			diff = deep.Equal(testCase.args.aVM.Com3Dev, testCase.wantCom3Dev)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			diff = deep.Equal(testCase.args.aVM.Com4Dev, testCase.wantCom4Dev)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
 func StubHostInterfacesSuccess1() ([]net.Interface, error) {
 	return []net.Interface{
 		{
