@@ -786,3 +786,236 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 		})
 	}
 }
+
+func TestVM_SetStopped(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type fields struct {
+		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		DeletedAt   gorm.DeletedAt
+		Name        string
+		Description string
+		Status      StatusType
+		BhyvePid    uint32
+		VNCPort     int32
+		DebugPort   int32
+		Config      Config
+		ISOs        []*iso.ISO
+		Disks       []*disk.Disk
+		Com1Dev     string
+		Com2Dev     string
+		Com3Dev     string
+		Com4Dev     string
+		Com1write   bool
+		Com2write   bool
+		Com3write   bool
+		Com4write   bool
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		fields      fields
+		wantErr     bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &singleton{ // prevents parallel testing
+					vmDB: testDB,
+				}
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `bhyve_pid`=?,`com1_dev`=?,`com2_dev`=?,`com3_dev`=?,`com4_dev`=?,`debug_port`=?,`status`=?,`vnc_port`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs(0, "", "", "", "", 0, "STOPPED", 0, sqlmock.AnyArg(), "7c4bc431-5730-11ef-8fec-6c4b9035bdee").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			fields: fields{
+				ID:          "7c4bc431-5730-11ef-8fec-6c4b9035bdee",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				Name:        "mccoy",
+				Description: "a real vm",
+				Status:      "RUNNING",
+				BhyvePid:    87812,
+				VNCPort:     6900,
+				Config: Config{
+					Model: gorm.Model{
+						ID:        0,
+						CreatedAt: time.Time{},
+						UpdatedAt: time.Time{},
+						DeletedAt: gorm.DeletedAt{
+							Time:  time.Time{},
+							Valid: false,
+						},
+					},
+					VMID:             "7c4bc431-5730-11ef-8fec-6c4b9035bdee",
+					CPU:              2,
+					Mem:              2048,
+					MaxWait:          120,
+					Restart:          true,
+					Screen:           true,
+					ScreenWidth:      1920,
+					ScreenHeight:     1080,
+					VNCWait:          false,
+					VNCPort:          "AUTO",
+					Tablet:           true,
+					StoreUEFIVars:    true,
+					UTCTime:          true,
+					HostBridge:       true,
+					ACPI:             true,
+					UseHLT:           true,
+					ExitOnPause:      true,
+					DestroyPowerOff:  true,
+					IgnoreUnknownMSR: true,
+					KbdLayout:        "DEFAULT",
+					AutoStart:        true,
+					Com1:             true,
+					Com1Dev:          "AUTO",
+					Com1Speed:        19200,
+					AutoStartDelay:   60,
+					Protect: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+				},
+				Com1Dev:   "/dev/nmdm-mccoy-com1-A",
+				Com1write: true,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Error",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &singleton{ // prevents parallel testing
+					vmDB: testDB,
+				}
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `bhyve_pid`=?,`com1_dev`=?,`com2_dev`=?,`com3_dev`=?,`com4_dev`=?,`debug_port`=?,`status`=?,`vnc_port`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs(0, "", "", "", "", 0, "STOPPED", 0, sqlmock.AnyArg(), "7c4bc431-5730-11ef-8fec-6c4b9035bdee").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
+			},
+			fields: fields{
+				ID:          "7c4bc431-5730-11ef-8fec-6c4b9035bdee",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				Name:        "mccoy",
+				Description: "a real vm",
+				Status:      "RUNNING",
+				BhyvePid:    87812,
+				VNCPort:     6900,
+				Config: Config{
+					Model: gorm.Model{
+						ID:        0,
+						CreatedAt: time.Time{},
+						UpdatedAt: time.Time{},
+						DeletedAt: gorm.DeletedAt{
+							Time:  time.Time{},
+							Valid: false,
+						},
+					},
+					VMID:             "7c4bc431-5730-11ef-8fec-6c4b9035bdee",
+					CPU:              2,
+					Mem:              2048,
+					MaxWait:          120,
+					Restart:          true,
+					Screen:           true,
+					ScreenWidth:      1920,
+					ScreenHeight:     1080,
+					VNCWait:          false,
+					VNCPort:          "AUTO",
+					Tablet:           true,
+					StoreUEFIVars:    true,
+					UTCTime:          true,
+					HostBridge:       true,
+					ACPI:             true,
+					UseHLT:           true,
+					ExitOnPause:      true,
+					DestroyPowerOff:  true,
+					IgnoreUnknownMSR: true,
+					KbdLayout:        "DEFAULT",
+					AutoStart:        true,
+					Com1:             true,
+					Com1Dev:          "AUTO",
+					Com1Speed:        19200,
+					AutoStartDelay:   60,
+					Protect: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+				},
+				Com1Dev:   "/dev/nmdm-mccoy-com1-A",
+				Com1write: true,
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("vmTest")
+			testCase.mockClosure(testDB, mock)
+
+			testVM := &VM{
+				ID:          testCase.fields.ID,
+				CreatedAt:   testCase.fields.CreatedAt,
+				UpdatedAt:   testCase.fields.UpdatedAt,
+				DeletedAt:   testCase.fields.DeletedAt,
+				Name:        testCase.fields.Name,
+				Description: testCase.fields.Description,
+				Status:      testCase.fields.Status,
+				BhyvePid:    testCase.fields.BhyvePid,
+				VNCPort:     testCase.fields.VNCPort,
+				DebugPort:   testCase.fields.DebugPort,
+				Config:      testCase.fields.Config,
+				ISOs:        testCase.fields.ISOs,
+				Disks:       testCase.fields.Disks,
+				Com1Dev:     testCase.fields.Com1Dev,
+				Com2Dev:     testCase.fields.Com2Dev,
+				Com3Dev:     testCase.fields.Com3Dev,
+				Com4Dev:     testCase.fields.Com4Dev,
+				Com1write:   testCase.fields.Com1write,
+				Com2write:   testCase.fields.Com2write,
+				Com3write:   testCase.fields.Com3write,
+				Com4write:   testCase.fields.Com4write,
+			}
+
+			err := testVM.SetStopped()
+
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("SetStopped() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}

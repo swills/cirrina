@@ -182,7 +182,12 @@ func vmDaemon(events chan supervisor.Event, thisVM *VM) {
 			thisVM.log.Info("stopped")
 			thisVM.NetCleanup()
 			thisVM.killComLoggers()
-			thisVM.SetStopped()
+
+			err := thisVM.SetStopped()
+			if err != nil {
+				slog.Error("error stopping VM", "err", err)
+			}
+
 			thisVM.unlockDisks()
 			thisVM.MaybeForceKillVM()
 			thisVM.log.Info("closing loop we are done")
@@ -538,7 +543,12 @@ func (vm *VM) Stop() error {
 	vm.SetStopping()
 
 	if vm.proc == nil {
-		vm.SetStopped()
+		err = vm.SetStopped()
+		if err != nil {
+			slog.Error("error stopping VM", "err", err)
+
+			return fmt.Errorf("error stopping VM: %w", err)
+		}
 
 		return nil
 	}

@@ -27,6 +27,11 @@ func cleanupVms() error {
 		vmmPath := "/dev/vmm/" + aVM.Name
 		slog.Debug("checking VM", "name", aVM.Name, "path", vmmPath)
 
+		err = aVM.SetStopped()
+		if err != nil {
+			slog.Error("error stopping VM", "err", err)
+		}
+
 		exists, err := util.PathExists(vmmPath)
 		if err != nil {
 			slog.Error("error checking VM", "err", err)
@@ -61,7 +66,11 @@ func cleanupVms() error {
 
 		slog.Debug("destroying VM", "name", aVM.Name)
 		aVM.MaybeForceKillVM()
-		aVM.SetStopped()
+
+		err = aVM.SetStopped()
+		if err != nil {
+			slog.Error("error stopping VM", "err", err)
+		}
 	}
 
 	return nil
@@ -128,7 +137,11 @@ func cleanupNet() error {
 		slog.Debug("cleaning up VM net(s)", "name", aVM.Name)
 		aVM.NetCleanup()
 		slog.Debug("marking VM stopped", "name", aVM.Name)
-		aVM.SetStopped()
+
+		err = aVM.SetStopped()
+		if err != nil {
+			slog.Error("error stopping VM", "err", err)
+		}
 	}
 
 	// destroy all the bridges we know about

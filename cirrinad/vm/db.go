@@ -117,7 +117,7 @@ func (vm *VM) SetStarting() {
 }
 
 // SetStopped this can in some cases get called on already stopped/deleted VMs and that's OK
-func (vm *VM) SetStopped() {
+func (vm *VM) SetStopped() error {
 	vmDB := GetVMDB()
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
@@ -153,7 +153,11 @@ func (vm *VM) SetStopped() {
 		})
 	if res.Error != nil {
 		slog.Error("error saving VM stopped", "err", res.Error)
+
+		return fmt.Errorf("error saving VM: %w", res.Error)
 	}
+
+	return nil
 }
 
 func (vm *VM) SetStopping() {
