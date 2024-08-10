@@ -1311,6 +1311,51 @@ func Test_getTapDev(t *testing.T) {
 	}
 }
 
+func Test_getVmnetDev(t *testing.T) {
+	tests := []struct {
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		wantNetDev      string
+		wantNetDevArg   string
+	}{
+		{
+			name:            "noVmNets",
+			hostIntStubFunc: StubHostInterfacesSuccess3,
+			wantNetDev:      "vmnet0",
+			wantNetDevArg:   "vmnet0",
+		},
+		{
+			name:            "oneVmNets",
+			hostIntStubFunc: StubHostInterfacesSuccess4,
+			wantNetDev:      "vmnet1",
+			wantNetDevArg:   "vmnet1",
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { NetInterfacesFunc = net.Interfaces })
+
+			gotNetDev, gotNetDevArg := getVmnetDev()
+
+			if gotNetDev != testCase.wantNetDev {
+				t.Errorf("getVmnetDev() gotNetDev = %v, want %v", gotNetDev, testCase.wantNetDev)
+			}
+
+			if gotNetDevArg != testCase.wantNetDev {
+				t.Errorf("getVmnetDev() gotNetDevArg = %v, want %v", gotNetDevArg, testCase.wantNetDev)
+			}
+		})
+	}
+}
+
 func StubHostInterfacesSuccess1() ([]net.Interface, error) {
 	return []net.Interface{
 		{
@@ -1343,6 +1388,58 @@ func StubHostInterfacesSuccess2() ([]net.Interface, error) {
 			Index:        1,
 			MTU:          1500,
 			Name:         "tap0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "def0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+	}, nil
+}
+
+func StubHostInterfacesSuccess3() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "abc0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "def0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+	}, nil
+}
+
+func StubHostInterfacesSuccess4() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "vmnet0",
 			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
 			Flags:        0x33,
 		},
