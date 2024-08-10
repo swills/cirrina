@@ -2,6 +2,7 @@
 # TODO
 
 * Finish writing tests
+* Remove in memory "cache", Lists, or replace with eko/gocache (v3 or v4)
 * Convert all usages of strconv.Atoi to strconv.ParseInt and strconv.Itoa to strconv.FormatInt
 * Add setting for maximum disk/iso size and check them during upload
 * Check that we have enough space for a disk/iso before allowing upload
