@@ -502,7 +502,6 @@ func GetVMLogPath(logpath string) error {
 	return nil
 }
 
-//nolint:nestif
 func LogAllVMStatus() {
 	defer List.Mu.Unlock()
 	List.Mu.Lock()
@@ -517,12 +516,6 @@ func LogAllVMStatus() {
 			)
 		} else {
 			if vmInst.proc == nil {
-				err := vmInst.SetStopped()
-				if err != nil {
-					slog.Error("error stopping VM", "err", err)
-				}
-
-				vmInst.MaybeForceKillVM()
 				slog.Info("vm",
 					"id", vmInst.ID,
 					"name", vmInst.Name,
