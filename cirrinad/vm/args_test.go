@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -998,6 +999,95 @@ func Test_getCom(t *testing.T) {
 			diff = deep.Equal(gotNmdm, testCase.wantNmdm)
 			if diff != nil {
 				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+func TestVM_getTabletArg(t *testing.T) {
+	type fields struct {
+		Config Config
+	}
+
+	type args struct {
+		slot int
+	}
+
+	tests := []struct {
+		name     string
+		fields   fields
+		args     args
+		wantArgs []string
+		wantSlot int
+	}{
+		{
+			name: "noScreenOrTablet",
+			fields: fields{
+				Config: Config{
+					Screen: false,
+					Tablet: false,
+				},
+			},
+			args: args{
+				slot: 16,
+			},
+			wantArgs: []string{},
+			wantSlot: 16,
+		},
+		{
+			name: "screenNoTablet",
+			fields: fields{
+				Config: Config{
+					Screen: true,
+					Tablet: false,
+				},
+			},
+			args: args{
+				slot: 16,
+			},
+			wantArgs: []string{},
+			wantSlot: 16,
+		},
+		{
+			name: "screenAndTablet",
+			fields: fields{
+				Config: Config{
+					Screen: true,
+					Tablet: true,
+				},
+			},
+			args: args{
+				slot: 16,
+			},
+			wantArgs: []string{"-s", "16,xhci,tablet"},
+			wantSlot: 17,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			vm := &VM{
+				Config: testCase.fields.Config,
+			}
+
+			gotArgs, gotSlot := vm.getTabletArg(testCase.args.slot)
+
+			diff := deep.Equal(gotArgs, testCase.wantArgs)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			if !reflect.DeepEqual(gotArgs, testCase.wantArgs) {
+				t.Errorf("getTabletArg() gotArgs = %v, wantArgs %v", gotArgs, testCase.wantArgs)
+			}
+
+			if !reflect.DeepEqual(gotSlot, testCase.wantSlot) {
+				t.Errorf("getTabletArg() gotSlot = %v, wantSlot %v", gotSlot, testCase.wantSlot)
 			}
 		})
 	}
