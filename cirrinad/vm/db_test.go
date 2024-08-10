@@ -970,6 +970,8 @@ func TestVM_SetStopped(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("vmTest")
 			testCase.mockClosure(testDB, mock)
 
+			List.VMList = map[string]*VM{}
+
 			testVM := &VM{
 				ID:          testCase.fields.ID,
 				CreatedAt:   testCase.fields.CreatedAt,
@@ -993,6 +995,7 @@ func TestVM_SetStopped(t *testing.T) {
 				Com3write:   testCase.fields.Com3write,
 				Com4write:   testCase.fields.Com4write,
 			}
+			List.VMList[testVM.ID] = testVM
 
 			err := testVM.SetStopped()
 
@@ -1015,6 +1018,10 @@ func TestVM_SetStopped(t *testing.T) {
 			err = mock.ExpectationsWereMet()
 			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+
+			if List.VMList[testVM.ID].Status != STOPPED {
+				t.Errorf("SetStopped() List.VMList[testVM.ID].Status = %v, want STOPPED", List.VMList[testVM.ID].Status)
 			}
 		})
 	}
