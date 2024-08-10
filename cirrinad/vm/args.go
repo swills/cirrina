@@ -552,10 +552,10 @@ func getMac(thisNic vmnic.VMNic, thisVM *VM) string {
 		slog.Debug("getNetArgs: Generating MAC")
 
 		thisNicHashData := MacHashData{
-			thisVM.ID,
-			thisVM.Name,
-			thisNic.ID,
-			thisNic.Name,
+			VMID:    thisVM.ID,
+			VMName:  thisVM.Name,
+			NicID:   thisNic.ID,
+			NicName: thisNic.Name,
 		}
 
 		nicHash, err := rxhash.HashStruct(thisNicHashData)
