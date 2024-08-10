@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 	"net"
 	"strconv"
@@ -16,54 +15,29 @@ import (
 	"cirrina/cirrinad/vm"
 )
 
+// cleanupVms checks for leftover VMs and ensures they are killed and marked as stopped in the DB
+// this is meant to handle two cases:
+// * When the cirrinad process dies and leaves leftover VMs processes
+// * When the host was not properly shut down and there are leftover pid files and the DB status is wrong
+// In the first case, we have to kill VMs, remove pid files and update the DB
+// In the second case, we only have to remove pid files and update the DB
 func cleanupVms() error {
 	var err error
 
-	// deal with any leftover running VMs
 	vmList := vm.GetAll()
 
 	for _, aVM := range vmList {
-		vmmPath := "/dev/vmm/" + aVM.Name
-		slog.Debug("checking VM", "name", aVM.Name, "path", vmmPath)
-
-		err = aVM.SetStopped()
-		if err != nil {
-			slog.Error("error stopping VM", "err", err)
-		}
-
-		exists, err := util.PathExists(vmmPath)
-		if err != nil {
-			slog.Error("error checking VM", "err", err)
-
-			return fmt.Errorf("error cleaning VM: %w", err)
-		}
-
-		if !exists {
-			continue
-		}
-
-		slog.Debug("leftover VM exists, checking pid", "name", aVM.Name, "pid", aVM.BhyvePid)
-
 		var pidStat bool
-		// check pid
 		if aVM.BhyvePid > 0 {
 			pidStat, err = util.PidExists(int(aVM.BhyvePid))
 			if err != nil {
 				slog.Error("error checking VM", "err", err)
+			} else if pidStat {
+				aVM.SetStopping()
+				killLeftoverVM(aVM)
 			}
 		}
 
-		if pidStat {
-			slog.Debug("leftover VM process running, stopping",
-				"name", aVM.Name,
-				"pid", aVM.BhyvePid,
-				"maxWait", aVM.Config.MaxWait,
-			)
-			aVM.SetStopping()
-			killLeftoverVM(aVM)
-		}
-
-		slog.Debug("destroying VM", "name", aVM.Name)
 		aVM.BhyvectlDestroy()
 
 		err = aVM.SetStopped()
