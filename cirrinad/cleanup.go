@@ -65,7 +65,7 @@ func cleanupVms() error {
 		}
 
 		slog.Debug("destroying VM", "name", aVM.Name)
-		aVM.MaybeForceKillVM()
+		aVM.BhyvectlDestroy()
 
 		err = aVM.SetStopped()
 		if err != nil {

@@ -171,7 +171,7 @@ func vmDaemon(events chan supervisor.Event, thisVM *VM) {
 				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
 			case "ProcessCrashed":
 				thisVM.log.Info("exited, destroying")
-				thisVM.MaybeForceKillVM()
+				thisVM.BhyvectlDestroy()
 			default:
 				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
 			}
@@ -189,7 +189,7 @@ func vmDaemon(events chan supervisor.Event, thisVM *VM) {
 			}
 
 			thisVM.unlockDisks()
-			thisVM.MaybeForceKillVM()
+			thisVM.BhyvectlDestroy()
 			thisVM.log.Info("closing loop we are done")
 
 			return
@@ -563,7 +563,7 @@ func (vm *VM) Stop() error {
 	return nil
 }
 
-func (vm *VM) MaybeForceKillVM() {
+func (vm *VM) BhyvectlDestroy() {
 	ex, err := util.PathExists("/dev/vmm/" + vm.Name)
 	if err != nil {
 		return
