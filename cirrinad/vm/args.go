@@ -20,6 +20,7 @@ import (
 )
 
 var getHostMaxVMCpusFunc = util.GetHostMaxVMCpus
+var NetInterfacesFunc = net.Interfaces
 
 type MacHashData struct {
 	VMID    string
@@ -458,21 +459,11 @@ func getNetDevTypeArg(netDevType string, switchID string, vmName string) (string
 
 	switch netDevType {
 	case "TAP":
-		netDev, netDevArg, err = GetTapDev()
-		if err != nil {
-			slog.Error("GetTapDev error", "err", err)
-
-			return "", "", fmt.Errorf("error getting net dev arg: %w", err)
-		}
+		netDev, netDevArg = getTapDev()
 
 		return netDev, netDevArg, nil
 	case "VMNET":
-		netDev, netDevArg, err = GetVmnetDev()
-		if err != nil {
-			slog.Error("GetVmnetDev error", "err", err)
-
-			return "", "", fmt.Errorf("error getting net dev arg: %w", err)
-		}
+		netDev, netDevArg = getVmnetDev()
 
 		return netDev, netDevArg, nil
 	case "NETGRAPH":
@@ -521,7 +512,7 @@ func (vm *VM) getNetArgs(slot int) ([]string, int) {
 
 		nicItem.NetDev, netDevArg, err = getNetDevTypeArg(nicItem.NetDevType, nicItem.SwitchID, vm.Name)
 		if err != nil {
-			slog.Error("GetTapDev error", "err", err)
+			slog.Error("getNetDevTypeArg error", "err", err)
 
 			return []string{}, slot
 		}
@@ -533,7 +524,7 @@ func (vm *VM) getNetArgs(slot int) ([]string, int) {
 			return []string{}, slot
 		}
 
-		macAddress := GetMac(nicItem, vm)
+		macAddress := getMac(nicItem, vm)
 
 		var macString string
 
@@ -550,7 +541,7 @@ func (vm *VM) getNetArgs(slot int) ([]string, int) {
 	return netArgs, slot
 }
 
-func GetMac(thisNic vmnic.VMNic, thisVM *VM) string {
+func getMac(thisNic vmnic.VMNic, thisVM *VM) string {
 	var macAddress string
 
 	if thisNic.Mac == "AUTO" {
@@ -587,8 +578,8 @@ func GetMac(thisNic vmnic.VMNic, thisVM *VM) string {
 	return macAddress
 }
 
-// GetTapDev returns the netDev (stored in DB) and netDevArg (passed to bhyve) -- both happen to be the same here
-func GetTapDev() (string, string, error) {
+// getTapDev returns the netDev (stored in DB) and netDevArg (passed to bhyve) -- both happen to be the same here
+func getTapDev() (string, string) {
 	freeTapDevFound := false
 
 	var netDevs []string
@@ -596,7 +587,7 @@ func GetTapDev() (string, string, error) {
 	tapDev := ""
 	tapNum := 0
 
-	interfaces, _ := net.Interfaces()
+	interfaces, _ := NetInterfacesFunc()
 	for _, inter := range interfaces {
 		netDevs = append(netDevs, inter.Name)
 	}
@@ -610,11 +601,11 @@ func GetTapDev() (string, string, error) {
 		}
 	}
 
-	return tapDev, tapDev, nil
+	return tapDev, tapDev
 }
 
-// GetVmnetDev returns the netDev (stored in DB) and netDevArg (passed to bhyve) -- both happen to be the same here
-func GetVmnetDev() (string, string, error) {
+// getVmnetDev returns the netDev (stored in DB) and netDevArg (passed to bhyve) -- both happen to be the same here
+func getVmnetDev() (string, string) {
 	freeVmnetDevFound := false
 
 	var netDevs []string
@@ -622,7 +613,7 @@ func GetVmnetDev() (string, string, error) {
 	vmnetDev := ""
 	vmnetNum := 0
 
-	interfaces, _ := net.Interfaces()
+	interfaces, _ := NetInterfacesFunc()
 	for _, inter := range interfaces {
 		netDevs = append(netDevs, inter.Name)
 	}
@@ -636,7 +627,7 @@ func GetVmnetDev() (string, string, error) {
 		}
 	}
 
-	return vmnetDev, vmnetDev, nil
+	return vmnetDev, vmnetDev
 }
 
 func getCom(comDev string, vmName string, num int) ([]string, string) {

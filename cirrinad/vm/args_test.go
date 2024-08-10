@@ -2,6 +2,7 @@ package vm
 
 import (
 	"database/sql"
+	"net"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -1264,4 +1265,100 @@ func Test_getNetTypeArg(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_getTapDev(t *testing.T) {
+	tests := []struct {
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		wantNetDev      string
+		wantNetDevArg   string
+	}{
+		{
+			name:            "noInterfaces",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			wantNetDev:      "tap0",
+			wantNetDevArg:   "tap0",
+		},
+		{
+			name:            "oneTap",
+			hostIntStubFunc: StubHostInterfacesSuccess2,
+			wantNetDev:      "tap1",
+			wantNetDevArg:   "tap1",
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { NetInterfacesFunc = net.Interfaces })
+
+			getNetDev, gotNetDevArg := getTapDev()
+			if getNetDev != testCase.wantNetDev {
+				t.Errorf("getTapDev() got = %v, want %v", getNetDev, testCase.wantNetDev)
+			}
+
+			if gotNetDevArg != testCase.wantNetDevArg {
+				t.Errorf("getTapDev() got1 = %v, want %v", gotNetDevArg, testCase.wantNetDevArg)
+			}
+		})
+	}
+}
+
+func StubHostInterfacesSuccess1() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "abc0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "def0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+	}, nil
+}
+
+func StubHostInterfacesSuccess2() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "tap0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "def0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+	}, nil
 }
