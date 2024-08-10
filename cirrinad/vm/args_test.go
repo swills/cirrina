@@ -1205,3 +1205,63 @@ func Test_addProtectArgs(t *testing.T) {
 		})
 	}
 }
+
+func Test_getNetTypeArg(t *testing.T) {
+	type args struct {
+		netType string
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "virtionet",
+			args: args{
+				netType: "VIRTIONET",
+			},
+			want:    "virtio-net",
+			wantErr: false,
+		},
+		{
+			name: "e1000",
+			args: args{
+				netType: "E1000",
+			},
+			want:    "e1000",
+			wantErr: false,
+		},
+		{
+			name: "junk",
+			args: args{
+				netType: "someJunk",
+			},
+			want:    "",
+			wantErr: true,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := getNetTypeArg(testCase.args.netType)
+
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("getNetTypeArg() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("getNetTypeArg() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
