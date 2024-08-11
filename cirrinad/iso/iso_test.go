@@ -233,6 +233,17 @@ func TestGetByID(t *testing.T) {
 			want:    nil,
 			wantErr: true,
 		},
+		{
+			name: "fail3",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				Instance = &Singleton{ // prevents parallel testing
+					ISODB: testDB,
+				}
+			},
+			args:    args{id: ""},
+			want:    nil,
+			wantErr: true,
+		},
 	}
 
 	for _, testCase := range tests {

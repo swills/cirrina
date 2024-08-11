@@ -125,12 +125,16 @@ func GetAll() []*ISO {
 	return result
 }
 
-func GetByID(id string) (*ISO, error) {
+func GetByID(isoID string) (*ISO, error) {
+	if isoID == "" {
+		return nil, errIsoIDEmptyOrInvalid
+	}
+
 	var result *ISO
 
 	db := GetIsoDB()
 
-	res := db.Limit(1).Find(&result, "id = ?", id)
+	res := db.Limit(1).Find(&result, "id = ?", isoID)
 	if res.Error != nil {
 		return nil, res.Error
 	}
