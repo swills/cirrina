@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"net"
+	"strings"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -2673,6 +2674,206 @@ func TestVM_getDiskArg(t *testing.T) {
 			err = mock.ExpectationsWereMet()
 			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest
+func TestVM_getSoundArg(t *testing.T) {
+	type fields struct {
+		Config Config
+	}
+
+	type args struct {
+		slot int
+	}
+
+	tests := []struct {
+		name        string
+		fields      fields
+		args        args
+		wantArgs    []string
+		wantSlot    int
+		wantPath    bool
+		wantPathErr bool
+	}{
+		{
+			name: "NoSound",
+			fields: fields{
+				Config: Config{
+					Sound:    false,
+					SoundIn:  "/dev/dsp40",
+					SoundOut: "/dev/dsp41",
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantArgs: []string{},
+			wantSlot: 3,
+		},
+		{
+			name: "YesSound",
+			fields: fields{
+				Config: Config{
+					Sound:    true,
+					SoundIn:  "/dev/dsp42",
+					SoundOut: "/dev/dsp43",
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantArgs:    []string{"-s", "3,hda,play=/dev/dsp43,rec=/dev/dsp42"},
+			wantSlot:    4,
+			wantPathErr: false,
+			wantPath:    true,
+		},
+		{
+			name: "YesSoundOutNonexistent",
+			fields: fields{
+				Config: Config{
+					Sound:    true,
+					SoundIn:  "/dev/dsp44",
+					SoundOut: "/dev/dsp45",
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantArgs:    []string{"-s", "3,hda,rec=/dev/dsp44"},
+			wantSlot:    4,
+			wantPathErr: false,
+			wantPath:    true,
+		},
+		{
+			name: "YesSoundInNonexistent",
+			fields: fields{
+				Config: Config{
+					Sound:    true,
+					SoundIn:  "/dev/dsp45",
+					SoundOut: "/dev/dsp44",
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantArgs:    []string{"-s", "3,hda,play=/dev/dsp44"},
+			wantSlot:    4,
+			wantPathErr: false,
+			wantPath:    true,
+		},
+		{
+			name: "YesSoundBothNonexistent",
+			fields: fields{
+				Config: Config{
+					Sound:    true,
+					SoundIn:  "/dev/dsp46",
+					SoundOut: "/dev/dsp47",
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantArgs:    nil,
+			wantSlot:    3,
+			wantPathErr: false,
+			wantPath:    false,
+		},
+		{
+			name: "YesSoundOutExistError",
+			fields: fields{
+				Config: Config{
+					Sound:    true,
+					SoundIn:  "/dev/dsp46",
+					SoundOut: "/dev/dsp48",
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantArgs:    nil,
+			wantSlot:    3,
+			wantPathErr: false,
+			wantPath:    false,
+		},
+		{
+			name: "YesSoundInExistError",
+			fields: fields{
+				Config: Config{
+					Sound:    true,
+					SoundIn:  "/dev/dsp48",
+					SoundOut: "/dev/dsp46",
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantArgs:    nil,
+			wantSlot:    3,
+			wantPathErr: false,
+			wantPath:    false,
+		},
+		{
+			name: "YesSoundBothExistError",
+			fields: fields{
+				Config: Config{
+					Sound:    true,
+					SoundIn:  "/dev/dsp49",
+					SoundOut: "/dev/dsp49",
+				},
+			},
+			args: args{
+				slot: 3,
+			},
+			wantArgs:    nil,
+			wantSlot:    3,
+			wantPathErr: true,
+			wantPath:    false,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			testVM := &VM{
+				Config: testCase.fields.Config,
+			}
+
+			pathExistsFunc = func(testPath string) (bool, error) {
+				if testCase.wantPathErr {
+					return true, errors.New("another error") //nolint:goerr113
+				}
+
+				if strings.Contains(testPath, "dsp48") {
+					return false, errors.New("sound error") //nolint:goerr113
+				}
+
+				if strings.Contains(testPath, "dsp45") {
+					return false, nil
+				}
+
+				if testCase.wantPath {
+					return true, nil
+				}
+
+				return false, nil
+			}
+
+			t.Cleanup(func() { pathExistsFunc = util.PathExists })
+
+			gotArgs, gotSlot := testVM.getSoundArg(testCase.args.slot)
+
+			diff := deep.Equal(gotArgs, testCase.wantArgs)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			diff = deep.Equal(gotSlot, testCase.wantSlot)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}

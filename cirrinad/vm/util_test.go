@@ -1059,6 +1059,8 @@ func Test_ensureComDevReadable(t *testing.T) {
 				return false, nil
 			}
 
+			t.Cleanup(func() { pathExistsFunc = util.PathExists })
+
 			//nolint:nestif
 			statFunc = func(_ string) (fs.FileInfo, error) {
 				if testCase.wantStatErr {

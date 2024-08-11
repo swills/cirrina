@@ -324,35 +324,39 @@ func (vm *VM) getSoundArg(slot int) ([]string, int) {
 
 	var soundString string
 
-	inPathExists, err := util.PathExists(vm.Config.SoundIn)
-	if err != nil {
-		slog.Error("sound input check error", "err", err)
+	inPathExists, inErr := pathExistsFunc(vm.Config.SoundIn)
+	if inErr != nil {
+		slog.Error("sound input check error", "err", inErr)
 	}
 
-	outPathExists, err := util.PathExists(vm.Config.SoundIn)
-	if err != nil {
-		slog.Error("sound output check error", "err", err)
+	outPathExists, outErr := pathExistsFunc(vm.Config.SoundOut)
+	if outErr != nil {
+		slog.Error("sound output check error", "err", outErr)
 	}
 
-	if inPathExists || outPathExists {
-		soundString = ",hda"
-		if outPathExists {
-			soundString = soundString + ",play=" + vm.Config.SoundOut
-		} else {
-			slog.Debug("sound output path does not exist", "path", vm.Config.SoundOut)
-		}
-
-		if inPathExists {
-			soundString = soundString + ",rec=" + vm.Config.SoundIn
-		} else {
-			slog.Debug("sound input path does not exist", "path", vm.Config.SoundIn)
-		}
+	if !inPathExists && !outPathExists {
+		return soundArg, slot
 	}
 
-	soundArg = []string{"-s", strconv.Itoa(slot) + soundString}
-	slot++
+	if inErr != nil && outErr != nil {
+		return soundArg, slot
+	}
 
-	return soundArg, slot
+	soundString = ",hda"
+
+	if outPathExists && outErr == nil {
+		soundString = soundString + ",play=" + vm.Config.SoundOut
+	} else {
+		slog.Debug("sound output path does not exist", "path", vm.Config.SoundOut)
+	}
+
+	if inPathExists && inErr == nil {
+		soundString = soundString + ",rec=" + vm.Config.SoundIn
+	} else {
+		slog.Debug("sound input path does not exist", "path", vm.Config.SoundIn)
+	}
+
+	return []string{"-s", strconv.Itoa(slot) + soundString}, slot + 1
 }
 
 func (vm *VM) getUTCArg() []string {
