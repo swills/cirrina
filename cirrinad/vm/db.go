@@ -233,6 +233,10 @@ func CacheInit() {
 func getIsosForVM(vmID string, vmDB *gorm.DB) ([]*iso.ISO, error) {
 	var returnISOs []*iso.ISO
 
+	if vmID == "" {
+		return returnISOs, errVMIDEmptyOrInvalid
+	}
+
 	res := vmDB.Table("vm_isos").Select([]string{"vm_id", "iso_id", "position"}).
 		Where("vm_id LIKE ?", vmID).Order("position")
 
@@ -279,6 +283,8 @@ func getIsosForVM(vmID string, vmDB *gorm.DB) ([]*iso.ISO, error) {
 		thisVMIso, err = iso.GetByID(vmISOsIsoID)
 		if err != nil {
 			slog.Error("error looking up VM ISO", "err", err)
+
+			continue
 		}
 
 		returnISOs = append(returnISOs, thisVMIso)
@@ -289,6 +295,10 @@ func getIsosForVM(vmID string, vmDB *gorm.DB) ([]*iso.ISO, error) {
 
 func getDisksForVM(vmID string, vmDB *gorm.DB) ([]*disk.Disk, error) {
 	var returnDisks []*disk.Disk
+
+	if vmID == "" {
+		return returnDisks, errVMIDEmptyOrInvalid
+	}
 
 	res := vmDB.Table("vm_disks").Select([]string{"vm_id", "disk_id", "position"}).
 		Where("vm_id LIKE ?", vmID).Order("position")
@@ -336,6 +346,8 @@ func getDisksForVM(vmID string, vmDB *gorm.DB) ([]*disk.Disk, error) {
 		thisVMDisk, err = disk.GetByID(vmDisksDiskID)
 		if err != nil {
 			slog.Error("error looking up VM Disk", "err", err)
+
+			continue
 		}
 
 		returnDisks = append(returnDisks, thisVMDisk)

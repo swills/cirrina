@@ -23,11 +23,12 @@ var (
 )
 
 var (
-	errVMInvalidName    = errors.New("invalid name")
-	errVMInternalDB     = errors.New("internal VM database error")
-	errVMNotStopped     = errors.New("VM must be stopped first")
-	errVMAlreadyStopped = errors.New("VM already stopped")
-	errVMStopFail       = errors.New("stop failed")
+	errVMInvalidName      = errors.New("invalid name")
+	errVMInternalDB       = errors.New("internal VM database error")
+	errVMNotStopped       = errors.New("VM must be stopped first")
+	errVMAlreadyStopped   = errors.New("VM already stopped")
+	errVMStopFail         = errors.New("stop failed")
+	errVMIDEmptyOrInvalid = errors.New("VM ID not specified or invalid")
 )
 
 var errVMSwitchNICMismatch = errors.New("bridge/interface type mismatch")
