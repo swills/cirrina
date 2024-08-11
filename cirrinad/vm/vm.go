@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sync"
 	"syscall"
 	"time"
@@ -259,7 +260,11 @@ func Create(vmInst *VM) error {
 func (vm *VM) Save() error {
 	vmDB := GetVMDB()
 
-	if vm.ID == "" || vm.Config.ID == 0 {
+	if vm == nil || vm.ID == "" || vm.Config.ID == 0 {
+		return errVMInternalDB
+	}
+
+	if slices.Contains(vm.ISOs, nil) || slices.Contains(vm.Disks, nil) {
 		return errVMInternalDB
 	}
 
@@ -365,17 +370,22 @@ func (vm *VM) Save() error {
 
 	// add all new isos to vm
 	err := vmDB.Transaction(func(txDB *gorm.DB) error {
-		for i, vmISO := range vm.ISOs {
+		position := 0
+
+		for _, vmISO := range vm.ISOs {
+			// this can only happen if another go-routine modified the VM after we checked above
 			if vmISO == nil {
 				continue
 			}
 			// N.B.: must use txDB here, not vmDB
-			res = txDB.Exec("INSERT INTO `vm_isos` (`vm_id`,`iso_id`, `position`) VALUES (?,?,?)", vm.ID, vmISO.ID, i)
+			res = txDB.Exec("INSERT INTO `vm_isos` (`vm_id`,`iso_id`, `position`) VALUES (?,?,?)", vm.ID, vmISO.ID, position)
 			if res.Error != nil || res.RowsAffected != 1 {
 				slog.Error("error adding to vm_isos", "res.Error", res.Error)
 
 				return fmt.Errorf("error updating VM: %w", res.Error)
 			}
+
+			position++
 		}
 
 		return nil
@@ -396,17 +406,22 @@ func (vm *VM) Save() error {
 
 	// add all new disks to vm
 	err = vmDB.Transaction(func(txDB *gorm.DB) error {
-		for i, vmDisk := range vm.Disks {
+		position := 0
+
+		for _, vmDisk := range vm.Disks {
+			// this can only happen if another go-routine modified the VM after we checked above
 			if vmDisk == nil {
 				continue
 			}
 			// N.B.: must use txDB here, not vmDB
-			res = txDB.Exec("INSERT INTO `vm_disks` (`vm_id`,`disk_id`, `position`) VALUES (?,?,?)", vm.ID, vmDisk.ID, i)
+			res = txDB.Exec("INSERT INTO `vm_disks` (`vm_id`,`disk_id`, `position`) VALUES (?,?,?)", vm.ID, vmDisk.ID, position)
 			if res.Error != nil || res.RowsAffected != 1 {
 				slog.Error("error adding to vm_disks", "res.Error", res.Error)
 
 				return fmt.Errorf("error updating VM: %w", res.Error)
 			}
+
+			position++
 		}
 
 		return nil
