@@ -1773,3 +1773,70 @@ func TestDisk_VerifyExists(t *testing.T) {
 		})
 	}
 }
+
+func TestDisk_initOneDisk(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type fields struct {
+		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		Name        string
+		Description string
+		Type        string
+		DevType     string
+		DiskCache   sql.NullBool
+		DiskDirect  sql.NullBool
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+	}{
+		{
+			name: "Success",
+			fields: fields{
+				ID:          "73b99544-6950-4456-b762-fc940b79018e",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				Name:        "test2024081102_hd0",
+				Description: "test disk",
+				Type:        "NVME",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  true,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(_ *testing.T) {
+			testDisk := &Disk{
+				ID:          testCase.fields.ID,
+				CreatedAt:   testCase.fields.CreatedAt,
+				UpdatedAt:   testCase.fields.UpdatedAt,
+				Name:        testCase.fields.Name,
+				Description: testCase.fields.Description,
+				Type:        testCase.fields.Type,
+				DevType:     testCase.fields.DevType,
+				DiskCache:   testCase.fields.DiskCache,
+				DiskDirect:  testCase.fields.DiskDirect,
+			}
+			testDisk.initOneDisk()
+		})
+	}
+}
+
+func TestDisk_initOneDiskNil(t *testing.T) {
+	var testDisk *Disk
+
+	t.Run("initOneDiskNil", func(_ *testing.T) {
+		testDisk.initOneDisk()
+	})
+}

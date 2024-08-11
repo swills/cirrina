@@ -225,7 +225,7 @@ func GetAllDB() []*Disk {
 	return result
 }
 
-// GetByID lookup disk by ID from in memory disk list
+// GetByID lookup disk by ID from in-memory disk list
 func GetByID(diskID string) (*Disk, error) {
 	if diskID == "" {
 		return nil, errDiskIDEmptyOrInvalid
@@ -349,5 +349,9 @@ func (d *Disk) Unlock() {
 // initOneDisk initializes and adds a Disk to the in memory cache of Disks
 // note, callers must lock the in memory cache via List.Mu.Lock()
 func (d *Disk) initOneDisk() {
+	if d == nil {
+		return
+	}
+
 	List.DiskList[d.ID] = d
 }
