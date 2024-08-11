@@ -2503,6 +2503,20 @@ func TestGetFreeTCPPort(t *testing.T) {
 			want:        7903,
 			wantErr:     false,
 		},
+		{
+			name:        "Fail1",
+			mockCmdFunc: "TestGetFreeTCPPortFail1",
+			args:        args{firstVncPort: 7900, usedVncPorts: []int{7901, 7902}},
+			want:        0,
+			wantErr:     true,
+		},
+		{
+			name:        "Fail2",
+			mockCmdFunc: "TestGetFreeTCPPortFail2",
+			args:        args{firstVncPort: 7900, usedVncPorts: []int{7901, 7902}},
+			want:        0,
+			wantErr:     true,
+		},
 	}
 
 	for _, testCase := range tests {
@@ -2699,5 +2713,22 @@ func TestGetFreeTCPPortSuccess1(_ *testing.T) {
 	}
 
 	fmt.Print(string(goodOutput)) //nolint:forbidigo
+	os.Exit(0)
+}
+
+func TestGetFreeTCPPortFail1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(1)
+}
+
+func TestGetFreeTCPPortFail2(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	fmt.Print("{ not a json parsable string") //nolint:forbidigo
 	os.Exit(0)
 }
