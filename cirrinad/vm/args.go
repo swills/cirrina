@@ -21,6 +21,7 @@ import (
 
 var getHostMaxVMCpusFunc = util.GetHostMaxVMCpus
 var NetInterfacesFunc = net.Interfaces
+var GetFreeTCPPortFunc = util.GetFreeTCPPort
 
 type MacHashData struct {
 	VMID    string
@@ -286,7 +287,7 @@ func (vm *VM) getDebugArg() []string {
 	if vm.Config.DebugPort == "AUTO" {
 		usedDebugPorts := getUsedDebugPorts()
 
-		debugListenPortInt, err = util.GetFreeTCPPort(int(firstDebugPort), usedDebugPorts)
+		debugListenPortInt, err = GetFreeTCPPortFunc(int(firstDebugPort), usedDebugPorts)
 		if err != nil {
 			return []string{}
 		}
@@ -407,7 +408,7 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 	if vm.Config.VNCPort == "AUTO" {
 		usedVncPorts := getUsedVncPorts()
 
-		vncListenPortInt, err = util.GetFreeTCPPort(int(firstVncPort), usedVncPorts)
+		vncListenPortInt, err = GetFreeTCPPortFunc(int(firstVncPort), usedVncPorts)
 		if err != nil {
 			return []string{}, slot
 		}

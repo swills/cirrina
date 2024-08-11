@@ -6,8 +6,10 @@ import (
 	"net"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-test/deep"
+	"gorm.io/gorm"
 
 	"cirrina/cirrinad/cirrinadtest"
 	"cirrina/cirrinad/config"
@@ -2872,6 +2874,154 @@ func TestVM_getSoundArg(t *testing.T) {
 			}
 
 			diff = deep.Equal(gotSlot, testCase.wantSlot)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest
+func TestVM_getDebugArg(t *testing.T) {
+	type fields struct {
+		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		DeletedAt   gorm.DeletedAt
+		Name        string
+		Description string
+		Status      StatusType
+		BhyvePid    uint32
+		VNCPort     int32
+		DebugPort   int32
+		Config      Config
+		ISOs        []*iso.ISO
+		Disks       []*disk.Disk
+		Com1Dev     string
+		Com2Dev     string
+		Com3Dev     string
+		Com4Dev     string
+		Com1write   bool
+		Com2write   bool
+		Com3write   bool
+		Com4write   bool
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		want   []string
+	}{
+		{
+			name: "Success",
+			fields: fields{
+				ID:        "",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
+				},
+				Name:        "",
+				Description: "",
+				Status:      "",
+				BhyvePid:    0,
+				VNCPort:     0,
+				DebugPort:   0,
+				Config: Config{
+					Model: gorm.Model{
+						ID:        0,
+						CreatedAt: time.Time{},
+						UpdatedAt: time.Time{},
+						DeletedAt: gorm.DeletedAt{
+							Time:  time.Time{},
+							Valid: false,
+						},
+					},
+					VMID:             "",
+					CPU:              0,
+					Mem:              0,
+					MaxWait:          0,
+					Restart:          false,
+					RestartDelay:     0,
+					Screen:           false,
+					ScreenWidth:      0,
+					ScreenHeight:     0,
+					VNCWait:          false,
+					VNCPort:          "",
+					Tablet:           false,
+					StoreUEFIVars:    false,
+					UTCTime:          false,
+					HostBridge:       false,
+					ACPI:             false,
+					UseHLT:           false,
+					ExitOnPause:      false,
+					WireGuestMem:     false,
+					DestroyPowerOff:  false,
+					IgnoreUnknownMSR: false,
+					KbdLayout:        "",
+					AutoStart:        false,
+					Sound:            false,
+					SoundIn:          "",
+					SoundOut:         "",
+					Com1:             false,
+					Com1Dev:          "",
+					Com1Log:          false,
+					Com2:             false,
+					Com2Dev:          "",
+					Com2Log:          false,
+					Com3:             false,
+					Com3Dev:          "",
+					Com3Log:          false,
+					Com4:             false,
+					Com4Dev:          "",
+					Com4Log:          false,
+					ExtraArgs:        "",
+					Com1Speed:        0,
+					Com2Speed:        0,
+					Com3Speed:        0,
+					Com4Speed:        0,
+					AutoStartDelay:   0,
+					Debug:            true,
+					DebugWait:        false,
+					DebugPort:        "4444",
+				},
+			},
+			want: []string{"-G", ":4444"},
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			testVM := &VM{
+				ID:          testCase.fields.ID,
+				CreatedAt:   testCase.fields.CreatedAt,
+				UpdatedAt:   testCase.fields.UpdatedAt,
+				DeletedAt:   testCase.fields.DeletedAt,
+				Name:        testCase.fields.Name,
+				Description: testCase.fields.Description,
+				Status:      testCase.fields.Status,
+				BhyvePid:    testCase.fields.BhyvePid,
+				VNCPort:     testCase.fields.VNCPort,
+				DebugPort:   testCase.fields.DebugPort,
+				Config:      testCase.fields.Config,
+				ISOs:        testCase.fields.ISOs,
+				Disks:       testCase.fields.Disks,
+				Com1Dev:     testCase.fields.Com1Dev,
+				Com2Dev:     testCase.fields.Com2Dev,
+				Com3Dev:     testCase.fields.Com3Dev,
+				Com4Dev:     testCase.fields.Com4Dev,
+				Com1write:   testCase.fields.Com1write,
+				Com2write:   testCase.fields.Com2write,
+				Com3write:   testCase.fields.Com3write,
+				Com4write:   testCase.fields.Com4write,
+			}
+
+			got := testVM.getDebugArg()
+
+			diff := deep.Equal(got, testCase.want)
 			if diff != nil {
 				t.Errorf("compare failed: %v", diff)
 			}
