@@ -579,7 +579,7 @@ func (vm *VM) Stop() error {
 }
 
 func (vm *VM) BhyvectlDestroy() {
-	ex, err := util.PathExists("/dev/vmm/" + vm.Name)
+	ex, err := pathExistsFunc("/dev/vmm/" + vm.Name)
 	if err != nil {
 		return
 	}

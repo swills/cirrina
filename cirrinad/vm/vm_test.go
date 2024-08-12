@@ -1,7 +1,10 @@
 package vm
 
 import (
+	"errors"
+	"os"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,6 +14,7 @@ import (
 	"cirrina/cirrinad/cirrinadtest"
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
+	"cirrina/cirrinad/util"
 )
 
 //nolint:paralleltest,maintidx
@@ -1217,4 +1221,121 @@ func TestVM_Save(t *testing.T) {
 			}
 		})
 	}
+}
+
+//nolint:paralleltest
+func TestVM_BhyvectlDestroy(t *testing.T) {
+	type fields struct {
+		Name string
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		fields      fields
+		wantPath    bool
+		wantPathErr bool
+	}{
+		{
+			name:        "Success",
+			mockCmdFunc: "TestVM_BhyvectlDestroySuccess",
+			fields: fields{
+				Name: "untangledVM",
+			},
+			wantPath: true,
+		},
+		{
+			name:        "NoPath",
+			mockCmdFunc: "TestVM_BhyvectlDestroySuccess",
+			fields: fields{
+				Name: "untangledVM",
+			},
+			wantPath: false,
+		},
+		{
+			name:        "PathErr",
+			mockCmdFunc: "TestVM_BhyvectlDestroySuccess",
+			fields: fields{
+				Name: "untangledVM",
+			},
+			wantPathErr: true,
+		},
+		{
+			name:        "ExecErr",
+			mockCmdFunc: "TestVM_BhyvectlDestroyError",
+			fields: fields{
+				Name: "untangledVM",
+			},
+			wantPath: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			pathExistsFunc = func(testPath string) (bool, error) {
+				if testCase.wantPathErr {
+					return true, errors.New("another error") //nolint:goerr113
+				}
+
+				if strings.Contains(testPath, "dsp48") {
+					return false, errors.New("sound error") //nolint:goerr113
+				}
+
+				if strings.Contains(testPath, "dsp45") {
+					return false, nil
+				}
+
+				if testCase.wantPath {
+					return true, nil
+				}
+
+				return false, nil
+			}
+
+			t.Cleanup(func() { pathExistsFunc = util.PathExists })
+
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			testVM := &VM{
+				Name: testCase.fields.Name,
+			}
+			testVM.BhyvectlDestroy()
+		})
+	}
+}
+
+// test helpers from here down
+
+//nolint:paralleltest
+func TestVM_BhyvectlDestroySuccess(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/usr/sbin/bhyvectl" && cmdWithArgs[2] == "--destroy" {
+		os.Exit(0)
+	}
+
+	os.Exit(1)
+}
+
+//nolint:paralleltest
+func TestVM_BhyvectlDestroyError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/usr/sbin/bhyvectl" && cmdWithArgs[2] == "--destroy" {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
 }
