@@ -4006,6 +4006,538 @@ func Test_getNetDevTypeArg(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest,maintidx
+func TestVM_getNetArgs(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type fields struct {
+		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		DeletedAt   gorm.DeletedAt
+		Name        string
+		Description string
+		Status      StatusType
+		BhyvePid    uint32
+		VNCPort     int32
+		DebugPort   int32
+		Config      Config
+		ISOs        []*iso.ISO
+		Disks       []*disk.Disk
+		Com1Dev     string
+		Com2Dev     string
+		Com3Dev     string
+		Com4Dev     string
+		Com1write   bool
+		Com2write   bool
+		Com3write   bool
+		Com4write   bool
+	}
+
+	type args struct {
+		slot int
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		fields      fields
+		args        args
+		wantNetArgs []string
+		wantSlot    int
+	}{
+		{
+			name: "noNics",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WithArgs(226).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"mac",
+						"net_type",
+						"net_dev_type",
+						"switch_id",
+						"net_dev",
+						"rate_limit",
+						"rate_in",
+						"rate_out",
+						"inst_bridge",
+						"inst_epair",
+						"config_id",
+					}))
+			},
+			fields: fields{
+				ID:          "1324e9c6-cc63-4f53-9a16-6fc74b0b24d5",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				Name:        "sundayVM",
+				Description: "a test VM created on a sunday",
+				Status:      "STOPPED",
+				Config: Config{
+					Model: gorm.Model{
+						ID:        226,
+						CreatedAt: time.Time{},
+						UpdatedAt: time.Time{},
+						DeletedAt: gorm.DeletedAt{
+							Time:  time.Time{},
+							Valid: false,
+						},
+					},
+					VMID: "1324e9c6-cc63-4f53-9a16-6fc74b0b24d5",
+					CPU:  2,
+					Mem:  2048,
+				},
+			},
+			args: args{
+				slot: 4,
+			},
+			wantNetArgs: nil,
+			wantSlot:    4,
+		},
+		{
+			name: "oneNic",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WithArgs(226).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"mac",
+						"net_type",
+						"net_dev_type",
+						"switch_id",
+						"net_dev",
+						"rate_limit",
+						"rate_in",
+						"rate_out",
+						"inst_bridge",
+						"inst_epair",
+						"config_id",
+					}).
+						AddRow(
+							"375ab4fb-a829-432a-bb58-ba38aa76498a",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"aSundayNic",
+							"a cool description of a sunday evening NIC",
+							"00:11:22:55:44:33",
+							"VIRTIONET",
+							"TAP",
+							"a81d4b08-3912-4831-8965-9e70ce4321f1",
+							"",
+							false,
+							0,
+							0,
+							nil,
+							nil,
+							226,
+						))
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(226, "a cool description of a sunday evening NIC", "", "", "00:11:22:55:44:33", "aSundayNic", "tap0", "TAP", //nolint:lll
+						"VIRTIONET", 0, false, 0, "a81d4b08-3912-4831-8965-9e70ce4321f1", sqlmock.AnyArg(),
+						"375ab4fb-a829-432a-bb58-ba38aa76498a").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			fields: fields{
+				ID:          "1324e9c6-cc63-4f53-9a16-6fc74b0b24d5",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				Name:        "sundayVM",
+				Description: "a test VM created on a sunday",
+				Status:      "STOPPED",
+				Config: Config{
+					Model: gorm.Model{
+						ID:        226,
+						CreatedAt: time.Time{},
+						UpdatedAt: time.Time{},
+						DeletedAt: gorm.DeletedAt{
+							Time:  time.Time{},
+							Valid: false,
+						},
+					},
+					VMID: "1324e9c6-cc63-4f53-9a16-6fc74b0b24d5",
+					CPU:  2,
+					Mem:  2048,
+				},
+			},
+			args: args{
+				slot: 4,
+			},
+			wantNetArgs: []string{"-s", "4,virtio-net,tap0,mac=00:11:22:55:44:33"},
+			wantSlot:    5,
+		},
+		{
+			name: "saveError",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WithArgs(226).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"mac",
+						"net_type",
+						"net_dev_type",
+						"switch_id",
+						"net_dev",
+						"rate_limit",
+						"rate_in",
+						"rate_out",
+						"inst_bridge",
+						"inst_epair",
+						"config_id",
+					}).
+						AddRow(
+							"375ab4fb-a829-432a-bb58-ba38aa76498a",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"aSundayNic",
+							"a cool description of a sunday evening NIC",
+							"00:11:22:55:44:33",
+							"VIRTIONET",
+							"TAP",
+							"a81d4b08-3912-4831-8965-9e70ce4321f1",
+							"",
+							false,
+							0,
+							0,
+							nil,
+							nil,
+							226,
+						))
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(226, "a cool description of a sunday evening NIC", "", "", "00:11:22:55:44:33", "aSundayNic", "tap0", "TAP", //nolint:lll
+						"VIRTIONET", 0, false, 0, "a81d4b08-3912-4831-8965-9e70ce4321f1", sqlmock.AnyArg(),
+						"375ab4fb-a829-432a-bb58-ba38aa76498a").
+					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
+			},
+			fields: fields{
+				ID:          "1324e9c6-cc63-4f53-9a16-6fc74b0b24d5",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				Name:        "sundayVM",
+				Description: "a test VM created on a sunday",
+				Status:      "STOPPED",
+				Config: Config{
+					Model: gorm.Model{
+						ID:        226,
+						CreatedAt: time.Time{},
+						UpdatedAt: time.Time{},
+						DeletedAt: gorm.DeletedAt{
+							Time:  time.Time{},
+							Valid: false,
+						},
+					},
+					VMID: "1324e9c6-cc63-4f53-9a16-6fc74b0b24d5",
+					CPU:  2,
+					Mem:  2048,
+				},
+			},
+			args: args{
+				slot: 4,
+			},
+			wantNetArgs: []string{},
+			wantSlot:    4,
+		},
+		{
+			name: "getNetDevTypeArgError",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WithArgs(226).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"mac",
+						"net_type",
+						"net_dev_type",
+						"switch_id",
+						"net_dev",
+						"rate_limit",
+						"rate_in",
+						"rate_out",
+						"inst_bridge",
+						"inst_epair",
+						"config_id",
+					}).
+						AddRow(
+							"375ab4fb-a829-432a-bb58-ba38aa76498a",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"aSundayNic",
+							"a cool description of a sunday evening NIC",
+							"00:11:22:55:44:33",
+							"VIRTIONET",
+							"junk",
+							"a81d4b08-3912-4831-8965-9e70ce4321f1",
+							"",
+							false,
+							0,
+							0,
+							nil,
+							nil,
+							226,
+						))
+			},
+			fields: fields{
+				ID:          "1324e9c6-cc63-4f53-9a16-6fc74b0b24d5",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				Name:        "sundayVM",
+				Description: "a test VM created on a sunday",
+				Status:      "STOPPED",
+				Config: Config{
+					Model: gorm.Model{
+						ID:        226,
+						CreatedAt: time.Time{},
+						UpdatedAt: time.Time{},
+						DeletedAt: gorm.DeletedAt{
+							Time:  time.Time{},
+							Valid: false,
+						},
+					},
+					VMID: "1324e9c6-cc63-4f53-9a16-6fc74b0b24d5",
+					CPU:  2,
+					Mem:  2048,
+				},
+			},
+			args: args{
+				slot: 4,
+			},
+			wantNetArgs: []string{},
+			wantSlot:    4,
+		},
+		{
+			name: "getNetTypeArgError",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WithArgs(226).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"mac",
+						"net_type",
+						"net_dev_type",
+						"switch_id",
+						"net_dev",
+						"rate_limit",
+						"rate_in",
+						"rate_out",
+						"inst_bridge",
+						"inst_epair",
+						"config_id",
+					}).
+						AddRow(
+							"375ab4fb-a829-432a-bb58-ba38aa76498a",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"aSundayNic",
+							"a cool description of a sunday evening NIC",
+							"00:11:22:55:44:33",
+							"junkHere",
+							"TAP",
+							"a81d4b08-3912-4831-8965-9e70ce4321f1",
+							"",
+							false,
+							0,
+							0,
+							nil,
+							nil,
+							226,
+						))
+			},
+			fields: fields{
+				ID:          "1324e9c6-cc63-4f53-9a16-6fc74b0b24d5",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				Name:        "sundayVM",
+				Description: "a test VM created on a sunday",
+				Status:      "STOPPED",
+				Config: Config{
+					Model: gorm.Model{
+						ID:        226,
+						CreatedAt: time.Time{},
+						UpdatedAt: time.Time{},
+						DeletedAt: gorm.DeletedAt{
+							Time:  time.Time{},
+							Valid: false,
+						},
+					},
+					VMID: "1324e9c6-cc63-4f53-9a16-6fc74b0b24d5",
+					CPU:  2,
+					Mem:  2048,
+				},
+			},
+			args: args{
+				slot: 4,
+			},
+			wantNetArgs: []string{},
+			wantSlot:    4,
+		},
+		{
+			name: "getNicsErr",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WithArgs(226).
+					WillReturnError(gorm.ErrInvalidData)
+			},
+			fields: fields{
+				ID:          "1324e9c6-cc63-4f53-9a16-6fc74b0b24d5",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				Name:        "sundayVM",
+				Description: "a test VM created on a sunday",
+				Status:      "STOPPED",
+				Config: Config{
+					Model: gorm.Model{
+						ID:        226,
+						CreatedAt: time.Time{},
+						UpdatedAt: time.Time{},
+						DeletedAt: gorm.DeletedAt{
+							Time:  time.Time{},
+							Valid: false,
+						},
+					},
+					VMID: "1324e9c6-cc63-4f53-9a16-6fc74b0b24d5",
+					CPU:  2,
+					Mem:  2048,
+				},
+			},
+			args: args{
+				slot: 4,
+			},
+			wantNetArgs: []string{},
+			wantSlot:    4,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+
+			testCase.mockClosure(testDB, mock)
+
+			testVM := &VM{
+				ID:          testCase.fields.ID,
+				CreatedAt:   testCase.fields.CreatedAt,
+				UpdatedAt:   testCase.fields.UpdatedAt,
+				DeletedAt:   testCase.fields.DeletedAt,
+				Name:        testCase.fields.Name,
+				Description: testCase.fields.Description,
+				Status:      testCase.fields.Status,
+				BhyvePid:    testCase.fields.BhyvePid,
+				VNCPort:     testCase.fields.VNCPort,
+				DebugPort:   testCase.fields.DebugPort,
+				Config:      testCase.fields.Config,
+				ISOs:        testCase.fields.ISOs,
+				Disks:       testCase.fields.Disks,
+				Com1Dev:     testCase.fields.Com1Dev,
+				Com2Dev:     testCase.fields.Com2Dev,
+				Com3Dev:     testCase.fields.Com3Dev,
+				Com4Dev:     testCase.fields.Com4Dev,
+				Com1write:   testCase.fields.Com1write,
+				Com2write:   testCase.fields.Com2write,
+				Com3write:   testCase.fields.Com3write,
+				Com4write:   testCase.fields.Com4write,
+			}
+
+			gotNetARgs, gotSlot := testVM.getNetArgs(testCase.args.slot)
+
+			diff := deep.Equal(gotNetARgs, testCase.wantNetArgs)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			diff = deep.Equal(gotSlot, testCase.wantSlot)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 func StubHostInterfacesSuccess1() ([]net.Interface, error) {
