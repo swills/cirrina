@@ -3558,6 +3558,154 @@ func TestVM_getVideoArg(t *testing.T) {
 			wantArgs: []string{"-s", "6,fbuf,w=1920,h=1080,tcp=:8901,wait"},
 			wantSlot: 7,
 		},
+		{
+			name: "NoScreen",
+			mockVMClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				Instance = &singleton{ // prevents parallel testing
+					vmDB: testDB,
+				}
+			},
+			mockGetPortFunc: func(_ int, _ []int) (int, error) {
+				return 7901, nil
+			},
+			fields: fields{
+				ID:          "5d9a8fe3-d0aa-430d-bc1b-99f3f0c5eb75",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				Name:        "test2024081103",
+				Description: "test vm",
+				Status:      "STOPPED",
+				Config: Config{
+					Model: gorm.Model{
+						ID:        81,
+						CreatedAt: createUpdateTime,
+						UpdatedAt: createUpdateTime,
+					},
+					VMID:             "5d9a8fe3-d0aa-430d-bc1b-99f3f0c5eb75",
+					CPU:              2,
+					Mem:              2048,
+					MaxWait:          60,
+					Restart:          true,
+					Screen:           false,
+					ScreenWidth:      1920,
+					ScreenHeight:     1080,
+					Sound:            false,
+					SoundIn:          "/dev/dsp0",
+					SoundOut:         "/dev/dsp0",
+					VNCPort:          "AUTO",
+					Tablet:           true,
+					StoreUEFIVars:    true,
+					UTCTime:          true,
+					HostBridge:       true,
+					ACPI:             true,
+					UseHLT:           true,
+					ExitOnPause:      true,
+					DestroyPowerOff:  true,
+					IgnoreUnknownMSR: true,
+					KbdLayout:        "default",
+					Com1:             true,
+					Com1Dev:          "AUTO",
+					Com2Dev:          "AUTO",
+					Com3Dev:          "AUTO",
+					Com4Dev:          "AUTO",
+					Com1Speed:        115200,
+					Com2Speed:        115200,
+					Com3Speed:        115200,
+					Com4Speed:        115200,
+					AutoStartDelay:   60,
+					DebugPort:        "AUTO",
+				},
+				ISOs: []*iso.ISO{
+					{
+						ID: "59445e39-a842-467c-9cb8-4bd4b0a529c7",
+					},
+				},
+				Disks: []*disk.Disk{
+					{
+						ID: "0e7af864-ed45-4256-947e-871f6ba3a3ac",
+					},
+				},
+			},
+			args: args{
+				slot: 6,
+			},
+			wantArgs: []string{},
+			wantSlot: 6,
+		},
+		{
+			name: "GetFreeTCPPortFuncError",
+			mockVMClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				Instance = &singleton{ // prevents parallel testing
+					vmDB: testDB,
+				}
+			},
+			mockGetPortFunc: func(_ int, _ []int) (int, error) {
+				return 0, errors.New("some random error") //nolint:goerr113
+			},
+			fields: fields{
+				ID:          "5d9a8fe3-d0aa-430d-bc1b-99f3f0c5eb75",
+				CreatedAt:   createUpdateTime,
+				UpdatedAt:   createUpdateTime,
+				Name:        "test2024081103",
+				Description: "test vm",
+				Status:      "STOPPED",
+				Config: Config{
+					Model: gorm.Model{
+						ID:        81,
+						CreatedAt: createUpdateTime,
+						UpdatedAt: createUpdateTime,
+					},
+					VMID:             "5d9a8fe3-d0aa-430d-bc1b-99f3f0c5eb75",
+					CPU:              2,
+					Mem:              2048,
+					MaxWait:          60,
+					Restart:          true,
+					Screen:           true,
+					ScreenWidth:      1920,
+					ScreenHeight:     1080,
+					Sound:            false,
+					SoundIn:          "/dev/dsp0",
+					SoundOut:         "/dev/dsp0",
+					VNCPort:          "AUTO",
+					Tablet:           true,
+					StoreUEFIVars:    true,
+					UTCTime:          true,
+					HostBridge:       true,
+					ACPI:             true,
+					UseHLT:           true,
+					ExitOnPause:      true,
+					DestroyPowerOff:  true,
+					IgnoreUnknownMSR: true,
+					KbdLayout:        "default",
+					Com1:             true,
+					Com1Dev:          "AUTO",
+					Com2Dev:          "AUTO",
+					Com3Dev:          "AUTO",
+					Com4Dev:          "AUTO",
+					Com1Speed:        115200,
+					Com2Speed:        115200,
+					Com3Speed:        115200,
+					Com4Speed:        115200,
+					AutoStartDelay:   60,
+					DebugPort:        "AUTO",
+				},
+				ISOs: []*iso.ISO{
+					{
+						ID: "59445e39-a842-467c-9cb8-4bd4b0a529c7",
+					},
+				},
+				Disks: []*disk.Disk{
+					{
+						ID: "0e7af864-ed45-4256-947e-871f6ba3a3ac",
+					},
+				},
+			},
+			args: args{
+				slot: 6,
+			},
+			wantArgs: []string{},
+			wantSlot: 6,
+		},
 	}
 
 	for _, testCase := range tests {
