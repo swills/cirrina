@@ -3,7 +3,9 @@ package vm
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"net"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -17,6 +19,7 @@ import (
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
+	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vmnic"
 )
@@ -3775,6 +3778,230 @@ func TestVM_getVideoArg(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
+func Test_getNetDevTypeArg(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		netDevType string
+		switchID   string
+		vmName     string
+	}
+
+	tests := []struct {
+		name            string
+		mockCmdFunc     string
+		mockVMClosure   func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		hostIntStubFunc func() ([]net.Interface, error)
+		args            args
+		wantNetDev      string
+		wantNetDevArg   string
+		wantErr         bool
+	}{
+		{
+			name:        "badType",
+			mockCmdFunc: "Test_getNetDevTypeArgSuccess",
+			mockVMClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				Instance = &singleton{ // prevents parallel testing
+					vmDB: testDB,
+				}
+			},
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			args: args{
+				netDevType: "junk",
+				switchID:   "64bdfe13-7f85-4add-9a8c-7a28deb32193",
+				vmName:     "unused",
+			},
+			wantNetDev:    "",
+			wantNetDevArg: "",
+			wantErr:       true,
+		},
+		{
+			name:        "tap",
+			mockCmdFunc: "Test_getNetDevTypeArgSuccess",
+			mockVMClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				Instance = &singleton{ // prevents parallel testing
+					vmDB: testDB,
+				}
+			},
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			args: args{
+				netDevType: "TAP",
+				switchID:   "64bdfe13-7f85-4add-9a8c-7a28deb32193",
+				vmName:     "unused",
+			},
+			wantNetDev:    "tap0",
+			wantNetDevArg: "tap0",
+			wantErr:       false,
+		},
+		{
+			name:        "vmnet",
+			mockCmdFunc: "Test_getNetDevTypeArgSuccess",
+			mockVMClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				Instance = &singleton{ // prevents parallel testing
+					vmDB: testDB,
+				}
+			},
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			args: args{
+				netDevType: "VMNET",
+				switchID:   "64bdfe13-7f85-4add-9a8c-7a28deb32193",
+				vmName:     "unused",
+			},
+			wantNetDev:    "vmnet0",
+			wantNetDevArg: "vmnet0",
+			wantErr:       false,
+		},
+		{
+			name:        "netgraph",
+			mockCmdFunc: "Test_getNetDevTypeArgSuccess",
+			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &singleton{ // prevents parallel testing
+					vmDB: testDB,
+				}
+				_switch.Instance = &_switch.Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("64bdfe13-7f85-4add-9a8c-7a28deb32193").
+					WillReturnRows(sqlmock.NewRows(
+						[]string{
+							"id",
+							"created_at",
+							"updated_at",
+							"deleted_at",
+							"name",
+							"description",
+							"type",
+							"uplink",
+						}).
+						AddRow(
+							"64bdfe13-7f85-4add-9a8c-7a28deb32193",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bnet0",
+							"some ng switch description",
+							"NG",
+							"em0",
+						))
+			},
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			args: args{
+				netDevType: "NETGRAPH",
+				switchID:   "64bdfe13-7f85-4add-9a8c-7a28deb32193",
+				vmName:     "someTestVM",
+			},
+			wantNetDev:    "bnet0,link2",
+			wantNetDevArg: "netgraph,path=bnet0:,peerhook=link2,socket=someTestVM",
+			wantErr:       false,
+		},
+		{
+			name:        "netgraphError",
+			mockCmdFunc: "Test_getNetDevTypeArgError1",
+			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &singleton{ // prevents parallel testing
+					vmDB: testDB,
+				}
+				_switch.Instance = &_switch.Singleton{ // prevents parallel testing
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("64bdfe13-7f85-4add-9a8c-7a28deb32193").
+					WillReturnRows(sqlmock.NewRows(
+						[]string{
+							"id",
+							"created_at",
+							"updated_at",
+							"deleted_at",
+							"name",
+							"description",
+							"type",
+							"uplink",
+						}).
+						AddRow(
+							"64bdfe13-7f85-4add-9a8c-7a28deb32193",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bnet0",
+							"some ng switch description",
+							"NG",
+							"em0",
+						))
+			},
+			hostIntStubFunc: StubHostInterfacesSuccess1,
+			args: args{
+				netDevType: "NETGRAPH",
+				switchID:   "64bdfe13-7f85-4add-9a8c-7a28deb32193",
+				vmName:     "someTestVM",
+			},
+			wantNetDev:    "",
+			wantNetDevArg: "",
+			wantErr:       true,
+		},
+	}
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			testDB, mock := cirrinadtest.NewMockDB("vmTest")
+			testCase.mockVMClosure(testDB, mock)
+
+			gotNetDev, gotNetDevArg, err := getNetDevTypeArg(
+				testCase.args.netDevType, testCase.args.switchID, testCase.args.vmName,
+			)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("getNetDevTypeArg() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if gotNetDev != testCase.wantNetDev {
+				t.Errorf("getNetDevTypeArg() gotNetDev = %v, wantNetDev %v", gotNetDev, testCase.wantNetDev)
+			}
+
+			if gotNetDevArg != testCase.wantNetDevArg {
+				t.Errorf("getNetDevTypeArg() gotNetDevArg = %v, wantNetDevArg %v", gotNetDevArg, testCase.wantNetDevArg)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 func StubHostInterfacesSuccess1() ([]net.Interface, error) {
@@ -3879,4 +4106,30 @@ func StubHostInterfacesSuccess4() ([]net.Interface, error) {
 			Flags:        0x35,
 		},
 	}, nil
+}
+
+//nolint:paralleltest
+func Test_getNetDevTypeArgSuccess(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	ngctlOutput := `  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Local hook      Peer name       Peer type    Peer ID         Peer hook      
+  ----------      ---------       ---------    -------         ---------      
+  link1           em0             ether        00000002        upper          
+  link0           em0             ether        00000002        lower          
+`
+
+	fmt.Print(ngctlOutput) //nolint:forbidigo
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_getNetDevTypeArgError1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(1)
 }
