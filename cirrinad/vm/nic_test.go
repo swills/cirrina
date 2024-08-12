@@ -4115,16 +4115,16 @@ func Test_setupVMNicRateLimitCreateIfBridgeErr(_ *testing.T) {
 
 	cmdWithArgs := os.Args[3:]
 
-	if cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" {
+	if len(cmdWithArgs) >= 3 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "-g" && cmdWithArgs[2] == "bridge" { //nolint:lll
 		fmt.Printf("bridge0\n") //nolint:forbidigo
 		os.Exit(0)
 	}
 
-	if cmdWithArgs[1] == "/usr/sbin/ngctl" {
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/usr/sbin/ngctl" {
 		os.Exit(0)
 	}
 
-	if cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[2] == "create" && cmdWithArgs[3] == "group" && cmdWithArgs[4] == "cirrinad" && cmdWithArgs[5] == "up" { //nolint:lll
+	if len(cmdWithArgs) >= 6 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[2] == "create" && cmdWithArgs[3] == "group" && cmdWithArgs[4] == "cirrinad" && cmdWithArgs[5] == "up" { //nolint:lll
 		os.Exit(1)
 	}
 
