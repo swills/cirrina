@@ -4039,15 +4039,17 @@ func TestVM_getNetArgs(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
-		fields      fields
-		args        args
-		wantNetArgs []string
-		wantSlot    int
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockClosure     func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		fields          fields
+		args            args
+		wantNetArgs     []string
+		wantSlot        int
 	}{
 		{
-			name: "noNics",
+			name:            "noNics",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -4105,7 +4107,8 @@ func TestVM_getNetArgs(t *testing.T) {
 			wantSlot:    4,
 		},
 		{
-			name: "oneNic",
+			name:            "oneNic",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -4192,7 +4195,8 @@ func TestVM_getNetArgs(t *testing.T) {
 			wantSlot:    5,
 		},
 		{
-			name: "saveError",
+			name:            "saveError",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -4279,7 +4283,8 @@ func TestVM_getNetArgs(t *testing.T) {
 			wantSlot:    4,
 		},
 		{
-			name: "getNetDevTypeArgError",
+			name:            "getNetDevTypeArgError",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -4356,7 +4361,8 @@ func TestVM_getNetArgs(t *testing.T) {
 			wantSlot:    4,
 		},
 		{
-			name: "getNetTypeArgError",
+			name:            "getNetTypeArgError",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -4433,7 +4439,8 @@ func TestVM_getNetArgs(t *testing.T) {
 			wantSlot:    4,
 		},
 		{
-			name: "getNicsErr",
+			name:            "getNicsErr",
+			hostIntStubFunc: StubHostInterfacesSuccess1,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -4478,6 +4485,10 @@ func TestVM_getNetArgs(t *testing.T) {
 		testCase := testCase
 
 		t.Run(testCase.name, func(t *testing.T) {
+			NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { NetInterfacesFunc = net.Interfaces })
+
 			testDB, mock := cirrinadtest.NewMockDB("nicTest")
 
 			testCase.mockClosure(testDB, mock)
