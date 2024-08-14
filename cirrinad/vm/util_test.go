@@ -348,6 +348,100 @@ func TestGetByID(t *testing.T) {
 	}
 }
 
+func TestGetByName(t *testing.T) {
+	type args struct {
+		name string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func()
+		args        args
+		want        *VM
+		wantErr     bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func() {
+				testVM := VM{
+					ID:          "bdcabf90-6852-4f81-8084-66bbfd72c3eb",
+					Name:        "someVM",
+					Description: "test description",
+					Status:      "STOPPED",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 3,
+						},
+						VMID: "bdcabf90-6852-4f81-8084-66bbfd72c3eb",
+						CPU:  2,
+						Mem:  2048,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM.ID] = &testVM
+			},
+			args: args{
+				name: "someVM",
+			},
+			want: &VM{
+				ID:          "bdcabf90-6852-4f81-8084-66bbfd72c3eb",
+				Name:        "someVM",
+				Description: "test description",
+				Status:      "STOPPED",
+				Config: Config{
+					Model: gorm.Model{
+						ID: 3,
+					},
+					VMID: "bdcabf90-6852-4f81-8084-66bbfd72c3eb",
+					CPU:  2,
+					Mem:  2048,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "NotFound",
+			mockClosure: func() {
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+			},
+			args: args{
+				name: "someVM",
+			},
+			want:    &VM{},
+			wantErr: true,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mockClosure()
+
+			got, err := GetByName(testCase.args.name)
+
+			t.Parallel()
+
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetByName() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
 //nolint:paralleltest
 func Test_getUsedVncPorts(t *testing.T) {
 	tests := []struct {
