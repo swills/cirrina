@@ -1308,6 +1308,74 @@ func TestVM_BhyvectlDestroy(t *testing.T) {
 	}
 }
 
+func Test_validateVM(t *testing.T) {
+	type args struct {
+		vmInst *VM
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "Success",
+			args: args{
+				vmInst: &VM{
+					ID:          "6066fece-b9e5-4353-9789-79f1fb18fdd0",
+					Name:        "test2024081401",
+					Description: "test vm",
+					Status:      "STOPPED",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 512,
+						},
+						VMID: "6066fece-b9e5-4353-9789-79f1fb18fdd0",
+						CPU:  2,
+						Mem:  2048,
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Error",
+			args: args{
+				vmInst: &VM{
+					ID:          "6066fece-b9e5-4353-9789-79f1fb18fdd0",
+					Name:        "b0gus!name",
+					Description: "test vm",
+					Status:      "STOPPED",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 512,
+						},
+						VMID: "6066fece-b9e5-4353-9789-79f1fb18fdd0",
+						CPU:  2,
+						Mem:  2048,
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			err := validateVM(testCase.args.vmInst)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("validateVM() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 //nolint:paralleltest
