@@ -442,6 +442,298 @@ func TestGetByName(t *testing.T) {
 	}
 }
 
+//nolint:maintidx
+func TestGetRunningVMs(t *testing.T) {
+	tests := []struct {
+		mockClosure func()
+		name        string
+		want        int
+	}{
+		{
+			name: "Zero",
+			mockClosure: func() {
+				testVM := VM{
+					ID:          "bdcabf90-6852-4f81-8084-66bbfd72c3eb",
+					Name:        "someVM",
+					Description: "test description",
+					Status:      "STOPPED",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 3,
+						},
+						VMID: "bdcabf90-6852-4f81-8084-66bbfd72c3eb",
+						CPU:  2,
+						Mem:  2048,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM.ID] = &testVM
+			},
+			want: 0,
+		},
+		{
+			name: "OneOfOne",
+			mockClosure: func() {
+				testVM := VM{
+					ID:          "bdcabf90-6852-4f81-8084-66bbfd72c3eb",
+					Name:        "someVM",
+					Description: "test description",
+					Status:      "RUNNING",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 3,
+						},
+						VMID: "bdcabf90-6852-4f81-8084-66bbfd72c3eb",
+						CPU:  2,
+						Mem:  2048,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM.ID] = &testVM
+			},
+			want: 1,
+		},
+		{
+			name: "OneOfTwo",
+			mockClosure: func() {
+				testVM1 := VM{
+					ID:          "bdcabf90-6852-4f81-8084-66bbfd72c3eb",
+					Name:        "someVM",
+					Description: "test description",
+					Status:      "RUNNING",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 3,
+						},
+						VMID: "bdcabf90-6852-4f81-8084-66bbfd72c3eb",
+						CPU:  2,
+						Mem:  2048,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+
+				testVM2 := VM{
+					ID:          "4320f8fc-3812-4330-8df8-03403c660db3",
+					Name:        "someVM2",
+					Description: "test description",
+					Status:      "STOPPED",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 4,
+						},
+						VMID: "4320f8fc-3812-4330-8df8-03403c660db3",
+						CPU:  2,
+						Mem:  2048,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM1.ID] = &testVM1
+				List.VMList[testVM2.ID] = &testVM2
+			},
+			want: 1,
+		},
+		{
+			name: "SevenOfNine",
+			mockClosure: func() {
+				testVM1 := VM{
+					ID:          "7623016b-b540-4515-9029-92dd63e2479a",
+					Name:        "uhura",
+					Description: "test description",
+					Status:      "RUNNING",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 3,
+						},
+						VMID: "7623016b-b540-4515-9029-92dd63e2479a",
+						CPU:  2,
+						Mem:  2048,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+
+				testVM2 := VM{
+					ID:          "05ffad6b-d10e-4cb1-a360-c64fea373590",
+					Name:        "troi",
+					Description: "test description",
+					Status:      "RUNNING",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 4,
+						},
+						VMID: "05ffad6b-d10e-4cb1-a360-c64fea373590",
+						CPU:  2,
+						Mem:  2048,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+
+				testVM3 := VM{
+					ID:          "5d415336-bb9c-4fee-9229-a02120d8ffcb",
+					Name:        "tasha",
+					Description: "test description",
+					Status:      "RUNNING",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 3,
+						},
+						VMID: "5d415336-bb9c-4fee-9229-a02120d8ffcb",
+						CPU:  2,
+						Mem:  2048,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+
+				testVM4 := VM{
+					ID:          "19bf609c-b92b-4e24-8379-07ecbb35d542",
+					Name:        "beverly",
+					Description: "test description",
+					Status:      "RUNNING",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 3,
+						},
+						VMID: "19bf609c-b92b-4e24-8379-07ecbb35d542",
+						CPU:  2,
+						Mem:  2048,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+
+				testVM5 := VM{
+					ID:          "1e7dac81-f865-480f-b3dd-654550ef60ef",
+					Name:        "lwaxana",
+					Description: "test description",
+					Status:      "RUNNING",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 3,
+						},
+						VMID: "1e7dac81-f865-480f-b3dd-654550ef60ef",
+						CPU:  2,
+						Mem:  2048,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+
+				testVM6 := VM{
+					ID:          "d4922bde-411c-4d7e-87d8-ee79bb53aa7b",
+					Name:        "ro",
+					Description: "test description",
+					Status:      "RUNNING",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 3,
+						},
+						VMID: "d4922bde-411c-4d7e-87d8-ee79bb53aa7b",
+						CPU:  2,
+						Mem:  2048,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+
+				testVM7 := VM{
+					ID:          "bbb76ff3-8690-473d-9a2a-fb233b5d998a",
+					Name:        "sela",
+					Description: "test description",
+					Status:      "RUNNING",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 3,
+						},
+						VMID: "bbb76ff3-8690-473d-9a2a-fb233b5d998a",
+						CPU:  2,
+						Mem:  2048,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+
+				testVM8 := VM{
+					ID:          "2d923c79-2d8f-4411-a388-136e454a7943",
+					Name:        "christine",
+					Description: "test description",
+					Status:      "STOPPED",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 4,
+						},
+						VMID: "2d923c79-2d8f-4411-a388-136e454a7943",
+						CPU:  2,
+						Mem:  2048,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+
+				testVM9 := VM{
+					ID:          "9da1713a-1150-475a-a53b-41cca945ba36",
+					Name:        "agnes",
+					Description: "test description",
+					Status:      "STOPPED",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 4,
+						},
+						VMID: "9da1713a-1150-475a-a53b-41cca945ba36",
+						CPU:  2,
+						Mem:  2048,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM1.ID] = &testVM1
+				List.VMList[testVM2.ID] = &testVM2
+				List.VMList[testVM3.ID] = &testVM3
+				List.VMList[testVM4.ID] = &testVM4
+				List.VMList[testVM5.ID] = &testVM5
+				List.VMList[testVM6.ID] = &testVM6
+				List.VMList[testVM7.ID] = &testVM7
+				List.VMList[testVM8.ID] = &testVM8
+				List.VMList[testVM9.ID] = &testVM9
+			},
+			want: 7,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mockClosure()
+
+			got := GetRunningVMs()
+
+			t.Parallel()
+
+			if got != testCase.want {
+				t.Errorf("GetRunningVMs() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
 //nolint:paralleltest
 func Test_getUsedVncPorts(t *testing.T) {
 	tests := []struct {
