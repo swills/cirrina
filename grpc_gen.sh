@@ -1,6 +1,6 @@
 #!/bin/sh
 
-export GOROOT=/usr/local/go121
+export GOROOT=/usr/local/go122
 export GOPATH=/tmp/cirrinagopath
 export PATH=${GOROOT}/bin:${PATH}:${GOPATH}/bin
 

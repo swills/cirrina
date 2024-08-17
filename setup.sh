@@ -1,6 +1,6 @@
 #!/bin/sh
 
-export GOROOT=/usr/local/go121
+export GOROOT=/usr/local/go122
 
 if [ ! -d /tmp/cirrinagopath ]; then
   mkdir /tmp/cirrinagopath

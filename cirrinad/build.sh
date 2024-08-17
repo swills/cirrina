@@ -22,4 +22,4 @@ else
   VER="unknown"
 fi
 
-rm cirrinad ; go121 build -ldflags="-X main.mainVersion=${VER} -s -w -extldflags -static" .
+rm cirrinad ; go122 build -ldflags="-X main.mainVersion=${VER} -s -w -extldflags -static" .
