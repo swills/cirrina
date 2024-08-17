@@ -1376,6 +1376,62 @@ func Test_validateVM(t *testing.T) {
 	}
 }
 
+func TestVM_Running(t *testing.T) {
+	type fields struct {
+		Status StatusType
+	}
+
+	tests := []struct {
+		name   string
+		fields fields
+		want   bool
+	}{
+		{
+			name:   "Stopped",
+			fields: fields{Status: STOPPED},
+			want:   false,
+		},
+		{
+			name:   "Starting",
+			fields: fields{Status: STARTING},
+			want:   false,
+		},
+		{
+			name:   "Running",
+			fields: fields{Status: RUNNING},
+			want:   true,
+		},
+		{
+			name:   "Stopping",
+			fields: fields{Status: STOPPING},
+			want:   true,
+		},
+		{
+			name:   "Other",
+			fields: fields{Status: "someJunk"},
+			want:   false,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			testVM := &VM{
+				Status: testCase.fields.Status,
+			}
+
+			t.Parallel()
+
+			got := testVM.Running()
+			if got != testCase.want {
+				t.Errorf("Running() = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 //nolint:paralleltest
