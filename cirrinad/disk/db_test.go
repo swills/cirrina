@@ -11,7 +11,6 @@ import (
 	"cirrina/cirrinad/cirrinadtest"
 )
 
-//nolint:paralleltest
 func TestDisk_BeforeCreate(t *testing.T) {
 	testDB, _ := cirrinadtest.NewMockDB("requestTest")
 
@@ -31,6 +30,8 @@ func TestDisk_BeforeCreate(t *testing.T) {
 	type args struct {
 		in0 *gorm.DB
 	}
+
+	t.Parallel()
 
 	tests := []struct {
 		name    string
@@ -93,7 +94,10 @@ func TestDisk_BeforeCreate(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
+		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
 			testDisk := &Disk{
 				ID:          testCase.fields.ID,
 				Name:        testCase.fields.Name,
