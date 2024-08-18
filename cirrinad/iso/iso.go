@@ -29,7 +29,7 @@ var pathExistsFunc = util.PathExists
 
 func validateIso(isoInst *ISO) error {
 	if !util.ValidIsoName(isoInst.Name) {
-		return errIsoInvalidName
+		return ErrIsoInvalidName
 	}
 
 	return nil
@@ -185,16 +185,16 @@ func Delete(isoID string) error {
 	return nil
 }
 
-func (iso *ISO) Save() error {
+func (i *ISO) Save() error {
 	db := GetIsoDB()
 
-	res := db.Model(&iso).
+	res := db.Model(&i).
 		Updates(map[string]interface{}{
-			"name":        &iso.Name,
-			"description": &iso.Description,
-			"path":        &iso.Path,
-			"size":        &iso.Size,
-			"checksum":    &iso.Checksum,
+			"name":        &i.Name,
+			"description": &i.Description,
+			"path":        &i.Path,
+			"size":        &i.Size,
+			"checksum":    &i.Checksum,
 		},
 		)
 
@@ -205,6 +205,6 @@ func (iso *ISO) Save() error {
 	return nil
 }
 
-func (iso *ISO) GetPath() string {
-	return filepath.Join(config.Config.Disk.VM.Path.Iso, iso.Name)
+func (i *ISO) GetPath() string {
+	return filepath.Join(config.Config.Disk.VM.Path.Iso, i.Name)
 }

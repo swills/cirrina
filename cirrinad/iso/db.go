@@ -66,9 +66,14 @@ func GetIsoDB() *gorm.DB {
 	return Instance.ISODB
 }
 
-func (iso *ISO) BeforeCreate(_ *gorm.DB) error {
-	if iso.ID == "" {
-		iso.ID = uuid.NewString()
+func (i *ISO) BeforeCreate(_ *gorm.DB) error {
+	if i == nil || i.Name == "" {
+		return ErrIsoInvalidName
+	}
+
+	err := uuid.Validate(i.ID)
+	if err != nil || len(i.ID) != 36 {
+		i.ID = uuid.NewString()
 	}
 
 	return nil

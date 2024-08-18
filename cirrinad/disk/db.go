@@ -68,9 +68,13 @@ func GetDiskDB() *gorm.DB {
 }
 
 func (d *Disk) BeforeCreate(_ *gorm.DB) error {
-	d.ID = uuid.NewString()
-	if d.Name == "" {
-		return errDiskInvalidName
+	if d == nil || d.Name == "" {
+		return ErrDiskInvalidName
+	}
+
+	err := uuid.Validate(d.ID)
+	if err != nil || len(d.ID) != 36 {
+		d.ID = uuid.NewString()
 	}
 
 	return nil

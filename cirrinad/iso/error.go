@@ -3,7 +3,7 @@ package iso
 import "errors"
 
 var (
-	errIsoInvalidName      = errors.New("invalid iso name")
+	ErrIsoInvalidName      = errors.New("invalid iso name")
 	errIsoExists           = errors.New("iso exists")
 	errIsoInternalDB       = errors.New("internal iso database error")
 	errIsoIDEmptyOrInvalid = errors.New("iso id not specified or invalid")

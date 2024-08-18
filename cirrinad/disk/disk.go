@@ -82,7 +82,7 @@ func diskTypeValid(diskType string) bool {
 
 func validateDisk(diskInst *Disk) error {
 	if !util.ValidDiskName(diskInst.Name) {
-		return errDiskInvalidName
+		return ErrDiskInvalidName
 	}
 
 	if !diskTypeValid(diskInst.Type) {

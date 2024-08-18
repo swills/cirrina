@@ -7,13 +7,9 @@ import (
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
-
-	"cirrina/cirrinad/cirrinadtest"
 )
 
 func TestDisk_BeforeCreate(t *testing.T) {
-	testDB, _ := cirrinadtest.NewMockDB("requestTest")
-
 	type fields struct {
 		ID          string
 		CreatedAt   time.Time
@@ -27,20 +23,13 @@ func TestDisk_BeforeCreate(t *testing.T) {
 		DiskDirect  sql.NullBool
 	}
 
-	type args struct {
-		in0 *gorm.DB
-	}
-
-	t.Parallel()
-
 	tests := []struct {
 		name    string
 		fields  fields
-		args    args
 		wantErr bool
 	}{
 		{
-			name: "success1",
+			name: "SuccessIDNotSet",
 			fields: fields{
 				ID:        "",
 				CreatedAt: time.Time{},
@@ -62,13 +51,87 @@ func TestDisk_BeforeCreate(t *testing.T) {
 					Valid: true,
 				},
 			},
-			args:    args{in0: testDB},
 			wantErr: false,
 		},
 		{
-			name: "fail1",
+			name: "SuccessIDJunk",
 			fields: fields{
-				ID:        "",
+				ID:        "asdfasdfasdf",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
+				},
+				Name:        "someDisk",
+				Description: "a good disk",
+				Type:        "NVME",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "SuccessIDSet",
+			fields: fields{
+				ID:        "ab6d066c-bf9b-4ff8-b5ba-023fc846b8e4",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
+				},
+				Name:        "someDisk",
+				Description: "a good disk",
+				Type:        "NVME",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "SuccessIDWrongFormat",
+			fields: fields{
+				ID:        "3b47565fce714ec9819b40df75b074f4",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
+				},
+				Name:        "someDisk",
+				Description: "a good disk",
+				Type:        "NVME",
+				DevType:     "FILE",
+				DiskCache: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+				DiskDirect: sql.NullBool{
+					Bool:  false,
+					Valid: true,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "FailNameNotSet",
+			fields: fields{
+				ID:        "5dcf2bc4-4d6d-419f-8eb5-8b1812f59ade",
 				CreatedAt: time.Time{},
 				UpdatedAt: time.Time{},
 				DeletedAt: gorm.DeletedAt{
@@ -88,10 +151,11 @@ func TestDisk_BeforeCreate(t *testing.T) {
 					Valid: true,
 				},
 			},
-			args:    args{in0: testDB},
 			wantErr: true,
 		},
 	}
+
+	t.Parallel()
 
 	for _, testCase := range tests {
 		testCase := testCase
@@ -108,13 +172,13 @@ func TestDisk_BeforeCreate(t *testing.T) {
 				DiskDirect:  testCase.fields.DiskDirect,
 			}
 
-			if testDisk.ID != "" {
-				t.Error("test bug, uuid is not empty before test")
-			}
-
-			err := testDisk.BeforeCreate(testCase.args.in0)
+			err := testDisk.BeforeCreate(nil)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("BeforeCreate() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			if testCase.wantErr {
+				return
 			}
 
 			if testDisk.ID == "" {
@@ -127,4 +191,19 @@ func TestDisk_BeforeCreate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDisk_BeforeCreateNilReceiver(t *testing.T) {
+	t.Parallel()
+
+	t.Run("NilReceiver", func(t *testing.T) {
+		t.Parallel()
+
+		testDisk := (*Disk)(nil)
+
+		err := testDisk.BeforeCreate(nil)
+		if err == nil {
+			t.Errorf("BeforeCreate() nil receiver did not return error, error = %v", err)
+		}
+	})
 }

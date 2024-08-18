@@ -3,7 +3,7 @@ package disk
 import "errors"
 
 var (
-	errDiskInvalidName        = errors.New("invalid disk name")
+	ErrDiskInvalidName        = errors.New("invalid disk name")
 	errDiskExists             = errors.New("disk exists")
 	errDiskIDEmptyOrInvalid   = errors.New("disk id not specified or invalid")
 	errDiskNotFound           = errors.New("disk not found")
