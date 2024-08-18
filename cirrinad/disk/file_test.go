@@ -37,7 +37,7 @@ func TestNewFileInfoService(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
+		testCase := testCase
 
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
@@ -95,7 +95,8 @@ func TestFileInfoService_GetSize(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
+		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -165,7 +166,8 @@ func TestFileInfoService_GetUsage(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
+		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
@@ -217,7 +219,8 @@ func TestFileInfoService_SetSize(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
+		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
@@ -276,7 +279,8 @@ func TestFileInfoService_Exists(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
+		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -334,7 +338,8 @@ func TestFileInfoService_Create(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
+		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -386,7 +391,8 @@ func TestFileInfoService_GetAll(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
+		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -461,7 +467,6 @@ func TestFileInfoCmds_FetchFileSize(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			mockMyFS := NewMockLocalFileSystem(ctrl)
@@ -539,7 +544,6 @@ func TestFileInfoCmds_FetchFileUsage(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			myStat = testCase.statFunc
 			f := FileInfoCmds{}
@@ -648,7 +652,6 @@ func TestFileInfoCmds_ApplyFileSize(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -732,7 +735,8 @@ func TestFileInfoCmds_CheckExists(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
+		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			fileInfoCmds := FileInfoCmds{}
 
@@ -847,9 +851,7 @@ func TestFileInfoCmds_Add(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
-			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 
 			util.SetupTestCmd(fakeCommand)
@@ -861,6 +863,7 @@ func TestFileInfoCmds_Add(t *testing.T) {
 			t.Cleanup(func() { currentUserFunc = user.Current })
 
 			f := FileInfoCmds{}
+
 			err := f.Add(testCase.args.name, testCase.args.size)
 
 			if (err != nil) != testCase.wantErr {
@@ -897,7 +900,6 @@ func TestFileInfoCmds_FetchAll(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			utilOSReadDirFunc = testCase.mockUtilOSReadDirFunc
 

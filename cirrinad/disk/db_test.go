@@ -93,8 +93,6 @@ func TestDisk_BeforeCreate(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
-
 		t.Run(testCase.name, func(t *testing.T) {
 			testDisk := &Disk{
 				ID:          testCase.fields.ID,

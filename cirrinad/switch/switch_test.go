@@ -94,7 +94,6 @@ func TestGetAll(t *testing.T) {
 		},
 	}
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
@@ -242,7 +241,6 @@ func TestGetByName(t *testing.T) {
 		},
 	}
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
@@ -383,7 +381,6 @@ func TestGetByID(t *testing.T) {
 		},
 	}
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
@@ -495,7 +492,6 @@ func Test_switchNameValid(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -751,7 +747,6 @@ func TestParseSwitchID(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
@@ -947,7 +942,6 @@ func Test_bringUpNewSwitch(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			util.NetInterfacesFunc = testCase.hostIntStubFunc
 
@@ -1008,7 +1002,6 @@ func Test_switchTypeValid(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			got := switchTypeValid(testCase.args.switchInst)
 			if got != testCase.want {
@@ -1068,7 +1061,6 @@ func Test_memberUsedByIfBridge(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -1126,7 +1118,6 @@ func Test_memberUsedByNgBridge(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -1177,7 +1168,6 @@ func Test_ngGetBridgeNextLink(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -1240,7 +1230,6 @@ func Test_validateIfSwitch(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -1296,7 +1285,6 @@ func Test_validateNgSwitch(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -1344,7 +1332,6 @@ func TestDestroyNgBridge(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -1399,7 +1386,6 @@ func TestDestroyIfBridge(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -1442,7 +1428,6 @@ func TestBridgeIfAddMember(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -1497,7 +1482,6 @@ func TestBridgeNgAddMember(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -1547,7 +1531,6 @@ func TestCheckSwitchInUse(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			vmnicGetAllFunc = testCase.mockClosure
 
@@ -1664,7 +1647,6 @@ func Test_switchExists(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
@@ -1996,7 +1978,6 @@ func TestDelete(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
@@ -2117,7 +2098,6 @@ func Test_switchCheckUplink(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -2266,7 +2246,6 @@ func Test_setUplinkIf(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -2435,7 +2414,6 @@ func Test_setUplinkNG(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -2604,7 +2582,6 @@ func TestSwitch_SetUplink(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			util.NetInterfacesFunc = testCase.hostIntStubFunc
 
@@ -2832,7 +2809,6 @@ func TestSwitch_UnsetUplink(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
@@ -3004,7 +2980,6 @@ func TestGetNgDev(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
@@ -3382,7 +3357,6 @@ func TestDestroyBridges(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
@@ -3577,7 +3551,6 @@ func TestCreateBridges(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
@@ -3931,7 +3904,6 @@ func TestCreate(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			util.NetInterfacesFunc = testCase.hostIntStubFunc
 
@@ -4058,7 +4030,6 @@ func Test_buildNgBridge(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -4167,7 +4138,6 @@ func Test_buildIfBridge(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)

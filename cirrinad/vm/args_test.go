@@ -70,6 +70,7 @@ func TestVM_getKeyboardArg(t *testing.T) {
 
 	for _, testCase := range tests {
 		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -113,6 +114,7 @@ func TestVM_getACPIArg(t *testing.T) {
 
 	for _, testCase := range tests {
 		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -199,6 +201,7 @@ func TestVM_getEOPArg(t *testing.T) {
 
 	for _, testCase := range tests {
 		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -451,8 +454,6 @@ func TestVM_getCPUArg(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			getHostMaxVMCpusFunc = testCase.mockGetHostMaxVMCpus
 
@@ -502,6 +503,7 @@ func TestVM_getMemArg(t *testing.T) {
 
 	for _, testCase := range tests {
 		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -544,6 +546,7 @@ func TestVM_getLPCArg(t *testing.T) {
 
 	for _, testCase := range tests {
 		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -597,6 +600,7 @@ func TestVM_getROMArg(t *testing.T) {
 
 	for _, testCase := range tests {
 		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -687,6 +691,7 @@ func TestVM_getExtraArg(t *testing.T) {
 
 	for _, testCase := range tests {
 		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -877,6 +882,7 @@ func TestVM_getHostBridgeArg(t *testing.T) {
 
 	for _, testCase := range tests {
 		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -1081,6 +1087,7 @@ func TestVM_getTabletArg(t *testing.T) {
 
 	for _, testCase := range tests {
 		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -1302,7 +1309,6 @@ func Test_getTapDev(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			NetInterfacesFunc = testCase.hostIntStubFunc
 
@@ -1343,7 +1349,6 @@ func Test_getVmnetDev(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			NetInterfacesFunc = testCase.hostIntStubFunc
 
@@ -1626,7 +1631,6 @@ func Test_getMac(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			config.Config.Network.Mac.Oui = "d9:81:b2"
 			got := getMac(testCase.args.thisNic, testCase.args.thisVM)
@@ -1729,6 +1733,7 @@ func Test_addComArgs(t *testing.T) {
 
 	for _, testCase := range tests {
 		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -2631,7 +2636,6 @@ func TestVM_getDiskArg(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			disk.List.DiskList = map[string]*disk.Disk{}
 
@@ -2842,8 +2846,6 @@ func TestVM_getSoundArg(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			testVM := &VM{
 				Config: testCase.fields.Config,
@@ -2997,8 +2999,6 @@ func TestVM_getDebugArg(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			testVM := &VM{
 				ID:          testCase.fields.ID,
@@ -3712,8 +3712,6 @@ func TestVM_getVideoArg(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("vmTest")
 			testCase.mockVMClosure(testDB, mock)
@@ -3953,8 +3951,6 @@ func Test_getNetDevTypeArg(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			NetInterfacesFunc = testCase.hostIntStubFunc
 
@@ -4482,8 +4478,6 @@ func TestVM_getNetArgs(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			NetInterfacesFunc = testCase.hostIntStubFunc
 

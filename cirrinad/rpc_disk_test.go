@@ -647,7 +647,6 @@ func Test_server_GetDiskInfo(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			config.Config.Disk.Default.Size = "1G"
 			if testCase.wantZvolConfig {
@@ -998,7 +997,6 @@ func Test_server_RemoveDisk(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			// clear out list(s) from other parallel test runs
 			disk.List.DiskList = map[string]*disk.Disk{}
@@ -1240,7 +1238,6 @@ func Test_server_GetDiskVM(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			// clear out list(s) from other parallel test runs
 			disk.List.DiskList = map[string]*disk.Disk{}
@@ -1323,7 +1320,6 @@ func Test_server_GetDisks(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			// clear out list(s) from other parallel test runs
 			disk.List.DiskList = map[string]*disk.Disk{}
@@ -1629,7 +1625,6 @@ func Test_server_SetDiskInfo(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			// clear out list(s) from other parallel test runs
 			disk.List.DiskList = map[string]*disk.Disk{}
@@ -2542,7 +2537,6 @@ func Test_server_UploadDisk(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			// clear out list(s) from other parallel test runs
 			disk.List.DiskList = map[string]*disk.Disk{}
@@ -2649,6 +2643,7 @@ func Test_validateDiskReq(t *testing.T) {
 
 	for _, testCase := range tests {
 		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 

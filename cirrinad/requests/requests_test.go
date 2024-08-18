@@ -148,7 +148,6 @@ func TestGetByID(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("requestTest")
 			testCase.mockClosure(testDB, mock)
@@ -395,7 +394,6 @@ func TestCreateVMReq(t *testing.T) { //nolint:maintidx
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("requestTest")
 			testCase.mockClosure(testDB, mock)
@@ -487,7 +485,6 @@ func Test_validVMReqType(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -678,7 +675,6 @@ func TestGetUnStarted(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("requestTest")
 			testCase.mockClosure(testDB, mock)
@@ -761,7 +757,6 @@ func TestRequest_Start(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("requestTest")
 			testCase.mockClosure(testDB, mock)
@@ -852,7 +847,6 @@ func TestRequest_Succeeded(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("requestTest")
 			testCase.mockClosure(testDB, mock)
@@ -943,7 +937,6 @@ func TestRequest_Failed(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("requestTest")
 			testCase.mockClosure(testDB, mock)
@@ -1274,7 +1267,6 @@ func TestPendingReqExists(t *testing.T) { //nolint:maintidx
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("requestTest")
 			testCase.mockClosure(testDB, mock)
@@ -1347,7 +1339,6 @@ func TestFailAllPending(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("requestTest")
 			testCase.mockClosure(testDB, mock)
@@ -1416,7 +1407,6 @@ func TestDBInitialized(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("requestTest")
 			testCase.mockClosure(testDB, mock)

@@ -96,7 +96,6 @@ func TestGetAll(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("isoTest")
 			testCase.mockClosure(testDB, mock)
@@ -247,7 +246,6 @@ func TestGetByID(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("isoTest")
 			testCase.mockClosure(testDB, mock)
@@ -429,7 +427,6 @@ func TestGetByName(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("isoTest")
 			testCase.mockClosure(testDB, mock)
@@ -567,7 +564,6 @@ func Test_isoExistsDB(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("isoTest")
 			testCase.mockClosure(testDB, mock)
@@ -838,7 +834,6 @@ func TestDelete(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("diskTest")
 			testCase.mockClosure(testDB, mock)
@@ -961,7 +956,6 @@ func TestISO_Save(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("isoTest")
 			testCase.mockClosure(testDB, mock)
@@ -1417,7 +1411,6 @@ func TestCreate(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("isoTest")
 			testCase.mockClosure(testDB, mock)

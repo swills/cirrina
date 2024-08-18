@@ -206,6 +206,7 @@ func findChildProcName(startPid uint32, procName string) uint32 {
 
 		foundProcName = findProcName(childPid)
 	}
+
 	slog.Debug("findChildProcName got process name", "foundProcName", foundProcName)
 
 	return childPid

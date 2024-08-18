@@ -50,7 +50,6 @@ func Test_nicTypeValid(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -102,7 +101,6 @@ func Test_nicDevTypeValid(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -266,7 +264,6 @@ func TestGetByName(t *testing.T) {
 		},
 	}
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("nicTest")
 			testCase.mockClosure(testDB, mock)
@@ -424,7 +421,6 @@ func TestGetAll(t *testing.T) {
 		},
 	}
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("nicTest")
 			testCase.mockClosure(testDB, mock)
@@ -609,7 +605,6 @@ func TestGetByID(t *testing.T) {
 		},
 	}
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("nicTest")
 			testCase.mockClosure(testDB, mock)
@@ -684,7 +679,6 @@ func TestParseNetDevType(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			got, err := ParseNetDevType(testCase.args.netDevType)
 			if (err != nil) != testCase.wantErr {
@@ -732,7 +726,6 @@ func TestParseNetType(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			got, err := ParseNetType(testCase.args.netType)
 			if (err != nil) != testCase.wantErr {
@@ -872,8 +865,6 @@ func TestParseMac(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
-
 		t.Run(testCase.name, func(t *testing.T) {
 			MacIsBroadcastFunc = testCase.broadcastFunc
 
@@ -1151,7 +1142,6 @@ func TestVMNic_Save(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testNic := &VMNic{
 				ID:          testCase.fields.ID,
@@ -1339,7 +1329,6 @@ func TestGetNics(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("nicTest")
 
@@ -1665,7 +1654,6 @@ func Test_nicExists(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("nicTest")
 
@@ -1871,7 +1859,6 @@ func Test_validateNic(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			err := validateNic(testCase.args.vmNicInst)
 			if (err != nil) != testCase.wantErr {
@@ -2427,7 +2414,6 @@ func TestCreate(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("nicTest")
 

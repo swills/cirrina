@@ -105,7 +105,6 @@ func Test_parseDiskSizeSuffix(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -167,7 +166,6 @@ func Test_ParseDiskSize(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -226,7 +224,6 @@ func Test_multiplyWillOverflow(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -284,7 +281,6 @@ func TestMacIsBroadcast(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -354,7 +350,6 @@ func TestMacIsMulticast(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -552,7 +547,6 @@ func TestValidVMName(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -615,7 +609,6 @@ func TestContainsInt(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -663,7 +656,6 @@ func TestContainsStr(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -855,7 +847,6 @@ func TestValidNicName(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -1740,7 +1731,6 @@ func Test_parseNetstatJSONOutput(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -1793,7 +1783,6 @@ func TestPidExists(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -2084,7 +2073,6 @@ func TestOSReadDir(t *testing.T) {
 		},
 	}
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			got, err := OSReadDir(testCase.args.root)
 			if (err != nil) != testCase.wantErr {
@@ -2126,7 +2114,6 @@ func TestIsValidTCPPort(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -2183,7 +2170,6 @@ func TestIsValidIP(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -2235,7 +2221,6 @@ func TestGetHostMaxVMCpus(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			SetupTestCmd(fakeCommand)
@@ -2294,7 +2279,6 @@ func TestNumCpusValid(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			GetHostMaxVMCpusFunc = testCase.mockGetHostMaxVMCpus
 
@@ -2319,7 +2303,6 @@ func TestGetMyUIDGID(t *testing.T) {
 		},
 	}
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			_, _, err := GetMyUIDGID()
 			if (err != nil) != testCase.wantErr {
@@ -2354,7 +2337,6 @@ func TestModeIsExecOther(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			got := ModeIsExecOther(testCase.args.mode)
 			if got != testCase.want {
@@ -2387,7 +2369,6 @@ func TestModeIsSuid(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			got := ModeIsSuid(testCase.args.mode)
 			if got != testCase.want {
@@ -2463,7 +2444,6 @@ func TestGetHostInterfaces(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			NetInterfacesFunc = testCase.hostIntStubFunc
 
@@ -2520,7 +2500,6 @@ func TestGetFreeTCPPort(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc) // prevents parallel testing
 
@@ -2578,7 +2557,6 @@ func TestGetIntGroups(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc) // prevents parallel testing
 

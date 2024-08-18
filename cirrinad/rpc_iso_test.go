@@ -81,6 +81,7 @@ func Test_server_GetISOs(t *testing.T) {
 
 	for _, testCase := range tests {
 		testCase := testCase
+
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -577,7 +578,6 @@ func Test_server_AddISO(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("isoTest")
 
@@ -877,7 +877,6 @@ func Test_server_RemoveISO(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("isoTest")
 
@@ -1691,7 +1690,6 @@ func Test_server_UploadIso(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("isoTest")
 

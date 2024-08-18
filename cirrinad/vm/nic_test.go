@@ -236,7 +236,6 @@ func TestVM_nicAttached(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			// clear out list from other parallel test runs
 			List.VMList = map[string]*VM{}
@@ -970,7 +969,6 @@ func TestVM_validateNics(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			// clear out list from other parallel test runs
 			List.VMList = map[string]*VM{}
@@ -1495,7 +1493,6 @@ func TestVM_netStartup(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			// clear out list from other parallel test runs
 			List.VMList = map[string]*VM{}
@@ -1903,7 +1900,6 @@ func Test_netStartupIf(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
@@ -2194,7 +2190,6 @@ func Test_setupVMNicRateLimit(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -2377,7 +2372,6 @@ func Test_netStartupNg(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
@@ -2604,7 +2598,6 @@ func Test_cleanupIfNic(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -3073,7 +3066,6 @@ func TestVM_NetCleanup(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name,
 			func(t *testing.T) {
 				// prevents parallel testing
@@ -3936,7 +3928,6 @@ func TestVM_SetNics(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			// clear out list(s) from other parallel test runs
 			disk.List.DiskList = map[string]*disk.Disk{}

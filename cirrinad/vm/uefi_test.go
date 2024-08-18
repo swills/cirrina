@@ -56,7 +56,6 @@ func TestVM_createUefiVarsFile(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			pathExistsFunc = func(s string) (bool, error) {
 				if strings.Contains(s, "BHYVE_UEFI_VARS.fd") {
@@ -123,8 +122,6 @@ func TestVM_DeleteUEFIState(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			pathExistsFunc = func(_ string) (bool, error) {
 				if testCase.wantPathErr {

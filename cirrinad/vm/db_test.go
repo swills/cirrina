@@ -745,7 +745,6 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			isoTestDB, isoMock := cirrinadtest.NewMockDB("isoTest")
 			testCase.mockISOClosure(isoTestDB, isoMock)
@@ -965,7 +964,6 @@ func TestVM_SetStopped(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("vmTest")
 			testCase.mockClosure(testDB, mock)
@@ -1185,7 +1183,6 @@ func TestVM_SetDebugPort(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("vmTest")
 			testCase.mockVMClosure(testDB, mock)
@@ -1389,7 +1386,6 @@ func TestVM_SetVNCPort(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("vmTest")
 			testCase.mockVMClosure(testDB, mock)

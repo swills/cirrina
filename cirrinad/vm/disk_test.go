@@ -126,7 +126,6 @@ func Test_diskAttached(t *testing.T) {
 
 	//nolint:paralleltest
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testCase.mockClosure()
 
@@ -362,7 +361,6 @@ func Test_validateDisks(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("diskTest")
 

@@ -122,7 +122,6 @@ func TestGetAllDB(t *testing.T) {
 		},
 	}
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("diskTest")
 			testCase.mockClosure(testDB, mock)
@@ -341,7 +340,6 @@ func Test_validateDisk(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			// ensure no leftover values from other tests
 			config.Config.Disk.VM.Path.Zpool = ""
@@ -440,7 +438,6 @@ func TestGetByID(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("diskTest")
 
@@ -538,7 +535,6 @@ func TestGetByName(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			// clear out list(s) from other parallel test runs
 			List.DiskList = map[string]*Disk{}
@@ -606,7 +602,6 @@ func TestDisk_GetPath(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testCase.mockClosure()
 			d := &Disk{
@@ -909,7 +904,6 @@ func TestDisk_Save(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("diskTest")
 			testCase.mockClosure(testDB, mock)
@@ -1073,7 +1067,6 @@ func TestDelete(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("diskTest")
 			testCase.mockClosure(testDB, mock)
@@ -1587,7 +1580,6 @@ func TestCreate(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase // shadow to avoid loop variable capture
 		t.Run(testCase.name, func(t *testing.T) {
 			diskExistsCacheDBFunc = testCase.diskExistsCacheDBFunc
 
@@ -1738,7 +1730,6 @@ func TestDisk_VerifyExists(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testCase.mockClosure()
 

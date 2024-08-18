@@ -429,7 +429,6 @@ func Test_server_GetVMNicVM(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			// clear out list from other parallel test runs
 			vm.List.VMList = map[string]*vm.VM{}
@@ -989,7 +988,6 @@ func Test_server_AddVMNic(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
@@ -1161,7 +1159,6 @@ func Test_server_GetVMNicsAll(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
@@ -2036,7 +2033,6 @@ func Test_server_GetVMNicInfo(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			// clear out list(s) from other parallel test runs
 			vm.List.VMList = map[string]*vm.VM{}
@@ -2887,7 +2883,6 @@ func Test_server_SetVMNicSwitch(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
@@ -3460,7 +3455,6 @@ func Test_server_RemoveVMNic(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			// clear out list(s) from other parallel test runs
 			disk.List.DiskList = map[string]*disk.Disk{}
@@ -4319,7 +4313,6 @@ func Test_server_UpdateVMNic(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("nicTest")
 			testCase.mockClosure(testDB, mock)
@@ -4922,7 +4915,6 @@ func Test_server_CloneVMNic(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("nicTest")
 			testCase.mockClosure(testDB, mock)

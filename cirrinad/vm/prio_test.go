@@ -111,8 +111,6 @@ func Test_applyResourceLimitWriteIOPS(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 
@@ -253,8 +251,6 @@ func Test_applyResourceLimitWriteBPS(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 
@@ -328,7 +324,6 @@ func Test_applyResourceLimitReadBPS(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(_ *testing.T) {
 			applyResourceLimitReadBPS(testCase.args.vmPid, testCase.args.vm)
 		})
@@ -388,7 +383,6 @@ func Test_applyResourceLimitCPU(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(_ *testing.T) {
 			applyResourceLimitCPU(testCase.args.vmPid, testCase.args.vm)
 		})

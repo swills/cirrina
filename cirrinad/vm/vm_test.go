@@ -1167,8 +1167,6 @@ func TestVM_Save(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("vmTest")
 			testCase.mockVMClosure(testDB, mock)
