@@ -9,6 +9,7 @@ import (
 	"cirrina/cirrinad/util"
 )
 
+//nolint:paralleltest
 func TestVM_createUefiVarsFile(t *testing.T) {
 	type fields struct {
 		Name string
@@ -54,14 +55,8 @@ func TestVM_createUefiVarsFile(t *testing.T) {
 		},
 	}
 
-	t.Parallel()
-
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
 			pathExistsFunc = func(s string) (bool, error) {
 				if strings.Contains(s, "BHYVE_UEFI_VARS.fd") {
 					if testCase.wantFileErr {
@@ -96,6 +91,7 @@ func TestVM_createUefiVarsFile(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
 func TestVM_DeleteUEFIState(t *testing.T) {
 	type fields struct {
 		Name string
@@ -125,14 +121,8 @@ func TestVM_DeleteUEFIState(t *testing.T) {
 		},
 	}
 
-	t.Parallel()
-
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
 			pathExistsFunc = func(_ string) (bool, error) {
 				if testCase.wantPathErr {
 					return true, errors.New("another error") //nolint:goerr113
