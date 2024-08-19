@@ -77,7 +77,7 @@ func switchCheckUplink(switchInst *Switch) error {
 func validateSwitch(switchInst *Switch) error {
 	// switchNameValid also checks type, no need to check here
 	if !switchNameValid(switchInst) {
-		return errSwitchInvalidName
+		return ErrSwitchInvalidName
 	}
 
 	err := switchCheckUplink(switchInst)
@@ -725,7 +725,7 @@ func DestroyIfBridge(name string, cleanup bool) error {
 	if !strings.HasPrefix(name, "bridge") {
 		slog.Error("invalid bridge name", "name", name)
 
-		return errSwitchInvalidName
+		return ErrSwitchInvalidName
 	}
 
 	if cleanup {
@@ -872,7 +872,7 @@ func ParseSwitchID(switchID string, netDevType string) (string, error) {
 	}
 
 	if switchInst.Name == "" {
-		return res, errSwitchInvalidName
+		return res, ErrSwitchInvalidName
 	}
 
 	switch netDevType {

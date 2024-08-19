@@ -67,7 +67,12 @@ func getSwitchDB() *gorm.DB {
 }
 
 func (s *Switch) BeforeCreate(_ *gorm.DB) error {
-	if s.ID == "" {
+	if s == nil || s.Name == "" {
+		return ErrSwitchInvalidName
+	}
+
+	err := uuid.Validate(s.ID)
+	if err != nil || len(s.ID) != 36 {
 		s.ID = uuid.NewString()
 	}
 

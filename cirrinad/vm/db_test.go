@@ -10,6 +10,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-test/deep"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 
 	"cirrina/cirrinad/cirrinadtest"
@@ -1433,4 +1434,97 @@ func TestVM_SetVNCPort(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestVM_BeforeCreate(t *testing.T) {
+	type fields struct {
+		ID   string
+		Name string
+	}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		wantErr bool
+	}{
+		{
+			name: "SuccessIDNotSet",
+			fields: fields{
+				ID:   "",
+				Name: "test2024081901",
+			},
+			wantErr: false,
+		},
+		{
+			name: "SuccessIDJunk",
+			fields: fields{
+				ID:   "asdfasdfasdf",
+				Name: "test2024081901",
+			},
+			wantErr: false,
+		},
+		{
+			name: "SuccessIDWrongFormat",
+			fields: fields{
+				ID:   "7083f1f6e2b64902a10bc5e09c602ed8",
+				Name: "test2024081901",
+			},
+			wantErr: false,
+		},
+		{
+			name: "SuccessIDSet",
+			fields: fields{
+				ID:   "8069b347-bdfc-4b3f-bb41-c01b97c85ae2",
+				Name: "test2024081901",
+			},
+			wantErr: false,
+		},
+		{
+			name: "FailNameNotSet",
+			fields: fields{
+				ID:   "07a86740-f542-44b6-82eb-f9bddf0783ab",
+				Name: "",
+			},
+			wantErr: true,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testVM := &VM{
+				ID:   testCase.fields.ID,
+				Name: testCase.fields.Name,
+			}
+
+			err := testVM.BeforeCreate(nil)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("BeforeCreate() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			_, err = uuid.Parse(testVM.ID)
+			if err != nil {
+				t.Fatalf("error parsing uuid: %s", err.Error())
+			}
+		})
+	}
+}
+
+func TestVM_BeforeCreateNilReceiver(t *testing.T) {
+	t.Parallel()
+
+	t.Run("NilReceiver", func(t *testing.T) {
+		t.Parallel()
+
+		testISO := (*VM)(nil)
+
+		err := testISO.BeforeCreate(nil)
+		if err == nil {
+			t.Errorf("BeforeCreate() nil receiver did not return error, error = %v", err)
+		}
+	})
 }

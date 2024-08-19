@@ -66,9 +66,14 @@ func GetVMNicDB() *gorm.DB {
 	return Instance.VMNicDB
 }
 
-func (vmNic *VMNic) BeforeCreate(_ *gorm.DB) error {
-	if vmNic.ID == "" {
-		vmNic.ID = uuid.NewString()
+func (v *VMNic) BeforeCreate(_ *gorm.DB) error {
+	if v == nil || v.Name == "" {
+		return ErrInvalidNicName
+	}
+
+	err := uuid.Validate(v.ID)
+	if err != nil || len(v.ID) != 36 {
+		v.ID = uuid.NewString()
 	}
 
 	return nil

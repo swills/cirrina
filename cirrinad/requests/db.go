@@ -80,14 +80,19 @@ func DBAutoMigrate() {
 	}
 }
 
-func (req *Request) BeforeCreate(_ *gorm.DB) error {
-	if req.ID == "" {
+func (r *Request) BeforeCreate(_ *gorm.DB) error {
+	if r == nil {
+		return ErrInvalidRequest
+	}
+
+	err := uuid.Validate(r.ID)
+	if err != nil || len(r.ID) != 36 {
 		newUUID, err := uuid.NewV7()
 		if err != nil {
 			return fmt.Errorf("error creating request: %w", err)
 		}
 
-		req.ID = newUUID.String()
+		r.ID = newUUID.String()
 	}
 
 	return nil

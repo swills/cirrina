@@ -4,7 +4,7 @@ import "errors"
 
 var (
 	errSwitchInternalChecking    = errors.New("error checking if switch uplink in use by another bridge")
-	errSwitchInvalidName         = errors.New("invalid name")
+	ErrSwitchInvalidName         = errors.New("invalid name")
 	errSwitchInvalidUplink       = errors.New("invalid switch uplink name")
 	errSwitchInvalidNetDevEmpty  = errors.New("netDev can't be empty")
 	errSwitchNotFound            = errors.New("switch not found")

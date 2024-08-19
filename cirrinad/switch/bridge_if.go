@@ -50,7 +50,7 @@ func getIfBridgeMembers(name string) ([]string, error) {
 
 func createIfBridge(name string) error {
 	if name == "" {
-		return errSwitchInvalidName
+		return ErrSwitchInvalidName
 	}
 
 	// TODO allow other bridge names by creating with a dummy name and then renaming

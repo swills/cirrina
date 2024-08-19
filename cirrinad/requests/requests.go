@@ -76,16 +76,16 @@ func CreateNicCloneReq(nicID string, newName string) (Request, error) {
 	var err error
 
 	if nicID == "" {
-		return Request{}, errInvalidRequest
+		return Request{}, ErrInvalidRequest
 	}
 
 	_, err = uuid.Parse(nicID)
 	if err != nil {
-		return Request{}, errInvalidRequest
+		return Request{}, ErrInvalidRequest
 	}
 
 	if newName == "" || !util.ValidNicName(newName) {
-		return Request{}, errInvalidRequest
+		return Request{}, ErrInvalidRequest
 	}
 
 	var reqData []byte
@@ -116,16 +116,16 @@ func CreateVMReq(requestType reqType, vmID string) (Request, error) {
 	var err error
 
 	if vmID == "" {
-		return Request{}, errInvalidRequest
+		return Request{}, ErrInvalidRequest
 	}
 
 	_, err = uuid.Parse(vmID)
 	if err != nil {
-		return Request{}, errInvalidRequest
+		return Request{}, ErrInvalidRequest
 	}
 
 	if !validVMReqType(requestType) {
-		return Request{}, errInvalidRequest
+		return Request{}, ErrInvalidRequest
 	}
 
 	var reqData []byte
@@ -247,17 +247,17 @@ func DBInitialized() bool {
 }
 
 // Start marks a request as started
-func (req *Request) Start() {
+func (r *Request) Start() {
 	db := GetReqDB()
-	req.StartedAt.Time = time.Now()
-	req.StartedAt.Valid = true
-	db.Model(&req).Limit(1).Updates(req)
+	r.StartedAt.Time = time.Now()
+	r.StartedAt.Valid = true
+	db.Model(&r).Limit(1).Updates(r)
 }
 
 // Succeeded marks a request as completed successfully
-func (req *Request) Succeeded() {
+func (r *Request) Succeeded() {
 	db := GetReqDB()
-	db.Model(&req).Limit(1).Updates(
+	db.Model(&r).Limit(1).Updates(
 		Request{
 			Successful: true,
 			Complete:   true,
@@ -266,9 +266,9 @@ func (req *Request) Succeeded() {
 }
 
 // Failed marks a request as having completed with failure
-func (req *Request) Failed() {
+func (r *Request) Failed() {
 	db := GetReqDB()
-	db.Model(&req).Limit(1).Updates(
+	db.Model(&r).Limit(1).Updates(
 		Request{
 			Successful: false,
 			Complete:   true,

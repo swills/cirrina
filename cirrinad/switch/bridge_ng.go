@@ -167,7 +167,7 @@ func createNgBridge(name string) error {
 	var err error
 
 	if name == "" {
-		return errSwitchInvalidName
+		return ErrSwitchInvalidName
 	}
 
 	if !strings.HasPrefix(name, "bnet") {

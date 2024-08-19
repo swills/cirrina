@@ -357,7 +357,7 @@ func TestCreateVMReq(t *testing.T) { //nolint:maintidx
 			want:         Request{},
 			wantErr:      true,
 			checkErrType: true,
-			wantErrType:  errInvalidRequest,
+			wantErrType:  ErrInvalidRequest,
 		},
 		{
 			name: "testRequestVMStartDupe",
@@ -407,7 +407,7 @@ func TestCreateVMReq(t *testing.T) { //nolint:maintidx
 
 			if testCase.wantErr && testCase.checkErrType {
 				if err == nil || !errors.Is(err, testCase.wantErrType) {
-					t.Errorf("error type was wrong, expected %s, got %s", errInvalidRequest, err)
+					t.Errorf("error type was wrong, expected %s, got %s", ErrInvalidRequest, err)
 				}
 			}
 

@@ -194,7 +194,12 @@ func (vm *VM) SetDebugPort(port int) {
 }
 
 func (vm *VM) BeforeCreate(_ *gorm.DB) error {
-	if vm.ID == "" {
+	if vm == nil || vm.Name == "" {
+		return errVMInvalidName
+	}
+
+	err := uuid.Validate(vm.ID)
+	if err != nil || len(vm.ID) != 36 {
 		vm.ID = uuid.NewString()
 	}
 

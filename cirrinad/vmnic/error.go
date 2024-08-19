@@ -8,7 +8,7 @@ var (
 	errInvalidMac          = errors.New("invalid MAC address")
 	errInvalidNetDevType   = errors.New("bad net dev type")
 	errInvalidNetType      = errors.New("bad net type")
-	errInvalidNicName      = errors.New("invalid name")
+	ErrInvalidNicName      = errors.New("invalid name")
 	errInvalidMacBroadcast = errors.New("may not use broadcast MAC address")
 	errInvalidMacMulticast = errors.New("may not use multicast MAC address")
 	ErrNicNotFound         = errors.New("nic not found")
