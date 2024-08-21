@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"io"
 	"log"
 	"net"
 	"regexp"
@@ -174,7 +176,7 @@ func Test_server_GetSwitchInfo(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("isoTest")
+			testDB, mock := cirrinadtest.NewMockDB("testDB")
 
 			testCase.mockClosure(testDB, mock)
 
@@ -209,6 +211,161 @@ func Test_server_GetSwitchInfo(t *testing.T) {
 				t.Errorf("GetSwitchInfo() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest
+func Test_server_GetSwitches(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		want        []string
+		wantErr     bool
+	}{
+		{
+			name: "None",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE `switches`.`deleted_at` IS NULL",
+					),
+				).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}))
+			},
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name: "One",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE `switches`.`deleted_at` IS NULL",
+					),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							},
+						).AddRow(
+							"2c973451-bd41-4681-a147-c3636cfe0aac",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge27",
+							"the 27th test bridge or something",
+							"IF",
+							"re0",
+						),
+					)
+			},
+			want:    []string{"2c973451-bd41-4681-a147-c3636cfe0aac"},
+			wantErr: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("testDB")
+
+			testCase.mockClosure(testDB, mock)
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var res cirrina.VMInfo_GetSwitchesClient
+
+			var got []string
+
+			var VMSwitch *cirrina.SwitchId
+
+			res, err = client.GetSwitches(context.Background(), &cirrina.SwitchesQuery{})
+
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetISOs() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			for {
+				VMSwitch, err = res.Recv()
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				got = append(got, VMSwitch.GetValue())
 			}
 
 			diff := deep.Equal(got, testCase.want)
