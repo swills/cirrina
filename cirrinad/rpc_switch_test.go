@@ -1184,6 +1184,476 @@ func Test_server_RemoveSwitch(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest,maintidx
+func Test_server_SetSwitchInfo(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		switchInfoUpdate *cirrina.SwitchInfoUpdate
+	}
+
+	tests := []struct {
+		name        string
+		args        args
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		want        *cirrina.ReqBool
+		wantErr     bool
+	}{
+		{
+			name: "NothingSet",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("16c28e0c-daf7-4338-9e7b-f679e6bd15b0").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"16c28e0c-daf7-4338-9e7b-f679e6bd15b0",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge3",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a switch", "bridge3", "IF", "re4", sqlmock.AnyArg(), sqlmock.AnyArg()).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args: args{
+				switchInfoUpdate: &cirrina.SwitchInfoUpdate{
+					Id: "16c28e0c-daf7-4338-9e7b-f679e6bd15b0",
+				},
+			},
+			want:    func() *cirrina.ReqBool { r := cirrina.ReqBool{Success: true}; return &r }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name: "ChangeDescription",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("16c28e0c-daf7-4338-9e7b-f679e6bd15b0").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"16c28e0c-daf7-4338-9e7b-f679e6bd15b0",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge3",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("the new description", "bridge3", "IF", "re4", sqlmock.AnyArg(), sqlmock.AnyArg()).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args: args{
+				switchInfoUpdate: &cirrina.SwitchInfoUpdate{
+					Id:          "16c28e0c-daf7-4338-9e7b-f679e6bd15b0",
+					Name:        nil,
+					Description: func() *string { d := "the new description"; return &d }(), //nolint:nlreturn
+
+					SwitchType: nil,
+					Uplink:     nil,
+				},
+			},
+			want:    func() *cirrina.ReqBool { r := cirrina.ReqBool{Success: true}; return &r }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name: "ChangeSwitchTypeDoesNotWorkOnPurpose",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("16c28e0c-daf7-4338-9e7b-f679e6bd15b0").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"16c28e0c-daf7-4338-9e7b-f679e6bd15b0",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge3",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a switch", "bridge3", "IF", "re4", sqlmock.AnyArg(), sqlmock.AnyArg()).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args: args{
+				switchInfoUpdate: &cirrina.SwitchInfoUpdate{
+					Id:         "16c28e0c-daf7-4338-9e7b-f679e6bd15b0",
+					SwitchType: func() *cirrina.SwitchType { s := cirrina.SwitchType_NG; return &s }(), //nolint:nlreturn
+				},
+			},
+			want:    func() *cirrina.ReqBool { r := cirrina.ReqBool{Success: true}; return &r }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name: "ChangeUplinkDoesNotWorkHereOnPurpose",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("16c28e0c-daf7-4338-9e7b-f679e6bd15b0").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"16c28e0c-daf7-4338-9e7b-f679e6bd15b0",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge3",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a switch", "bridge3", "IF", "re4", sqlmock.AnyArg(), sqlmock.AnyArg()).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args: args{
+				switchInfoUpdate: &cirrina.SwitchInfoUpdate{
+					Id:     "16c28e0c-daf7-4338-9e7b-f679e6bd15b0",
+					Uplink: func() *string { u := "re6"; return &u }(), //nolint:nlreturn
+				},
+			},
+			want:    func() *cirrina.ReqBool { r := cirrina.ReqBool{Success: true}; return &r }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name: "ChangeNameDoesNotWorkHereOnPurpose",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("16c28e0c-daf7-4338-9e7b-f679e6bd15b0").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"16c28e0c-daf7-4338-9e7b-f679e6bd15b0",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge3",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a switch", "bridge3", "IF", "re4", sqlmock.AnyArg(), sqlmock.AnyArg()).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args: args{
+				switchInfoUpdate: &cirrina.SwitchInfoUpdate{
+					Id:   "16c28e0c-daf7-4338-9e7b-f679e6bd15b0",
+					Name: func() *string { n := "bridge45"; return &n }(), //nolint:nlreturn
+				},
+			},
+			want:    func() *cirrina.ReqBool { r := cirrina.ReqBool{Success: true}; return &r }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name: "SaveError",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("16c28e0c-daf7-4338-9e7b-f679e6bd15b0").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"16c28e0c-daf7-4338-9e7b-f679e6bd15b0",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge3",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("the new description", "bridge3", "IF", "re4", sqlmock.AnyArg(), sqlmock.AnyArg()).
+					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
+			},
+			args: args{
+				switchInfoUpdate: &cirrina.SwitchInfoUpdate{
+					Id:          "16c28e0c-daf7-4338-9e7b-f679e6bd15b0",
+					Name:        nil,
+					Description: func() *string { d := "the new description"; return &d }(), //nolint:nlreturn
+					SwitchType:  nil,
+					Uplink:      nil,
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "GetError",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("16c28e0c-daf7-4338-9e7b-f679e6bd15b0").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}),
+					)
+			},
+			args: args{
+				switchInfoUpdate: &cirrina.SwitchInfoUpdate{
+					Id: "16c28e0c-daf7-4338-9e7b-f679e6bd15b0",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "BadUuid",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+			},
+			args: args{
+				switchInfoUpdate: &cirrina.SwitchInfoUpdate{
+					Id: "16c28e0c-daf7-4338-9e",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "EmptyUuid",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+			},
+			args: args{
+				switchInfoUpdate: &cirrina.SwitchInfoUpdate{
+					Id: "",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("testDB")
+
+			testCase.mockClosure(testDB, mock)
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var got *cirrina.ReqBool
+
+			got, err = client.SetSwitchInfo(context.Background(), testCase.args.switchInfoUpdate)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("SetSwitchInfo() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 //nolint:paralleltest

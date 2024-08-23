@@ -232,10 +232,6 @@ func (s *server) SetSwitchInfo(_ context.Context, switchInfoUpdate *cirrina.Swit
 	var res cirrina.ReqBool
 	res.Success = false
 
-	if switchInfoUpdate.GetId() == "" {
-		return &res, errInvalidID
-	}
-
 	switchUUID, err := uuid.Parse(switchInfoUpdate.GetId())
 	if err != nil {
 		return &res, errInvalidID
