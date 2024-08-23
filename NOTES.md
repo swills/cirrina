@@ -163,7 +163,9 @@
     * More on [virtio-vsock](https://www.youtube.com/watch?v=LFqz-VZPhFE) [here](https://www.youtube.com/watch?v=_bYSQ68JPwE)
     * [Support](https://github.com/FreeBSD-UPB/freebsd-src/wiki/Virtual-Machine-Migration-using-bhyve) [live migration](https://lists.freebsd.org/archives/freebsd-virtualization/2023-June/001369.html)
     * [More](https://manpages.ubuntu.com/manpages/impish/man1/cloud-localds.1.html) [on](https://github.com/racingmars/vm-provision/blob/master/create.sh) [templates](https://www.youtube.com/watch?v=jxItb7iZyR0)
-      * [snapshot fetch](https://download.freebsd.org/snapshots/VM-IMAGES/15.0-CURRENT/)
+      * snapshot fetch
+        * [CURRENT](https://download.freebsd.org/snapshots/VM-IMAGES/15.0-CURRENT/)
+        * [RELEASE](https://download.freebsd.org/releases/VM-IMAGES/14.1-RELEASE/amd64/Latest/)
     * Run bhyve in jail
     * Run bhyve in [IP-less jail](https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=273557)
     * Support [BIOS](https://www.gulbra.net/freebsd-bhyve/)
