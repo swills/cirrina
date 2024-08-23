@@ -1654,6 +1654,916 @@ func Test_server_SetSwitchInfo(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest,maintidx
+func Test_server_SetSwitchUplink(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		switchUplinkReq *cirrina.SwitchUplinkReq
+	}
+
+	tests := []struct {
+		name                string
+		hostIntStubFunc     func() ([]net.Interface, error)
+		getIntGroupStubFunc func(string) ([]string, error)
+		mockCmdFunc         string
+		mockClosure         func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args                args
+		want                *cirrina.ReqBool
+		wantErr             bool
+	}{
+		{
+			name:                "SuccessIF",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			mockCmdFunc:         "Test_server_SetSwitchUplinkSuccessIF",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"3d2fb688-8e28-44ac-8090-19342492b8d5",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge4",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE `switches`.`deleted_at` IS NULL",
+					),
+				).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"3d2fb688-8e28-44ac-8090-19342492b8d5",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge4",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a switch", "bridge4", "IF", "", sqlmock.AnyArg(), "3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a switch", "bridge4", "IF", "re5", sqlmock.AnyArg(), "3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args: args{
+				switchUplinkReq: &cirrina.SwitchUplinkReq{
+					Switchid: &cirrina.SwitchId{
+						Value: "3d2fb688-8e28-44ac-8090-19342492b8d5",
+					},
+					Uplink: func() *string { r := "re5"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    func() *cirrina.ReqBool { r := cirrina.ReqBool{Success: true}; return &r }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name:                "IFErrorSet",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			mockCmdFunc:         "Test_server_SetSwitchUplinkSuccessIF",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"3d2fb688-8e28-44ac-8090-19342492b8d5",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge4",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE `switches`.`deleted_at` IS NULL",
+					),
+				).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"3d2fb688-8e28-44ac-8090-19342492b8d5",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge4",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a switch", "bridge4", "IF", "", sqlmock.AnyArg(), "3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a switch", "bridge4", "IF", "re5", sqlmock.AnyArg(), "3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
+			},
+			args: args{
+				switchUplinkReq: &cirrina.SwitchUplinkReq{
+					Switchid: &cirrina.SwitchId{
+						Value: "3d2fb688-8e28-44ac-8090-19342492b8d5",
+					},
+					Uplink: func() *string { r := "re5"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:                "SuccessIFSameUplink",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			mockCmdFunc:         "Test_server_SetSwitchUplinkSuccessIF",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"3d2fb688-8e28-44ac-8090-19342492b8d5",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge4",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE `switches`.`deleted_at` IS NULL",
+					),
+				).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"3d2fb688-8e28-44ac-8090-19342492b8d5",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge4",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a switch", "bridge4", "IF", "", sqlmock.AnyArg(), "3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a switch", "bridge4", "IF", "re4", sqlmock.AnyArg(), "3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args: args{
+				switchUplinkReq: &cirrina.SwitchUplinkReq{
+					Switchid: &cirrina.SwitchId{
+						Value: "3d2fb688-8e28-44ac-8090-19342492b8d5",
+					},
+					Uplink: func() *string { r := "re4"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    func() *cirrina.ReqBool { r := cirrina.ReqBool{Success: true}; return &r }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name:                "IFSameUplinkErrorSet",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			mockCmdFunc:         "Test_server_SetSwitchUplinkSuccessIF",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"3d2fb688-8e28-44ac-8090-19342492b8d5",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge4",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE `switches`.`deleted_at` IS NULL",
+					),
+				).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"3d2fb688-8e28-44ac-8090-19342492b8d5",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge4",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a switch", "bridge4", "IF", "", sqlmock.AnyArg(), "3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a switch", "bridge4", "IF", "re4", sqlmock.AnyArg(), "3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
+			},
+			args: args{
+				switchUplinkReq: &cirrina.SwitchUplinkReq{
+					Switchid: &cirrina.SwitchId{
+						Value: "3d2fb688-8e28-44ac-8090-19342492b8d5",
+					},
+					Uplink: func() *string { r := "re4"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:                "IFSameUplinkErrorUnset",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			mockCmdFunc:         "Test_server_SetSwitchUplinkSuccessIF",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"3d2fb688-8e28-44ac-8090-19342492b8d5",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge4",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE `switches`.`deleted_at` IS NULL",
+					),
+				).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"3d2fb688-8e28-44ac-8090-19342492b8d5",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge4",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a switch", "bridge4", "IF", "", sqlmock.AnyArg(), "3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
+			},
+			args: args{
+				switchUplinkReq: &cirrina.SwitchUplinkReq{
+					Switchid: &cirrina.SwitchId{
+						Value: "3d2fb688-8e28-44ac-8090-19342492b8d5",
+					},
+					Uplink: func() *string { r := "re4"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:                "IFErrorUplinkInUse",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			mockCmdFunc:         "Test_server_SetSwitchUplinkSuccessIF",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"3d2fb688-8e28-44ac-8090-19342492b8d5",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge4",
+							"a switch",
+							"IF",
+							"re4",
+						).
+						AddRow(
+							"ae263d88-3614-46eb-b42b-9f52d7f351cb",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge5",
+							"a switch",
+							"IF",
+							"re5",
+						),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE `switches`.`deleted_at` IS NULL",
+					),
+				).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"3d2fb688-8e28-44ac-8090-19342492b8d5",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge4",
+							"a switch",
+							"IF",
+							"re4",
+						).
+						AddRow(
+							"ae263d88-3614-46eb-b42b-9f52d7f351cb",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge5",
+							"a switch",
+							"IF",
+							"re5",
+						),
+					)
+			},
+			args: args{
+				switchUplinkReq: &cirrina.SwitchUplinkReq{
+					Switchid: &cirrina.SwitchId{
+						Value: "3d2fb688-8e28-44ac-8090-19342492b8d5",
+					},
+					Uplink: func() *string { r := "re5"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:                "SuccessIFNoUplink",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			mockCmdFunc:         "Test_server_SetSwitchUplinkSuccessIF",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"3d2fb688-8e28-44ac-8090-19342492b8d5",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge4",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a switch", "bridge4", "IF", "", sqlmock.AnyArg(), "3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args: args{
+				switchUplinkReq: &cirrina.SwitchUplinkReq{
+					Switchid: &cirrina.SwitchId{
+						Value: "3d2fb688-8e28-44ac-8090-19342492b8d5",
+					},
+					Uplink: func() *string { r := ""; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    func() *cirrina.ReqBool { r := cirrina.ReqBool{Success: true}; return &r }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name:                "SuccessIFNoUplinkErrorUnset",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			mockCmdFunc:         "Test_server_SetSwitchUplinkSuccessIF",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"3d2fb688-8e28-44ac-8090-19342492b8d5",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge4",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `switches` SET `description`=?,`name`=?,`type`=?,`uplink`=?,`updated_at`=? WHERE `switches`.`deleted_at` IS NULL AND `id` = ?", //nolint:lll
+					),
+				).
+					WithArgs("a switch", "bridge4", "IF", "", sqlmock.AnyArg(), "3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
+			},
+			args: args{
+				switchUplinkReq: &cirrina.SwitchUplinkReq{
+					Switchid: &cirrina.SwitchId{
+						Value: "3d2fb688-8e28-44ac-8090-19342492b8d5",
+					},
+					Uplink: func() *string { r := ""; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:                "IFErrorNilUplink",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			mockCmdFunc:         "Test_server_SetSwitchUplinkSuccessIF",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}).
+						AddRow(
+							"3d2fb688-8e28-44ac-8090-19342492b8d5",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"bridge4",
+							"a switch",
+							"IF",
+							"re4",
+						),
+					)
+			},
+			args: args{
+				switchUplinkReq: &cirrina.SwitchUplinkReq{
+					Switchid: &cirrina.SwitchId{
+						Value: "3d2fb688-8e28-44ac-8090-19342492b8d5",
+					},
+					Uplink: nil,
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:                "IFErrorMissingSwitch",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			mockCmdFunc:         "Test_server_SetSwitchUplinkSuccessIF",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("3d2fb688-8e28-44ac-8090-19342492b8d5").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}))
+			},
+			args: args{
+				switchUplinkReq: &cirrina.SwitchUplinkReq{
+					Switchid: &cirrina.SwitchId{
+						Value: "3d2fb688-8e28-44ac-8090-19342492b8d5",
+					},
+					Uplink: nil,
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:                "IFErrorInvalidID",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			mockCmdFunc:         "Test_server_SetSwitchUplinkSuccessIF",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+			},
+			args: args{
+				switchUplinkReq: &cirrina.SwitchUplinkReq{
+					Switchid: &cirrina.SwitchId{
+						Value: "3d2fb688-8e28-44ac-8090-193",
+					},
+					Uplink: nil,
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:                "IFErrorNilID",
+			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
+			mockCmdFunc:         "Test_server_SetSwitchUplinkSuccessIF",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+			},
+			args: args{
+				switchUplinkReq: &cirrina.SwitchUplinkReq{
+					Switchid: nil,
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
+			util.GetIntGroupsFunc = testCase.getIntGroupStubFunc
+
+			t.Cleanup(func() { util.GetIntGroupsFunc = util.GetIntGroups })
+
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			testDB, mock := cirrinadtest.NewMockDB("testDB")
+
+			testCase.mockClosure(testDB, mock)
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var got *cirrina.ReqBool
+
+			got, err = client.SetSwitchUplink(context.Background(), testCase.args.switchUplinkReq)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("SetSwitchUplink() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 //nolint:paralleltest
@@ -1690,4 +2600,52 @@ func Test_server_RemoveSwitchSuccessNGErrDeleting(_ *testing.T) {
 	}
 
 	os.Exit(1)
+}
+
+//nolint:paralleltest
+func Test_server_SetSwitchUplinkSuccessIF(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(0)
+}
+
+func StubHostInterfacesSuccess1() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "re4",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "re5",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubGetHostIntGroupSuccess1(intName string) ([]string, error) {
+	switch intName {
+	case "re5":
+		return []string{}, nil
+	case "re4":
+		return []string{}, nil
+	case "lo0":
+		return []string{"lo"}, nil
+	default:
+		return nil, nil
+	}
 }
