@@ -539,14 +539,12 @@ func updateVMBasics(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 	return nil
 }
 
-func (s *server) GetVMID(_ context.Context, vmID *wrapperspb.StringValue) (*cirrina.VMID, error) {
-	var vmName string
+func (s *server) GetVMID(_ context.Context, vmNameReq *wrapperspb.StringValue) (*cirrina.VMID, error) {
+	vmName := vmNameReq.GetValue()
 
-	if vmID == nil {
-		return &cirrina.VMID{}, errInvalidID
+	if vmName == "" {
+		return &cirrina.VMID{}, errInvalidName
 	}
-
-	vmName = vmID.GetValue()
 
 	vmInst, err := vm.GetByName(vmName)
 	if err != nil {
