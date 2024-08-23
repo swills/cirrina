@@ -2564,6 +2564,219 @@ func Test_server_SetSwitchUplink(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
+func Test_server_AddSwitch(t *testing.T) {
+	type args struct {
+		switchInfo *cirrina.SwitchInfo
+	}
+
+	tests := []struct {
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockCmdFunc     string
+		mockClosure     func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args            args
+		want            *cirrina.SwitchId
+		wantErr         bool
+	}{
+		{
+			name:            "Success",
+			hostIntStubFunc: StubHostInterfacesSuccess2,
+			mockCmdFunc:     "Test_server_AddSwitchSuccess",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE name = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("bridge9").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}))
+
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `switches` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`uplink`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?) RETURNING `id`,`name`", //nolint:lll
+					),
+				).
+					WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "a test bridge also", "IF", "em8", sqlmock.AnyArg(), "bridge9").
+					WillReturnRows(sqlmock.NewRows([]string{"id", "name"}).
+						AddRow(
+							"3d2fb688-8e28-44ac-8090-19342492b8d5",
+							"bridge4",
+						))
+				mock.ExpectCommit()
+			},
+			args: args{
+				switchInfo: &cirrina.SwitchInfo{
+					Name:        func() *string { n := "bridge9"; return &n }(),                         //nolint:nlreturn
+					Description: func() *string { d := "a test bridge also"; return &d }(),              //nolint:nlreturn
+					SwitchType:  func() *cirrina.SwitchType { i := cirrina.SwitchType_IF; return &i }(), //nolint:nlreturn
+					Uplink:      func() *string { u := "em8"; return &u }(),                             //nolint:nlreturn
+				},
+			},
+			want: &cirrina.SwitchId{
+				Value: "3d2fb688-8e28-44ac-8090-19342492b8d5",
+			},
+			wantErr: false,
+		},
+		{
+			name:            "ErrorSave",
+			hostIntStubFunc: StubHostInterfacesSuccess2,
+			mockCmdFunc:     "Test_server_AddSwitchSuccess",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE name = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("bridge9").
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"type",
+						"uplink",
+					}))
+
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `switches` (`created_at`,`updated_at`,`deleted_at`,`description`,`type`,`uplink`,`id`,`name`) VALUES (?,?,?,?,?,?,?,?) RETURNING `id`,`name`", //nolint:lll
+					),
+				).
+					WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "a test bridge also", "IF", "em8", sqlmock.AnyArg(), "bridge9").
+					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
+			},
+			args: args{
+				switchInfo: &cirrina.SwitchInfo{
+					Name:        func() *string { n := "bridge9"; return &n }(),                         //nolint:nlreturn
+					Description: func() *string { d := "a test bridge also"; return &d }(),              //nolint:nlreturn
+					SwitchType:  func() *cirrina.SwitchType { i := cirrina.SwitchType_IF; return &i }(), //nolint:nlreturn
+					Uplink:      func() *string { u := "em8"; return &u }(),                             //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:            "ErrorBadType",
+			hostIntStubFunc: StubHostInterfacesSuccess2,
+			mockCmdFunc:     "Test_server_AddSwitchSuccess",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				_switch.Instance = &_switch.Singleton{
+					SwitchDB: testDB,
+				}
+			},
+			args: args{
+				switchInfo: &cirrina.SwitchInfo{
+					Name:        func() *string { n := "bridge9"; return &n }(),                            //nolint:nlreturn
+					Description: func() *string { d := "a test bridge also"; return &d }(),                 //nolint:nlreturn
+					SwitchType:  func() *cirrina.SwitchType { i := cirrina.SwitchType(-123); return &i }(), //nolint:nlreturn
+					Uplink:      func() *string { u := "em8"; return &u }(),                                //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			testDB, mock := cirrinadtest.NewMockDB("testDB")
+
+			testCase.mockClosure(testDB, mock)
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var got *cirrina.SwitchId
+
+			got, err = client.AddSwitch(context.Background(), testCase.args.switchInfo)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("AddSwitch() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 //nolint:paralleltest
@@ -2611,6 +2824,15 @@ func Test_server_SetSwitchUplinkSuccessIF(_ *testing.T) {
 	os.Exit(0)
 }
 
+//nolint:paralleltest
+func Test_server_AddSwitchSuccess(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(0)
+}
+
 func StubHostInterfacesSuccess1() ([]net.Interface, error) {
 	return []net.Interface{
 		{
@@ -2632,6 +2854,32 @@ func StubHostInterfacesSuccess1() ([]net.Interface, error) {
 			MTU:          1500,
 			Name:         "re5",
 			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubHostInterfacesSuccess2() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "re4",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "em8",
+			HardwareAddr: net.HardwareAddr{0xaf, 0xdf, 0xbe, 0x91, 0x7a, 0x71},
 			Flags:        0x33,
 		},
 	}, nil
