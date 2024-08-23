@@ -1270,7 +1270,7 @@ func TestVM_BhyvectlDestroy(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			pathExistsFunc = func(testPath string) (bool, error) {
+			PathExistsFunc = func(testPath string) (bool, error) {
 				if testCase.wantPathErr {
 					return true, errors.New("another error") //nolint:goerr113
 				}
@@ -1290,7 +1290,7 @@ func TestVM_BhyvectlDestroy(t *testing.T) {
 				return false, nil
 			}
 
-			t.Cleanup(func() { pathExistsFunc = util.PathExists })
+			t.Cleanup(func() { PathExistsFunc = util.PathExists })
 
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)

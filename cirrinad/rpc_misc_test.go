@@ -22,8 +22,10 @@ import (
 
 	"cirrina/cirrina"
 	"cirrina/cirrinad/cirrinadtest"
+	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vm"
 )
 
 //nolint:paralleltest
@@ -420,6 +422,222 @@ func Test_server_RequestStatus(t *testing.T) {
 			err = mock.ExpectationsWereMet()
 			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest
+func Test_server_ClearUEFIState(t *testing.T) {
+	type args struct {
+		vmID *cirrina.VMID
+	}
+
+	tests := []struct {
+		name        string
+		args        args
+		mockClosure func()
+		want        *cirrina.ReqBool
+		wantErr     bool
+		wantPath    bool
+		wantPathErr bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func() {
+				testVM1 := vm.VM{
+					ID:   "a6edb97e-c82d-4fc0-808f-61079c530d38",
+					Name: "test2024082301",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 339,
+						},
+						VMID: "a6edb97e-c82d-4fc0-808f-61079c530d38",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "a6edb97e-c82d-4fc0-808f-61079c530d38",
+				},
+			},
+			want:    func() *cirrina.ReqBool { r := cirrina.ReqBool{Success: true}; return &r }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name: "DeleteErr",
+			mockClosure: func() {
+				testVM1 := vm.VM{
+					ID:   "cfdff46b-6b73-4ff1-b050-0b13e8f763bd",
+					Name: "test2024082301",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 339,
+						},
+						VMID: "cfdff46b-6b73-4ff1-b050-0b13e8f763bd",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "cfdff46b-6b73-4ff1-b050-0b13e8f763bd",
+				},
+			},
+			want:        nil,
+			wantErr:     true,
+			wantPathErr: true,
+		},
+		{
+			name: "EmptyName",
+			mockClosure: func() {
+				testVM1 := vm.VM{
+					ID:   "cfdff46b-6b73-4ff1-b050-0b13e8f763bd",
+					Name: "",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 339,
+						},
+						VMID: "cfdff46b-6b73-4ff1-b050-0b13e8f763bd",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "cfdff46b-6b73-4ff1-b050-0b13e8f763bd",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "BadUuid",
+			mockClosure: func() {
+				testVM1 := vm.VM{
+					ID:   "cfdff46b-6b73-4ff1-b050-0b13e8f763bd",
+					Name: "test2024082301",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 339,
+						},
+						VMID: "cfdff46b-6b73-4ff1-b050-0b13e8f763bd",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "cfdff46b-6b73-4ff1-b050",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "LookupErr",
+			mockClosure: func() {
+				testVM1 := vm.VM{
+					ID:   "cfdff46b-6b73-4ff1-b050-0b13e8f71111",
+					Name: "test2024082301",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 339,
+						},
+						VMID: "cfdff46b-6b73-4ff1-b050-0b13e8f71111",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "cfdff46b-6b73-4ff1-b050-0b13e8f72222",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			config.Config.Disk.VM.Path.State = "/var/tmp/cirrinad/state/"
+
+			testCase.mockClosure()
+
+			vm.PathExistsFunc = func(_ string) (bool, error) {
+				if testCase.wantPathErr {
+					return true, errors.New("another error") //nolint:goerr113
+				}
+
+				if testCase.wantPath {
+					return true, nil
+				}
+
+				return false, nil
+			}
+
+			t.Cleanup(func() { vm.PathExistsFunc = util.PathExists })
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var got *cirrina.ReqBool
+
+			got, err = client.ClearUEFIState(context.Background(), testCase.args.vmID)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("ClearUEFIState() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}

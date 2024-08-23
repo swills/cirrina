@@ -18,7 +18,7 @@ import (
 	"cirrina/cirrinad/vmnic"
 )
 
-var pathExistsFunc = util.PathExists
+var PathExistsFunc = util.PathExists
 var statFunc = os.Stat
 var GetMyUIDGIDFunc = util.GetMyUIDGID
 
@@ -47,7 +47,7 @@ func ensureComDevReadable(comDev string) error {
 	comReadDev := comBaseDev + "B"
 	slog.Debug("Checking com dev readable", "comDev", comDev, "comReadDev", comReadDev)
 
-	exists, err := pathExistsFunc(comReadDev)
+	exists, err := PathExistsFunc(comReadDev)
 	if err != nil {
 		return fmt.Errorf("error checking vm com dev: %w", err)
 	}

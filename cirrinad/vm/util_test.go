@@ -1424,7 +1424,7 @@ func Test_ensureComDevReadable(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			pathExistsFunc = func(_ string) (bool, error) {
+			PathExistsFunc = func(_ string) (bool, error) {
 				if testCase.wantPathErr {
 					return true, errors.New("another error") //nolint:goerr113
 				}
@@ -1436,7 +1436,7 @@ func Test_ensureComDevReadable(t *testing.T) {
 				return false, nil
 			}
 
-			t.Cleanup(func() { pathExistsFunc = util.PathExists })
+			t.Cleanup(func() { PathExistsFunc = util.PathExists })
 
 			//nolint:nestif
 			statFunc = func(_ string) (fs.FileInfo, error) {

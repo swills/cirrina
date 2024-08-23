@@ -57,7 +57,7 @@ func TestVM_createUefiVarsFile(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			pathExistsFunc = func(s string) (bool, error) {
+			PathExistsFunc = func(s string) (bool, error) {
 				if strings.Contains(s, "BHYVE_UEFI_VARS.fd") {
 					if testCase.wantFileErr {
 						return true, errors.New("another error") //nolint:goerr113
@@ -81,7 +81,7 @@ func TestVM_createUefiVarsFile(t *testing.T) {
 
 			config.Config.Disk.VM.Path.State = "/var/tmp/cirrinad/state/"
 
-			t.Cleanup(func() { pathExistsFunc = util.PathExists })
+			t.Cleanup(func() { PathExistsFunc = util.PathExists })
 
 			vm := &VM{
 				Name: testCase.fields.Name,
@@ -123,7 +123,7 @@ func TestVM_DeleteUEFIState(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			pathExistsFunc = func(_ string) (bool, error) {
+			PathExistsFunc = func(_ string) (bool, error) {
 				if testCase.wantPathErr {
 					return true, errors.New("another error") //nolint:goerr113
 				}
@@ -137,7 +137,7 @@ func TestVM_DeleteUEFIState(t *testing.T) {
 
 			config.Config.Disk.VM.Path.State = "/var/tmp/cirrinad/state/"
 
-			t.Cleanup(func() { pathExistsFunc = util.PathExists })
+			t.Cleanup(func() { PathExistsFunc = util.PathExists })
 
 			vm := &VM{
 				Name: testCase.fields.Name,

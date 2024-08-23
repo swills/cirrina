@@ -325,12 +325,12 @@ func (vm *VM) getSoundArg(slot int) ([]string, int) {
 
 	var soundString string
 
-	inPathExists, inErr := pathExistsFunc(vm.Config.SoundIn)
+	inPathExists, inErr := PathExistsFunc(vm.Config.SoundIn)
 	if inErr != nil {
 		slog.Error("sound input check error", "err", inErr)
 	}
 
-	outPathExists, outErr := pathExistsFunc(vm.Config.SoundOut)
+	outPathExists, outErr := PathExistsFunc(vm.Config.SoundOut)
 	if outErr != nil {
 		slog.Error("sound output check error", "err", outErr)
 	}
