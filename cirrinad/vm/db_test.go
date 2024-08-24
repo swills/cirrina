@@ -197,8 +197,8 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 					)
 			},
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vms` WHERE `vms`.`deleted_at` IS NULL"),
@@ -823,8 +823,8 @@ func TestVM_SetStopped(t *testing.T) {
 		{
 			name: "Success",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()
@@ -894,8 +894,8 @@ func TestVM_SetStopped(t *testing.T) {
 		{
 			name: "Error",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()
@@ -1065,8 +1065,8 @@ func TestVM_SetDebugPort(t *testing.T) {
 		{
 			name: "SuccessSpecific",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()
@@ -1271,8 +1271,8 @@ func TestVM_SetVNCPort(t *testing.T) {
 		{
 			name: "SuccessSpecific",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()

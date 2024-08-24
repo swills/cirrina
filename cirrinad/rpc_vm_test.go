@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"os"
 	"regexp"
 	"testing"
 	"time"
@@ -25,6 +26,7 @@ import (
 	"cirrina/cirrinad/cirrinadtest"
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
+	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vm"
 	"cirrina/cirrinad/vmnic"
 )
@@ -1615,4 +1617,236 @@ func Test_server_GetVMISOs(t *testing.T) {
 			}
 		})
 	}
+}
+
+//nolint:paralleltest,gocognit
+func Test_server_AddVM(t *testing.T) {
+	type args struct {
+		vmConfig *cirrina.VMConfig
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		want        *cirrina.VMID
+		wantErr     bool
+		wantPath    bool
+		wantPathErr bool
+	}{
+		{
+			name:        "Success",
+			mockCmdFunc: "Test_server_AddVMSuccess",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `vms` (`created_at`,`updated_at`,`deleted_at`,`name`,`description`,`status`,`bhyve_pid`,`vnc_port`,`debug_port`,`com1_dev`,`com2_dev`,`com3_dev`,`com4_dev`,`id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`", //nolint:lll
+					),
+				).
+					WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "test2024082406", "", "STOPPED", 0, 0, 0, "", "", "", "", sqlmock.AnyArg()). //nolint:lll
+					WillReturnRows(sqlmock.NewRows([]string{"id"}).
+						AddRow("c9478af2-8a18-4a86-8234-5be5ceb80d95"))
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `configs` (`created_at`,`updated_at`,`deleted_at`,`vm_id`,`cpu`,`mem`,`max_wait`,`restart`,`restart_delay`,`screen`,`screen_width`,`screen_height`,`vnc_wait`,`vnc_port`,`tablet`,`store_uefi_vars`,`utc_time`,`host_bridge`,`acpi`,`use_hlt`,`exit_on_pause`,`wire_guest_mem`,`destroy_power_off`,`ignore_unknown_msr`,`kbd_layout`,`auto_start`,`sound`,`sound_in`,`sound_out`,`com1`,`com1_dev`,`com1_log`,`com2`,`com2_dev`,`com2_log`,`com3`,`com3_dev`,`com3_log`,`com4`,`com4_dev`,`com4_log`,`extra_args`,`com1_speed`,`com2_speed`,`com3_speed`,`com4_speed`,`auto_start_delay`,`debug`,`debug_wait`,`debug_port`,`priority`,`protect`,`pcpu`,`rbps`,`wbps`,`riops`,`wiops`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (`id`) DO UPDATE SET `vm_id`=`excluded`.`vm_id` RETURNING `id`", //nolint:lll
+					),
+				).WithArgs(
+					sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "c9478af2-8a18-4a86-8234-5be5ceb80d95", 1, 128, 120, true, 1, true, 1920, 1080, false, "AUTO", true, true, true, true, true, true, true, false, true, true, "default", false, false, "/dev/dsp0", "/dev/dsp0", true, "AUTO", false, false, "AUTO", false, false, "AUTO", false, false, "AUTO", false, "", 115200, 115200, 115200, 115200, 0, false, false, "AUTO", 0, true, 0, 0, 0, 0, 0). //nolint:lll
+					WillReturnRows(sqlmock.NewRows([]string{"id"}).
+						AddRow("489"))
+				mock.ExpectCommit()
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Name: func() *string { n := "test2024082406"; return &n }(), //nolint:nlreturn
+				},
+			},
+			want: func() *cirrina.VMID {
+				r := cirrina.VMID{Value: "c9478af2-8a18-4a86-8234-5be5ceb80d95"}
+
+				return &r
+			}(),
+			wantErr:  false,
+			wantPath: true,
+		},
+		{
+			name:        "ErrorCreating",
+			mockCmdFunc: "Test_server_AddVMSuccess",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `vms` (`created_at`,`updated_at`,`deleted_at`,`name`,`description`,`status`,`bhyve_pid`,`vnc_port`,`debug_port`,`com1_dev`,`com2_dev`,`com3_dev`,`com4_dev`,`id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`", //nolint:lll
+					),
+				).
+					WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "test2024082407", "", "STOPPED", 0, 0, 0, "", "", "", "", sqlmock.AnyArg()). //nolint:lll
+					WillReturnRows(sqlmock.NewRows([]string{"id"}).
+						AddRow("c9478af2-8a18-4a86-8234-5be5ceb80d95"))
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `configs` (`created_at`,`updated_at`,`deleted_at`,`vm_id`,`cpu`,`mem`,`max_wait`,`restart`,`restart_delay`,`screen`,`screen_width`,`screen_height`,`vnc_wait`,`vnc_port`,`tablet`,`store_uefi_vars`,`utc_time`,`host_bridge`,`acpi`,`use_hlt`,`exit_on_pause`,`wire_guest_mem`,`destroy_power_off`,`ignore_unknown_msr`,`kbd_layout`,`auto_start`,`sound`,`sound_in`,`sound_out`,`com1`,`com1_dev`,`com1_log`,`com2`,`com2_dev`,`com2_log`,`com3`,`com3_dev`,`com3_log`,`com4`,`com4_dev`,`com4_log`,`extra_args`,`com1_speed`,`com2_speed`,`com3_speed`,`com4_speed`,`auto_start_delay`,`debug`,`debug_wait`,`debug_port`,`priority`,`protect`,`pcpu`,`rbps`,`wbps`,`riops`,`wiops`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (`id`) DO UPDATE SET `vm_id`=`excluded`.`vm_id` RETURNING `id`", //nolint:lll
+					),
+				).WithArgs(
+					sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "c9478af2-8a18-4a86-8234-5be5ceb80d95", 1, 128, 120, true, 1, true, 1920, 1080, false, "AUTO", true, true, true, true, true, true, true, false, true, true, "default", false, false, "/dev/dsp0", "/dev/dsp0", true, "AUTO", false, false, "AUTO", false, false, "AUTO", false, false, "AUTO", false, "", 115200, 115200, 115200, 115200, 0, false, false, "AUTO", 0, true, 0, 0, 0, 0, 0). //nolint:lll
+					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Name: func() *string { n := "test2024082407"; return &n }(), //nolint:nlreturn
+				},
+			},
+			want:     nil,
+			wantErr:  true,
+			wantPath: true,
+		},
+		{
+			name:        "ErrorNilName",
+			mockCmdFunc: "Test_server_AddVMSuccess",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Name: nil,
+				},
+			},
+			want:     nil,
+			wantErr:  true,
+			wantPath: true,
+		},
+		{
+			name:        "ErrorInvalidName",
+			mockCmdFunc: "Test_server_AddVMSuccess",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Name: func() *string { n := "test202408240!7"; return &n }(), //nolint:nlreturn
+				},
+			},
+			want:     nil,
+			wantErr:  true,
+			wantPath: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			vm.PathExistsFunc = func(_ string) (bool, error) {
+				if testCase.wantPathErr {
+					return true, errors.New("another error") //nolint:goerr113
+				}
+
+				if testCase.wantPath {
+					return true, nil
+				}
+
+				return false, nil
+			}
+
+			t.Cleanup(func() { vm.PathExistsFunc = util.PathExists })
+
+			vm.OsOpenFileFunc = func(_ string, _ int, _ os.FileMode) (*os.File, error) {
+				o := os.File{}
+
+				return &o, nil
+			}
+
+			t.Cleanup(func() { osOpenFileFunc = os.OpenFile })
+
+			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
+			testCase.mockClosure(testDB, mockDB)
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var got *cirrina.VMID
+
+			got, err = client.AddVM(context.Background(), testCase.args.vmConfig)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("AddVM() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mockDB.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mockDB.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+// test helpers from here down
+
+//nolint:paralleltest
+func Test_server_AddVMSuccess(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(0)
 }

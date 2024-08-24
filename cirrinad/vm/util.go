@@ -21,6 +21,7 @@ import (
 var PathExistsFunc = util.PathExists
 var statFunc = os.Stat
 var GetMyUIDGIDFunc = util.GetMyUIDGID
+var OsOpenFileFunc = os.OpenFile
 
 func doAutostart(vmInst *VM) {
 	slog.Debug(
@@ -310,7 +311,7 @@ func initOneVM(vmInst *VM) {
 
 	vmLogFilePath := vmLogPath + "/log"
 
-	vmLogFile, err := os.OpenFile(vmLogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	vmLogFile, err := OsOpenFileFunc(vmLogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 	if err != nil {
 		slog.Error("failed to open VM log file", "err", err)
 	}
@@ -488,7 +489,7 @@ func GetVMLogPath(logpath string) error {
 
 	var logPathExists bool
 
-	logPathExists, err = util.PathExists(logpath)
+	logPathExists, err = PathExistsFunc(logpath)
 	if err != nil {
 		return fmt.Errorf("error getting VM log path: %w", err)
 	}

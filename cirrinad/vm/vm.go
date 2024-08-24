@@ -377,7 +377,7 @@ func (vm *VM) Save() error {
 			if vmISO == nil {
 				continue
 			}
-			// N.B.: must use txDB here, not vmDB
+			// N.B.: must use txDB here, not VMDB
 			res = txDB.Exec("INSERT INTO `vm_isos` (`vm_id`,`iso_id`, `position`) VALUES (?,?,?)", vm.ID, vmISO.ID, position)
 			if res.Error != nil || res.RowsAffected != 1 {
 				slog.Error("error adding to vm_isos", "res.Error", res.Error)
@@ -413,7 +413,7 @@ func (vm *VM) Save() error {
 			if vmDisk == nil {
 				continue
 			}
-			// N.B.: must use txDB here, not vmDB
+			// N.B.: must use txDB here, not VMDB
 			res = txDB.Exec("INSERT INTO `vm_disks` (`vm_id`,`disk_id`, `position`) VALUES (?,?,?)", vm.ID, vmDisk.ID, position)
 			if res.Error != nil || res.RowsAffected != 1 {
 				slog.Error("error adding to vm_disks", "res.Error", res.Error)

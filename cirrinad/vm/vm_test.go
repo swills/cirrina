@@ -54,8 +54,8 @@ func TestVM_Save(t *testing.T) {
 		{
 			name: "Success",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()
@@ -170,8 +170,8 @@ func TestVM_Save(t *testing.T) {
 		{
 			name: "Fail1",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()
@@ -287,8 +287,8 @@ func TestVM_Save(t *testing.T) {
 		{
 			name: "Fail2",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()
@@ -396,8 +396,8 @@ func TestVM_Save(t *testing.T) {
 		{
 			name: "Fail3",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()
@@ -499,8 +499,8 @@ func TestVM_Save(t *testing.T) {
 		{
 			name: "Fail4",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()
@@ -592,8 +592,8 @@ func TestVM_Save(t *testing.T) {
 		{
 			name: "Fail5",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()
@@ -679,8 +679,8 @@ func TestVM_Save(t *testing.T) {
 		{
 			name: "Fail6",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()
@@ -757,8 +757,8 @@ func TestVM_Save(t *testing.T) {
 		{
 			name: "FailNilSliceIso",
 			mockVMClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 			},
 			fields: fields{
@@ -785,8 +785,8 @@ func TestVM_Save(t *testing.T) {
 		{
 			name: "FailNilSliceDisk",
 			mockVMClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 			},
 			fields: fields{
@@ -813,8 +813,8 @@ func TestVM_Save(t *testing.T) {
 		{
 			name: "SuccessNoDisks",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()
@@ -920,8 +920,8 @@ func TestVM_Save(t *testing.T) {
 		{
 			name: "SuccessNoISOs",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()
@@ -1027,8 +1027,8 @@ func TestVM_Save(t *testing.T) {
 		{
 			name: "FailEmptyID",
 			mockVMClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 			},
 			fields: fields{
@@ -1097,8 +1097,8 @@ func TestVM_Save(t *testing.T) {
 		{
 			name: "FailZeroConfigID",
 			mockVMClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 			},
 			fields: fields{

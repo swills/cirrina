@@ -17,11 +17,11 @@ import (
 	"cirrina/cirrinad/iso"
 )
 
-type singleton struct {
-	vmDB *gorm.DB
+type Singleton struct {
+	VMDB *gorm.DB
 }
 
-var Instance *singleton
+var Instance *Singleton
 
 var dbInitialized bool
 
@@ -42,11 +42,11 @@ func GetVMDB() *gorm.DB {
 
 	// allow override for testing
 	if Instance != nil {
-		return Instance.vmDB
+		return Instance.VMDB
 	}
 
 	if !dbInitialized {
-		Instance = &singleton{}
+		Instance = &Singleton{}
 		vmDB, err := gorm.Open(
 			sqlite.Open(config.Config.DB.Path),
 			&gorm.Config{
@@ -67,11 +67,11 @@ func GetVMDB() *gorm.DB {
 		sqlDB.SetMaxIdleConns(1)
 		sqlDB.SetMaxOpenConns(1)
 
-		Instance.vmDB = vmDB
+		Instance.VMDB = vmDB
 		dbInitialized = true
 	}
 
-	return Instance.vmDB
+	return Instance.VMDB
 }
 
 func (vm *VM) SetRunning(pid int) {

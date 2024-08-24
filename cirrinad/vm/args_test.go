@@ -3078,8 +3078,8 @@ func TestVM_getVideoArg(t *testing.T) {
 		{
 			name: "SuccessAutoNoWait",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()
@@ -3199,8 +3199,8 @@ func TestVM_getVideoArg(t *testing.T) {
 		{
 			name: "SuccessSpecifiedNoWait",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()
@@ -3320,8 +3320,8 @@ func TestVM_getVideoArg(t *testing.T) {
 		{
 			name: "SuccessAutoWait",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()
@@ -3442,8 +3442,8 @@ func TestVM_getVideoArg(t *testing.T) {
 		{
 			name: "SuccessSpecifiedWait",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 
 				mock.ExpectBegin()
@@ -3564,8 +3564,8 @@ func TestVM_getVideoArg(t *testing.T) {
 		{
 			name: "NoScreen",
 			mockVMClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 			},
 			mockGetPortFunc: func(_ int, _ []int) (int, error) {
@@ -3638,8 +3638,8 @@ func TestVM_getVideoArg(t *testing.T) {
 		{
 			name: "GetFreeTCPPortFuncError",
 			mockVMClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 			},
 			mockGetPortFunc: func(_ int, _ []int) (int, error) {
@@ -3800,8 +3800,8 @@ func Test_getNetDevTypeArg(t *testing.T) {
 			name:        "badType",
 			mockCmdFunc: "Test_getNetDevTypeArgSuccess",
 			mockVMClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 			},
 			hostIntStubFunc: StubHostInterfacesSuccess1,
@@ -3818,8 +3818,8 @@ func Test_getNetDevTypeArg(t *testing.T) {
 			name:        "tap",
 			mockCmdFunc: "Test_getNetDevTypeArgSuccess",
 			mockVMClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 			},
 			hostIntStubFunc: StubHostInterfacesSuccess1,
@@ -3836,8 +3836,8 @@ func Test_getNetDevTypeArg(t *testing.T) {
 			name:        "vmnet",
 			mockCmdFunc: "Test_getNetDevTypeArgSuccess",
 			mockVMClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 			},
 			hostIntStubFunc: StubHostInterfacesSuccess1,
@@ -3854,8 +3854,8 @@ func Test_getNetDevTypeArg(t *testing.T) {
 			name:        "netgraph",
 			mockCmdFunc: "Test_getNetDevTypeArgSuccess",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 				_switch.Instance = &_switch.Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -3903,8 +3903,8 @@ func Test_getNetDevTypeArg(t *testing.T) {
 			name:        "netgraphError",
 			mockCmdFunc: "Test_getNetDevTypeArgError1",
 			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &singleton{ // prevents parallel testing
-					vmDB: testDB,
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
 				}
 				_switch.Instance = &_switch.Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
