@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"errors"
+	"io"
 	"log"
 	"net"
 	"testing"
@@ -596,6 +598,98 @@ func Test_server_GetVMState(t *testing.T) {
 				t.Errorf("GetVMState() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest
+func Test_server_GetVMs(t *testing.T) {
+	tests := []struct {
+		name        string
+		mockClosure func()
+		want        []string
+		wantErr     bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func() {
+				testVM1 := vm.VM{
+					ID:   "151d2a7e-ef23-4a25-bf23-2d30e88cd63c",
+					Name: "test2024082304",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 339,
+						},
+						VMID: "151d2a7e-ef23-4a25-bf23-2d30e88cd63c",
+						CPU:  2,
+						Mem:  1024,
+					},
+					Status:    vm.STOPPED,
+					VNCPort:   0,
+					DebugPort: 0,
+				}
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			want:    []string{"151d2a7e-ef23-4a25-bf23-2d30e88cd63c"},
+			wantErr: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mockClosure()
+
+			lis := bufconn.Listen(128)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var vmID *cirrina.VMID
+
+			var got []string
+
+			var res cirrina.VMInfo_GetVMsClient
+
+			res, err = client.GetVMs(context.Background(), &cirrina.VMsQuery{})
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetVMs() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			for {
+				vmID, err = res.Recv()
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				got = append(got, vmID.GetValue())
 			}
 
 			diff := deep.Equal(got, testCase.want)
