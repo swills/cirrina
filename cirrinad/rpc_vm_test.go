@@ -131,3 +131,148 @@ func Test_server_GetVMID(t *testing.T) {
 		})
 	}
 }
+
+//nolint:paralleltest
+func Test_server_GetVMName(t *testing.T) {
+	type args struct {
+		vmID *cirrina.VMID
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func()
+		args        args
+		want        *wrapperspb.StringValue
+		wantErr     bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func() {
+				testVM1 := vm.VM{
+					ID:   "8a5e7df9-8236-4072-abff-aa8d9765d58f",
+					Name: "test2024082303",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 339,
+						},
+						VMID: "8a5e7df9-8236-4072-abff-aa8d9765d58f",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "8a5e7df9-8236-4072-abff-aa8d9765d58f",
+				},
+			},
+			want: &wrapperspb.StringValue{
+				Value: "test2024082303",
+			},
+			wantErr: false,
+		},
+		{
+			name: "NotFound",
+			mockClosure: func() {
+				testVM1 := vm.VM{
+					ID:   "8a5e7df9-8236-4072-abff-aa8d9765d58f",
+					Name: "test2024082303",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 339,
+						},
+						VMID: "8a5e7df9-8236-4072-abff-aa8d9765d58f",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "d1373974-ca4b-4d2e-b0a1-0f1934361142",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "BadUuid",
+			mockClosure: func() {
+				testVM1 := vm.VM{
+					ID:   "8a5e7df9-8236-4072-abff-aa8d9765d58f",
+					Name: "test2024082303",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 339,
+						},
+						VMID: "8a5e7df9-8236-4072-abff-aa8d9765d58f",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "d1373974-ca4b-4d2e-b0a1-0f1934361",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mockClosure()
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var got *wrapperspb.StringValue
+
+			got, err = client.GetVMName(context.Background(), testCase.args.vmID)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetVMName() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
