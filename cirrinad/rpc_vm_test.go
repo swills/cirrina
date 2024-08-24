@@ -24,6 +24,7 @@ import (
 	"cirrina/cirrina"
 	"cirrina/cirrinad/cirrinadtest"
 	"cirrina/cirrinad/disk"
+	"cirrina/cirrinad/iso"
 	"cirrina/cirrinad/vm"
 	"cirrina/cirrinad/vmnic"
 )
@@ -1410,6 +1411,202 @@ func Test_server_GetVMDisks(t *testing.T) {
 				}
 
 				got = append(got, diskID.GetValue())
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest
+func Test_server_GetVMISOs(t *testing.T) {
+	type args struct {
+		vmID *cirrina.VMID
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func()
+		want        []string
+		args        args
+		wantErr     bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func() {
+				testVM1 := vm.VM{
+					ID:   "c95064e9-c4c0-4308-85f3-508140490981",
+					Name: "test2024082405",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 812,
+						},
+					},
+					ISOs: func() []*iso.ISO {
+						testIso := iso.ISO{
+							ID: "389640e0-225d-4b86-9e4d-e09b415cf0d7",
+						}
+
+						testISOList := []*iso.ISO{&testIso}
+
+						return testISOList
+					}(),
+				}
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmID: func() *cirrina.VMID {
+					r := cirrina.VMID{Value: "c95064e9-c4c0-4308-85f3-508140490981"}
+
+					return &r
+				}(),
+			},
+			want:    []string{"389640e0-225d-4b86-9e4d-e09b415cf0d7"},
+			wantErr: false,
+		},
+		{
+			name: "IsoIsNil",
+			mockClosure: func() {
+				testVM1 := vm.VM{
+					ID:   "c95064e9-c4c0-4308-85f3-508140490981",
+					Name: "test2024082405",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 812,
+						},
+					},
+					ISOs: func() []*iso.ISO {
+						testISOList := []*iso.ISO{nil}
+
+						return testISOList
+					}(),
+				}
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmID: func() *cirrina.VMID {
+					r := cirrina.VMID{Value: "c95064e9-c4c0-4308-85f3-508140490981"}
+
+					return &r
+				}(),
+			},
+			want:    nil,
+			wantErr: false,
+		},
+		{
+			name: "VMNameEmpty",
+			mockClosure: func() {
+				testVM1 := vm.VM{
+					ID:   "c95064e9-c4c0-4308-85f3-508140490981",
+					Name: "",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 812,
+						},
+					},
+				}
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmID: func() *cirrina.VMID {
+					r := cirrina.VMID{Value: "c95064e9-c4c0-4308-85f3-508140490981"}
+
+					return &r
+				}(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "VMNotFound",
+			mockClosure: func() {
+				vm.List.VMList = map[string]*vm.VM{}
+			},
+			args: args{
+				vmID: func() *cirrina.VMID {
+					r := cirrina.VMID{Value: "c95064e9-c4c0-4308-85f3-508140490999"}
+
+					return &r
+				}(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "BadUuid",
+			mockClosure: func() {
+				vm.List.VMList = map[string]*vm.VM{}
+			},
+			args: args{
+				vmID: func() *cirrina.VMID {
+					r := cirrina.VMID{Value: "c95064e9-c4c0-4308-85f"}
+
+					return &r
+				}(),
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mockClosure()
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var res cirrina.VMInfo_GetVMISOsClient
+
+			var isoID *cirrina.ISOID
+
+			var got []string
+
+			res, err = client.GetVMISOs(context.Background(), testCase.args.vmID)
+			if err != nil {
+				t.Fatalf("GetVMDisks() error setting up client, error = %v", err)
+			}
+
+			for {
+				isoID, err = res.Recv()
+				if !errors.Is(err, io.EOF) && (err != nil) != testCase.wantErr {
+					t.Errorf("GetVMNics() streamErr = %v, wantErr %v", err, testCase.wantErr)
+				}
+
+				if err != nil {
+					break
+				}
+
+				got = append(got, isoID.GetValue())
 			}
 
 			diff := deep.Equal(got, testCase.want)
