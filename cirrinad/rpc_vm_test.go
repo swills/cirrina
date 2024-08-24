@@ -64,6 +64,33 @@ func Test_server_GetVMID(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "NotFound",
+			mockClosure: func() {
+				testVM1 := vm.VM{
+					ID:   "5f90bba5-e830-4be7-b714-2ff8250e2e50",
+					Name: "test2024082302",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 339,
+						},
+						VMID: "5f90bba5-e830-4be7-b714-2ff8250e2e50",
+						CPU:  2,
+						Mem:  1024,
+					},
+					ISOs:  nil,
+					Disks: nil,
+				}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmNameReq: &wrapperspb.StringValue{
+					Value: "test2024082300",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
 			name:        "NilReq",
 			mockClosure: func() {},
 			args: args{
