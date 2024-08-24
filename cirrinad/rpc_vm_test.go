@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"io"
 	"log"
@@ -690,6 +691,257 @@ func Test_server_GetVMs(t *testing.T) {
 				}
 
 				got = append(got, vmID.GetValue())
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest,maintidx
+func Test_server_GetVMConfig(t *testing.T) {
+	type args struct {
+		vmID *cirrina.VMID
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func()
+		args        args
+		want        *cirrina.VMConfig
+		wantErr     bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func() {
+				testVM1 := vm.VM{
+					ID:          "168f10f2-5831-4421-ab9b-254be6478016",
+					Description: "a test VM",
+					Name:        "test2024082401",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 340,
+						},
+						VMID:             "168f10f2-5831-4421-ab9b-254be6478016",
+						CPU:              2,
+						Mem:              1024,
+						MaxWait:          120,
+						Restart:          true,
+						RestartDelay:     0,
+						Screen:           true,
+						ScreenWidth:      1920,
+						ScreenHeight:     1080,
+						VNCWait:          false,
+						VNCPort:          "AUTO",
+						Tablet:           true,
+						StoreUEFIVars:    true,
+						UTCTime:          true,
+						HostBridge:       true,
+						ACPI:             true,
+						UseHLT:           true,
+						ExitOnPause:      true,
+						WireGuestMem:     false,
+						DestroyPowerOff:  true,
+						IgnoreUnknownMSR: true,
+						KbdLayout:        "default",
+						AutoStart:        false,
+						Sound:            false,
+						SoundIn:          "/dev/dsp0",
+						SoundOut:         "/dev/dsp0",
+						Com1:             true,
+						Com1Dev:          "AUTO",
+						Com1Log:          true,
+						Com2:             false,
+						Com2Dev:          "AUTO",
+						Com2Log:          false,
+						Com3:             false,
+						Com3Dev:          "AUTO",
+						Com3Log:          false,
+						Com4:             false,
+						Com4Dev:          "AUTO",
+						Com4Log:          false,
+						ExtraArgs:        "",
+						Com1Speed:        115200,
+						Com2Speed:        0,
+						Com3Speed:        0,
+						Com4Speed:        0,
+						AutoStartDelay:   0,
+						Debug:            false,
+						DebugWait:        false,
+						DebugPort:        "AUTO",
+						Priority:         10,
+						Protect: sql.NullBool{
+							Bool:  false,
+							Valid: false,
+						},
+						Pcpu:  0,
+						Rbps:  0,
+						Wbps:  0,
+						Riops: 0,
+						Wiops: 0,
+					},
+					Status:    vm.STOPPED,
+					VNCPort:   0,
+					DebugPort: 0,
+				}
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "168f10f2-5831-4421-ab9b-254be6478016",
+				},
+			},
+			wantErr: false,
+			want: func() *cirrina.VMConfig {
+				testConfig := cirrina.VMConfig{
+					Id:             "168f10f2-5831-4421-ab9b-254be6478016",
+					Name:           func() *string { r := "test2024082401"; return &r }(), //nolint:nlreturn
+					Description:    func() *string { r := "a test VM"; return &r }(),      //nolint:nlreturn
+					Cpu:            func() *uint32 { var r uint32 = 2; return &r }(),      //nolint:nlreturn
+					Mem:            func() *uint32 { var r uint32 = 1024; return &r }(),   //nolint:nlreturn
+					MaxWait:        func() *uint32 { var r uint32 = 120; return &r }(),    //nolint:nlreturn
+					Restart:        func() *bool { r := true; return &r }(),               //nolint:nlreturn
+					RestartDelay:   func() *uint32 { var r uint32; return &r }(),          //nolint:nlreturn
+					Screen:         func() *bool { r := true; return &r }(),               //nolint:nlreturn
+					ScreenWidth:    func() *uint32 { var r uint32 = 1920; return &r }(),   //nolint:nlreturn
+					ScreenHeight:   func() *uint32 { var r uint32 = 1080; return &r }(),   //nolint:nlreturn
+					Vncwait:        func() *bool { r := false; return &r }(),              //nolint:nlreturn
+					Wireguestmem:   func() *bool { r := false; return &r }(),              //nolint:nlreturn
+					Tablet:         func() *bool { r := true; return &r }(),               //nolint:nlreturn
+					Storeuefi:      func() *bool { r := true; return &r }(),               //nolint:nlreturn
+					Utc:            func() *bool { r := true; return &r }(),               //nolint:nlreturn
+					Hostbridge:     func() *bool { r := true; return &r }(),               //nolint:nlreturn
+					Acpi:           func() *bool { r := true; return &r }(),               //nolint:nlreturn
+					Hlt:            func() *bool { r := true; return &r }(),               //nolint:nlreturn
+					Eop:            func() *bool { r := true; return &r }(),               //nolint:nlreturn
+					Dpo:            func() *bool { r := true; return &r }(),               //nolint:nlreturn
+					Ium:            func() *bool { r := true; return &r }(),               //nolint:nlreturn
+					Vncport:        func() *string { r := "AUTO"; return &r }(),           //nolint:nlreturn
+					Keyboard:       func() *string { r := "default"; return &r }(),        //nolint:nlreturn
+					Autostart:      func() *bool { r := false; return &r }(),              //nolint:nlreturn
+					Sound:          func() *bool { r := false; return &r }(),              //nolint:nlreturn
+					SoundIn:        func() *string { r := "/dev/dsp0"; return &r }(),      //nolint:nlreturn
+					SoundOut:       func() *string { r := "/dev/dsp0"; return &r }(),      //nolint:nlreturn
+					Com1:           func() *bool { r := true; return &r }(),               //nolint:nlreturn
+					Com1Dev:        func() *string { r := "AUTO"; return &r }(),           //nolint:nlreturn
+					Com2:           func() *bool { r := false; return &r }(),              //nolint:nlreturn
+					Com2Dev:        func() *string { r := "AUTO"; return &r }(),           //nolint:nlreturn
+					Com3:           func() *bool { r := false; return &r }(),              //nolint:nlreturn
+					Com3Dev:        func() *string { r := "AUTO"; return &r }(),           //nolint:nlreturn
+					Com4:           func() *bool { r := false; return &r }(),              //nolint:nlreturn
+					Com4Dev:        func() *string { r := "AUTO"; return &r }(),           //nolint:nlreturn
+					ExtraArgs:      func() *string { r := ""; return &r }(),               //nolint:nlreturn
+					Com1Log:        func() *bool { r := true; return &r }(),               //nolint:nlreturn
+					Com2Log:        func() *bool { r := false; return &r }(),              //nolint:nlreturn
+					Com3Log:        func() *bool { r := false; return &r }(),              //nolint:nlreturn
+					Com4Log:        func() *bool { r := false; return &r }(),              //nolint:nlreturn
+					Com1Speed:      func() *uint32 { var r uint32 = 115200; return &r }(), //nolint:nlreturn
+					Com2Speed:      func() *uint32 { var r uint32; return &r }(),          //nolint:nlreturn
+					Com3Speed:      func() *uint32 { var r uint32; return &r }(),          //nolint:nlreturn
+					Com4Speed:      func() *uint32 { var r uint32; return &r }(),          //nolint:nlreturn
+					AutostartDelay: func() *uint32 { var r uint32; return &r }(),          //nolint:nlreturn
+					Debug:          func() *bool { r := false; return &r }(),              //nolint:nlreturn
+					DebugWait:      func() *bool { r := false; return &r }(),              //nolint:nlreturn
+					DebugPort:      func() *string { r := "AUTO"; return &r }(),           //nolint:nlreturn
+					Priority:       func() *int32 { var r int32 = 10; return &r }(),       //nolint:nlreturn
+					Protect:        func() *bool { r := false; return &r }(),              //nolint:nlreturn
+					Pcpu:           func() *uint32 { var r uint32; return &r }(),          //nolint:nlreturn
+					Rbps:           func() *uint32 { var r uint32; return &r }(),          //nolint:nlreturn
+					Wbps:           func() *uint32 { var r uint32; return &r }(),          //nolint:nlreturn
+					Riops:          func() *uint32 { var r uint32; return &r }(),          //nolint:nlreturn
+					Wiops:          func() *uint32 { var r uint32; return &r }(),          //nolint:nlreturn
+				}
+
+				return &testConfig
+			}(),
+		},
+		{
+			name: "ErrorEmptyName",
+			mockClosure: func() {
+				testVM1 := vm.VM{
+					ID:   "3b02e8e4-1eb1-450b-bf22-589ea2a60edd",
+					Name: "",
+				}
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "3b02e8e4-1eb1-450b-bf22-589ea2a60edd",
+				},
+			},
+			wantErr: true,
+			want:    nil,
+		},
+		{
+			name: "ErrorNotFound",
+			mockClosure: func() {
+				vm.List.VMList = map[string]*vm.VM{}
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "3b02e8e4-1eb1-450b-bf22-589ea2a60ede",
+				},
+			},
+			wantErr: true,
+			want:    nil,
+		},
+		{
+			name: "ErrorBadUuid",
+			mockClosure: func() {
+				vm.List.VMList = map[string]*vm.VM{}
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "3b02e8e4-1eb1-450b-bf22-589ea2a60",
+				},
+			},
+			wantErr: true,
+			want:    nil,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testCase.mockClosure()
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var got *cirrina.VMConfig
+
+			got, err = client.GetVMConfig(context.Background(), testCase.args.vmID)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("GetVMConfig() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
 			}
 
 			diff := deep.Equal(got, testCase.want)
