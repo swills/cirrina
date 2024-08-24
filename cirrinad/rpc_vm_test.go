@@ -7,8 +7,11 @@ import (
 	"io"
 	"log"
 	"net"
+	"regexp"
 	"testing"
+	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-test/deep"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -19,7 +22,9 @@ import (
 	"gorm.io/gorm"
 
 	"cirrina/cirrina"
+	"cirrina/cirrinad/cirrinadtest"
 	"cirrina/cirrinad/vm"
+	"cirrina/cirrinad/vmnic"
 )
 
 //nolint:paralleltest
@@ -947,6 +952,272 @@ func Test_server_GetVMConfig(t *testing.T) {
 			diff := deep.Equal(got, testCase.want)
 			if diff != nil {
 				t.Errorf("compare failed: %v", diff)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest,maintidx,gocognit
+func Test_server_GetVMNics(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		vmID *cirrina.VMID
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		want        []string
+		wantErr     bool
+	}{
+		{
+			name: "SuccessOneNic",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+
+				testVM1 := vm.VM{
+					ID:   "3df50790-cbf0-46aa-b00e-c2b68f1ea165",
+					Name: "test2024082402",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 812,
+						},
+					},
+				}
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL",
+					),
+				).
+					WithArgs(812).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"mac",
+								"net_type",
+								"net_dev_type",
+								"switch_id",
+								"net_dev",
+								"rate_limit",
+								"rate_in",
+								"rate_out",
+								"inst_bridge",
+								"inst_epair",
+								"config_id",
+							},
+						).
+							AddRow(
+								"67523036-a5c8-4975-8279-db6640182ebf",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2024082402_int0",
+								"another daily test nic",
+								"AUTO",
+								"VIRTIONET",
+								"TAP",
+								"",
+								"",
+								false,
+								0,
+								0,
+								"",
+								"",
+								0,
+							),
+					)
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "3df50790-cbf0-46aa-b00e-c2b68f1ea165",
+				},
+			},
+			want: []string{"67523036-a5c8-4975-8279-db6640182ebf"},
+		},
+		{
+			name: "ErrorGettingNic",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+
+				testVM1 := vm.VM{
+					ID:   "3df50790-cbf0-46aa-b00e-c2b68f1ea165",
+					Name: "test2024082402",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 812,
+						},
+					},
+				}
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL",
+					),
+				).
+					WithArgs(812).
+					WillReturnError(gorm.ErrInvalidData)
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "3df50790-cbf0-46aa-b00e-c2b68f1ea165",
+				},
+			},
+			wantErr: true,
+			want:    nil,
+		},
+		{
+			name: "ErrorEmptyName",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+
+				testVM1 := vm.VM{
+					ID:   "3df50790-cbf0-46aa-b00e-c2b68f1ea165",
+					Name: "",
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 812,
+						},
+					},
+				}
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "3df50790-cbf0-46aa-b00e-c2b68f1ea165",
+				},
+			},
+			wantErr: true,
+			want:    nil,
+		},
+		{
+			name: "ErrorVMNotFound",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				vm.List.VMList = map[string]*vm.VM{}
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "3df50790-cbf0-46aa-b00e-c2b68f1ea166",
+				},
+			},
+			wantErr: true,
+			want:    nil,
+		},
+		{
+			name: "ErrorBadID",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				vm.List.VMList = map[string]*vm.VM{}
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "3df50790-cbf0-46aa-b0",
+				},
+			},
+			wantErr: true,
+			want:    nil,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testCase.mockClosure(testDB, mock)
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var res cirrina.VMInfo_GetVMNicsClient
+
+			var vmNicID *cirrina.VmNicId
+
+			var got []string
+
+			res, err = client.GetVMNics(context.Background(), testCase.args.vmID)
+			if err != nil {
+				t.Fatalf("GetVMNics() error setting up stream err = %v", err)
+			}
+
+			for {
+				vmNicID, err = res.Recv()
+				if !errors.Is(err, io.EOF) && (err != nil) != testCase.wantErr {
+					t.Errorf("GetVMNics() streamErr = %v, wantErr %v", err, testCase.wantErr)
+				}
+
+				if err != nil {
+					break
+				}
+
+				got = append(got, vmNicID.GetValue())
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
 	}
