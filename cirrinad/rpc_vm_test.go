@@ -2231,6 +2231,313 @@ func Test_server_DeleteVM(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest,maintidx
+func Test_server_UpdateVM(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		vmConfig *cirrina.VMConfig
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		want        *cirrina.ReqBool
+		wantErr     bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:          "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					Name:        "test2024082408",
+					Description: "test vm description",
+					Status:      "STOPPED",
+					BhyvePid:    0,
+					VNCPort:     0,
+					DebugPort:   0,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID:        876,
+							CreatedAt: createUpdateTime,
+							UpdatedAt: createUpdateTime,
+						},
+						VMID:             "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+						CPU:              2,
+						Mem:              2048,
+						MaxWait:          60,
+						Restart:          false,
+						Screen:           false,
+						ScreenWidth:      1024,
+						ScreenHeight:     768,
+						Sound:            false,
+						SoundIn:          "/dev/dsp1",
+						SoundOut:         "/dev/dsp1",
+						VNCPort:          "AUTO",
+						Tablet:           true,
+						StoreUEFIVars:    true,
+						UTCTime:          true,
+						HostBridge:       true,
+						ACPI:             true,
+						UseHLT:           true,
+						ExitOnPause:      true,
+						DestroyPowerOff:  true,
+						IgnoreUnknownMSR: true,
+						KbdLayout:        "default",
+						Com1:             true,
+						Com1Dev:          "AUTO",
+						Com2Dev:          "AUTO",
+						Com3Dev:          "AUTO",
+						Com4Dev:          "AUTO",
+						Com1Speed:        115200,
+						Com2Speed:        115200,
+						Com3Speed:        115200,
+						Com4Speed:        115200,
+						AutoStartDelay:   60,
+						DebugPort:        "AUTO",
+					},
+					ISOs:  []*iso.ISO{},
+					Disks: []*disk.Disk{},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(
+						false,
+						true,
+						true,
+						false,
+						true,
+						82,
+						"/dev/nmdm-test2024082408-c1",
+						false,
+						9600,
+						"/dev/nmdm-test2024082408-c2",
+						true,
+						9600,
+						"/dev/nmdm-test2024082408-c3",
+						true,
+						9600,
+						true,
+						"/dev/nmdm-test2024082408-c4",
+						true,
+						9600,
+						4,
+						true,
+						"7123",
+						true,
+						false,
+						false,
+						"-somejunk",
+						false,
+						false,
+						"us_unix",
+						1200,
+						4096,
+						11,
+						12,
+						true,
+						1001,
+						true,
+						765,
+						1003,
+						true,
+						1080,
+						1920,
+						true,
+						"/dev/dsp0",
+						"/dev/dsp0",
+						false,
+						false,
+						false,
+						false,
+						"7900",
+						true,
+						1002,
+						1004,
+						true,
+						sqlmock.AnyArg(),
+						876).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `com1_dev`=?,`com2_dev`=?,`com3_dev`=?,`com4_dev`=?,`debug_port`=?,`description`=?,`name`=?,`vnc_port`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs("", "", "", "", 0, "a test VM", "test2024082408", 0, sqlmock.AnyArg(), "f22416b8-4d21-4b29-a9dd-336fc6aca494"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_isos` WHERE `vm_id` = ?"),
+				).
+					WithArgs("f22416b8-4d21-4b29-a9dd-336fc6aca494").
+					// does not matter how many rows are returned, we wipe all isos from the VM
+					// unconditionally and add the ones we want to have
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_disks` WHERE `vm_id` = ?"),
+				).
+					WithArgs("f22416b8-4d21-4b29-a9dd-336fc6aca494").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:             "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					Description:    func() *string { r := "a test VM"; return &r }(),                   //nolint:nlreturn
+					Cpu:            func() *uint32 { var r uint32 = 4; return &r }(),                   //nolint:nlreturn
+					Mem:            func() *uint32 { var r uint32 = 4096; return &r }(),                //nolint:nlreturn
+					MaxWait:        func() *uint32 { var r uint32 = 1200; return &r }(),                //nolint:nlreturn
+					Restart:        func() *bool { r := true; return &r }(),                            //nolint:nlreturn
+					RestartDelay:   func() *uint32 { var r uint32 = 765; return &r }(),                 //nolint:nlreturn
+					Screen:         func() *bool { r := true; return &r }(),                            //nolint:nlreturn
+					ScreenWidth:    func() *uint32 { var r uint32 = 1920; return &r }(),                //nolint:nlreturn
+					ScreenHeight:   func() *uint32 { var r uint32 = 1080; return &r }(),                //nolint:nlreturn
+					Vncwait:        func() *bool { r := true; return &r }(),                            //nolint:nlreturn
+					Wireguestmem:   func() *bool { r := true; return &r }(),                            //nolint:nlreturn
+					Tablet:         func() *bool { r := false; return &r }(),                           //nolint:nlreturn
+					Storeuefi:      func() *bool { r := false; return &r }(),                           //nolint:nlreturn
+					Utc:            func() *bool { r := false; return &r }(),                           //nolint:nlreturn
+					Hostbridge:     func() *bool { r := false; return &r }(),                           //nolint:nlreturn
+					Acpi:           func() *bool { r := false; return &r }(),                           //nolint:nlreturn
+					Hlt:            func() *bool { r := false; return &r }(),                           //nolint:nlreturn
+					Eop:            func() *bool { r := false; return &r }(),                           //nolint:nlreturn
+					Dpo:            func() *bool { r := false; return &r }(),                           //nolint:nlreturn
+					Ium:            func() *bool { r := false; return &r }(),                           //nolint:nlreturn
+					Vncport:        func() *string { r := "7900"; return &r }(),                        //nolint:nlreturn
+					Keyboard:       func() *string { r := "us_unix"; return &r }(),                     //nolint:nlreturn
+					Autostart:      func() *bool { r := true; return &r }(),                            //nolint:nlreturn
+					Sound:          func() *bool { r := true; return &r }(),                            //nolint:nlreturn
+					SoundIn:        func() *string { r := "/dev/dsp0"; return &r }(),                   //nolint:nlreturn
+					SoundOut:       func() *string { r := "/dev/dsp0"; return &r }(),                   //nolint:nlreturn
+					Com1:           func() *bool { r := false; return &r }(),                           //nolint:nlreturn
+					Com1Dev:        func() *string { r := "/dev/nmdm-test2024082408-c1"; return &r }(), //nolint:nlreturn
+					Com2:           func() *bool { r := true; return &r }(),                            //nolint:nlreturn
+					Com2Dev:        func() *string { r := "/dev/nmdm-test2024082408-c2"; return &r }(), //nolint:nlreturn
+					Com3:           func() *bool { r := true; return &r }(),                            //nolint:nlreturn
+					Com3Dev:        func() *string { r := "/dev/nmdm-test2024082408-c3"; return &r }(), //nolint:nlreturn
+					Com4:           func() *bool { r := true; return &r }(),                            //nolint:nlreturn
+					Com4Dev:        func() *string { r := "/dev/nmdm-test2024082408-c4"; return &r }(), //nolint:nlreturn
+					ExtraArgs:      func() *string { r := "-somejunk"; return &r }(),                   //nolint:nlreturn
+					Com1Log:        func() *bool { r := false; return &r }(),                           //nolint:nlreturn
+					Com2Log:        func() *bool { r := true; return &r }(),                            //nolint:nlreturn
+					Com3Log:        func() *bool { r := true; return &r }(),                            //nolint:nlreturn
+					Com4Log:        func() *bool { r := true; return &r }(),                            //nolint:nlreturn
+					Com1Speed:      func() *uint32 { var r uint32 = 9600; return &r }(),                //nolint:nlreturn
+					Com2Speed:      func() *uint32 { var r uint32 = 9600; return &r }(),                //nolint:nlreturn
+					Com3Speed:      func() *uint32 { var r uint32 = 9600; return &r }(),                //nolint:nlreturn
+					Com4Speed:      func() *uint32 { var r uint32 = 9600; return &r }(),                //nolint:nlreturn
+					AutostartDelay: func() *uint32 { var r uint32 = 82; return &r }(),                  //nolint:nlreturn
+					Debug:          func() *bool { r := true; return &r }(),                            //nolint:nlreturn
+					DebugWait:      func() *bool { r := true; return &r }(),                            //nolint:nlreturn
+					DebugPort:      func() *string { r := "7123"; return &r }(),                        //nolint:nlreturn
+					Priority:       func() *int32 { var r int32 = 12; return &r }(),                    //nolint:nlreturn
+					Protect:        func() *bool { r := true; return &r }(),                            //nolint:nlreturn
+					Pcpu:           func() *uint32 { var r uint32 = 11; return &r }(),                  //nolint:nlreturn
+					Rbps:           func() *uint32 { var r uint32 = 1001; return &r }(),                //nolint:nlreturn
+					Wbps:           func() *uint32 { var r uint32 = 1002; return &r }(),                //nolint:nlreturn
+					Riops:          func() *uint32 { var r uint32 = 1003; return &r }(),                //nolint:nlreturn
+					Wiops:          func() *uint32 { var r uint32 = 1004; return &r }(),                //nolint:nlreturn
+				},
+			},
+			want: func() *cirrina.ReqBool {
+				r := cirrina.ReqBool{
+					Success: true,
+				}
+
+				return &r
+			}(),
+			wantErr: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
+			testCase.mockClosure(testDB, mockDB)
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var got *cirrina.ReqBool
+
+			got, err = client.UpdateVM(context.Background(), testCase.args.vmConfig)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("UpdateVM() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mockDB.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mockDB.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 //nolint:paralleltest

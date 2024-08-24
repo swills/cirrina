@@ -145,19 +145,11 @@ func updateVMPriorityLimits(vmConfig *cirrina.VMConfig, vmInst *vm.VM) {
 
 func updateVMDebug(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 	if vmConfig.Debug != nil {
-		if vmConfig.GetDebug() {
-			vmInst.Config.Debug = true
-		} else {
-			vmInst.Config.Debug = false
-		}
+		vmInst.Config.Debug = vmConfig.GetDebug()
 	}
 
 	if vmConfig.DebugWait != nil {
-		if vmConfig.GetDebugWait() {
-			vmInst.Config.DebugWait = true
-		} else {
-			vmInst.Config.DebugWait = false
-		}
+		vmInst.Config.DebugWait = vmConfig.GetDebugWait()
 	}
 
 	if vmConfig.DebugPort != nil {
@@ -176,78 +168,43 @@ func updateVMDebug(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 
 func updateVMAdvanced1(vmConfig *cirrina.VMConfig, vmInst *vm.VM) {
 	if vmConfig.Hostbridge != nil {
-		if vmConfig.GetHostbridge() {
-			vmInst.Config.HostBridge = true
-		} else {
-			vmInst.Config.HostBridge = false
-		}
+		vmInst.Config.HostBridge = vmConfig.GetHostbridge()
 	}
 
 	if vmConfig.Acpi != nil {
-		if vmConfig.GetAcpi() {
-			vmInst.Config.ACPI = true
-		} else {
-			vmInst.Config.ACPI = false
-		}
+		vmInst.Config.ACPI = vmConfig.GetAcpi()
 	}
 
 	if vmConfig.Storeuefi != nil {
-		if vmConfig.GetStoreuefi() {
-			vmInst.Config.StoreUEFIVars = true
-		} else {
-			vmInst.Config.StoreUEFIVars = false
-		}
+		vmInst.Config.StoreUEFIVars = vmConfig.GetStoreuefi()
 	}
 
 	if vmConfig.Utc != nil {
-		if vmConfig.GetUtc() {
-			vmInst.Config.UTCTime = true
-		} else {
-			vmInst.Config.UTCTime = false
-		}
+		vmInst.Config.UTCTime = vmConfig.GetUtc()
 	}
 
 	if vmConfig.Wireguestmem != nil {
-		if vmConfig.GetWireguestmem() {
-			vmInst.Config.WireGuestMem = true
-		} else {
-			vmInst.Config.WireGuestMem = false
-		}
+		vmInst.Config.WireGuestMem = vmConfig.GetWireguestmem()
 	}
 }
 
 func updateVMAdvanced2(vmConfig *cirrina.VMConfig, vmInst *vm.VM) {
 	if vmConfig.Dpo != nil {
-		if vmConfig.GetDpo() {
-			vmInst.Config.DestroyPowerOff = true
-		} else {
-			vmInst.Config.DestroyPowerOff = false
-		}
+		vmInst.Config.DestroyPowerOff = vmConfig.GetDpo()
 	}
 
 	if vmConfig.Eop != nil {
-		if vmConfig.GetEop() {
-			vmInst.Config.ExitOnPause = true
-		} else {
-			vmInst.Config.ExitOnPause = false
-		}
+		vmInst.Config.ExitOnPause = vmConfig.GetEop()
 	}
 
 	if vmConfig.Ium != nil {
-		if vmConfig.GetIum() {
-			vmInst.Config.IgnoreUnknownMSR = true
-		} else {
-			vmInst.Config.IgnoreUnknownMSR = false
-		}
+		vmInst.Config.IgnoreUnknownMSR = vmConfig.GetIum()
 	}
 
 	if vmConfig.Hlt != nil {
-		if vmConfig.GetHlt() {
-			vmInst.Config.UseHLT = true
-		} else {
-			vmInst.Config.UseHLT = false
-		}
+		vmInst.Config.UseHLT = vmConfig.GetHlt()
 	}
+
 	// TODO -- potential security issue, should it be removed?
 	if vmConfig.ExtraArgs != nil {
 		vmInst.Config.ExtraArgs = vmConfig.GetExtraArgs()
@@ -256,11 +213,7 @@ func updateVMAdvanced2(vmConfig *cirrina.VMConfig, vmInst *vm.VM) {
 
 func updateVMStart(vmConfig *cirrina.VMConfig, vmInst *vm.VM) {
 	if vmConfig.Autostart != nil {
-		if vmConfig.GetAutostart() {
-			vmInst.Config.AutoStart = true
-		} else {
-			vmInst.Config.AutoStart = false
-		}
+		vmInst.Config.AutoStart = vmConfig.GetAutostart()
 	}
 
 	if vmConfig.AutostartDelay != nil {
@@ -272,11 +225,7 @@ func updateVMStart(vmConfig *cirrina.VMConfig, vmInst *vm.VM) {
 	}
 
 	if vmConfig.Restart != nil {
-		if vmConfig.GetRestart() {
-			vmInst.Config.Restart = true
-		} else {
-			vmInst.Config.Restart = false
-		}
+		vmInst.Config.Restart = vmConfig.GetRestart()
 	}
 
 	if vmConfig.RestartDelay != nil {
@@ -290,11 +239,7 @@ func updateVMStart(vmConfig *cirrina.VMConfig, vmInst *vm.VM) {
 
 func updateVMSound(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 	if vmConfig.Sound != nil {
-		if vmConfig.GetSound() {
-			vmInst.Config.Sound = true
-		} else {
-			vmInst.Config.Sound = false
-		}
+		vmInst.Config.Sound = vmConfig.GetSound()
 	}
 
 	if vmConfig.SoundIn != nil {
@@ -318,11 +263,7 @@ func updateVMSound(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 
 func updateVMScreen(vmConfig *cirrina.VMConfig, vmInst *vm.VM) {
 	if vmConfig.Screen != nil {
-		if vmConfig.GetScreen() {
-			vmInst.Config.Screen = true
-		} else {
-			vmInst.Config.Screen = false
-		}
+		vmInst.Config.Screen = vmConfig.GetScreen()
 	}
 
 	if vmConfig.ScreenWidth != nil {
@@ -356,19 +297,11 @@ func updateVMScreenOptions(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 	}
 
 	if vmConfig.Tablet != nil {
-		if vmConfig.GetTablet() {
-			vmInst.Config.Tablet = true
-		} else {
-			vmInst.Config.Tablet = false
-		}
+		vmInst.Config.Tablet = vmConfig.GetTablet()
 	}
 
 	if vmConfig.Vncwait != nil {
-		if vmConfig.GetVncwait() {
-			vmInst.Config.VNCWait = true
-		} else {
-			vmInst.Config.VNCWait = false
-		}
+		vmInst.Config.VNCWait = vmConfig.GetVncwait()
 	}
 
 	return nil
@@ -376,11 +309,7 @@ func updateVMScreenOptions(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 
 func updateVMCom1(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 	if vmConfig.Com1 != nil {
-		if vmConfig.GetCom1() {
-			vmInst.Config.Com1 = true
-		} else {
-			vmInst.Config.Com1 = false
-		}
+		vmInst.Config.Com1 = vmConfig.GetCom1()
 	}
 
 	if vmConfig.Com1Dev != nil {
@@ -394,11 +323,7 @@ func updateVMCom1(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 	}
 
 	if vmConfig.Com1Log != nil {
-		if vmConfig.GetCom1Log() {
-			vmInst.Config.Com1Log = true
-		} else {
-			vmInst.Config.Com1Log = false
-		}
+		vmInst.Config.Com1Log = vmConfig.GetCom1Log()
 	}
 
 	if vmConfig.Com1Speed != nil {
@@ -410,11 +335,7 @@ func updateVMCom1(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 
 func updateVMCom2(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 	if vmConfig.Com2 != nil {
-		if vmConfig.GetCom2() {
-			vmInst.Config.Com2 = true
-		} else {
-			vmInst.Config.Com2 = false
-		}
+		vmInst.Config.Com2 = vmConfig.GetCom2()
 	}
 
 	if vmConfig.Com2Dev != nil {
@@ -428,11 +349,7 @@ func updateVMCom2(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 	}
 
 	if vmConfig.Com2Log != nil {
-		if vmConfig.GetCom2Log() {
-			vmInst.Config.Com2Log = true
-		} else {
-			vmInst.Config.Com2Log = false
-		}
+		vmInst.Config.Com2Log = vmConfig.GetCom2Log()
 	}
 
 	if vmConfig.Com2Speed != nil {
@@ -444,11 +361,7 @@ func updateVMCom2(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 
 func updateVMCom3(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 	if vmConfig.Com3 != nil {
-		if vmConfig.GetCom3() {
-			vmInst.Config.Com3 = true
-		} else {
-			vmInst.Config.Com3 = false
-		}
+		vmInst.Config.Com3 = vmConfig.GetCom3()
 	}
 
 	if vmConfig.Com3Dev != nil {
@@ -462,11 +375,7 @@ func updateVMCom3(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 	}
 
 	if vmConfig.Com3Log != nil {
-		if vmConfig.GetCom3Log() {
-			vmInst.Config.Com3Log = true
-		} else {
-			vmInst.Config.Com3Log = false
-		}
+		vmInst.Config.Com3Log = vmConfig.GetCom3Log()
 	}
 
 	if vmConfig.Com3Speed != nil {
@@ -478,11 +387,7 @@ func updateVMCom3(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 
 func updateVMCom4(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 	if vmConfig.Com4 != nil {
-		if vmConfig.GetCom4() {
-			vmInst.Config.Com4 = true
-		} else {
-			vmInst.Config.Com4 = false
-		}
+		vmInst.Config.Com4 = vmConfig.GetCom4()
 	}
 
 	if vmConfig.Com4Dev != nil {
@@ -496,11 +401,7 @@ func updateVMCom4(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 	}
 
 	if vmConfig.Com4Log != nil {
-		if vmConfig.GetCom4Log() {
-			vmInst.Config.Com4Log = true
-		} else {
-			vmInst.Config.Com4Log = false
-		}
+		vmInst.Config.Com4Log = vmConfig.GetCom4Log()
 	}
 
 	if vmConfig.Com4Speed != nil {
