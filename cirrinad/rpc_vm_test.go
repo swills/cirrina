@@ -3672,6 +3672,425 @@ func Test_server_UpdateVM(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest,maintidx
+func Test_server_SetVMISOs(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		setISOReq *cirrina.SetISOReq
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		want        *cirrina.ReqBool
+		wantErr     bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				testVM1 := vm.VM{
+					ID:     "e908d40c-a4ca-4d72-914e-40489546cf1d",
+					Name:   "test2024082410",
+					Status: vm.STOPPED,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 8202,
+						},
+					},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).WithArgs("14cb7716-56a8-4c70-bcd3-2dfbd108e42d").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"14cb7716-56a8-4c70-bcd3-2dfbd108e42d",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"someTest3.iso",
+								"some iso description",
+								"/bhyve/isos/someTest3.iso",
+								418819271238,
+								"259f034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3aaaa30ba3", //nolint:lll
+							),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(false, false, false, false, false, 0, "", false, 0, "", false, 0, "", false, 0, false, "", false, 0, 0, false, "", false, false, false, "", false, false, "", 0, 0, 0, 0, nil, 0, false, 0, 0, false, 0, 0, false, "", "", false, false, false, false, "", false, 0, 0, false, sqlmock.AnyArg(), 8202). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `com1_dev`=?,`com2_dev`=?,`com3_dev`=?,`com4_dev`=?,`debug_port`=?,`description`=?,`name`=?,`vnc_port`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs("", "", "", "", 0, "", "test2024082410", 0, sqlmock.AnyArg(), "e908d40c-a4ca-4d72-914e-40489546cf1d"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_isos` WHERE `vm_id` = ?"),
+				).
+					WithArgs("e908d40c-a4ca-4d72-914e-40489546cf1d").
+					// does not matter how many rows are returned, we wipe all isos from the VM
+					// unconditionally and add the ones we want to have
+					WillReturnResult(sqlmock.NewResult(1, 27))
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("INSERT INTO `vm_isos` (`vm_id`,`iso_id`, `position`) VALUES (?,?,?)"),
+				).
+					WithArgs("e908d40c-a4ca-4d72-914e-40489546cf1d", "14cb7716-56a8-4c70-bcd3-2dfbd108e42d", 0).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_disks` WHERE `vm_id` = ?"),
+				).
+					WithArgs("e908d40c-a4ca-4d72-914e-40489546cf1d").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+			},
+			args: args{
+				setISOReq: &cirrina.SetISOReq{
+					Id:    "e908d40c-a4ca-4d72-914e-40489546cf1d",
+					Isoid: []string{"14cb7716-56a8-4c70-bcd3-2dfbd108e42d"},
+				},
+			},
+			want:    func() *cirrina.ReqBool { r := cirrina.ReqBool{Success: true}; return &r }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name: "ErrorSaving",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				testVM1 := vm.VM{
+					ID:     "e908d40c-a4ca-4d72-914e-40489546cf1d",
+					Name:   "test2024082410",
+					Status: vm.STOPPED,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 8202,
+						},
+					},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).WithArgs("14cb7716-56a8-4c70-bcd3-2dfbd108e42d").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"14cb7716-56a8-4c70-bcd3-2dfbd108e42d",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"someTest3.iso",
+								"some iso description",
+								"/bhyve/isos/someTest3.iso",
+								418819271238,
+								"259f034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3aaaa30ba3", //nolint:lll
+							),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(false, false, false, false, false, 0, "", false, 0, "", false, 0, "", false, 0, false, "", false, 0, 0, false, "", false, false, false, "", false, false, "", 0, 0, 0, 0, nil, 0, false, 0, 0, false, 0, 0, false, "", "", false, false, false, false, "", false, 0, 0, false, sqlmock.AnyArg(), 8202). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `com1_dev`=?,`com2_dev`=?,`com3_dev`=?,`com4_dev`=?,`debug_port`=?,`description`=?,`name`=?,`vnc_port`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs("", "", "", "", 0, "", "test2024082410", 0, sqlmock.AnyArg(), "e908d40c-a4ca-4d72-914e-40489546cf1d"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_isos` WHERE `vm_id` = ?"),
+				).
+					WithArgs("e908d40c-a4ca-4d72-914e-40489546cf1d").
+					// does not matter how many rows are returned, we wipe all isos from the VM
+					// unconditionally and add the ones we want to have
+					WillReturnResult(sqlmock.NewResult(1, 27))
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("INSERT INTO `vm_isos` (`vm_id`,`iso_id`, `position`) VALUES (?,?,?)"),
+				).
+					WithArgs("e908d40c-a4ca-4d72-914e-40489546cf1d", "14cb7716-56a8-4c70-bcd3-2dfbd108e42d", 0).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_disks` WHERE `vm_id` = ?"),
+				).
+					WithArgs("e908d40c-a4ca-4d72-914e-40489546cf1d").
+					WillReturnError(gorm.ErrInvalidData)
+			},
+			args: args{
+				setISOReq: &cirrina.SetISOReq{
+					Id:    "e908d40c-a4ca-4d72-914e-40489546cf1d",
+					Isoid: []string{"14cb7716-56a8-4c70-bcd3-2dfbd108e42d"},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "ErrorGettingISO",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				testVM1 := vm.VM{
+					ID:     "e908d40c-a4ca-4d72-914e-40489546cf1d",
+					Name:   "test2024082410",
+					Status: vm.STOPPED,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 8202,
+						},
+					},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).WithArgs("14cb7716-56a8-4c70-bcd3-2dfbd108e42c").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}),
+					)
+			},
+			args: args{
+				setISOReq: &cirrina.SetISOReq{
+					Id:    "e908d40c-a4ca-4d72-914e-40489546cf1d",
+					Isoid: []string{"14cb7716-56a8-4c70-bcd3-2dfbd108e42c"},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "EmptyExistingVMName",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				testVM1 := vm.VM{
+					ID:     "e908d40c-a4ca-4d72-914e-40489546cf1d",
+					Name:   "",
+					Status: vm.STOPPED,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 8202,
+						},
+					},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				setISOReq: &cirrina.SetISOReq{
+					Id:    "e908d40c-a4ca-4d72-914e-40489546cf1d",
+					Isoid: []string{"14cb7716-56a8-4c70-bcd3-2dfbd108e42c"},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "VMDoesNotExist",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+			},
+			args: args{
+				setISOReq: &cirrina.SetISOReq{
+					Id:    "e908d40c-a4ca-4d72-914e-40489546cf1d",
+					Isoid: []string{"14cb7716-56a8-4c70-bcd3-2dfbd108e42c"},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "BadUuid",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				iso.Instance = &iso.Singleton{
+					ISODB: testDB,
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+			},
+			args: args{
+				setISOReq: &cirrina.SetISOReq{
+					Id:    "e908d40c-a4ca-4d72-914e-40489546cf",
+					Isoid: []string{"14cb7716-56a8-4c70-bcd3-2dfbd108e42c"},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
+			testCase.mockClosure(testDB, mockDB)
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var got *cirrina.ReqBool
+
+			got, err = client.SetVMISOs(context.Background(), testCase.args.setISOReq)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("SetVMISOs() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mockDB.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mockDB.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 //nolint:paralleltest
