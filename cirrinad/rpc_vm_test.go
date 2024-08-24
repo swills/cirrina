@@ -646,7 +646,7 @@ func Test_server_GetVMs(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			testCase.mockClosure()
 
-			lis := bufconn.Listen(128)
+			lis := bufconn.Listen(1024 * 1024)
 			s := grpc.NewServer()
 			reflection.Register(s)
 			cirrina.RegisterVMInfoServer(s, &server{})
