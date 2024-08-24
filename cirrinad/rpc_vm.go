@@ -1000,7 +1000,7 @@ func (s *server) GetVMDisks(vmID *cirrina.VMID, stream cirrina.VMInfo_GetVMDisks
 	var diskID cirrina.DiskId
 
 	for _, e := range vmInst.Disks {
-		if vmInst.Disks == nil {
+		if e == nil {
 			continue
 		}
 
