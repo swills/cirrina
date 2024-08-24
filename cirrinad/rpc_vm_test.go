@@ -2471,6 +2471,1140 @@ func Test_server_UpdateVM(t *testing.T) {
 			}(),
 			wantErr: false,
 		},
+		{
+			name: "BadDebugPort",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:          "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					Name:        "test2024082408",
+					Description: "test vm description",
+					Status:      "STOPPED",
+					BhyvePid:    0,
+					VNCPort:     0,
+					DebugPort:   0,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID:        876,
+							CreatedAt: createUpdateTime,
+							UpdatedAt: createUpdateTime,
+						},
+						VMID:             "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+						CPU:              2,
+						Mem:              2048,
+						MaxWait:          60,
+						Restart:          false,
+						Screen:           false,
+						ScreenWidth:      1024,
+						ScreenHeight:     768,
+						Sound:            false,
+						SoundIn:          "/dev/dsp1",
+						SoundOut:         "/dev/dsp1",
+						VNCPort:          "AUTO",
+						Tablet:           true,
+						StoreUEFIVars:    true,
+						UTCTime:          true,
+						HostBridge:       true,
+						ACPI:             true,
+						UseHLT:           true,
+						ExitOnPause:      true,
+						DestroyPowerOff:  true,
+						IgnoreUnknownMSR: true,
+						KbdLayout:        "default",
+						Com1:             true,
+						Com1Dev:          "AUTO",
+						Com2Dev:          "AUTO",
+						Com3Dev:          "AUTO",
+						Com4Dev:          "AUTO",
+						Com1Speed:        115200,
+						Com2Speed:        115200,
+						Com3Speed:        115200,
+						Com4Speed:        115200,
+						AutoStartDelay:   60,
+						DebugPort:        "AUTO",
+					},
+					ISOs:  []*iso.ISO{},
+					Disks: []*disk.Disk{},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:        "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					DebugPort: func() *string { r := "99999"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "BadAutostartDelay",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:          "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					Name:        "test2024082408",
+					Description: "test vm description",
+					Status:      "STOPPED",
+					BhyvePid:    0,
+					VNCPort:     0,
+					DebugPort:   0,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID:        876,
+							CreatedAt: createUpdateTime,
+							UpdatedAt: createUpdateTime,
+						},
+						VMID:             "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+						CPU:              2,
+						Mem:              2048,
+						MaxWait:          60,
+						Restart:          false,
+						Screen:           false,
+						ScreenWidth:      1024,
+						ScreenHeight:     768,
+						Sound:            false,
+						SoundIn:          "/dev/dsp1",
+						SoundOut:         "/dev/dsp1",
+						VNCPort:          "AUTO",
+						Tablet:           true,
+						StoreUEFIVars:    true,
+						UTCTime:          true,
+						HostBridge:       true,
+						ACPI:             true,
+						UseHLT:           true,
+						ExitOnPause:      true,
+						DestroyPowerOff:  true,
+						IgnoreUnknownMSR: true,
+						KbdLayout:        "default",
+						Com1:             true,
+						Com1Dev:          "AUTO",
+						Com2Dev:          "AUTO",
+						Com3Dev:          "AUTO",
+						Com4Dev:          "AUTO",
+						Com1Speed:        115200,
+						Com2Speed:        115200,
+						Com3Speed:        115200,
+						Com4Speed:        115200,
+						AutoStartDelay:   60,
+						DebugPort:        "AUTO",
+					},
+					ISOs:  []*iso.ISO{},
+					Disks: []*disk.Disk{},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:             "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					AutostartDelay: func() *uint32 { var r uint32 = 99999; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "BadSoundIn",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:          "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					Name:        "test2024082408",
+					Description: "test vm description",
+					Status:      "STOPPED",
+					BhyvePid:    0,
+					VNCPort:     0,
+					DebugPort:   0,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID:        876,
+							CreatedAt: createUpdateTime,
+							UpdatedAt: createUpdateTime,
+						},
+						VMID:             "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+						CPU:              2,
+						Mem:              2048,
+						MaxWait:          60,
+						Restart:          false,
+						Screen:           false,
+						ScreenWidth:      1024,
+						ScreenHeight:     768,
+						Sound:            false,
+						SoundIn:          "/dev/dsp1",
+						SoundOut:         "/dev/dsp1",
+						VNCPort:          "AUTO",
+						Tablet:           true,
+						StoreUEFIVars:    true,
+						UTCTime:          true,
+						HostBridge:       true,
+						ACPI:             true,
+						UseHLT:           true,
+						ExitOnPause:      true,
+						DestroyPowerOff:  true,
+						IgnoreUnknownMSR: true,
+						KbdLayout:        "default",
+						Com1:             true,
+						Com1Dev:          "AUTO",
+						Com2Dev:          "AUTO",
+						Com3Dev:          "AUTO",
+						Com4Dev:          "AUTO",
+						Com1Speed:        115200,
+						Com2Speed:        115200,
+						Com3Speed:        115200,
+						Com4Speed:        115200,
+						AutoStartDelay:   60,
+						DebugPort:        "AUTO",
+					},
+					ISOs:  []*iso.ISO{},
+					Disks: []*disk.Disk{},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:      "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					SoundIn: func() *string { r := "junk"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "BadSoundOut",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:          "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					Name:        "test2024082408",
+					Description: "test vm description",
+					Status:      "STOPPED",
+					BhyvePid:    0,
+					VNCPort:     0,
+					DebugPort:   0,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID:        876,
+							CreatedAt: createUpdateTime,
+							UpdatedAt: createUpdateTime,
+						},
+						VMID:             "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+						CPU:              2,
+						Mem:              2048,
+						MaxWait:          60,
+						Restart:          false,
+						Screen:           false,
+						ScreenWidth:      1024,
+						ScreenHeight:     768,
+						Sound:            false,
+						SoundIn:          "/dev/dsp1",
+						SoundOut:         "/dev/dsp1",
+						VNCPort:          "AUTO",
+						Tablet:           true,
+						StoreUEFIVars:    true,
+						UTCTime:          true,
+						HostBridge:       true,
+						ACPI:             true,
+						UseHLT:           true,
+						ExitOnPause:      true,
+						DestroyPowerOff:  true,
+						IgnoreUnknownMSR: true,
+						KbdLayout:        "default",
+						Com1:             true,
+						Com1Dev:          "AUTO",
+						Com2Dev:          "AUTO",
+						Com3Dev:          "AUTO",
+						Com4Dev:          "AUTO",
+						Com1Speed:        115200,
+						Com2Speed:        115200,
+						Com3Speed:        115200,
+						Com4Speed:        115200,
+						AutoStartDelay:   60,
+						DebugPort:        "AUTO",
+					},
+					ISOs:  []*iso.ISO{},
+					Disks: []*disk.Disk{},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:       "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					SoundOut: func() *string { r := "junk"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "BadVNCPort",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:          "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					Name:        "test2024082408",
+					Description: "test vm description",
+					Status:      "STOPPED",
+					BhyvePid:    0,
+					VNCPort:     0,
+					DebugPort:   0,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID:        876,
+							CreatedAt: createUpdateTime,
+							UpdatedAt: createUpdateTime,
+						},
+						VMID:             "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+						CPU:              2,
+						Mem:              2048,
+						MaxWait:          60,
+						Restart:          false,
+						Screen:           false,
+						ScreenWidth:      1024,
+						ScreenHeight:     768,
+						Sound:            false,
+						SoundIn:          "/dev/dsp1",
+						SoundOut:         "/dev/dsp1",
+						VNCPort:          "AUTO",
+						Tablet:           true,
+						StoreUEFIVars:    true,
+						UTCTime:          true,
+						HostBridge:       true,
+						ACPI:             true,
+						UseHLT:           true,
+						ExitOnPause:      true,
+						DestroyPowerOff:  true,
+						IgnoreUnknownMSR: true,
+						KbdLayout:        "default",
+						Com1:             true,
+						Com1Dev:          "AUTO",
+						Com2Dev:          "AUTO",
+						Com3Dev:          "AUTO",
+						Com4Dev:          "AUTO",
+						Com1Speed:        115200,
+						Com2Speed:        115200,
+						Com3Speed:        115200,
+						Com4Speed:        115200,
+						AutoStartDelay:   60,
+						DebugPort:        "AUTO",
+					},
+					ISOs:  []*iso.ISO{},
+					Disks: []*disk.Disk{},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:      "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					Vncport: func() *string { r := "99999"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "BadKeymap",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:          "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					Name:        "test2024082408",
+					Description: "test vm description",
+					Status:      "STOPPED",
+					BhyvePid:    0,
+					VNCPort:     0,
+					DebugPort:   0,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID:        876,
+							CreatedAt: createUpdateTime,
+							UpdatedAt: createUpdateTime,
+						},
+						VMID:             "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+						CPU:              2,
+						Mem:              2048,
+						MaxWait:          60,
+						Restart:          false,
+						Screen:           false,
+						ScreenWidth:      1024,
+						ScreenHeight:     768,
+						Sound:            false,
+						SoundIn:          "/dev/dsp1",
+						SoundOut:         "/dev/dsp1",
+						VNCPort:          "AUTO",
+						Tablet:           true,
+						StoreUEFIVars:    true,
+						UTCTime:          true,
+						HostBridge:       true,
+						ACPI:             true,
+						UseHLT:           true,
+						ExitOnPause:      true,
+						DestroyPowerOff:  true,
+						IgnoreUnknownMSR: true,
+						KbdLayout:        "default",
+						Com1:             true,
+						Com1Dev:          "AUTO",
+						Com2Dev:          "AUTO",
+						Com3Dev:          "AUTO",
+						Com4Dev:          "AUTO",
+						Com1Speed:        115200,
+						Com2Speed:        115200,
+						Com3Speed:        115200,
+						Com4Speed:        115200,
+						AutoStartDelay:   60,
+						DebugPort:        "AUTO",
+					},
+					ISOs:  []*iso.ISO{},
+					Disks: []*disk.Disk{},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:       "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					Keyboard: func() *string { r := "junk"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "BadCom1Dev",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:          "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					Name:        "test2024082408",
+					Description: "test vm description",
+					Status:      "STOPPED",
+					BhyvePid:    0,
+					VNCPort:     0,
+					DebugPort:   0,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID:        876,
+							CreatedAt: createUpdateTime,
+							UpdatedAt: createUpdateTime,
+						},
+						VMID:             "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+						CPU:              2,
+						Mem:              2048,
+						MaxWait:          60,
+						Restart:          false,
+						Screen:           false,
+						ScreenWidth:      1024,
+						ScreenHeight:     768,
+						Sound:            false,
+						SoundIn:          "/dev/dsp1",
+						SoundOut:         "/dev/dsp1",
+						VNCPort:          "AUTO",
+						Tablet:           true,
+						StoreUEFIVars:    true,
+						UTCTime:          true,
+						HostBridge:       true,
+						ACPI:             true,
+						UseHLT:           true,
+						ExitOnPause:      true,
+						DestroyPowerOff:  true,
+						IgnoreUnknownMSR: true,
+						KbdLayout:        "default",
+						Com1:             true,
+						Com1Dev:          "AUTO",
+						Com2Dev:          "AUTO",
+						Com3Dev:          "AUTO",
+						Com4Dev:          "AUTO",
+						Com1Speed:        115200,
+						Com2Speed:        115200,
+						Com3Speed:        115200,
+						Com4Speed:        115200,
+						AutoStartDelay:   60,
+						DebugPort:        "AUTO",
+					},
+					ISOs:  []*iso.ISO{},
+					Disks: []*disk.Disk{},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:      "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					Com1Dev: func() *string { r := "junk"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "BadCom2Dev",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:          "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					Name:        "test2024082408",
+					Description: "test vm description",
+					Status:      "STOPPED",
+					BhyvePid:    0,
+					VNCPort:     0,
+					DebugPort:   0,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID:        876,
+							CreatedAt: createUpdateTime,
+							UpdatedAt: createUpdateTime,
+						},
+						VMID:             "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+						CPU:              2,
+						Mem:              2048,
+						MaxWait:          60,
+						Restart:          false,
+						Screen:           false,
+						ScreenWidth:      1024,
+						ScreenHeight:     768,
+						Sound:            false,
+						SoundIn:          "/dev/dsp1",
+						SoundOut:         "/dev/dsp1",
+						VNCPort:          "AUTO",
+						Tablet:           true,
+						StoreUEFIVars:    true,
+						UTCTime:          true,
+						HostBridge:       true,
+						ACPI:             true,
+						UseHLT:           true,
+						ExitOnPause:      true,
+						DestroyPowerOff:  true,
+						IgnoreUnknownMSR: true,
+						KbdLayout:        "default",
+						Com1:             true,
+						Com1Dev:          "AUTO",
+						Com2Dev:          "AUTO",
+						Com3Dev:          "AUTO",
+						Com4Dev:          "AUTO",
+						Com1Speed:        115200,
+						Com2Speed:        115200,
+						Com3Speed:        115200,
+						Com4Speed:        115200,
+						AutoStartDelay:   60,
+						DebugPort:        "AUTO",
+					},
+					ISOs:  []*iso.ISO{},
+					Disks: []*disk.Disk{},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:      "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					Com2Dev: func() *string { r := "junk"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "BadCom3Dev",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:          "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					Name:        "test2024082408",
+					Description: "test vm description",
+					Status:      "STOPPED",
+					BhyvePid:    0,
+					VNCPort:     0,
+					DebugPort:   0,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID:        876,
+							CreatedAt: createUpdateTime,
+							UpdatedAt: createUpdateTime,
+						},
+						VMID:             "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+						CPU:              2,
+						Mem:              2048,
+						MaxWait:          60,
+						Restart:          false,
+						Screen:           false,
+						ScreenWidth:      1024,
+						ScreenHeight:     768,
+						Sound:            false,
+						SoundIn:          "/dev/dsp1",
+						SoundOut:         "/dev/dsp1",
+						VNCPort:          "AUTO",
+						Tablet:           true,
+						StoreUEFIVars:    true,
+						UTCTime:          true,
+						HostBridge:       true,
+						ACPI:             true,
+						UseHLT:           true,
+						ExitOnPause:      true,
+						DestroyPowerOff:  true,
+						IgnoreUnknownMSR: true,
+						KbdLayout:        "default",
+						Com1:             true,
+						Com1Dev:          "AUTO",
+						Com2Dev:          "AUTO",
+						Com3Dev:          "AUTO",
+						Com4Dev:          "AUTO",
+						Com1Speed:        115200,
+						Com2Speed:        115200,
+						Com3Speed:        115200,
+						Com4Speed:        115200,
+						AutoStartDelay:   60,
+						DebugPort:        "AUTO",
+					},
+					ISOs:  []*iso.ISO{},
+					Disks: []*disk.Disk{},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:      "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					Com3Dev: func() *string { r := "junk"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "BadCom4Dev",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:          "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					Name:        "test2024082408",
+					Description: "test vm description",
+					Status:      "STOPPED",
+					BhyvePid:    0,
+					VNCPort:     0,
+					DebugPort:   0,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID:        876,
+							CreatedAt: createUpdateTime,
+							UpdatedAt: createUpdateTime,
+						},
+						VMID:             "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+						CPU:              2,
+						Mem:              2048,
+						MaxWait:          60,
+						Restart:          false,
+						Screen:           false,
+						ScreenWidth:      1024,
+						ScreenHeight:     768,
+						Sound:            false,
+						SoundIn:          "/dev/dsp1",
+						SoundOut:         "/dev/dsp1",
+						VNCPort:          "AUTO",
+						Tablet:           true,
+						StoreUEFIVars:    true,
+						UTCTime:          true,
+						HostBridge:       true,
+						ACPI:             true,
+						UseHLT:           true,
+						ExitOnPause:      true,
+						DestroyPowerOff:  true,
+						IgnoreUnknownMSR: true,
+						KbdLayout:        "default",
+						Com1:             true,
+						Com1Dev:          "AUTO",
+						Com2Dev:          "AUTO",
+						Com3Dev:          "AUTO",
+						Com4Dev:          "AUTO",
+						Com1Speed:        115200,
+						Com2Speed:        115200,
+						Com3Speed:        115200,
+						Com4Speed:        115200,
+						AutoStartDelay:   60,
+						DebugPort:        "AUTO",
+					},
+					ISOs:  []*iso.ISO{},
+					Disks: []*disk.Disk{},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:      "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					Com4Dev: func() *string { r := "junk"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "BadName",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:          "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					Name:        "test2024082408",
+					Description: "test vm description",
+					Status:      "STOPPED",
+					BhyvePid:    0,
+					VNCPort:     0,
+					DebugPort:   0,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID:        876,
+							CreatedAt: createUpdateTime,
+							UpdatedAt: createUpdateTime,
+						},
+						VMID:             "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+						CPU:              2,
+						Mem:              2048,
+						MaxWait:          60,
+						Restart:          false,
+						Screen:           false,
+						ScreenWidth:      1024,
+						ScreenHeight:     768,
+						Sound:            false,
+						SoundIn:          "/dev/dsp1",
+						SoundOut:         "/dev/dsp1",
+						VNCPort:          "AUTO",
+						Tablet:           true,
+						StoreUEFIVars:    true,
+						UTCTime:          true,
+						HostBridge:       true,
+						ACPI:             true,
+						UseHLT:           true,
+						ExitOnPause:      true,
+						DestroyPowerOff:  true,
+						IgnoreUnknownMSR: true,
+						KbdLayout:        "default",
+						Com1:             true,
+						Com1Dev:          "AUTO",
+						Com2Dev:          "AUTO",
+						Com3Dev:          "AUTO",
+						Com4Dev:          "AUTO",
+						Com1Speed:        115200,
+						Com2Speed:        115200,
+						Com3Speed:        115200,
+						Com4Speed:        115200,
+						AutoStartDelay:   60,
+						DebugPort:        "AUTO",
+					},
+					ISOs:  []*iso.ISO{},
+					Disks: []*disk.Disk{},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:   "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					Name: func() *string { r := "junk!junk"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "DupeName",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:          "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					Name:        "test2024082408",
+					Description: "test vm description",
+					Status:      "STOPPED",
+					BhyvePid:    0,
+					VNCPort:     0,
+					DebugPort:   0,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID:        876,
+							CreatedAt: createUpdateTime,
+							UpdatedAt: createUpdateTime,
+						},
+						VMID:             "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+						CPU:              2,
+						Mem:              2048,
+						MaxWait:          60,
+						Restart:          false,
+						Screen:           false,
+						ScreenWidth:      1024,
+						ScreenHeight:     768,
+						Sound:            false,
+						SoundIn:          "/dev/dsp1",
+						SoundOut:         "/dev/dsp1",
+						VNCPort:          "AUTO",
+						Tablet:           true,
+						StoreUEFIVars:    true,
+						UTCTime:          true,
+						HostBridge:       true,
+						ACPI:             true,
+						UseHLT:           true,
+						ExitOnPause:      true,
+						DestroyPowerOff:  true,
+						IgnoreUnknownMSR: true,
+						KbdLayout:        "default",
+						Com1:             true,
+						Com1Dev:          "AUTO",
+						Com2Dev:          "AUTO",
+						Com3Dev:          "AUTO",
+						Com4Dev:          "AUTO",
+						Com1Speed:        115200,
+						Com2Speed:        115200,
+						Com3Speed:        115200,
+						Com4Speed:        115200,
+						AutoStartDelay:   60,
+						DebugPort:        "AUTO",
+					},
+					ISOs:  []*iso.ISO{},
+					Disks: []*disk.Disk{},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:   "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					Name: func() *string { r := "test2024082408"; return &r }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "NewName",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:          "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					CreatedAt:   createUpdateTime,
+					UpdatedAt:   createUpdateTime,
+					Name:        "test2024082408",
+					Description: "test vm description",
+					Status:      "STOPPED",
+					BhyvePid:    0,
+					VNCPort:     0,
+					DebugPort:   0,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID:        876,
+							CreatedAt: createUpdateTime,
+							UpdatedAt: createUpdateTime,
+						},
+						VMID:             "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+						CPU:              2,
+						Mem:              2048,
+						MaxWait:          60,
+						Restart:          false,
+						Screen:           false,
+						ScreenWidth:      1024,
+						ScreenHeight:     768,
+						Sound:            false,
+						SoundIn:          "/dev/dsp1",
+						SoundOut:         "/dev/dsp1",
+						VNCPort:          "AUTO",
+						Tablet:           true,
+						StoreUEFIVars:    true,
+						UTCTime:          true,
+						HostBridge:       true,
+						ACPI:             true,
+						UseHLT:           true,
+						ExitOnPause:      true,
+						DestroyPowerOff:  true,
+						IgnoreUnknownMSR: true,
+						KbdLayout:        "default",
+						Com1:             true,
+						Com1Dev:          "AUTO",
+						Com2Dev:          "AUTO",
+						Com3Dev:          "AUTO",
+						Com4Dev:          "AUTO",
+						Com1Speed:        115200,
+						Com2Speed:        115200,
+						Com3Speed:        115200,
+						Com4Speed:        115200,
+						AutoStartDelay:   60,
+						DebugPort:        "AUTO",
+					},
+					ISOs:  []*iso.ISO{},
+					Disks: []*disk.Disk{},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(
+						true,
+						false,
+						false,
+						true,
+						false,
+						60,
+						"AUTO",
+						false,
+						115200,
+						"AUTO",
+						false,
+						115200,
+						"AUTO",
+						false,
+						115200,
+						false,
+						"AUTO",
+						false,
+						115200,
+						2,
+						false,
+						"AUTO",
+						false,
+						true,
+						true,
+						"",
+						true,
+						true,
+						"default",
+						60, 2048,
+						0,
+						0,
+						nil,
+						0,
+						false,
+						0,
+						0,
+						false,
+						768,
+						1024,
+						false,
+						"/dev/dsp1",
+						"/dev/dsp1",
+						true,
+						true,
+						true,
+						true,
+						"AUTO",
+						false,
+						0,
+						0,
+						false,
+						sqlmock.AnyArg(),
+						876).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `com1_dev`=?,`com2_dev`=?,`com3_dev`=?,`com4_dev`=?,`debug_port`=?,`description`=?,`name`=?,`vnc_port`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs("", "", "", "", 0, "test vm description", "test2024082409", 0, sqlmock.AnyArg(), "f22416b8-4d21-4b29-a9dd-336fc6aca494"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_isos` WHERE `vm_id` = ?"),
+				).
+					WithArgs("f22416b8-4d21-4b29-a9dd-336fc6aca494").
+					// does not matter how many rows are returned, we wipe all isos from the VM
+					// unconditionally and add the ones we want to have
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_disks` WHERE `vm_id` = ?"),
+				).
+					WithArgs("f22416b8-4d21-4b29-a9dd-336fc6aca494").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:   "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					Name: func() *string { n := "test2024082409"; return &n }(), //nolint:nlreturn
+				},
+			},
+			want: func() *cirrina.ReqBool {
+				r := cirrina.ReqBool{
+					Success: true,
+				}
+
+				return &r
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "EmptyExistingName",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:   "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					Name: "",
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:   "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					Name: func() *string { n := "test2024082409"; return &n }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "VMNotFound",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:   "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					Name: "",
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:   "f22416b8-4d21-4b29-a9dd-336fc6aca495",
+					Name: func() *string { n := "test2024082409"; return &n }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "BadUuid",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:   "f22416b8-4d21-4b29-a9dd-336fc6aca494",
+					Name: "",
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmConfig: &cirrina.VMConfig{
+					Id:   "f22416b8-4d21-4b29-a9dd-336",
+					Name: func() *string { n := "test2024082409"; return &n }(), //nolint:nlreturn
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
 	}
 
 	for _, testCase := range tests {
