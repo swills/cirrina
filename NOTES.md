@@ -12,6 +12,8 @@
 * Convert all UUIDs from strings to UUID type
 * Convert all paths from strings to path/filepath
 * Convert all bool in database to `sql.NullBool`
+* In vm.Save(), don't remove then add all disks/isos if the list doesn't change
+* In vm.Save(), don't add all disks/isos if there are none
 * Finish cloning -- NICs are done, need to do switches, disks and VMs
 * Do templating
 * Switch to using Netlink
