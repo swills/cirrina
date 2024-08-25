@@ -1492,6 +1492,309 @@ func Test_Exists(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest,maintidx
+func TestVM_Delete(t *testing.T) {
+	type fields struct {
+		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		DeletedAt   gorm.DeletedAt
+		Name        string
+		Description string
+		Status      StatusType
+		BhyvePid    uint32
+		VNCPort     int32
+		DebugPort   int32
+		Config      Config
+		ISOs        []*iso.ISO
+		Disks       []*disk.Disk
+		Com1Dev     string
+		Com2Dev     string
+		Com3Dev     string
+		Com4Dev     string
+		Com1write   bool
+		Com2write   bool
+		Com3write   bool
+		Com4write   bool
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		fields      fields
+		wantErr     bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{VMDB: testDB}
+
+				testVM1 := VM{
+					ID:     "506fa4f9-307e-40cf-ac3e-9196423042fe",
+					Name:   "test2024082504",
+					Status: STOPPED,
+					Config: Config{
+						Model: gorm.Model{
+							ID: 378,
+						},
+					},
+				}
+
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM1.ID] = &testVM1
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `configs` SET `deleted_at`=? WHERE `configs`.`id` = ? AND `configs`.`deleted_at` IS NULL",
+					),
+				).
+					WithArgs(sqlmock.AnyArg(), 378).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `deleted_at`=? WHERE `vms`.`id` = ? AND `vms`.`deleted_at` IS NULL",
+					),
+				).
+					WithArgs(sqlmock.AnyArg(), "506fa4f9-307e-40cf-ac3e-9196423042fe").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			fields: fields{
+				ID:        "506fa4f9-307e-40cf-ac3e-9196423042fe",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
+				},
+				Name:        "test2024082510",
+				Description: "a test VM",
+				Status:      "STOPPED",
+				BhyvePid:    0,
+				VNCPort:     0,
+				DebugPort:   0,
+				Config: Config{
+					Model: gorm.Model{
+						ID:        378,
+						CreatedAt: time.Time{},
+						UpdatedAt: time.Time{},
+						DeletedAt: gorm.DeletedAt{
+							Time:  time.Time{},
+							Valid: false,
+						},
+					},
+					VMID:         "506fa4f9-307e-40cf-ac3e-9196423042fe",
+					CPU:          2,
+					Mem:          2048,
+					MaxWait:      120,
+					Restart:      true,
+					RestartDelay: 0,
+					Screen:       true,
+					ScreenWidth:  1920,
+					ScreenHeight: 1080,
+					VNCPort:      "AUTO",
+				},
+			},
+		},
+		{
+			name: "ErrorDeletingVM",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{VMDB: testDB}
+
+				testVM1 := VM{
+					ID:     "506fa4f9-307e-40cf-ac3e-9196423042fe",
+					Name:   "test2024082504",
+					Status: STOPPED,
+					Config: Config{
+						Model: gorm.Model{
+							ID: 378,
+						},
+					},
+				}
+
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM1.ID] = &testVM1
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `configs` SET `deleted_at`=? WHERE `configs`.`id` = ? AND `configs`.`deleted_at` IS NULL",
+					),
+				).
+					WithArgs(sqlmock.AnyArg(), 378).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `deleted_at`=? WHERE `vms`.`id` = ? AND `vms`.`deleted_at` IS NULL",
+					),
+				).
+					WithArgs(sqlmock.AnyArg(), "506fa4f9-307e-40cf-ac3e-9196423042fe").
+					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
+			},
+			fields: fields{
+				ID:        "506fa4f9-307e-40cf-ac3e-9196423042fe",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
+				},
+				Name:        "test2024082510",
+				Description: "a test VM",
+				Status:      "STOPPED",
+				BhyvePid:    0,
+				VNCPort:     0,
+				DebugPort:   0,
+				Config: Config{
+					Model: gorm.Model{
+						ID:        378,
+						CreatedAt: time.Time{},
+						UpdatedAt: time.Time{},
+						DeletedAt: gorm.DeletedAt{
+							Time:  time.Time{},
+							Valid: false,
+						},
+					},
+					VMID:         "506fa4f9-307e-40cf-ac3e-9196423042fe",
+					CPU:          2,
+					Mem:          2048,
+					MaxWait:      120,
+					Restart:      true,
+					RestartDelay: 0,
+					Screen:       true,
+					ScreenWidth:  1920,
+					ScreenHeight: 1080,
+					VNCPort:      "AUTO",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "ErrorDeletingConfig",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{VMDB: testDB}
+
+				testVM1 := VM{
+					ID:     "506fa4f9-307e-40cf-ac3e-9196423042fe",
+					Name:   "test2024082504",
+					Status: STOPPED,
+					Config: Config{
+						Model: gorm.Model{
+							ID: 378,
+						},
+					},
+				}
+
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM1.ID] = &testVM1
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `configs` SET `deleted_at`=? WHERE `configs`.`id` = ? AND `configs`.`deleted_at` IS NULL",
+					),
+				).
+					WithArgs(sqlmock.AnyArg(), 378).
+					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
+			},
+			fields: fields{
+				ID:        "506fa4f9-307e-40cf-ac3e-9196423042fe",
+				CreatedAt: time.Time{},
+				UpdatedAt: time.Time{},
+				DeletedAt: gorm.DeletedAt{
+					Time:  time.Time{},
+					Valid: false,
+				},
+				Name:        "test2024082510",
+				Description: "a test VM",
+				Status:      "STOPPED",
+				BhyvePid:    0,
+				VNCPort:     0,
+				DebugPort:   0,
+				Config: Config{
+					Model: gorm.Model{
+						ID:        378,
+						CreatedAt: time.Time{},
+						UpdatedAt: time.Time{},
+						DeletedAt: gorm.DeletedAt{
+							Time:  time.Time{},
+							Valid: false,
+						},
+					},
+					VMID:         "506fa4f9-307e-40cf-ac3e-9196423042fe",
+					CPU:          2,
+					Mem:          2048,
+					MaxWait:      120,
+					Restart:      true,
+					RestartDelay: 0,
+					Screen:       true,
+					ScreenWidth:  1920,
+					ScreenHeight: 1080,
+					VNCPort:      "AUTO",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "ErrorVMNotFound",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				Instance = &Singleton{VMDB: testDB}
+
+				List.VMList = map[string]*VM{}
+			},
+			fields: fields{
+				ID: "",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
+			testCase.mockClosure(testDB, mockDB)
+
+			testVM := &VM{
+				ID:          testCase.fields.ID,
+				CreatedAt:   testCase.fields.CreatedAt,
+				UpdatedAt:   testCase.fields.UpdatedAt,
+				DeletedAt:   testCase.fields.DeletedAt,
+				Name:        testCase.fields.Name,
+				Description: testCase.fields.Description,
+				Status:      testCase.fields.Status,
+				BhyvePid:    testCase.fields.BhyvePid,
+				VNCPort:     testCase.fields.VNCPort,
+				DebugPort:   testCase.fields.DebugPort,
+				Config:      testCase.fields.Config,
+				ISOs:        testCase.fields.ISOs,
+				Disks:       testCase.fields.Disks,
+				Com1Dev:     testCase.fields.Com1Dev,
+				Com2Dev:     testCase.fields.Com2Dev,
+				Com3Dev:     testCase.fields.Com3Dev,
+				Com4Dev:     testCase.fields.Com4Dev,
+				Com1write:   testCase.fields.Com1write,
+				Com2write:   testCase.fields.Com2write,
+				Com3write:   testCase.fields.Com3write,
+				Com4write:   testCase.fields.Com4write,
+			}
+
+			err := testVM.Delete()
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("Delete() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 //nolint:paralleltest
