@@ -206,22 +206,14 @@ func validateVM(vmInst *VM) error {
 	return nil
 }
 
-func vmExists(vmName string) (bool, error) {
+func Exists(vmName string) bool {
 	_, err := GetByName(vmName)
-	if err == nil {
-		return true, errVMDupe
-	}
 
-	return false, nil
+	return err == nil
 }
 
 func Create(vmInst *VM) error {
-	vmAlreadyExists, err := vmExists(vmInst.Name)
-	if err != nil {
-		slog.Error("error checking db for vm", "name", vmInst.Name, "err", err)
-
-		return err
-	}
+	vmAlreadyExists := Exists(vmInst.Name)
 
 	if vmAlreadyExists {
 		slog.Error("VM exists", "VM", vmInst.Name)
@@ -229,7 +221,7 @@ func Create(vmInst *VM) error {
 		return errVMDupe
 	}
 
-	err = validateVM(vmInst)
+	err := validateVM(vmInst)
 	if err != nil {
 		slog.Error("error validating vm", "VM", vmInst, "err", err)
 

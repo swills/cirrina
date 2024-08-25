@@ -1430,6 +1430,68 @@ func TestVM_Running(t *testing.T) {
 	}
 }
 
+func Test_Exists(t *testing.T) {
+	type args struct {
+		vmName string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func()
+		args        args
+		want        bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func() {
+				List.VMList = map[string]*VM{}
+			},
+			args: args{
+				vmName: "46153591-b8b1-419f-8bdb-d82981abb118",
+			},
+			want: false,
+		},
+		{
+			name: "ErrorExists",
+			mockClosure: func() {
+				testVM1 := VM{
+					ID:     "46153591-b8b1-419f-8bdb-d82981abb119",
+					Name:   "test2024082504",
+					Status: STOPPED,
+					Config: Config{
+						Model: gorm.Model{
+							ID: 696,
+						},
+					},
+				}
+
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmName: "test2024082504",
+			},
+			want: true,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			testCase.mockClosure()
+
+			got := Exists(testCase.args.vmName)
+			if got != testCase.want {
+				t.Errorf("vmExists() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 //nolint:paralleltest
