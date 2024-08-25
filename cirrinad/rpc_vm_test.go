@@ -1776,7 +1776,7 @@ func Test_server_AddVM(t *testing.T) {
 				return &o, nil
 			}
 
-			t.Cleanup(func() { osOpenFileFunc = os.OpenFile })
+			t.Cleanup(func() { vm.OsOpenFileFunc = os.OpenFile })
 
 			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
 			testCase.mockClosure(testDB, mockDB)

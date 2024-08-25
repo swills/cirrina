@@ -235,12 +235,12 @@ func Create(vmInst *VM) error {
 	slog.Debug("Creating VM", "vm", vmInst.Name)
 
 	res := db.Create(&vmInst)
-	if res.RowsAffected != 1 {
-		return fmt.Errorf("incorrect number of rows affected, err: %w", res.Error)
-	}
-
 	if res.Error != nil {
 		return res.Error
+	}
+
+	if res.RowsAffected != 1 {
+		return fmt.Errorf("incorrect number of rows affected, err: %w", res.Error)
 	}
 
 	initOneVM(vmInst)

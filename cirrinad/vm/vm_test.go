@@ -1791,6 +1791,294 @@ func TestVM_Delete(t *testing.T) {
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("Delete() error = %v, wantErr %v", err, testCase.wantErr)
 			}
+
+			mockDB.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mockDB.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest,maintidx
+func TestCreate(t *testing.T) {
+	type args struct {
+		vmInst *VM
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		wantErr     bool
+		wantPath    bool
+		wantPathErr bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{VMDB: testDB}
+
+				List.VMList = map[string]*VM{}
+
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `vms` (`created_at`,`updated_at`,`deleted_at`,`name`,`description`,`status`,`bhyve_pid`,`vnc_port`,`debug_port`,`com1_dev`,`com2_dev`,`com3_dev`,`com4_dev`,`id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`", //nolint:lll
+					),
+				).
+					WithArgs(
+						sqlmock.AnyArg(),
+						sqlmock.AnyArg(),
+						nil,
+						"test2024082511",
+						"a cool vm or something",
+						"",
+						0,
+						0,
+						0,
+						"",
+						"",
+						"",
+						"",
+						sqlmock.AnyArg(),
+					).
+					WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("b56b7d60-8075-4fbe-b3bc-8a575ed301a5"))
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `configs` (`created_at`,`updated_at`,`deleted_at`,`vm_id`,`cpu`,`mem`,`max_wait`,`restart`,`restart_delay`,`screen`,`screen_width`,`screen_height`,`vnc_wait`,`vnc_port`,`tablet`,`store_uefi_vars`,`utc_time`,`host_bridge`,`acpi`,`use_hlt`,`exit_on_pause`,`wire_guest_mem`,`destroy_power_off`,`ignore_unknown_msr`,`kbd_layout`,`auto_start`,`sound`,`sound_in`,`sound_out`,`com1`,`com1_dev`,`com1_log`,`com2`,`com2_dev`,`com2_log`,`com3`,`com3_dev`,`com3_log`,`com4`,`com4_dev`,`com4_log`,`extra_args`,`com1_speed`,`com2_speed`,`com3_speed`,`com4_speed`,`auto_start_delay`,`debug`,`debug_wait`,`debug_port`,`priority`,`protect`,`pcpu`,`rbps`,`wbps`,`riops`,`wiops`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (`id`) DO UPDATE SET `vm_id`=`excluded`.`vm_id` RETURNING `id`", //nolint:lll
+					),
+				).WithArgs(
+					sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "b56b7d60-8075-4fbe-b3bc-8a575ed301a5", 2, 2048, 120, true, 1, true, 1920, 1080, false, "AUTO", true, true, true, true, true, true, true, false, true, true, "default", false, false, "/dev/dsp0", "/dev/dsp0", true, "AUTO", false, false, "AUTO", false, false, "AUTO", false, false, "AUTO", false, "", 115200, 115200, 115200, 115200, 0, false, false, "AUTO", 0, true, 0, 0, 0, 0, 0). //nolint:lll
+					WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(345))
+				mock.ExpectCommit()
+			},
+			args: args{
+				vmInst: &VM{
+					Name:        "test2024082511",
+					Description: "a cool vm or something",
+					Config: Config{
+						CPU: 2,
+						Mem: 2048,
+					},
+				},
+			},
+			wantPath: true,
+			wantErr:  false,
+		},
+		{
+			name: "ErrorSavingWrongNumberOfRows",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{VMDB: testDB}
+
+				List.VMList = map[string]*VM{}
+
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `vms` (`created_at`,`updated_at`,`deleted_at`,`name`,`description`,`status`,`bhyve_pid`,`vnc_port`,`debug_port`,`com1_dev`,`com2_dev`,`com3_dev`,`com4_dev`,`id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`", //nolint:lll
+					),
+				).
+					WithArgs(
+						sqlmock.AnyArg(),
+						sqlmock.AnyArg(),
+						nil,
+						"test2024082511",
+						"a cool vm or something",
+						"",
+						0,
+						0,
+						0,
+						"",
+						"",
+						"",
+						"",
+						sqlmock.AnyArg(),
+					).
+					WillReturnRows(sqlmock.NewRows([]string{"id"}))
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `configs` (`created_at`,`updated_at`,`deleted_at`,`vm_id`,`cpu`,`mem`,`max_wait`,`restart`,`restart_delay`,`screen`,`screen_width`,`screen_height`,`vnc_wait`,`vnc_port`,`tablet`,`store_uefi_vars`,`utc_time`,`host_bridge`,`acpi`,`use_hlt`,`exit_on_pause`,`wire_guest_mem`,`destroy_power_off`,`ignore_unknown_msr`,`kbd_layout`,`auto_start`,`sound`,`sound_in`,`sound_out`,`com1`,`com1_dev`,`com1_log`,`com2`,`com2_dev`,`com2_log`,`com3`,`com3_dev`,`com3_log`,`com4`,`com4_dev`,`com4_log`,`extra_args`,`com1_speed`,`com2_speed`,`com3_speed`,`com4_speed`,`auto_start_delay`,`debug`,`debug_wait`,`debug_port`,`priority`,`protect`,`pcpu`,`rbps`,`wbps`,`riops`,`wiops`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (`id`) DO UPDATE SET `vm_id`=`excluded`.`vm_id` RETURNING `id`", //nolint:lll
+					),
+				).WithArgs(
+					sqlmock.AnyArg(), sqlmock.AnyArg(), nil, sqlmock.AnyArg(), 2, 2048, 120, true, 1, true, 1920, 1080, false, "AUTO", true, true, true, true, true, true, true, false, true, true, "default", false, false, "/dev/dsp0", "/dev/dsp0", true, "AUTO", false, false, "AUTO", false, false, "AUTO", false, false, "AUTO", false, "", 115200, 115200, 115200, 115200, 0, false, false, "AUTO", 0, true, 0, 0, 0, 0, 0). //nolint:lll
+					WillReturnRows(sqlmock.NewRows([]string{"id"}))
+				mock.ExpectCommit()
+			},
+			args: args{
+				vmInst: &VM{
+					Name:        "test2024082511",
+					Description: "a cool vm or something",
+					Config: Config{
+						CPU: 2,
+						Mem: 2048,
+					},
+				},
+			},
+			wantPath: true,
+			wantErr:  true,
+		},
+		{
+			name: "ErrorSaving",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{VMDB: testDB}
+
+				List.VMList = map[string]*VM{}
+
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `vms` (`created_at`,`updated_at`,`deleted_at`,`name`,`description`,`status`,`bhyve_pid`,`vnc_port`,`debug_port`,`com1_dev`,`com2_dev`,`com3_dev`,`com4_dev`,`id`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING `id`", //nolint:lll
+					),
+				).
+					WithArgs(
+						sqlmock.AnyArg(),
+						sqlmock.AnyArg(),
+						nil,
+						"test2024082511",
+						"a cool vm or something",
+						"",
+						0,
+						0,
+						0,
+						"",
+						"",
+						"",
+						"",
+						sqlmock.AnyArg(),
+					).
+					WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("b56b7d60-8075-4fbe-b3bc-8a575ed301a5"))
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `configs` (`created_at`,`updated_at`,`deleted_at`,`vm_id`,`cpu`,`mem`,`max_wait`,`restart`,`restart_delay`,`screen`,`screen_width`,`screen_height`,`vnc_wait`,`vnc_port`,`tablet`,`store_uefi_vars`,`utc_time`,`host_bridge`,`acpi`,`use_hlt`,`exit_on_pause`,`wire_guest_mem`,`destroy_power_off`,`ignore_unknown_msr`,`kbd_layout`,`auto_start`,`sound`,`sound_in`,`sound_out`,`com1`,`com1_dev`,`com1_log`,`com2`,`com2_dev`,`com2_log`,`com3`,`com3_dev`,`com3_log`,`com4`,`com4_dev`,`com4_log`,`extra_args`,`com1_speed`,`com2_speed`,`com3_speed`,`com4_speed`,`auto_start_delay`,`debug`,`debug_wait`,`debug_port`,`priority`,`protect`,`pcpu`,`rbps`,`wbps`,`riops`,`wiops`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT (`id`) DO UPDATE SET `vm_id`=`excluded`.`vm_id` RETURNING `id`", //nolint:lll
+					),
+				).WithArgs(
+					sqlmock.AnyArg(), sqlmock.AnyArg(), nil, "b56b7d60-8075-4fbe-b3bc-8a575ed301a5", 2, 2048, 120, true, 1, true, 1920, 1080, false, "AUTO", true, true, true, true, true, true, true, false, true, true, "default", false, false, "/dev/dsp0", "/dev/dsp0", true, "AUTO", false, false, "AUTO", false, false, "AUTO", false, false, "AUTO", false, "", 115200, 115200, 115200, 115200, 0, false, false, "AUTO", 0, true, 0, 0, 0, 0, 0). //nolint:lll
+					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
+			},
+			args: args{
+				vmInst: &VM{
+					Name:        "test2024082511",
+					Description: "a cool vm or something",
+					Config: Config{
+						CPU: 2,
+						Mem: 2048,
+					},
+				},
+			},
+			wantPath: true,
+			wantErr:  true,
+		},
+		{
+			name: "ErrorInvalidName",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				Instance = &Singleton{VMDB: testDB}
+
+				List.VMList = map[string]*VM{}
+			},
+			args: args{
+				vmInst: &VM{
+					Name:        "test2024!082511",
+					Description: "a cool vm or something",
+					Config: Config{
+						CPU: 2,
+						Mem: 2048,
+					},
+				},
+			},
+			wantPath: true,
+			wantErr:  true,
+		},
+		{
+			name: "ErrorVMAlreadyExists",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				Instance = &Singleton{VMDB: testDB}
+
+				testVM1 := VM{
+					ID:   "07b4520d-c8c2-4c60-a55e-9c9ed6be688b",
+					Name: "test2024082511",
+				}
+
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmInst: &VM{
+					Name:        "test2024082511",
+					Description: "a cool vm or something",
+					Config: Config{
+						CPU: 2,
+						Mem: 2048,
+					},
+				},
+			},
+			wantPath: true,
+			wantErr:  true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			PathExistsFunc = func(_ string) (bool, error) {
+				if testCase.wantPathErr {
+					return true, errors.New("another error") //nolint:goerr113
+				}
+
+				if testCase.wantPath {
+					return true, nil
+				}
+
+				return false, nil
+			}
+
+			t.Cleanup(func() { PathExistsFunc = util.PathExists })
+
+			OsOpenFileFunc = func(_ string, _ int, _ os.FileMode) (*os.File, error) {
+				o := os.File{}
+
+				return &o, nil
+			}
+
+			t.Cleanup(func() { OsOpenFileFunc = os.OpenFile })
+
+			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
+			testCase.mockClosure(testDB, mockDB)
+
+			err := Create(testCase.args.vmInst)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("Create() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mockDB.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mockDB.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
 		})
 	}
 }
