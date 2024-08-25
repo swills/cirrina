@@ -5064,6 +5064,358 @@ func Test_server_SetVMDisks(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest,maintidx
+func Test_server_StopVM(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	type args struct {
+		vmID *cirrina.VMID
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		want        *cirrina.RequestID
+		wantErr     bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{VMDB: testDB}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:     "ef7f4777-5a93-4159-b3b2-807860929ddc",
+					Name:   "test2024082503",
+					Status: vm.RUNNING,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 694,
+						},
+					},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `requests` WHERE `complete` = ? AND `requests`.`deleted_at` IS NULL",
+					),
+				).
+					WithArgs(false).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"started_at",
+								"successful",
+								"complete",
+								"type",
+								"data",
+							}),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `requests` (`created_at`,`updated_at`,`deleted_at`,`started_at`,`successful`,`complete`,`type`,`data`,`id`) VALUES (?,?,?,?,?,?,?,?,?) RETURNING `id`", //nolint:lll
+					),
+				).
+					WithArgs(
+						sqlmock.AnyArg(), sqlmock.AnyArg(), nil, nil, false, false, "VMSTOP", "{\"vm_id\":\"ef7f4777-5a93-4159-b3b2-807860929ddc\"}", sqlmock.AnyArg(), //nolint:lll
+					).
+					WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("92b56d70-7001-4598-8895-761791234678"))
+				mock.ExpectCommit()
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "ef7f4777-5a93-4159-b3b2-807860929ddc",
+				},
+			},
+			want: func() *cirrina.RequestID {
+				r := cirrina.RequestID{Value: "92b56d70-7001-4598-8895-761791234678"}
+
+				return &r
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "ErrorSaving",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{VMDB: testDB}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:     "ef7f4777-5a93-4159-b3b2-807860929ddc",
+					Name:   "test2024082503",
+					Status: vm.RUNNING,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 694,
+						},
+					},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `requests` WHERE `complete` = ? AND `requests`.`deleted_at` IS NULL",
+					),
+				).
+					WithArgs(false).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"started_at",
+								"successful",
+								"complete",
+								"type",
+								"data",
+							}),
+					)
+
+				mock.ExpectBegin()
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"INSERT INTO `requests` (`created_at`,`updated_at`,`deleted_at`,`started_at`,`successful`,`complete`,`type`,`data`,`id`) VALUES (?,?,?,?,?,?,?,?,?) RETURNING `id`", //nolint:lll
+					),
+				).
+					WithArgs(
+						sqlmock.AnyArg(), sqlmock.AnyArg(), nil, nil, false, false, "VMSTOP", "{\"vm_id\":\"ef7f4777-5a93-4159-b3b2-807860929ddc\"}", sqlmock.AnyArg(), //nolint:lll
+					).
+					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "ef7f4777-5a93-4159-b3b2-807860929ddc",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "ErrorVMNotRunning",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{VMDB: testDB}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:     "ef7f4777-5a93-4159-b3b2-807860929ddc",
+					Name:   "test2024082503",
+					Status: vm.STOPPED,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 694,
+						},
+					},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "ef7f4777-5a93-4159-b3b2-807860929ddc",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "ErrorPendingRequestExists",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{VMDB: testDB}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:     "ef7f4777-5a93-4159-b3b2-807860929ddc",
+					Name:   "test2024082503",
+					Status: vm.RUNNING,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 694,
+						},
+					},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `requests` WHERE `complete` = ? AND `requests`.`deleted_at` IS NULL",
+					),
+				).
+					WithArgs(false).
+					WillReturnRows(
+						sqlmock.NewRows([]string{
+							"id",
+							"created_at",
+							"updated_at",
+							"deleted_at",
+							"started_at",
+							"successful",
+							"complete",
+							"type",
+							"data"}).
+							AddRow(
+								"0662d1f4-1a62-4b42-8d3d-844f37d3c35a",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								time.Time{},
+								0,
+								0,
+								"VMSTART",
+								"{\"vm_id\":\"ef7f4777-5a93-4159-b3b2-807860929ddc\"}"))
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "ef7f4777-5a93-4159-b3b2-807860929ddc",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "ErrorExistingVMNameEmpty",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{VMDB: testDB}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:     "ef7f4777-5a93-4159-b3b2-807860929ddd",
+					Name:   "",
+					Status: vm.RUNNING,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 694,
+						},
+					},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "ef7f4777-5a93-4159-b3b2-807860929ddd",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "ErrorVMNotFound",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{VMDB: testDB}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				vm.List.VMList = map[string]*vm.VM{}
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "ef7f4777-5a93-4159-b3b2-807860929dde",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "ErrorVMBadUuid",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{VMDB: testDB}
+				requests.Instance = &requests.Singleton{ReqDB: testDB}
+
+				vm.List.VMList = map[string]*vm.VM{}
+			},
+			args: args{
+				vmID: &cirrina.VMID{
+					Value: "ef7f4777-5a93-4159-b3b2-80786",
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
+			testCase.mockClosure(testDB, mockDB)
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var got *cirrina.RequestID
+
+			got, err = client.StopVM(context.Background(), testCase.args.vmID)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("StopVM() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mockDB.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mockDB.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 //nolint:paralleltest
