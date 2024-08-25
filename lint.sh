@@ -1,5 +1,22 @@
 #!/bin/sh
 
+CLOCKBIN=/usr/local/libexec/poudriere/clock
+CLOCK="${CLOCKBIN} -monotonic"
+
+if [ -f ${CLOCKBIN} ]; then
+  START_TIME=$(${CLOCK})
+fi
+
+elapsed_time () {
+  END_TIME=$(${CLOCK})
+  _elapsed=$((${END_TIME} - ${START_TIME}))
+  seconds=$((${_elapsed} % 60))
+  minutes=$(((${_elapsed} / 60) % 60))
+  hours=$((${_elapsed} / 3600))
+  _duration=$(printf "%02d:%02d:%02d" ${hours} ${minutes} ${seconds})
+  echo "Elapsed time: ${_duration}"
+}
+
 SCRIPT=$(readlink -f "$0")
 SCRIPTDIR=$(dirname "$SCRIPT")
 cd ${SCRIPTDIR}
@@ -23,3 +40,7 @@ idprio -t nice go test -v ./... -coverprofile=coverage.txt -covermode count -tag
 idprio -t nice go tool cover -func coverage.txt | tail -n 1
 
 idprio -t nice go test -race ./cirrinad
+
+if [ -f ${CLOCKBIN} ]; then
+  elapsed_time
+fi

@@ -452,11 +452,11 @@ func GetByID(id string) (*VM, error) {
 	List.Mu.RLock()
 
 	vmInst, valid := List.VMList[id]
-	if valid {
-		return vmInst, nil
+	if !valid {
+		return nil, errVMNotFound
 	}
 
-	return nil, errVMNotFound
+	return vmInst, nil
 }
 
 func GetByName(name string) (*VM, error) {
