@@ -4678,6 +4678,392 @@ func Test_server_SetVMNics(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest,maintidx
+func Test_server_SetVMDisks(t *testing.T) {
+	type args struct {
+		setDiskReq *cirrina.SetDiskReq
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args        args
+		want        *cirrina.ReqBool
+		wantErr     bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{VMDB: testDB}
+				disk.Instance = &disk.Singleton{DiskDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:     "ccf34989-0da6-497d-a5b7-1aee352dcac1",
+					Name:   "test2024082502",
+					Status: vm.STOPPED,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 693,
+						},
+					},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+
+				testDisk1 := disk.Disk{
+					ID:          "f462d4b3-9d41-4630-98f2-4bbb8cce6eed",
+					Name:        "test2024082502_hd0",
+					Description: "test disk",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+
+				disk.List.DiskList[testDisk1.ID] = &testDisk1
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(false, false, false, false, false, 0, "", false, 0, "", false, 0, "", false, 0, false, "", false, 0, 0, false, "", false, false, false, "", false, false, "", 0, 0, 0, 0, nil, 0, false, 0, 0, false, 0, 0, false, "", "", false, false, false, false, "", false, 0, 0, false, sqlmock.AnyArg(), 693). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `com1_dev`=?,`com2_dev`=?,`com3_dev`=?,`com4_dev`=?,`debug_port`=?,`description`=?,`name`=?,`vnc_port`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs("", "", "", "", 0, "", "test2024082502", 0, sqlmock.AnyArg(), "ccf34989-0da6-497d-a5b7-1aee352dcac1"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_isos` WHERE `vm_id` = ?"),
+				).
+					WithArgs("ccf34989-0da6-497d-a5b7-1aee352dcac1").
+					// does not matter how many rows are returned, we wipe all isos from the VM
+					// unconditionally and add the ones we want to have
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_disks` WHERE `vm_id` = ?"),
+				).
+					WithArgs("ccf34989-0da6-497d-a5b7-1aee352dcac1").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("INSERT INTO `vm_disks` (`vm_id`,`disk_id`, `position`) VALUES (?,?,?)"),
+				).
+					WithArgs("ccf34989-0da6-497d-a5b7-1aee352dcac1", "f462d4b3-9d41-4630-98f2-4bbb8cce6eed", 0).
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			args: args{
+				setDiskReq: &cirrina.SetDiskReq{
+					Id:     "ccf34989-0da6-497d-a5b7-1aee352dcac1",
+					Diskid: []string{"f462d4b3-9d41-4630-98f2-4bbb8cce6eed"},
+				},
+			},
+			want:    func() *cirrina.ReqBool { r := cirrina.ReqBool{Success: true}; return &r }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name: "ErrorSaving",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{VMDB: testDB}
+				disk.Instance = &disk.Singleton{DiskDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:     "ccf34989-0da6-497d-a5b7-1aee352dcac1",
+					Name:   "test2024082502",
+					Status: vm.STOPPED,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 693,
+						},
+					},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+
+				testDisk1 := disk.Disk{
+					ID:          "f462d4b3-9d41-4630-98f2-4bbb8cce6eed",
+					Name:        "test2024082502_hd0",
+					Description: "test disk",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+
+				disk.List.DiskList[testDisk1.ID] = &testDisk1
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(false, false, false, false, false, 0, "", false, 0, "", false, 0, "", false, 0, false, "", false, 0, 0, false, "", false, false, false, "", false, false, "", 0, 0, 0, 0, nil, 0, false, 0, 0, false, 0, 0, false, "", "", false, false, false, false, "", false, 0, 0, false, sqlmock.AnyArg(), 693). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `com1_dev`=?,`com2_dev`=?,`com3_dev`=?,`com4_dev`=?,`debug_port`=?,`description`=?,`name`=?,`vnc_port`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs("", "", "", "", 0, "", "test2024082502", 0, sqlmock.AnyArg(), "ccf34989-0da6-497d-a5b7-1aee352dcac1"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_isos` WHERE `vm_id` = ?"),
+				).
+					WithArgs("ccf34989-0da6-497d-a5b7-1aee352dcac1").
+					// does not matter how many rows are returned, we wipe all isos from the VM
+					// unconditionally and add the ones we want to have
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_disks` WHERE `vm_id` = ?"),
+				).
+					WithArgs("ccf34989-0da6-497d-a5b7-1aee352dcac1").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("INSERT INTO `vm_disks` (`vm_id`,`disk_id`, `position`) VALUES (?,?,?)"),
+				).
+					WithArgs("ccf34989-0da6-497d-a5b7-1aee352dcac1", "f462d4b3-9d41-4630-98f2-4bbb8cce6eed", 0).
+					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
+			},
+			args: args{
+				setDiskReq: &cirrina.SetDiskReq{
+					Id:     "ccf34989-0da6-497d-a5b7-1aee352dcac1",
+					Diskid: []string{"f462d4b3-9d41-4630-98f2-4bbb8cce6eed"},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "ErrorEmptyExistingVMName",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{VMDB: testDB}
+				disk.Instance = &disk.Singleton{DiskDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:     "ccf34989-0da6-497d-a5b7-1aee352dcac1",
+					Name:   "",
+					Status: vm.STOPPED,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 693,
+						},
+					},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+
+				testDisk1 := disk.Disk{
+					ID:          "f462d4b3-9d41-4630-98f2-4bbb8cce6eed",
+					Name:        "test2024082502_hd0",
+					Description: "test disk",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+
+				disk.List.DiskList[testDisk1.ID] = &testDisk1
+			},
+			args: args{
+				setDiskReq: &cirrina.SetDiskReq{
+					Id:     "ccf34989-0da6-497d-a5b7-1aee352dcac1",
+					Diskid: []string{"f462d4b3-9d41-4630-98f2-4bbb8cce6eed"},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "ErrorVMNotFound",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{VMDB: testDB}
+				disk.Instance = &disk.Singleton{DiskDB: testDB}
+
+				vm.List.VMList = map[string]*vm.VM{}
+			},
+			args: args{
+				setDiskReq: &cirrina.SetDiskReq{
+					Id:     "ccf34989-0da6-497d-a5b7-1aee352dcac2",
+					Diskid: []string{"f462d4b3-9d41-4630-98f2-4bbb8cce6eed"},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "ErrorVMBadUuid",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{VMDB: testDB}
+				disk.Instance = &disk.Singleton{DiskDB: testDB}
+
+				vm.List.VMList = map[string]*vm.VM{}
+			},
+			args: args{
+				setDiskReq: &cirrina.SetDiskReq{
+					Id:     "ccf34989-0da6-497d-a5b7-1ae",
+					Diskid: []string{"f462d4b3-9d41-4630-98f2-4bbb8cce6eed"},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "ErrorDiskBadUuid",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vm.Instance = &vm.Singleton{VMDB: testDB}
+				disk.Instance = &disk.Singleton{DiskDB: testDB}
+
+				testVM1 := vm.VM{
+					ID:     "ccf34989-0da6-497d-a5b7-1aee352dcac1",
+					Name:   "test2024082502",
+					Status: vm.STOPPED,
+					Config: vm.Config{
+						Model: gorm.Model{
+							ID: 693,
+						},
+					},
+				}
+
+				vm.List.VMList = map[string]*vm.VM{}
+				vm.List.VMList[testVM1.ID] = &testVM1
+
+				testDisk1 := disk.Disk{
+					ID:          "f462d4b3-9d41-4630-98f2-4bbb8cce6eed",
+					Name:        "test2024082502_hd0",
+					Description: "test disk",
+					Type:        "NVME",
+					DevType:     "FILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+
+				disk.List.DiskList[testDisk1.ID] = &testDisk1
+			},
+			args: args{
+				setDiskReq: &cirrina.SetDiskReq{
+					Id:     "ccf34989-0da6-497d-a5b7-1aee352dcac1",
+					Diskid: []string{"f462d4b3-9d41-4630-98f2-4bbb8cce"},
+				},
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
+			testCase.mockClosure(testDB, mockDB)
+
+			lis := bufconn.Listen(1024 * 1024)
+			s := grpc.NewServer()
+			reflection.Register(s)
+			cirrina.RegisterVMInfoServer(s, &server{})
+
+			go func() {
+				if err := s.Serve(lis); err != nil {
+					log.Fatalf("Server exited with error: %v", err)
+				}
+			}()
+
+			resolver.SetDefaultScheme("passthrough")
+
+			conn, err := grpc.NewClient("bufnet", grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+				return lis.Dial()
+			}), grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				t.Fatalf("Failed to dial bufnet: %v", err)
+			}
+
+			defer func(conn *grpc.ClientConn) {
+				_ = conn.Close()
+			}(conn)
+
+			client := cirrina.NewVMInfoClient(conn)
+
+			var got *cirrina.ReqBool
+
+			got, err = client.SetVMDisks(context.Background(), testCase.args.setDiskReq)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("SetVMDisks() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
+			}
+
+			mockDB.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mockDB.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 //nolint:paralleltest
