@@ -1430,6 +1430,7 @@ func TestVM_Running(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
 func Test_Exists(t *testing.T) {
 	type args struct {
 		vmName string
@@ -1475,13 +1476,9 @@ func Test_Exists(t *testing.T) {
 		},
 	}
 
-	t.Parallel()
-
 	for _, testCase := range tests {
 		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
 			testCase.mockClosure()
 
 			got := Exists(testCase.args.vmName)
