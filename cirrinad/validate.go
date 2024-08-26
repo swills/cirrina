@@ -315,7 +315,7 @@ func validateOSVersion() {
 
 	slog.Debug("validate OS", "ovi", ovi)
 	// Check for valid OS version, see https://www.freebsd.org/security/
-	// as of commit, 13.2 and 14.0 are oldest supported versions
+	// as of commit, 13.3 and 14.0 are oldest supported versions
 	if ovi.LessThan(ver132) && ovi.LessThan(ver140) {
 		slog.Error("Unsupported OS version", "version", ovi)
 		os.Exit(1)
