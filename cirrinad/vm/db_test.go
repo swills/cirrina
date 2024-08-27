@@ -1528,3 +1528,174 @@ func TestVM_BeforeCreateNilReceiver(t *testing.T) {
 		}
 	})
 }
+
+func TestVM_SetRunning(t *testing.T) {
+	type fields struct {
+		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		DeletedAt   gorm.DeletedAt
+		Name        string
+		Description string
+		Status      StatusType
+		BhyvePid    uint32
+		VNCPort     int32
+		DebugPort   int32
+		Config      Config
+		ISOs        []*iso.ISO
+		Disks       []*disk.Disk
+		Com1Dev     string
+		Com2Dev     string
+		Com3Dev     string
+		Com4Dev     string
+		Com1write   bool
+		Com2write   bool
+		Com3write   bool
+		Com4write   bool
+	}
+
+	type args struct {
+		pid int
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		fields      fields
+		args        args
+	}{
+		{
+			name: "Success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `bhyve_pid`=?,`status`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?",
+					),
+				).
+					WithArgs(19283, "RUNNING", sqlmock.AnyArg(), "69d229bb-affb-494e-8138-e82d6551c829").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			fields: fields{
+				ID:          "69d229bb-affb-494e-8138-e82d6551c829",
+				Name:        "test2024082701",
+				Description: "a test VM",
+				Status:      "STARTING",
+				BhyvePid:    0,
+				VNCPort:     0,
+				DebugPort:   0,
+				Config: Config{
+					Model: gorm.Model{
+						ID: 7719,
+					},
+					VMID: "69d229bb-affb-494e-8138-e82d6551c829",
+					CPU:  2,
+					Mem:  2048,
+				},
+			},
+			args: args{
+				pid: 19283,
+			},
+		},
+		{
+			name: "Error",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `bhyve_pid`=?,`status`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?",
+					),
+				).
+					WithArgs(19284, "RUNNING", sqlmock.AnyArg(), "bb6354f6-9816-45bd-b165-d429a632ea91").
+					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
+			},
+			fields: fields{
+				ID:          "bb6354f6-9816-45bd-b165-d429a632ea91",
+				Name:        "test2024082701",
+				Description: "a test VM",
+				Status:      "STARTING",
+				BhyvePid:    0,
+				VNCPort:     0,
+				DebugPort:   0,
+				Config: Config{
+					Model: gorm.Model{
+						ID: 7720,
+					},
+					VMID: "bb6354f6-9816-45bd-b165-d429a632ea91",
+					CPU:  2,
+					Mem:  2048,
+				},
+			},
+			args: args{
+				pid: 19284,
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("vmTest")
+			testCase.mockClosure(testDB, mock)
+
+			List.VMList = map[string]*VM{}
+
+			testVM := &VM{
+				ID:          testCase.fields.ID,
+				CreatedAt:   testCase.fields.CreatedAt,
+				UpdatedAt:   testCase.fields.UpdatedAt,
+				DeletedAt:   testCase.fields.DeletedAt,
+				Name:        testCase.fields.Name,
+				Description: testCase.fields.Description,
+				Status:      testCase.fields.Status,
+				BhyvePid:    testCase.fields.BhyvePid,
+				VNCPort:     testCase.fields.VNCPort,
+				DebugPort:   testCase.fields.DebugPort,
+				Config:      testCase.fields.Config,
+				ISOs:        testCase.fields.ISOs,
+				Disks:       testCase.fields.Disks,
+				Com1Dev:     testCase.fields.Com1Dev,
+				Com2Dev:     testCase.fields.Com2Dev,
+				Com3Dev:     testCase.fields.Com3Dev,
+				Com4Dev:     testCase.fields.Com4Dev,
+				Com1write:   testCase.fields.Com1write,
+				Com2write:   testCase.fields.Com2write,
+				Com3write:   testCase.fields.Com3write,
+				Com4write:   testCase.fields.Com4write,
+			}
+			List.VMList[testVM.ID] = testVM
+
+			testVM.SetRunning(testCase.args.pid)
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+
+			if List.VMList[testVM.ID].Status != RUNNING {
+				t.Errorf("SetRunning() List.VMList[testVM.ID].Status = %v, want RUNNING", List.VMList[testVM.ID].Status)
+			}
+		})
+	}
+}
