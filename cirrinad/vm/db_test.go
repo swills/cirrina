@@ -1699,3 +1699,160 @@ func TestVM_SetRunning(t *testing.T) {
 		})
 	}
 }
+
+func TestVM_SetStarting(t *testing.T) {
+	type fields struct {
+		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		DeletedAt   gorm.DeletedAt
+		Name        string
+		Description string
+		Status      StatusType
+		BhyvePid    uint32
+		VNCPort     int32
+		DebugPort   int32
+		Config      Config
+		ISOs        []*iso.ISO
+		Disks       []*disk.Disk
+		Com1Dev     string
+		Com2Dev     string
+		Com3Dev     string
+		Com4Dev     string
+		Com1write   bool
+		Com2write   bool
+		Com3write   bool
+		Com4write   bool
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		fields      fields
+	}{
+		{
+			name: "Success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `status`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?",
+					),
+				).
+					WithArgs("STARTING", sqlmock.AnyArg(), "bf0c1a9a-634e-40ca-a4f4-c464ee8b448a").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			fields: fields{
+				ID:          "bf0c1a9a-634e-40ca-a4f4-c464ee8b448a",
+				Name:        "test2024082702",
+				Description: "a test VM",
+				Status:      "STOPPED",
+				BhyvePid:    0,
+				Config: Config{
+					Model: gorm.Model{
+						ID: 91,
+					},
+					VMID: "bf0c1a9a-634e-40ca-a4f4-c464ee8b448a",
+					CPU:  2,
+					Mem:  2048,
+				},
+			},
+		},
+		{
+			name: "Error",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `status`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?",
+					),
+				).
+					WithArgs("STARTING", sqlmock.AnyArg(), "bf0c1a9a-634e-40ca-a4f4-c464ee8b448a").
+					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
+			},
+			fields: fields{
+				ID:          "bf0c1a9a-634e-40ca-a4f4-c464ee8b448a",
+				Name:        "test2024082702",
+				Description: "a test VM",
+				Status:      "STOPPED",
+				BhyvePid:    0,
+				Config: Config{
+					Model: gorm.Model{
+						ID: 91,
+					},
+					VMID: "bf0c1a9a-634e-40ca-a4f4-c464ee8b448a",
+					CPU:  2,
+					Mem:  2048,
+				},
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("vmTest")
+			testCase.mockClosure(testDB, mock)
+
+			List.VMList = map[string]*VM{}
+
+			testVM := &VM{
+				ID:          testCase.fields.ID,
+				CreatedAt:   testCase.fields.CreatedAt,
+				UpdatedAt:   testCase.fields.UpdatedAt,
+				DeletedAt:   testCase.fields.DeletedAt,
+				Name:        testCase.fields.Name,
+				Description: testCase.fields.Description,
+				Status:      testCase.fields.Status,
+				BhyvePid:    testCase.fields.BhyvePid,
+				VNCPort:     testCase.fields.VNCPort,
+				DebugPort:   testCase.fields.DebugPort,
+				Config:      testCase.fields.Config,
+				ISOs:        testCase.fields.ISOs,
+				Disks:       testCase.fields.Disks,
+				Com1Dev:     testCase.fields.Com1Dev,
+				Com2Dev:     testCase.fields.Com2Dev,
+				Com3Dev:     testCase.fields.Com3Dev,
+				Com4Dev:     testCase.fields.Com4Dev,
+				Com1write:   testCase.fields.Com1write,
+				Com2write:   testCase.fields.Com2write,
+				Com3write:   testCase.fields.Com3write,
+				Com4write:   testCase.fields.Com4write,
+			}
+
+			List.VMList[testVM.ID] = testVM
+
+			testVM.SetStarting()
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+
+			if List.VMList[testVM.ID].Status != STARTING {
+				t.Errorf("SetStarting() List.VMList[testVM.ID].Status = %v, want STARTING", List.VMList[testVM.ID].Status)
+			}
+		})
+	}
+}
