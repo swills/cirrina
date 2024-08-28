@@ -1856,3 +1856,151 @@ func TestVM_SetStarting(t *testing.T) {
 		})
 	}
 }
+
+func TestVM_SetStopping(t *testing.T) {
+	type fields struct {
+		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		DeletedAt   gorm.DeletedAt
+		Name        string
+		Description string
+		Status      StatusType
+		BhyvePid    uint32
+		VNCPort     int32
+		DebugPort   int32
+		Config      Config
+		ISOs        []*iso.ISO
+		Disks       []*disk.Disk
+		Com1Dev     string
+		Com2Dev     string
+		Com3Dev     string
+		Com4Dev     string
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		fields      fields
+	}{
+		{
+			name: "Success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `status`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?",
+					),
+				).
+					WithArgs("STOPPING", sqlmock.AnyArg(), "1231e316-0358-4a6b-bf8a-ebc61b75c49c").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			fields: fields{
+				ID:          "1231e316-0358-4a6b-bf8a-ebc61b75c49c",
+				Name:        "test2024082801",
+				Description: "a test VM",
+				Status:      "RUNNING",
+				BhyvePid:    810,
+				Config: Config{
+					Model: gorm.Model{
+						ID: 60,
+					},
+					VMID: "1231e316-0358-4a6b-bf8a-ebc61b75c49c",
+					CPU:  2,
+					Mem:  2048,
+				},
+			},
+		},
+		{
+			name: "Error",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `status`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?",
+					),
+				).
+					WithArgs("STOPPING", sqlmock.AnyArg(), "1231e316-0358-4a6b-bf8a-ebc61b75c49c").
+					WillReturnError(gorm.ErrInvalidData)
+			},
+			fields: fields{
+				ID:          "1231e316-0358-4a6b-bf8a-ebc61b75c49c",
+				Name:        "test2024082801",
+				Description: "a test VM",
+				Status:      "RUNNING",
+				BhyvePid:    810,
+				Config: Config{
+					Model: gorm.Model{
+						ID: 60,
+					},
+					VMID: "1231e316-0358-4a6b-bf8a-ebc61b75c49c",
+					CPU:  2,
+					Mem:  2048,
+				},
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB("vmTest")
+			testCase.mockClosure(testDB, mock)
+
+			List.VMList = map[string]*VM{}
+
+			testVM := &VM{
+				ID:          testCase.fields.ID,
+				CreatedAt:   testCase.fields.CreatedAt,
+				UpdatedAt:   testCase.fields.UpdatedAt,
+				DeletedAt:   testCase.fields.DeletedAt,
+				Name:        testCase.fields.Name,
+				Description: testCase.fields.Description,
+				Status:      testCase.fields.Status,
+				BhyvePid:    testCase.fields.BhyvePid,
+				VNCPort:     testCase.fields.VNCPort,
+				DebugPort:   testCase.fields.DebugPort,
+				Config:      testCase.fields.Config,
+				ISOs:        testCase.fields.ISOs,
+				Disks:       testCase.fields.Disks,
+				Com1Dev:     testCase.fields.Com1Dev,
+				Com2Dev:     testCase.fields.Com2Dev,
+				Com3Dev:     testCase.fields.Com3Dev,
+				Com4Dev:     testCase.fields.Com4Dev,
+			}
+
+			List.VMList[testVM.ID] = testVM
+
+			testVM.SetStopping()
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+
+			if List.VMList[testVM.ID].Status != STOPPING {
+				t.Errorf("SetStopping() List.VMList[testVM.ID].Status = %v, want STOPPING", List.VMList[testVM.ID].Status)
+			}
+		})
+	}
+}
