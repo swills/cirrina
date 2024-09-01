@@ -372,7 +372,7 @@ func GetAllDB() ([]*VM, error) {
 	if res.Error != nil {
 		slog.Error("error looking up VMs", "resErr", res.Error)
 
-		return result, res.Error
+		return nil, res.Error
 	}
 
 	// manually load VM Disks/ISOs because GORM can't do what is needed in terms of allowing duplicates or
@@ -382,14 +382,14 @@ func GetAllDB() ([]*VM, error) {
 		if err != nil {
 			slog.Error("failed getting isos for VM", "err", err)
 
-			return result, err
+			return nil, err
 		}
 
 		vmResult.Disks, err = getDisksForVM(vmResult.ID, vmDB)
 		if err != nil {
 			slog.Error("failed getting disks for VM", "err", err)
 
-			return result, err
+			return nil, err
 		}
 	}
 

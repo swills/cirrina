@@ -18,7 +18,8 @@ import (
 	"cirrina/cirrinad/iso"
 )
 
-func TestGetAllDB(t *testing.T) { //nolint:maintidx
+//nolint:maintidx,gocognit
+func TestGetAllDB(t *testing.T) {
 	createUpdateTime := time.Now()
 
 	tests := []struct {
@@ -30,8 +31,8 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 		wantErr         bool
 	}{
 		{
-			name: "testVMGetAllDB",
-			mockDiskClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+			name: "Success",
+			mockDiskClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				disk1 := &disk.Disk{
 					ID:          "1f78cf92-6dc3-4a29-bdd2-0eff351bb2d8",
 					Name:        "aSecondTestDisk",
@@ -69,69 +70,6 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 				disk.Instance = &disk.Singleton{ // prevents parallel testing
 					DiskDB: testDB,
 				}
-
-				mock.ExpectQuery(
-					regexp.QuoteMeta("SELECT * FROM `disks` WHERE id = ? AND `disks`.`deleted_at` IS NULL LIMIT 1"),
-				).
-					WithArgs("44e8ad0d-53a3-4ef5-9611-9289d1b2b331").
-					WillReturnRows(
-						sqlmock.NewRows(
-							[]string{
-								"id",
-								"created_at",
-								"updated_at",
-								"deleted_at",
-								"name",
-								"description",
-								"type",
-								"dev_type",
-								"disk_cache",
-								"disk_direct",
-							}).
-							AddRow(
-								"44e8ad0d-53a3-4ef5-9611-9289d1b2b331",
-								createUpdateTime,
-								createUpdateTime,
-								nil,
-								"aTestDisk",
-								"some test disk description",
-								"NVME",
-								"FILE",
-								1,
-								0,
-							),
-					)
-				mock.ExpectQuery(
-					regexp.QuoteMeta("SELECT * FROM `disks` WHERE id = ? AND `disks`.`deleted_at` IS NULL LIMIT 1"),
-				).
-					WithArgs("1f78cf92-6dc3-4a29-bdd2-0eff351bb2d8").
-					WillReturnRows(
-						sqlmock.NewRows(
-							[]string{
-								"id",
-								"created_at",
-								"updated_at",
-								"deleted_at",
-								"name",
-								"description",
-								"type",
-								"dev_type",
-								"disk_cache",
-								"disk_direct",
-							}).
-							AddRow(
-								"1f78cf92-6dc3-4a29-bdd2-0eff351bb2d8",
-								createUpdateTime,
-								createUpdateTime,
-								nil,
-								"aSecondTestDisk",
-								"some second test disk description",
-								"NVME",
-								"FILE",
-								1,
-								0,
-							),
-					)
 			},
 			mockISOClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				iso.Instance = &iso.Singleton{ // prevents parallel testing
@@ -743,6 +681,815 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 				},
 			},
 		},
+		{
+			name: "ErrorGettingDisks",
+			mockDiskClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				disk1 := &disk.Disk{
+					ID:          "1f78cf92-6dc3-4a29-bdd2-0eff351bb2d8",
+					Name:        "aSecondTestDisk",
+					Description: "some second test disk description",
+					Type:        "NVME",
+					DevType:     "ILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk2 := &disk.Disk{
+					ID:          "44e8ad0d-53a3-4ef5-9611-9289d1b2b331",
+					Name:        "aTestDisk",
+					Description: "some test disk description",
+					Type:        "NVME",
+					DevType:     "ILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+
+				disk.List.DiskList[disk1.ID] = disk1
+				disk.List.DiskList[disk2.ID] = disk2
+
+				disk.Instance = &disk.Singleton{ // prevents parallel testing
+					DiskDB: testDB,
+				}
+			},
+			mockISOClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{ // prevents parallel testing
+					ISODB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("c2c82cc7-7549-497b-8e21-1ac563aad239").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"c2c82cc7-7549-497b-8e21-1ac563aad239",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"someTest.iso",
+								"some description",
+								"/bhyve/isos/someTest.iso",
+								2094096384,
+								"259e034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3e3b630ba3", //nolint:lll
+							),
+					)
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE id = ? AND `isos`.`deleted_at` IS NULL LIMIT 1"),
+				).
+					WithArgs("c6e1c826-42a6-4e12-a10f-80ee4845063c").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"c6e1c826-42a6-4e12-a10f-80ee4845063c",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"someTest2.iso",
+								"some description",
+								"/bhyve/isos/someTest2.iso",
+								4188192768,
+								"259f034731c1493740a5a9f2933716c479746360f570312ea44ed9b7b59ed9131284c5f9fe8db13f8f4e10f312033db1447ff2900d65bfefbf5cfb3e3b630ba3", //nolint:lll
+							),
+					)
+			},
+			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vms` WHERE `vms`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"status",
+								"bhyve_pid",
+								"vnc_port",
+								"com1_dev",
+								"com2_dev",
+								"com3_dev",
+								"com4_dev",
+								"debug_port",
+							}).
+							AddRow(
+								"38d38177-2309-48a1-8076-0687caa803fb",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2023061001",
+								"a test VM",
+								"STOPPED",
+								0,
+								0,
+								"",
+								"",
+								"",
+								"",
+								0,
+							).
+							AddRow(
+								"263ca626-7e08-4534-8670-06339bcd2381",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2023061002",
+								"another test VM",
+								"STOPPED",
+								0,
+								0,
+								"",
+								"",
+								"",
+								"",
+								0,
+							),
+					)
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `configs` WHERE `configs`.`vm_id` IN (?,?) AND `configs`.`deleted_at` IS NULL"), //nolint:lll
+				).
+					WithArgs("38d38177-2309-48a1-8076-0687caa803fb", "263ca626-7e08-4534-8670-06339bcd2381").
+					WillReturnRows(
+						sqlmock.NewRows([]string{
+							"id",
+							"created_at",
+							"updated_at",
+							"deleted_at",
+							"vm_id",
+							"cpu",
+							"mem",
+							"max_wait",
+							"restart",
+							"restart_delay",
+							"screen",
+							"screen_width",
+							"screen_height",
+							"vnc_wait",
+							"vnc_port",
+							"tablet",
+							"store_uefi_vars",
+							"utc_time",
+							"host_bridge",
+							"acpi",
+							"use_hlt",
+							"exit_on_pause",
+							"wire_guest_mem",
+							"destroy_power_off",
+							"ignore_unknown_msr",
+							"kbd_layout",
+							"auto_start",
+							"sound",
+							"sound_in",
+							"sound_out",
+							"com1",
+							"com1_dev",
+							"com1_log",
+							"com2",
+							"com2_dev",
+							"com2_log",
+							"com3",
+							"com3_dev",
+							"com3_log",
+							"com4",
+							"com4_dev",
+							"com4_log",
+							"extra_args",
+							"com1_speed",
+							"com2_speed",
+							"com3_speed",
+							"com4_speed",
+							"auto_start_delay",
+							"debug",
+							"debug_wait",
+							"debug_port",
+							"priority",
+							"protect",
+							"pcpu",
+							"rbps",
+							"wbps",
+							"riops",
+							"wiops",
+						},
+						).
+							AddRow(
+								1,
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"38d38177-2309-48a1-8076-0687caa803fb",
+								2,
+								4096,
+								120,
+								1,
+								1,
+								1,
+								1920,
+								1080,
+								0,
+								"AUTO",
+								1,
+								1,
+								1,
+								1,
+								1,
+								1,
+								1,
+								0,
+								1,
+								1,
+								"us_unix",
+								0,
+								0,
+								"/dev/dsp0",
+								"/dev/dsp0",
+								1,
+								"AUTO",
+								0,
+								0,
+								"AUTO",
+								0,
+								0,
+								"AUTO",
+								0,
+								0,
+								"AUTO",
+								0,
+								"",
+								115200,
+								115200,
+								115200,
+								115200,
+								0,
+								0,
+								0,
+								"AUTO",
+								10,
+								sql.NullBool{
+									Bool:  false,
+									Valid: true,
+								},
+								0,
+								0,
+								0,
+								300,
+								300,
+							).AddRow(
+							2,
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"263ca626-7e08-4534-8670-06339bcd2381",
+							2,
+							4096,
+							120,
+							1,
+							1,
+							1,
+							1920,
+							1080,
+							0,
+							"AUTO",
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							0,
+							1,
+							1,
+							"us_unix",
+							0,
+							0,
+							"/dev/dsp0",
+							"/dev/dsp0",
+							1,
+							"AUTO",
+							0,
+							0,
+							"AUTO",
+							0,
+							0,
+							"AUTO",
+							0,
+							0,
+							"AUTO",
+							0,
+							"",
+							115200,
+							115200,
+							115200,
+							115200,
+							0,
+							0,
+							0,
+							"AUTO",
+							10,
+							sql.NullBool{
+								Bool:  false,
+								Valid: true,
+							},
+							0,
+							0,
+							0,
+							300,
+							300,
+						),
+					)
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT vm_id,iso_id,position FROM `vm_isos` WHERE vm_id LIKE ? ORDER BY position"),
+				).
+					WithArgs("38d38177-2309-48a1-8076-0687caa803fb").
+					WillReturnRows(sqlmock.NewRows([]string{"vm_id", "iso_id", "position"}))
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT vm_id,disk_id,position FROM `vm_disks` WHERE vm_id LIKE ? ORDER BY position"),
+				).
+					WithArgs("38d38177-2309-48a1-8076-0687caa803fb").
+					WillReturnRows(sqlmock.NewRows([]string{"vm_id", "disk_id", "position"}))
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT vm_id,iso_id,position FROM `vm_isos` WHERE vm_id LIKE ? ORDER BY position"),
+				).
+					WithArgs("263ca626-7e08-4534-8670-06339bcd2381").
+					WillReturnRows(sqlmock.NewRows([]string{"vm_id", "iso_id", "position"}).
+						AddRow("263ca626-7e08-4534-8670-06339bcd2381", "c2c82cc7-7549-497b-8e21-1ac563aad239", 0).
+						AddRow("263ca626-7e08-4534-8670-06339bcd2381", "c6e1c826-42a6-4e12-a10f-80ee4845063c", 1),
+					)
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT vm_id,disk_id,position FROM `vm_disks` WHERE vm_id LIKE ? ORDER BY position"),
+				).
+					WithArgs("263ca626-7e08-4534-8670-06339bcd2381").
+					WillReturnError(gorm.ErrInvalidData)
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "ErrorGettingISOs",
+			mockDiskClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				disk1 := &disk.Disk{
+					ID:          "1f78cf92-6dc3-4a29-bdd2-0eff351bb2d8",
+					Name:        "aSecondTestDisk",
+					Description: "some second test disk description",
+					Type:        "NVME",
+					DevType:     "ILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk2 := &disk.Disk{
+					ID:          "44e8ad0d-53a3-4ef5-9611-9289d1b2b331",
+					Name:        "aTestDisk",
+					Description: "some test disk description",
+					Type:        "NVME",
+					DevType:     "ILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+
+				disk.List.DiskList[disk1.ID] = disk1
+				disk.List.DiskList[disk2.ID] = disk2
+
+				disk.Instance = &disk.Singleton{ // prevents parallel testing
+					DiskDB: testDB,
+				}
+			},
+			mockISOClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{ // prevents parallel testing
+					ISODB: testDB,
+				}
+			},
+			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vms` WHERE `vms`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"status",
+								"bhyve_pid",
+								"vnc_port",
+								"com1_dev",
+								"com2_dev",
+								"com3_dev",
+								"com4_dev",
+								"debug_port",
+							}).
+							AddRow(
+								"38d38177-2309-48a1-8076-0687caa803fb",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2023061001",
+								"a test VM",
+								"STOPPED",
+								0,
+								0,
+								"",
+								"",
+								"",
+								"",
+								0,
+							).
+							AddRow(
+								"263ca626-7e08-4534-8670-06339bcd2381",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2023061002",
+								"another test VM",
+								"STOPPED",
+								0,
+								0,
+								"",
+								"",
+								"",
+								"",
+								0,
+							),
+					)
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `configs` WHERE `configs`.`vm_id` IN (?,?) AND `configs`.`deleted_at` IS NULL"), //nolint:lll
+				).
+					WithArgs("38d38177-2309-48a1-8076-0687caa803fb", "263ca626-7e08-4534-8670-06339bcd2381").
+					WillReturnRows(
+						sqlmock.NewRows([]string{
+							"id",
+							"created_at",
+							"updated_at",
+							"deleted_at",
+							"vm_id",
+							"cpu",
+							"mem",
+							"max_wait",
+							"restart",
+							"restart_delay",
+							"screen",
+							"screen_width",
+							"screen_height",
+							"vnc_wait",
+							"vnc_port",
+							"tablet",
+							"store_uefi_vars",
+							"utc_time",
+							"host_bridge",
+							"acpi",
+							"use_hlt",
+							"exit_on_pause",
+							"wire_guest_mem",
+							"destroy_power_off",
+							"ignore_unknown_msr",
+							"kbd_layout",
+							"auto_start",
+							"sound",
+							"sound_in",
+							"sound_out",
+							"com1",
+							"com1_dev",
+							"com1_log",
+							"com2",
+							"com2_dev",
+							"com2_log",
+							"com3",
+							"com3_dev",
+							"com3_log",
+							"com4",
+							"com4_dev",
+							"com4_log",
+							"extra_args",
+							"com1_speed",
+							"com2_speed",
+							"com3_speed",
+							"com4_speed",
+							"auto_start_delay",
+							"debug",
+							"debug_wait",
+							"debug_port",
+							"priority",
+							"protect",
+							"pcpu",
+							"rbps",
+							"wbps",
+							"riops",
+							"wiops",
+						},
+						).
+							AddRow(
+								1,
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"38d38177-2309-48a1-8076-0687caa803fb",
+								2,
+								4096,
+								120,
+								1,
+								1,
+								1,
+								1920,
+								1080,
+								0,
+								"AUTO",
+								1,
+								1,
+								1,
+								1,
+								1,
+								1,
+								1,
+								0,
+								1,
+								1,
+								"us_unix",
+								0,
+								0,
+								"/dev/dsp0",
+								"/dev/dsp0",
+								1,
+								"AUTO",
+								0,
+								0,
+								"AUTO",
+								0,
+								0,
+								"AUTO",
+								0,
+								0,
+								"AUTO",
+								0,
+								"",
+								115200,
+								115200,
+								115200,
+								115200,
+								0,
+								0,
+								0,
+								"AUTO",
+								10,
+								sql.NullBool{
+									Bool:  false,
+									Valid: true,
+								},
+								0,
+								0,
+								0,
+								300,
+								300,
+							).AddRow(
+							2,
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"263ca626-7e08-4534-8670-06339bcd2381",
+							2,
+							4096,
+							120,
+							1,
+							1,
+							1,
+							1920,
+							1080,
+							0,
+							"AUTO",
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							1,
+							0,
+							1,
+							1,
+							"us_unix",
+							0,
+							0,
+							"/dev/dsp0",
+							"/dev/dsp0",
+							1,
+							"AUTO",
+							0,
+							0,
+							"AUTO",
+							0,
+							0,
+							"AUTO",
+							0,
+							0,
+							"AUTO",
+							0,
+							"",
+							115200,
+							115200,
+							115200,
+							115200,
+							0,
+							0,
+							0,
+							"AUTO",
+							10,
+							sql.NullBool{
+								Bool:  false,
+								Valid: true,
+							},
+							0,
+							0,
+							0,
+							300,
+							300,
+						),
+					)
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT vm_id,iso_id,position FROM `vm_isos` WHERE vm_id LIKE ? ORDER BY position"),
+				).
+					WithArgs("38d38177-2309-48a1-8076-0687caa803fb").
+					WillReturnRows(sqlmock.NewRows([]string{"vm_id", "iso_id", "position"}))
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT vm_id,disk_id,position FROM `vm_disks` WHERE vm_id LIKE ? ORDER BY position"),
+				).
+					WithArgs("38d38177-2309-48a1-8076-0687caa803fb").
+					WillReturnRows(sqlmock.NewRows([]string{"vm_id", "disk_id", "position"}))
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT vm_id,iso_id,position FROM `vm_isos` WHERE vm_id LIKE ? ORDER BY position"),
+				).
+					WithArgs("263ca626-7e08-4534-8670-06339bcd2381").
+					WillReturnError(gorm.ErrInvalidData)
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "ErrorGettingVMs",
+			mockDiskClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				disk1 := &disk.Disk{
+					ID:          "1f78cf92-6dc3-4a29-bdd2-0eff351bb2d8",
+					Name:        "aSecondTestDisk",
+					Description: "some second test disk description",
+					Type:        "NVME",
+					DevType:     "ILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+				disk2 := &disk.Disk{
+					ID:          "44e8ad0d-53a3-4ef5-9611-9289d1b2b331",
+					Name:        "aTestDisk",
+					Description: "some test disk description",
+					Type:        "NVME",
+					DevType:     "ILE",
+					DiskCache: sql.NullBool{
+						Bool:  true,
+						Valid: true,
+					},
+					DiskDirect: sql.NullBool{
+						Bool:  false,
+						Valid: true,
+					},
+				}
+
+				disk.List.DiskList[disk1.ID] = disk1
+				disk.List.DiskList[disk2.ID] = disk2
+
+				disk.Instance = &disk.Singleton{ // prevents parallel testing
+					DiskDB: testDB,
+				}
+			},
+			mockISOClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{ // prevents parallel testing
+					ISODB: testDB,
+				}
+			},
+			mockVMClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{ // prevents parallel testing
+					VMDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vms` WHERE `vms`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"status",
+								"bhyve_pid",
+								"vnc_port",
+								"com1_dev",
+								"com2_dev",
+								"com3_dev",
+								"com4_dev",
+								"debug_port",
+							}).
+							AddRow(
+								"38d38177-2309-48a1-8076-0687caa803fb",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2023061001",
+								"a test VM",
+								"STOPPED",
+								0,
+								0,
+								"",
+								"",
+								"",
+								"",
+								0,
+							).
+							AddRow(
+								"263ca626-7e08-4534-8670-06339bcd2381",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2023061002",
+								"another test VM",
+								"STOPPED",
+								0,
+								0,
+								"",
+								"",
+								"",
+								"",
+								0,
+							),
+					)
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `configs` WHERE `configs`.`vm_id` IN (?,?) AND `configs`.`deleted_at` IS NULL"), //nolint:lll
+				).
+					WithArgs("38d38177-2309-48a1-8076-0687caa803fb", "263ca626-7e08-4534-8670-06339bcd2381").
+					WillReturnError(gorm.ErrInvalidData)
+			},
+			want:    nil,
+			wantErr: true,
+		},
 	}
 
 	for _, testCase := range tests {
@@ -769,17 +1516,51 @@ func TestGetAllDB(t *testing.T) { //nolint:maintidx
 
 			VMmock.ExpectClose()
 
-			db, err := vmTestDB.DB()
+			testDB, err := vmTestDB.DB()
 			if err != nil {
 				t.Error(err)
 			}
 
-			err = db.Close()
+			err = testDB.Close()
 			if err != nil {
 				t.Error(err)
 			}
 
 			err = VMmock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+
+			diskMock.ExpectClose()
+
+			testDB, err = diskTestDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = testDB.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = diskMock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+
+			isoMock.ExpectClose()
+
+			testDB, err = isoTestDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = testDB.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = isoMock.ExpectationsWereMet()
 			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
