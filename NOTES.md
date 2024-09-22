@@ -12,6 +12,8 @@
 * Convert all UUIDs from strings to UUID type
 * Convert all paths from strings to path/filepath
 * Convert all bool in database to `sql.NullBool`
+* Use [go-proto-validators](https://github.com/mwitkow/go-proto-validators) to generate grpc validators
+  * See [go-grpc-middleware](https://pkg.go.dev/github.com/grpc-ecosystem/go-grpc-middleware@v1.4.0/validator)
 * In vm.Save(), don't remove then add all disks/isos if the list doesn't change
 * In vm.Save(), don't add all disks/isos if there are none
 * Finish cloning -- NICs are done, need to do switches, disks and VMs
