@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/kontera-technologies/go-supervisor/v2"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tarm/serial"
 	"gorm.io/gorm"
 
@@ -135,6 +136,11 @@ var (
 	List        = &ListType{
 		VMList: make(map[string]*VM),
 	}
+
+	runningVMsGauge prometheus.Gauge
+	totalVMsGauge   prometheus.Gauge
+	cpuVMGauge      prometheus.Gauge
+	memVMGauge      prometheus.Gauge
 )
 
 func vmDaemon(events chan supervisor.Event, thisVM *VM) {
@@ -192,6 +198,12 @@ func vmDaemon(events chan supervisor.Event, thisVM *VM) {
 			thisVM.unlockDisks()
 			thisVM.BhyvectlDestroy()
 			thisVM.log.Info("closing loop we are done")
+
+			if config.Config.Metrics.Enabled {
+				runningVMsGauge.Dec()
+				cpuVMGauge.Sub(float64(thisVM.Config.CPU))
+				memVMGauge.Sub(float64(thisVM.Config.Mem))
+			}
 
 			return
 		}
@@ -448,6 +460,10 @@ func (vm *VM) Delete() error {
 		return errVMInternalDB
 	}
 
+	if config.Config.Metrics.Enabled {
+		totalVMsGauge.Dec()
+	}
+
 	return nil
 }
 
@@ -533,6 +549,12 @@ func (vm *VM) Start() error {
 	err = vmProc.Start()
 	if err != nil {
 		panic(fmt.Sprintf("failed to start process: %s", err))
+	}
+
+	if config.Config.Metrics.Enabled {
+		runningVMsGauge.Inc()
+		cpuVMGauge.Add(float64(vm.Config.CPU))
+		memVMGauge.Add(float64(vm.Config.Mem))
 	}
 
 	return nil

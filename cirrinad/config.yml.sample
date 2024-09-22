@@ -39,3 +39,8 @@ network:
     timeout: 60
   mac:
     oui: "00:18:25"
+
+metrics:
+  enabled: false
+  host: localhost
+  port: 2223

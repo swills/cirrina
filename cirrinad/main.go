@@ -305,6 +305,8 @@ var rootCmd = &cobra.Command{
 		validateSystem()
 		slog.Debug("Finished host validation")
 
+		setupMetrics()
+
 		doDBMigrations()
 
 		// check db contents
@@ -325,6 +327,7 @@ var rootCmd = &cobra.Command{
 		}
 		slog.Info("Starting Daemon")
 
+		go serveMetrics()
 		go vm.AutoStartVMs()
 		go rpcServer()
 		go processRequests()

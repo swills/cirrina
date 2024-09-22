@@ -335,6 +335,10 @@ func initOneVM(vmInst *VM) {
 	}
 
 	List.VMList[vmInst.ID] = vmInst
+
+	if config.Config.Metrics.Enabled {
+		totalVMsGauge.Inc()
+	}
 }
 
 func isNetPortUsed(netPort string) bool {

@@ -52,6 +52,11 @@ type Info struct {
 		IP   string `default:"0.0.0.0"`
 		Port uint   `default:"2828"`
 	}
+	Metrics struct {
+		Enabled bool   `default:"false"`
+		Host    string `default:""`
+		Port    uint   `default:"2223"`
+	}
 }
 
 var Config Info
