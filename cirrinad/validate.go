@@ -205,7 +205,7 @@ func getSudoCommandsList() []cmdCheckData {
 			expectedExit: 0, expectedStdOut: "", expectedStdErr: "",
 		},
 		{
-			args:         []string{"/sbin/zfs", "-V"},
+			args:         []string{"/sbin/zfs", "version"},
 			expectedExit: 0, expectedStdOut: "", expectedStdErr: "",
 		},
 		{
