@@ -46,6 +46,8 @@ cirrinactl:
     - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${VER} .
     - export GOARCH=arm64
     - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${VER} .
+    - export GOARCH=riscv64
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${VER} .
     - export GOOS=windows
     - export GOARCH=amd64
     - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinactl-${GOOS}-${GOARCH}-${VER}.exe .
@@ -71,6 +73,7 @@ cirrinactl:
       - ./cirrinactl/cirrinactl-freebsd-amd64-${VER}
       - ./cirrinactl/cirrinactl-freebsd-386-${VER}
       - ./cirrinactl/cirrinactl-freebsd-arm64-${VER}
+      - ./cirrinactl/cirrinactl-freebsd-riscv64-${VER}
       - ./cirrinactl/cirrinactl-windows-amd64-${VER}.exe
       - ./cirrinactl/cirrinactl-windows-386-${VER}.exe
       - ./cirrinactl/cirrinactl-windows-arm64-${VER}.exe
@@ -155,6 +158,9 @@ cirrinactl-upload:
     - export GOARCH=arm64
     - |
       curl -s --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file cirrinactl/cirrinactl-${GOOS}-${GOARCH}-${VER} "${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinactl-${GOOS}-${GOARCH}"
+    - export GOARCH=riscv64
+    - |
+      curl -s --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file cirrinactl/cirrinactl-${GOOS}-${GOARCH}-${VER} "${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinactl-${GOOS}-${GOARCH}"
     - export GOOS=windows
     - export GOARCH=amd64
     - |
@@ -200,6 +206,7 @@ release:
         --assets-link "{\"name\":\"cirrinactl-freebsd-amd64\",\"url\":\"${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinactl-freebsd-amd64\"}" \
         --assets-link "{\"name\":\"cirrinactl-freebsd-i386\",\"url\":\"${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinactl-freebsd-i386\"}" \
         --assets-link "{\"name\":\"cirrinactl-freebsd-arm64\",\"url\":\"${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinactl-freebsd-arm64\"}" \
+        --assets-link "{\"name\":\"cirrinactl-freebsd-risc64\",\"url\":\"${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinactl-freebsd-riscv64\"}" \
         --assets-link "{\"name\":\"cirrinactl-windows-amd64.exe\",\"url\":\"${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinactl-windows-amd64.exe\"}" \
         --assets-link "{\"name\":\"cirrinactl-windows-i386.exe\",\"url\":\"${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinactl-windows-i386.exe\"}" \
         --assets-link "{\"name\":\"cirrinactl-windows-arm64.exe\",\"url\":\"${PACKAGE_REGISTRY_URL}/${CI_COMMIT_TAG}/cirrinactl-windows-arm64.exe\"}" \
