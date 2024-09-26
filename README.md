@@ -56,7 +56,7 @@ cp cirrinad /usr/local/bin
 mkdir /usr/local/etc/cirrinad
 cp config.sample.yml /usr/local/etc/cirrinad/config.yml
 cd ../cirrinactl
-go build ./...
+go build .
 cp cirrinactl /usr/local/bin
 ```
 
