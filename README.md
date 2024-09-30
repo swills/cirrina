@@ -117,11 +117,11 @@ service cirrinad start
   * Add a VM:
     * `./cirrinactl vm create -n something`
   * Add disk to VM
-    * `./cirrainctl vm disk add -n something -N somediskname`
+    * `./cirrinactl vm disk add -n something -N somediskname`
   * Add NIC to VM
     * `./cirrinactl vm nic add -n something -N something_int0`
   * Set config for a VM:
-    * `./cirrainctl vm config -n something -c 2 -m 4096`
+    * `./cirrinactl vm config -n something -c 2 -m 4096`
     * `./cirrinactl vm config -n something --description "some description"`
   * Start the VM:
     * `./cirrinactl vm start -n something`
