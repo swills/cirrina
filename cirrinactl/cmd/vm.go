@@ -863,7 +863,7 @@ var VMGetCmd = &cobra.Command{
 			fmt.Printf("name: %v\n", vmConfig.Name)
 			fmt.Printf("desc: %v\n", vmConfig.Description)
 			fmt.Printf("cpus: %v\n", vmConfig.CPU)
-			fmt.Printf("mem: %v\n", vmConfig.Mem)
+			fmt.Printf("mem: %v MB\n", vmConfig.Mem)
 			fmt.Printf("priority: %v\n", vmConfig.Priority)
 			fmt.Printf("protect: %v\n", vmConfig.Protect)
 			fmt.Printf("pcpu: %v\n", vmConfig.Pcpu)
