@@ -189,7 +189,7 @@ func comLoggerRead(thisVM *VM, comNum int, thisCom *serial.Port, logFile *os.Fil
 		_, err = logFile.Write(logBuffer)
 
 		// write to channel used by remote users, if someone is reading from it
-		if thisRChan != nil && thisComChanWriteFlag {
+		if thisVM.Status != STOPPED && thisRChan != nil && thisComChanWriteFlag {
 			nb2 := copy(streamBuffer, logBuffer)
 			if nBytes != nb2 {
 				slog.Error("comLogger", "msg", "some bytes lost")

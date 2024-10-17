@@ -183,21 +183,22 @@ func vmDaemon(events chan supervisor.Event, thisVM *VM) {
 				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
 			}
 		case <-thisVM.proc.DoneNotifier():
-			slog.Debug("vm stopped",
-				"vm_name", thisVM.Name,
-			)
-			thisVM.log.Info("stopped")
-			thisVM.NetCleanup()
-			thisVM.killComLoggers()
+			slog.Debug("VM Stop init", "vm_name", thisVM.Name)
+			thisVM.log.Debug("VM Stop init")
 
+			thisVM.killComLoggers()
+			thisVM.unlockDisks()
+			thisVM.BhyvectlDestroy()
+			thisVM.NetCleanup()
 			err := thisVM.SetStopped()
+
 			if err != nil {
+				// log error but continue
 				slog.Error("error stopping VM", "err", err)
 			}
 
-			thisVM.unlockDisks()
-			thisVM.BhyvectlDestroy()
-			thisVM.log.Info("closing loop we are done")
+			slog.Debug("VM Stop finalized", "vm_name", thisVM.Name)
+			thisVM.log.Debug("VM Stop finalized")
 
 			if config.Config.Metrics.Enabled {
 				runningVMsGauge.Dec()
