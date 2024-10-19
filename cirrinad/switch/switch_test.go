@@ -1479,6 +1479,12 @@ func TestBridgeNgAddMember(t *testing.T) {
 			args:        args{bridgeName: "bnet0", memberName: "tap0"},
 			wantErr:     true,
 		},
+		{
+			name:        "vlan1",
+			mockCmdFunc: "TestBridgeNgAddMemberVlan1",
+			args:        args{bridgeName: "bnet0", memberName: "em0.5"},
+			wantErr:     false,
+		},
 	}
 
 	for _, testCase := range tests {
@@ -4723,6 +4729,41 @@ func TestBridgeNgAddMemberError3(_ *testing.T) {
 	if len(cmdWithArgs) == 7 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "connect" && cmdWithArgs[5] == "lower" {
 		os.Exit(0)
 	}
+
+	os.Exit(1)
+}
+
+func TestBridgeNgAddMemberVlan1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) == 4 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "show" {
+		ngctlOutput := `  Name: bnet0           Type: bridge          ID: 0000000b   Num hooks: 2
+  Local hook      Peer name       Peer type    Peer ID         Peer hook
+  ----------      ---------       ---------    -------         ---------
+  link1           em0             ether        00000002        upper
+  link0           em0             ether        00000002        lower
+`
+
+		fmt.Print(ngctlOutput) //nolint:forbidigo
+
+		os.Exit(0)
+	}
+
+	//nolint:lll
+	if len(cmdWithArgs) == 7 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "connect" && cmdWithArgs[3] == "em0_5:" && cmdWithArgs[5] == "lower" {
+		os.Exit(0)
+	}
+
+	//nolint:lll
+	if len(cmdWithArgs) == 7 && cmdWithArgs[1] == "/usr/sbin/ngctl" && cmdWithArgs[2] == "connect" && cmdWithArgs[3] == "em0_5:" && cmdWithArgs[5] == "upper" {
+		os.Exit(0)
+	}
+
+	fmt.Printf("args: %+v", cmdWithArgs) //nolint:forbidigo
 
 	os.Exit(1)
 }

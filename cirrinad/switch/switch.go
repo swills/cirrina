@@ -507,9 +507,11 @@ func BridgeNgAddMember(bridgeName string, memberName string) error {
 		return err
 	}
 
+	memberNameNg := strings.Replace(memberName, ".", "_", 1)
+
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		config.Config.Sys.Sudo,
-		[]string{"/usr/sbin/ngctl", "connect", memberName + ":", bridgeName + ":", "lower", link},
+		[]string{"/usr/sbin/ngctl", "connect", memberNameNg + ":", bridgeName + ":", "lower", link},
 	)
 	if err != nil {
 		slog.Error("ngctl connect error",
@@ -529,7 +531,7 @@ func BridgeNgAddMember(bridgeName string, memberName string) error {
 
 	stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
 		config.Config.Sys.Sudo,
-		[]string{"/usr/sbin/ngctl", "connect", memberName + ":", bridgeName + ":", "upper", link},
+		[]string{"/usr/sbin/ngctl", "connect", memberNameNg + ":", bridgeName + ":", "upper", link},
 	)
 	if err != nil {
 		slog.Error("ngctl connect error",
