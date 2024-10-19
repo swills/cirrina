@@ -20,6 +20,7 @@ import (
 type MockFileInfoFetcher struct {
 	ctrl     *gomock.Controller
 	recorder *MockFileInfoFetcherMockRecorder
+	isgomock struct{}
 }
 
 // MockFileInfoFetcherMockRecorder is the mock recorder for MockFileInfoFetcher.
@@ -40,46 +41,46 @@ func (m *MockFileInfoFetcher) EXPECT() *MockFileInfoFetcherMockRecorder {
 }
 
 // Add mocks base method.
-func (m *MockFileInfoFetcher) Add(arg0 string, arg1 uint64) error {
+func (m *MockFileInfoFetcher) Add(name string, size uint64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Add", arg0, arg1)
+	ret := m.ctrl.Call(m, "Add", name, size)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Add indicates an expected call of Add.
-func (mr *MockFileInfoFetcherMockRecorder) Add(arg0, arg1 any) *gomock.Call {
+func (mr *MockFileInfoFetcherMockRecorder) Add(name, size any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockFileInfoFetcher)(nil).Add), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockFileInfoFetcher)(nil).Add), name, size)
 }
 
 // ApplyFileSize mocks base method.
-func (m *MockFileInfoFetcher) ApplyFileSize(arg0 string, arg1 uint64) error {
+func (m *MockFileInfoFetcher) ApplyFileSize(volumeName string, volSize uint64) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ApplyFileSize", arg0, arg1)
+	ret := m.ctrl.Call(m, "ApplyFileSize", volumeName, volSize)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ApplyFileSize indicates an expected call of ApplyFileSize.
-func (mr *MockFileInfoFetcherMockRecorder) ApplyFileSize(arg0, arg1 any) *gomock.Call {
+func (mr *MockFileInfoFetcherMockRecorder) ApplyFileSize(volumeName, volSize any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyFileSize", reflect.TypeOf((*MockFileInfoFetcher)(nil).ApplyFileSize), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyFileSize", reflect.TypeOf((*MockFileInfoFetcher)(nil).ApplyFileSize), volumeName, volSize)
 }
 
 // CheckExists mocks base method.
-func (m *MockFileInfoFetcher) CheckExists(arg0 string) (bool, error) {
+func (m *MockFileInfoFetcher) CheckExists(name string) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CheckExists", arg0)
+	ret := m.ctrl.Call(m, "CheckExists", name)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CheckExists indicates an expected call of CheckExists.
-func (mr *MockFileInfoFetcherMockRecorder) CheckExists(arg0 any) *gomock.Call {
+func (mr *MockFileInfoFetcherMockRecorder) CheckExists(name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckExists", reflect.TypeOf((*MockFileInfoFetcher)(nil).CheckExists), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CheckExists", reflect.TypeOf((*MockFileInfoFetcher)(nil).CheckExists), name)
 }
 
 // FetchAll mocks base method.
@@ -98,39 +99,40 @@ func (mr *MockFileInfoFetcherMockRecorder) FetchAll() *gomock.Call {
 }
 
 // FetchFileSize mocks base method.
-func (m *MockFileInfoFetcher) FetchFileSize(arg0 string) (uint64, error) {
+func (m *MockFileInfoFetcher) FetchFileSize(name string) (uint64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FetchFileSize", arg0)
+	ret := m.ctrl.Call(m, "FetchFileSize", name)
 	ret0, _ := ret[0].(uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FetchFileSize indicates an expected call of FetchFileSize.
-func (mr *MockFileInfoFetcherMockRecorder) FetchFileSize(arg0 any) *gomock.Call {
+func (mr *MockFileInfoFetcherMockRecorder) FetchFileSize(name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchFileSize", reflect.TypeOf((*MockFileInfoFetcher)(nil).FetchFileSize), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchFileSize", reflect.TypeOf((*MockFileInfoFetcher)(nil).FetchFileSize), name)
 }
 
 // FetchFileUsage mocks base method.
-func (m *MockFileInfoFetcher) FetchFileUsage(arg0 string) (uint64, error) {
+func (m *MockFileInfoFetcher) FetchFileUsage(name string) (uint64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FetchFileUsage", arg0)
+	ret := m.ctrl.Call(m, "FetchFileUsage", name)
 	ret0, _ := ret[0].(uint64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FetchFileUsage indicates an expected call of FetchFileUsage.
-func (mr *MockFileInfoFetcherMockRecorder) FetchFileUsage(arg0 any) *gomock.Call {
+func (mr *MockFileInfoFetcherMockRecorder) FetchFileUsage(name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchFileUsage", reflect.TypeOf((*MockFileInfoFetcher)(nil).FetchFileUsage), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FetchFileUsage", reflect.TypeOf((*MockFileInfoFetcher)(nil).FetchFileUsage), name)
 }
 
 // MockLocalFileSystem is a mock of LocalFileSystem interface.
 type MockLocalFileSystem struct {
 	ctrl     *gomock.Controller
 	recorder *MockLocalFileSystemMockRecorder
+	isgomock struct{}
 }
 
 // MockLocalFileSystemMockRecorder is the mock recorder for MockLocalFileSystem.
@@ -151,31 +153,31 @@ func (m *MockLocalFileSystem) EXPECT() *MockLocalFileSystemMockRecorder {
 }
 
 // Open mocks base method.
-func (m *MockLocalFileSystem) Open(arg0 string) (MyFile, error) {
+func (m *MockLocalFileSystem) Open(name string) (MyFile, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Open", arg0)
+	ret := m.ctrl.Call(m, "Open", name)
 	ret0, _ := ret[0].(MyFile)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Open indicates an expected call of Open.
-func (mr *MockLocalFileSystemMockRecorder) Open(arg0 any) *gomock.Call {
+func (mr *MockLocalFileSystemMockRecorder) Open(name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Open", reflect.TypeOf((*MockLocalFileSystem)(nil).Open), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Open", reflect.TypeOf((*MockLocalFileSystem)(nil).Open), name)
 }
 
 // Stat mocks base method.
-func (m *MockLocalFileSystem) Stat(arg0 string) (fs.FileInfo, error) {
+func (m *MockLocalFileSystem) Stat(name string) (fs.FileInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Stat", arg0)
+	ret := m.ctrl.Call(m, "Stat", name)
 	ret0, _ := ret[0].(fs.FileInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Stat indicates an expected call of Stat.
-func (mr *MockLocalFileSystemMockRecorder) Stat(arg0 any) *gomock.Call {
+func (mr *MockLocalFileSystemMockRecorder) Stat(name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stat", reflect.TypeOf((*MockLocalFileSystem)(nil).Stat), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Stat", reflect.TypeOf((*MockLocalFileSystem)(nil).Stat), name)
 }
