@@ -14,8 +14,8 @@
 * Convert all bool in database to `sql.NullBool`
 * Use [go-proto-validators](https://github.com/mwitkow/go-proto-validators) to generate grpc validators
   * See [go-grpc-middleware](https://pkg.go.dev/github.com/grpc-ecosystem/go-grpc-middleware@v1.4.0/validator)
-* In vm.Save(), don't remove then add all disks/isos if the list doesn't change
-* In vm.Save(), don't add all disks/isos if there are none
+* In vm.Save(), do not remove then add all disks/isos if the list does not change
+* In vm.Save(), do not add all disks/isos if there are none
 * Finish cloning -- NICs are done, need to do switches, disks and VMs
 * Do templating
 * Switch to using Netlink
@@ -23,7 +23,7 @@
 * Fix zvol ownership!
 * Fix cirrinactl over IPv6
 * Actually delete disks from the database
-* Add a force kill function for OSs that won't shut down properly and when you don't want to wait
+* Add a force kill function for OSs that will not shut down properly and when you do not want to wait
 * Add feature to remove CD after first boot
 * Add a "wipe disk" feature
 * Add a "remove disk" feature to actually destroy a disk that was deleted from DB (or does not exist)
@@ -47,7 +47,7 @@
   * Sending/receiving from/to local file
 * Disk resize -- include force flag to allow reducing disk size which includes data loss
 * Fix setting the switch on a NIC while a VM is running
-  * Currently, it won't work until you stop then start the VM
+  * Currently, it will not work until you stop then start the VM
   * It should work immediately, without even a reboot, but also if you reboot or stop then start
 * Add error checking and result count checking if applicable to all db queries, as was done in cirrinad/switch/switch.go
 * Return nil instead of empty value whenever possible (pointers)
@@ -157,7 +157,7 @@
     * Switch to using bhyve config file instead of command line args
     * Support fw_cfg
     * Remove calls to external programs -- particularly hard for ngctl, but doable, tho requires setting up the socket
-    * [Distribute](https://en.wikipedia.org/wiki/Distributed_SQL) the database via mvsqlite, dqlite or something similar, but not rqlite because it lacks a sql or gorm driver and can't really have one
+    * [Distribute](https://en.wikipedia.org/wiki/Distributed_SQL) the database via mvsqlite, dqlite or something similar, but not rqlite because it lacks a sql or gorm driver and can not really have one
     * Use [virtio-vsock](https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=271793) to [communicate](https://github.com/linuxkit/virtsock) with VMs
     * See also [nc-vsock](https://github.com/stefanha/nc-vsock) and [this](https://gist.github.com/mcastelino/9a57d00ccf245b98de2129f0efe39857)
     * And [this](https://wiki.qemu.org/Features/VirtioVsock) and [this](https://lwn.net/Articles/556550/)
