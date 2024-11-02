@@ -294,6 +294,7 @@ var NicCloneCmd = &cobra.Command{
 			}
 			fmt.Printf(".")
 			time.Sleep(time.Second)
+			rpc.ResetConnTimeout()
 		}
 		if reqStat.Success {
 			fmt.Printf(" done")

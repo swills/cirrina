@@ -393,6 +393,7 @@ var VMStopCmd = &cobra.Command{
 			}
 			fmt.Printf(".")
 			time.Sleep(time.Second)
+			rpc.ResetConnTimeout()
 		}
 		fmt.Printf("\n")
 
@@ -464,6 +465,7 @@ var VMStartCmd = &cobra.Command{
 			}
 			fmt.Printf(".")
 			time.Sleep(time.Second)
+			rpc.ResetConnTimeout()
 		}
 		fmt.Printf("\n")
 
