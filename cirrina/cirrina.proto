@@ -340,6 +340,7 @@ service VMInfo {
   rpc GetVMDisks(VMID) returns (stream DiskId);
   rpc GetDiskVM(DiskId) returns (VMID);
   rpc UploadDisk(stream DiskImageRequest) returns (ReqBool);
+  rpc WipeDisk(DiskId) returns (RequestID);
 
   rpc GetSwitches(SwitchesQuery) returns (stream SwitchId);
   rpc GetSwitchInfo(SwitchId) returns (SwitchInfo);

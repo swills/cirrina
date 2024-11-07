@@ -20,6 +20,7 @@ const (
 	VMSTOP   reqType = "VMSTOP"
 	VMDELETE reqType = "VMDELETE"
 	NICCLONE reqType = "NICCLONE"
+	DISKWIPE reqType = "DISKWIPE"
 )
 
 type Request struct {
@@ -36,6 +37,10 @@ type Request struct {
 
 type VMReqData struct {
 	VMID string `json:"vm_id"`
+}
+
+type DiskReqData struct {
+	DiskID string `json:"disk_id"`
 }
 
 type NicCloneReqData struct {
@@ -66,6 +71,25 @@ func validVMReqType(aReqType reqType) bool {
 		return true
 	case NICCLONE:
 		return false
+	case DISKWIPE:
+		return false
+	default:
+		return false
+	}
+}
+
+func validDiskReqType(aReqType reqType) bool {
+	switch aReqType {
+	case VMSTART:
+		return false
+	case VMSTOP:
+		return false
+	case VMDELETE:
+		return false
+	case NICCLONE:
+		return false
+	case DISKWIPE:
+		return true
 	default:
 		return false
 	}
@@ -133,6 +157,45 @@ func CreateVMReq(requestType reqType, vmID string) (Request, error) {
 	reqData, _ = json.Marshal(VMReqData{VMID: vmID}) //nolint:errchkjson
 
 	reqDB := GetReqDB()
+	newReq := Request{
+		Data: string(reqData),
+		Type: requestType,
+	}
+
+	res := reqDB.Create(&newReq)
+	if res.Error != nil {
+		return Request{}, res.Error
+	}
+
+	if res.RowsAffected != 1 {
+		return Request{}, errRequestCreateFailure
+	}
+
+	return newReq, nil
+}
+
+func CreateDiskReq(requestType reqType, diskID string) (Request, error) {
+	var err error
+
+	if diskID == "" {
+		return Request{}, ErrInvalidRequest
+	}
+
+	_, err = uuid.Parse(diskID)
+	if err != nil {
+		return Request{}, ErrInvalidRequest
+	}
+
+	if !validDiskReqType(requestType) {
+		return Request{}, ErrInvalidRequest
+	}
+
+	var reqData []byte
+
+	reqData, _ = json.Marshal(DiskReqData{DiskID: diskID}) //nolint:errchkjson
+
+	reqDB := GetReqDB()
+
 	newReq := Request{
 		Data: string(reqData),
 		Type: requestType,
@@ -219,6 +282,17 @@ func PendingReqExists(objID string) []string {
 			}
 
 			if reqData.NicID == objID {
+				reqIDs = append(reqIDs, incompleteRequest.ID)
+			}
+		case DISKWIPE:
+			var reqData DiskReqData
+
+			err = json.Unmarshal([]byte(incompleteRequest.Data), &reqData)
+			if err != nil {
+				continue
+			}
+
+			if reqData.DiskID == objID {
 				reqIDs = append(reqIDs, incompleteRequest.ID)
 			}
 		}

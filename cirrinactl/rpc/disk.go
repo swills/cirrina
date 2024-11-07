@@ -233,6 +233,23 @@ func UpdateDisk(diskID string, newDesc *string, newType *string, direct *bool, c
 	return nil
 }
 
+func WipeDisk(diskID string) (string, error) {
+	if diskID == "" {
+		return "", errDiskEmptyID
+	}
+
+	var err error
+
+	var reqID *cirrina.RequestID
+
+	reqID, err = serverClient.WipeDisk(defaultServerContext, &cirrina.DiskId{Value: diskID})
+	if err != nil {
+		return "", fmt.Errorf("error wiping disk: %w", err)
+	}
+
+	return reqID.GetValue(), nil
+}
+
 func diskUploadFile(diskID string, diskSize uint64, diskChecksum string,
 	diskFile *os.File, uploadStatChan chan<- UploadStat) {
 	var err error

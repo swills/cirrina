@@ -269,3 +269,14 @@ func (f FileInfoCmds) FetchAll() ([]string, error) {
 
 	return fileNames, nil
 }
+
+func (n FileInfoService) RemoveBacking(targetDisk *Disk) error {
+	filePath := targetDisk.GetPath()
+
+	err := os.Remove(filePath)
+	if err != nil {
+		return fmt.Errorf("error removing backing: %w", err)
+	}
+
+	return nil
+}

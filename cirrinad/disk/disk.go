@@ -41,6 +41,7 @@ type InfoServicer interface {
 	Exists(name string) (bool, error)
 	Create(name string, size uint64) error
 	GetAll() ([]string, error)
+	RemoveBacking(targetDisk *Disk) error
 }
 
 var List = &ListType{
@@ -194,7 +195,7 @@ func Create(diskInst *Disk, size string) error {
 	// actually create disk!
 	err = diskService.Create(diskInst.GetPath(), diskSize)
 	if err != nil {
-		return fmt.Errorf("erro creating disk: %w", err)
+		return fmt.Errorf("error creating disk: %w", err)
 	}
 
 	db := getDiskDBFunc()

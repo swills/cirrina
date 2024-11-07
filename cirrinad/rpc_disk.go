@@ -19,6 +19,7 @@ import (
 	"cirrina/cirrina"
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
+	"cirrina/cirrinad/requests"
 	"cirrina/cirrinad/vm"
 )
 
@@ -204,6 +205,48 @@ func (s *server) RemoveDisk(_ context.Context, diskID *cirrina.DiskId) (*cirrina
 	res.Success = true
 
 	return &res, nil
+}
+
+func (s *server) WipeDisk(_ context.Context, diskID *cirrina.DiskId) (*cirrina.RequestID, error) {
+	diskUUID, err := uuid.Parse(diskID.GetValue())
+	if err != nil {
+		return &cirrina.RequestID{}, fmt.Errorf("error parsing VM ID: %w", err)
+	}
+
+	diskInst, err := disk.GetByID(diskUUID.String())
+	if err != nil {
+		slog.Error("WipeDisk error getting disk", "disk", diskID.GetValue(), "err", err)
+
+		return &cirrina.RequestID{}, fmt.Errorf("error getting VM: %w", err)
+	}
+
+	if diskInst.Name == "" {
+		return &cirrina.RequestID{}, errNotFound
+	}
+
+	pendingReqIDs := requests.PendingReqExists(diskUUID.String())
+	if len(pendingReqIDs) > 0 {
+		return &cirrina.RequestID{}, errReqExists
+	}
+
+	// check that disk is not in use by a VM
+	var diskVM *vm.VM
+
+	diskVM, err = getDiskVM(diskUUID)
+	if err != nil {
+		return &cirrina.RequestID{}, err
+	}
+
+	if diskVM != nil {
+		return &cirrina.RequestID{}, errDiskInUse
+	}
+
+	newReq, err := requests.CreateDiskReq(requests.DISKWIPE, diskUUID.String())
+	if err != nil {
+		return &cirrina.RequestID{}, fmt.Errorf("error creating request: %w", err)
+	}
+
+	return &cirrina.RequestID{Value: newReq.ID}, nil
 }
 
 func (s *server) GetDiskVM(_ context.Context, diskID *cirrina.DiskId) (*cirrina.VMID, error) {

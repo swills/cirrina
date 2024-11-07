@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/go-test/deep"
@@ -1234,21 +1235,18 @@ func TestZfsVolInfoCmds_AddSuccess1(_ *testing.T) {
 	}
 
 	cmdWithArgs := os.Args[4:]
-	cmd := cmdWithArgs[0]
 
-	if cmd != "/sbin/zfs" {
-		os.Exit(1)
+	if cmdWithArgs[0] == "/sbin/zfs" && cmdWithArgs[1] == "create" && cmdWithArgs[len(cmdWithArgs)-1] == "someVolume" && cmdWithArgs[len(cmdWithArgs)-3] == "2147483648" { //nolint:lll
+		os.Exit(0)
 	}
 
-	if cmdWithArgs[len(cmdWithArgs)-1] != "someVolume" {
-		os.Exit(1)
+	if cmdWithArgs[0] == "/sbin/zfs" && cmdWithArgs[1] == "snapshot" && cmdWithArgs[2] == "someVolume@empty" {
+		os.Exit(0)
 	}
 
-	if cmdWithArgs[len(cmdWithArgs)-3] != "2147483648" {
-		os.Exit(1)
-	}
+	_, _ = os.Stderr.WriteString(strings.Join(cmdWithArgs, ","))
 
-	os.Exit(0)
+	os.Exit(1)
 }
 
 //nolint:paralleltest

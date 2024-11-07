@@ -21,6 +21,8 @@ func processRequests() {
 				go deleteVM(&request)
 			case requests.NICCLONE:
 				go nicClone(&request)
+			case requests.DISKWIPE:
+				go diskWipe(&request)
 			}
 		}
 

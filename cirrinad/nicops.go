@@ -18,7 +18,7 @@ func nicClone(request *requests.Request) {
 	var sourceNic *vmnic.VMNic
 
 	// check request type
-	if request.Type != "NICCLONE" {
+	if request.Type != requests.NICCLONE {
 		slog.Error("nic clone request called for wrong request type")
 		request.Failed()
 

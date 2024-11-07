@@ -147,6 +147,37 @@ func (n ZfsVolService) GetAll() ([]string, error) {
 	return retVal, nil
 }
 
+func (n ZfsVolService) RemoveBacking(targetDisk *Disk) error {
+	var err error
+
+	volName := targetDisk.GetPath()
+
+	hasSnapshot := hasEmptySnapshot(volName)
+
+	if hasSnapshot {
+		return rollBackToEmptySnapshot(volName)
+	}
+
+	var size uint64
+
+	size, err = n.GetSize(volName)
+	if err != nil {
+		return err
+	}
+
+	err = destroyVol(volName)
+	if err != nil {
+		return err
+	}
+
+	err = n.Create(volName, size)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (e ZfsVolInfoCmds) FetchZfsVolumeSize(volumeName string) (uint64, error) {
 	var volSize uint64
 
@@ -369,6 +400,22 @@ func (e ZfsVolInfoCmds) Add(volName string, size uint64) error {
 		return fmt.Errorf("error creating disk: %w", err)
 	}
 
+	// create snapshot with no data so that we can roll back to it later in RemoveBacking()
+	stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/sbin/zfs", "snapshot", volName + "@empty"},
+	)
+	if err != nil {
+		slog.Error("failed to create disk",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return fmt.Errorf("error creating disk: %w", err)
+	}
+
 	return nil
 }
 
@@ -407,4 +454,59 @@ func (e ZfsVolInfoCmds) FetchAll() ([]string, error) {
 	}
 
 	return allVolumes, nil
+}
+
+func destroyVol(volName string) error {
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/sbin/zfs", "destroy", "-r", volName},
+	)
+
+	if err != nil || returnCode != 0 {
+		slog.Error("error destroying volume",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return fmt.Errorf("error destroying volume: %w", err)
+	}
+
+	return nil
+}
+
+func hasEmptySnapshot(volName string) bool {
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/sbin/zfs", "list", "-H", "-t", "snapshot", volName + "@empty"},
+	)
+
+	stdOutFields := strings.Fields(string(stdOutBytes))
+
+	if err == nil && returnCode == 0 && stdOutFields[0] == volName+"@empty" && len(stdErrBytes) == 0 {
+		return true
+	}
+
+	return false
+}
+
+func rollBackToEmptySnapshot(volName string) error {
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/sbin/zfs", "rollback", "-r", volName + "@empty"},
+	)
+
+	if err != nil {
+		slog.Error("failed to create disk",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return fmt.Errorf("error creating disk: %w", err)
+	}
+
+	return nil
 }

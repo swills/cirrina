@@ -249,6 +249,58 @@ var DiskUpdateCmd = &cobra.Command{
 	},
 }
 
+var DiskWipeCmd = &cobra.Command{
+	Use:          "wipe",
+	Short:        "wipe virtual disk, permanently destroys all data on the virtual disk",
+	SilenceUsage: true,
+	RunE: func(_ *cobra.Command, _ []string) error {
+		var err error
+		if DiskID == "" {
+			DiskID, err = rpc.DiskNameToID(DiskName)
+			if err != nil {
+				return fmt.Errorf("failed getting disk ID: %w", err)
+			}
+			if DiskID == "" {
+				return errDiskNotFound
+			}
+		}
+
+		var reqID string
+		var reqStat rpc.ReqStatus
+
+		reqID, err = rpc.WipeDisk(DiskID)
+		if err != nil {
+			return fmt.Errorf("failed wiping disk: %w", err)
+		}
+
+		if !CheckReqStat {
+			fmt.Print("Disk Wiped\n")
+
+			return nil
+		}
+
+		fmt.Printf("Wiping Disk: ")
+		for {
+			reqStat, err = rpc.ReqStat(reqID)
+			if err != nil {
+				return fmt.Errorf("failed checking request status: %w", err)
+			}
+			if reqStat.Success {
+				fmt.Printf(" done")
+			}
+			if reqStat.Complete {
+				break
+			}
+			fmt.Printf(".")
+			time.Sleep(time.Second)
+			rpc.ResetConnTimeout()
+		}
+		fmt.Printf("\n")
+
+		return nil
+	},
+}
+
 func trackDiskUpload(diskProgressWriter progress.Writer, diskSize int64, diskFile *os.File) {
 	var err error
 

@@ -16,6 +16,7 @@ func init() {
 
 	setupDiskRemoveCmd()
 	setupDiskUpdateCmd()
+	setupDiskWipeCmd()
 
 	err = setupDiskUploadCmd()
 	if err != nil {
@@ -27,6 +28,7 @@ func init() {
 	DiskCmd.AddCommand(DiskRemoveCmd)
 	DiskCmd.AddCommand(DiskUpdateCmd)
 	DiskCmd.AddCommand(DiskUploadCmd)
+	DiskCmd.AddCommand(DiskWipeCmd)
 }
 
 func setupDiskUploadCmd() error {
@@ -64,6 +66,11 @@ func setupDiskUpdateCmd() {
 func setupDiskRemoveCmd() {
 	disableFlagSorting(DiskRemoveCmd)
 	addNameOrIDArgs(DiskRemoveCmd, &DiskName, &DiskID, "disk")
+}
+
+func setupDiskWipeCmd() {
+	disableFlagSorting(DiskWipeCmd)
+	addNameOrIDArgs(DiskWipeCmd, &DiskName, &DiskID, "disk")
 }
 
 func setupDiskCreateCmd() error {
