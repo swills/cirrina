@@ -2,6 +2,7 @@
 # TODO
 
 * Finish writing tests
+* Allow using `mdo` instead of `sudo`, see [mdo](https://man.freebsd.org/cgi/man.cgi?query=mdo&sektion=1&apropos=0&manpath=FreeBSD+15.0-CURRENT)
 * Remove in memory "cache", Lists, or replace with eko/gocache (v3 or v4)
 * Convert all usages of strconv.Atoi to strconv.ParseInt and strconv.Itoa to strconv.FormatInt
 * Add setting for maximum disk/iso size and check them during upload
