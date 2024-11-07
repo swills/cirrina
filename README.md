@@ -1,6 +1,6 @@
 # Cirrina
 
-Daemon for [Bhyve](https://wiki.freebsd.org/bhyve) written in Go using gRPC
+[What is cirrina?](https://clips.twitch.tv/BadTemperedAlligatorKreygasm-gjABCmXGo6gNG4uO) Daemon and client for [Bhyve](https://wiki.freebsd.org/bhyve) written in Go using gRPC.
 
 # Warning
 
