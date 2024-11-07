@@ -21,6 +21,7 @@ import (
 	"syscall"
 	"unicode"
 
+	"github.com/hashicorp/go-version"
 	exec "golang.org/x/sys/execabs"
 	"golang.org/x/sys/unix"
 
@@ -768,4 +769,37 @@ func SetupTestCmd(fakeExecute func(command string, args ...string) *exec.Cmd) {
 // TearDownTestCmd recovers the execute command function
 func TearDownTestCmd() {
 	execute = exec.Command
+}
+
+func GetOsVersion() (*version.Version, error) {
+	utsname := unix.Utsname{}
+
+	err := unix.Uname(&utsname)
+	if err != nil {
+		slog.Error("Unable to validate OS version")
+
+		return nil, fmt.Errorf("error getting os version: %w", err)
+	}
+
+	var rBuf []byte
+
+	for _, b := range utsname.Release {
+		if b == 0 {
+			break
+		}
+
+		rBuf = append(rBuf, b)
+	}
+
+	re := regexp.MustCompile("-.*")
+	ov := re.ReplaceAllString(string(rBuf), "")
+
+	ovi, err := version.NewVersion(ov)
+	if err != nil {
+		slog.Error("failed to get OS version", "release", string(utsname.Release[:]))
+
+		return nil, fmt.Errorf("error getting os version: %w", err)
+	}
+
+	return ovi, nil
 }

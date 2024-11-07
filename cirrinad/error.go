@@ -52,6 +52,8 @@ var (
 	errInvalidKeyboardLayout = errors.New("invalid keyboard layout")
 	errInvalidSoundDev       = errors.New("invalid sound dev")
 	errInvalidVncPort        = errors.New("invalid vnc port")
+	errInvalidScreenWidth    = errors.New("invalid screen width")
+	errInvalidScreenHeight   = errors.New("invalid screen height")
 )
 
 var (

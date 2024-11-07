@@ -57,6 +57,8 @@ var (
 	DebugPort             uint32
 	DebugPortChanged      bool
 	Screen                bool
+	ScreenSize            string
+	ScreenSizeChanged     bool
 	ScreenChanged         bool
 	ScreenWidth           uint32
 	ScreenWidthChanged    bool
@@ -496,6 +498,7 @@ var VMConfigCmd = &cobra.Command{
 		DebugWaitChanged = cmd.Flags().Changed("debug-wait")
 		DebugPortChanged = cmd.Flags().Changed("debug-port")
 		ScreenChanged = cmd.Flags().Changed("screen")
+		ScreenSizeChanged = cmd.Flags().Changed("screen-size")
 		ScreenWidthChanged = cmd.Flags().Changed("screen-width")
 		ScreenHeightChanged = cmd.Flags().Changed("screen-height")
 		VncPortChanged = cmd.Flags().Changed("vnc-port")
@@ -625,6 +628,14 @@ var VMConfigCmd = &cobra.Command{
 
 		if ScreenChanged {
 			newConfig.Screen = &Screen
+		}
+
+		if ScreenSizeChanged {
+			nsw, nsh := parseScreenSize(ScreenSize)
+			if nsw != 0 && nsh != 0 {
+				newConfig.ScreenWidth = &nsw
+				newConfig.ScreenHeight = &nsh
+			}
 		}
 
 		if ScreenWidthChanged {
@@ -788,6 +799,55 @@ var VMConfigCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func parseScreenSize(size string) (uint32, uint32) {
+	resMap := map[string][]uint32{
+		"VGA":     {640, 480},
+		"WVGA":    {768, 480},
+		"WGA":     {800, 480},
+		"FWVGA":   {854, 480},
+		"SVGA":    {800, 600},
+		"DVGA":    {960, 640},
+		"WSVGA":   {1024, 600},
+		"XGA":     {1024, 768},
+		"WXGAmin": {1280, 720},
+		"WXGA":    {1280, 768},
+		"XGA+":    {1152, 864},
+		"WXGAmax": {1280, 800},
+		"WXGAHD":  {1366, 768},
+		"SXGA−":   {1280, 960},
+		"WSXGA":   {1440, 900},
+		"WXGA+":   {1440, 900},
+		"FHD":     {1920, 1080},
+		"SXGA":    {1280, 1024},
+		"SXGA+":   {1400, 1050},
+		"qHD":     {960, 540},
+		"HD+":     {1600, 900},
+		"WSXGA+":  {1680, 1050},
+		"UXGA":    {1600, 1200},
+		"WUXGA":   {1920, 1200},
+		"FHD+":    {1920, 1280},
+		"QWXGA":   {2048, 1152},
+		"CWSXGA":  {2880, 900},
+		"TXGA":    {1920, 1400},
+		"QXGA":    {2048, 1536},
+		"WQXGA":   {2560, 1600},
+		"QSXGA":   {2560, 2048},
+		"WQHD":    {2560, 1440},
+		"UWFHD":   {2560, 1080},
+		"WQXGA+":  {3200, 1800},
+		"QSXGA+":  {2800, 2100},
+		"WQSXGA":  {3200, 2048},
+		"QUXGA":   {3200, 2400},
+	}
+
+	res := resMap[size]
+	if len(res) > 0 {
+		return resMap[size][0], resMap[size][1]
+	}
+
+	return 0, 0
 }
 
 var VMGetCmd = &cobra.Command{

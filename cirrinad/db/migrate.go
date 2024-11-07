@@ -152,6 +152,9 @@ func CustomMigrate() {
 	// 2024063003 - delete disks from config
 	migration2024063003(schemaVersion, diskDB)
 
+	// 2024110601 - update configs table constraints on screen_width and screen_height
+	migration2024110601(schemaVersion, vmDB)
+
 	slog.Debug("finished custom migration")
 }
 
@@ -447,5 +450,199 @@ func migration2024063003(schemaVersion uint32, vmDB *gorm.DB) {
 		}
 
 		setSchemaVersion(2024062703)
+	}
+}
+
+func migration2024110601(schemaVersion uint32, vmDB *gorm.DB) { //nolint:funlen
+	if schemaVersion < 2024110601 {
+		var res *gorm.DB
+
+		dropIndexConfigsDeletedAt := `drop index idx_configs_deleted_at`
+
+		res = vmDB.Exec(dropIndexConfigsDeletedAt)
+		if res.Error != nil {
+			panic(res.Error)
+		}
+
+		createConfigsNew := `
+create table configs_new
+(
+    id                 integer
+        primary key autoincrement,
+    created_at         datetime,
+    updated_at         datetime,
+    deleted_at         datetime,
+    vm_id              text
+        constraint fk_vms_config
+            references vms,
+    cpu                integer default 1,
+    mem                integer default 128,
+    max_wait           integer default 120,
+    restart            numeric default true,
+    restart_delay      integer default 1,
+    screen             numeric default true,
+    screen_width       integer default 1920,
+    screen_height      integer default 1080,
+    vnc_wait           numeric default false,
+    vnc_port           text    default "AUTO",
+    tablet             numeric default true,
+    store_uefi_vars    numeric default true,
+    utc_time           numeric default true,
+    host_bridge        numeric default true,
+    acpi               numeric default true,
+    use_hlt            numeric default true,
+    exit_on_pause      numeric default true,
+    wire_guest_mem     numeric default false,
+    destroy_power_off  numeric default true,
+    ignore_unknown_msr numeric default true,
+    kbd_layout         text    default "default",
+    auto_start         numeric default false,
+    sound              numeric default false,
+    sound_in           text    default "/dev/dsp0",
+    sound_out          text    default "/dev/dsp0",
+    com1               numeric default true,
+    com1_dev           text    default "AUTO",
+    com1_log           numeric default false,
+    com2               numeric default false,
+    com2_dev           text    default "AUTO",
+    com2_log           numeric default false,
+    com3               numeric default false,
+    com3_dev           text    default "AUTO",
+    com3_log           numeric default false,
+    com4               numeric default false,
+    com4_dev           text    default "AUTO",
+    com4_log           numeric default false,
+    extra_args         text,
+    com1_speed         integer default 115200,
+    com2_speed         integer default 115200,
+    com3_speed         integer default 115200,
+    com4_speed         integer default 115200,
+    auto_start_delay   integer default 0,
+    debug              numeric default false,
+    debug_wait         numeric default false,
+    debug_port         text    default "AUTO",
+    priority           integer default 0,
+    protect            numeric default true,
+    pcpu               integer,
+    rbps               integer,
+    wbps               integer,
+    riops              integer,
+    wiops              integer,
+    constraint chk_configs_acpi
+        check (acpi IN (0, 1)),
+    constraint chk_configs_auto_start
+        check (auto_start IN (0, 1)),
+    constraint chk_configs_auto_start_delay
+        check (auto_start_delay >= 0),
+    constraint chk_configs_com1
+        check (com1 IN (0, 1)),
+    constraint chk_configs_com1_log
+        check (com1_log IN (0, 1)),
+    constraint chk_configs_com1_speed
+        check (com1_speed IN
+               (115200, 57600, 38400, 19200, 9600, 4800, 2400, 1200, 600, 300, 200, 150, 134, 110, 75, 50)),
+    constraint chk_configs_com2
+        check (com2 IN (0, 1)),
+    constraint chk_configs_com2_log
+        check (com2_log IN (0, 1)),
+    constraint chk_configs_com2_speed
+        check (com2_speed IN
+               (115200, 57600, 38400, 19200, 9600, 4800, 2400, 1200, 600, 300, 200, 150, 134, 110, 75, 50)),
+    constraint chk_configs_com3
+        check (com3 IN (0, 1)),
+    constraint chk_configs_com3_log
+        check (com3_log IN (0, 1)),
+    constraint chk_configs_com3_speed
+        check (com3_speed IN
+               (115200, 57600, 38400, 19200, 9600, 4800, 2400, 1200, 600, 300, 200, 150, 134, 110, 75, 50)),
+    constraint chk_configs_com4
+        check (com4 IN (0, 1)),
+    constraint chk_configs_com4_log
+        check (com4_log IN (0, 1)),
+    constraint chk_configs_com4_speed
+        check (com4_speed IN
+               (115200, 57600, 38400, 19200, 9600, 4800, 2400, 1200, 600, 300, 200, 150, 134, 110, 75, 50)),
+    constraint chk_configs_cpu
+        check (cpu >= 1),
+    constraint chk_configs_debug
+        check (debug IN (0, 1)),
+    constraint chk_configs_debug_wait
+        check (debug_wait IN (0, 1)),
+    constraint chk_configs_destroy_power_off
+        check (destroy_power_off IN (0, 1)),
+    constraint chk_configs_exit_on_pause
+        check (exit_on_pause IN (0, 1)),
+    constraint chk_configs_host_bridge
+        check (host_bridge IN (0, 1)),
+    constraint chk_configs_ignore_unknown_msr
+        check (ignore_unknown_msr IN (0, 1)),
+    constraint chk_configs_max_wait
+        check (max_wait >= 0),
+    constraint chk_configs_mem
+        check (mem >= 128),
+    constraint chk_configs_priority
+        check (priority BETWEEN -20 and 20),
+    constraint chk_configs_protect
+        check (protect IN (0, 1)),
+    constraint chk_configs_restart
+        check (restart IN (0, 1)),
+    constraint chk_configs_restart_delay
+        check (restart_delay >= 0),
+    constraint chk_configs_screen
+        check (screen IN (0, 1)),
+    constraint chk_configs_screen_width
+        check (screen_width BETWEEN 640 and 3840),
+    constraint chk_configs_screen_height
+        check (screen_height BETWEEN 480 and 2160),
+    constraint chk_configs_sound
+        check (sound IN (0, 1)),
+    constraint chk_configs_store_uefi_vars
+        check (store_uefi_vars IN (0, 1)),
+    constraint chk_configs_tablet
+        check (tablet IN (0, 1)),
+    constraint chk_configs_use_hlt
+        check (use_hlt IN (0, 1)),
+    constraint chk_configs_utc_time
+        check (utc_time IN (0, 1)),
+    constraint chk_configs_vnc_wait
+        check (vnc_wait IN (0, 1)),
+    constraint chk_configs_wire_guest_mem
+        check (wire_guest_mem IN (0, 1))
+)`
+
+		res = vmDB.Exec(createConfigsNew)
+		if res.Error != nil {
+			panic(res.Error)
+		}
+
+		createConfigsNewDeletedAtIndex := `create index idx_configs_deleted_at on configs_new (deleted_at)`
+
+		res = vmDB.Exec(createConfigsNewDeletedAtIndex)
+		if res.Error != nil {
+			panic(res.Error)
+		}
+
+		insertIntoConfigsNew := `INSERT INTO configs_new (id, created_at, updated_at, deleted_at, vm_id, cpu, mem, max_wait, restart, restart_delay, screen, screen_width, screen_height, vnc_wait, vnc_port, tablet, store_uefi_vars, utc_time, host_bridge, acpi, use_hlt, exit_on_pause, wire_guest_mem, destroy_power_off, ignore_unknown_msr, kbd_layout, auto_start, sound, sound_in, sound_out, com1, com1_dev, com1_log, com2, com2_dev, com2_log, com3, com3_dev, com3_log, com4, com4_dev, com4_log, extra_args, com1_speed, com2_speed, com3_speed, com4_speed, auto_start_delay, debug, debug_wait, debug_port, priority, protect, pcpu, rbps, wbps, riops, wiops) SELECT id, created_at, updated_at, deleted_at, vm_id, cpu, mem, max_wait, restart, restart_delay, screen, screen_width, screen_height, vnc_wait, vnc_port, tablet, store_uefi_vars, utc_time, host_bridge, acpi, use_hlt, exit_on_pause, wire_guest_mem, destroy_power_off, ignore_unknown_msr, kbd_layout, auto_start, sound, sound_in, sound_out, com1, com1_dev, com1_log, com2, com2_dev, com2_log, com3, com3_dev, com3_log, com4, com4_dev, com4_log, extra_args, com1_speed, com2_speed, com3_speed, com4_speed, auto_start_delay, debug, debug_wait, debug_port, priority, protect, pcpu, rbps, wbps, riops, wiops FROM configs` //nolint:lll
+
+		res = vmDB.Exec(insertIntoConfigsNew)
+		if res.Error != nil {
+			panic(res.Error)
+		}
+
+		renameConfigsToConfigsOld := "ALTER TABLE `configs` RENAME TO `configs_2024110601`"
+
+		res = vmDB.Exec(renameConfigsToConfigsOld)
+		if res.Error != nil {
+			panic(res.Error)
+		}
+
+		renameConfigsNewToConfigs := "ALTER TABLE `configs_new` RENAME TO `configs`;"
+
+		res = vmDB.Exec(renameConfigsNewToConfigs)
+		if res.Error != nil {
+			panic(res.Error)
+		}
+
+		setSchemaVersion(2024110601)
 	}
 }

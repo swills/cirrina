@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-version"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"cirrina/cirrina"
@@ -87,7 +88,10 @@ func updateVMAll(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 		return err
 	}
 
-	updateVMScreen(vmConfig, vmInst)
+	err = updateVMScreen(vmConfig, vmInst)
+	if err != nil {
+		return err
+	}
 
 	err = updateVMScreenOptions(vmConfig, vmInst)
 	if err != nil {
@@ -109,6 +113,78 @@ func updateVMAll(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 	}
 
 	updateVMPriorityLimits(vmConfig, vmInst)
+
+	return nil
+}
+
+func validateScreenWidth(vmConfig *cirrina.VMConfig) error {
+	var osVer *version.Version
+
+	var maxWidth uint32
+
+	var minWidth uint32 = 640
+
+	var err error
+
+	osVer, err = util.GetOsVersion()
+	if err != nil {
+		slog.Error("failed to get os version", "err", err)
+
+		return fmt.Errorf("error validating config: %w", err)
+	}
+
+	ver150, err := version.NewVersion("15.0")
+	if err != nil {
+		slog.Error("failed to create a version for 15.0")
+
+		return fmt.Errorf("error validating config: %w", err)
+	}
+
+	if osVer.LessThan(ver150) {
+		maxWidth = 1920
+	} else {
+		maxWidth = 3840
+	}
+
+	if vmConfig.GetScreenWidth() < minWidth || vmConfig.GetScreenWidth() > maxWidth {
+		return errInvalidScreenWidth
+	}
+
+	return nil
+}
+
+func validateScreenHeight(vmConfig *cirrina.VMConfig) error {
+	var osVer *version.Version
+
+	var maxHeight uint32
+
+	var minHeight uint32 = 480
+
+	var err error
+
+	osVer, err = util.GetOsVersion()
+	if err != nil {
+		slog.Error("failed to get os version", "err", err)
+
+		return fmt.Errorf("error validating config: %w", err)
+	}
+
+	ver150, err := version.NewVersion("15.0")
+	if err != nil {
+		slog.Error("failed to create a version for 15.0")
+
+		return fmt.Errorf("error validating config: %w", err)
+	}
+
+	if osVer.LessThan(ver150) {
+		maxHeight = 1200
+	} else {
+		maxHeight = 2160
+	}
+
+	if vmConfig.GetScreenHeight() < minHeight || vmConfig.GetScreenHeight() > maxHeight {
+		return errInvalidScreenHeight
+	}
 
 	return nil
 }
@@ -261,18 +337,32 @@ func updateVMSound(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 	return nil
 }
 
-func updateVMScreen(vmConfig *cirrina.VMConfig, vmInst *vm.VM) {
+func updateVMScreen(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
+	var err error
+
 	if vmConfig.Screen != nil {
 		vmInst.Config.Screen = vmConfig.GetScreen()
 	}
 
 	if vmConfig.ScreenWidth != nil {
+		err = validateScreenWidth(vmConfig)
+		if err != nil {
+			return err
+		}
+
 		vmInst.Config.ScreenWidth = vmConfig.GetScreenWidth()
 	}
 
 	if vmConfig.ScreenHeight != nil {
+		err = validateScreenHeight(vmConfig)
+		if err != nil {
+			return err
+		}
+
 		vmInst.Config.ScreenHeight = vmConfig.GetScreenHeight()
 	}
+
+	return nil
 }
 
 func updateVMScreenOptions(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {

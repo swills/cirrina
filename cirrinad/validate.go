@@ -9,7 +9,6 @@ import (
 	"math/big"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -274,49 +273,28 @@ func validateOS() {
 }
 
 func validateOSVersion() {
-	utsname := unix.Utsname{}
-
-	err := unix.Uname(&utsname)
+	ovi, err := util.GetOsVersion()
 	if err != nil {
-		slog.Error("Unable to validate OS version")
+		slog.Error("failed to get os version", "err", err)
 		os.Exit(1)
 	}
 
-	var rBuf []byte
-
-	for _, b := range utsname.Release {
-		if b == 0 {
-			break
-		}
-
-		rBuf = append(rBuf, b)
-	}
-
-	re := regexp.MustCompile("-.*")
-	ov := re.ReplaceAllString(string(rBuf), "")
-
-	ovi, err := version.NewVersion(ov)
-	if err != nil {
-		slog.Error("failed to get OS version", "release", string(utsname.Release[:]))
-		os.Exit(1)
-	}
-
-	ver132, err := version.NewVersion("13.3")
+	ver133, err := version.NewVersion("13.3")
 	if err != nil {
 		slog.Error("failed to create a version for 13.3")
 		os.Exit(1)
 	}
 
-	ver140, err := version.NewVersion("14.0")
+	ver141, err := version.NewVersion("14.1")
 	if err != nil {
-		slog.Error("failed to create a version for 14.0")
+		slog.Error("failed to create a version for 14.1")
 		os.Exit(1)
 	}
 
 	slog.Debug("validate OS", "ovi", ovi)
 	// Check for valid OS version, see https://www.freebsd.org/security/
-	// as of commit, 13.3 and 14.0 are oldest supported versions
-	if ovi.LessThan(ver132) && ovi.LessThan(ver140) {
+	// as of commit, 13.3 and 14.1 are oldest supported versions
+	if ovi.LessThan(ver133) && ovi.LessThan(ver141) {
 		slog.Error("Unsupported OS version", "version", ovi)
 		os.Exit(1)
 	}

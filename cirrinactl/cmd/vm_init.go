@@ -101,6 +101,8 @@ func setupVMConfigSound() {
 
 func setupVMConfigScreen() {
 	VMConfigCmd.Flags().BoolVar(&Screen, "screen", Screen, "Start VNC Server for this VM")
+	VMConfigCmd.Flags().StringVar(&ScreenSize, "screen-size", ScreenSize,
+		"Shortcut reference to standard screen dimensions: VGA, SVGA, XGA, SXGA, UXGA, WUXGA, QXGA, etc. up to QUXGA")
 	VMConfigCmd.Flags().Uint32Var(&ScreenWidth, "screen-width", ScreenWidth, "Width of VNC server screen")
 	VMConfigCmd.Flags().Uint32Var(&ScreenHeight,
 		"screen-height", ScreenHeight, "Height of VNC server screen",

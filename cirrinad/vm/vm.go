@@ -38,8 +38,8 @@ type Config struct {
 	Restart          bool   `gorm:"default:True;check:restart IN (0,1)"`
 	RestartDelay     uint32 `gorm:"default:1;check:restart_delay>=0"`
 	Screen           bool   `gorm:"default:True;check:screen IN (0,1)"`
-	ScreenWidth      uint32 `gorm:"default:1920;check:screen_width BETWEEN 640 and 1920"`
-	ScreenHeight     uint32 `gorm:"default:1080;check:screen_height BETWEEN 480 and 1200"`
+	ScreenWidth      uint32 `gorm:"default:1920;check:screen_width BETWEEN 640 and 3840"`
+	ScreenHeight     uint32 `gorm:"default:1080;check:screen_height BETWEEN 480 and 2160"`
 	VNCWait          bool   `gorm:"default:False;check:vnc_wait IN(0,1)"`
 	VNCPort          string `gorm:"default:AUTO"`
 	Tablet           bool   `gorm:"default:True;check:tablet IN(0,1)"`
