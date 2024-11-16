@@ -4,7 +4,6 @@
 * Finish writing tests
 * Allow using `mdo` instead of `sudo`, see [mdo](https://man.freebsd.org/cgi/man.cgi?query=mdo&sektion=1&apropos=0&manpath=FreeBSD+15.0-CURRENT)
 * Remove in memory "cache", Lists, or replace with eko/gocache (v3 or v4)
-* Convert all usages of strconv.Atoi to strconv.ParseInt and strconv.Itoa to strconv.FormatInt
 * Add setting for maximum disk/iso size and check them during upload
 * Check that we have enough space for a disk/iso before allowing upload
 * Make sure iso, nic, disk switch are uniform, ie, take same args for all funcs
@@ -26,7 +25,6 @@
 * Actually delete disks from the database
 * Add a force kill function for OSs that will not shut down properly and when you do not want to wait
 * Add feature to remove CD after first boot
-* Add a "wipe disk" feature
 * Add a "remove disk" feature to actually destroy a disk that was deleted from DB (or does not exist)
 * have all cirrinactl commands which use server make a call to hostPing() before doing anything with the server
 * Use consistent terminology:

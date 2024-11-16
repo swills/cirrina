@@ -368,7 +368,7 @@ func updateVMScreen(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 func updateVMScreenOptions(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 	if vmConfig.Vncport != nil {
 		if vmConfig.GetVncport() != "AUTO" {
-			port, err := strconv.Atoi(vmConfig.GetVncport())
+			port, err := strconv.ParseInt(vmConfig.GetVncport(), 10, 64)
 			if err != nil || port < 1024 || port > 65535 {
 				return errInvalidVncPort
 			}

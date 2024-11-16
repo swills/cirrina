@@ -36,7 +36,7 @@ var NetInterfacesFunc = net.Interfaces
 var osOpenFunc = os.Open
 
 func parseNetstatSocket(socket map[string]interface{}) (int, error) {
-	var portInt int
+	var portInt int64
 
 	var err error
 
@@ -69,12 +69,12 @@ func parseNetstatSocket(socket map[string]interface{}) (int, error) {
 		return 0, errPortNotParsable
 	}
 
-	portInt, err = strconv.Atoi(p)
+	portInt, err = strconv.ParseInt(p, 10, 32)
 	if err != nil {
 		return 0, errInvalidPort
 	}
 
-	return portInt, nil
+	return int(portInt), nil
 }
 
 func parseNetstatJSONOutput(netstatOutput []byte) ([]int, error) {
@@ -635,16 +635,16 @@ func GetMyUIDGID() (uint32, uint32, error) {
 		return 0, 0, errUserNotFound
 	}
 
-	var myUID int
+	var myUID int64
 
-	myUID, err = strconv.Atoi(myUser.Uid)
+	myUID, err = strconv.ParseInt(myUser.Uid, 10, 32)
 	if err != nil || myUID < 0 {
 		return 0, 0, fmt.Errorf("error parsing UID: %w", err)
 	}
 
-	var myGID int
+	var myGID int64
 
-	myGID, err = strconv.Atoi(myUser.Gid)
+	myGID, err = strconv.ParseInt(myUser.Gid, 10, 32)
 	if err != nil || myGID < 0 {
 		return 0, 0, fmt.Errorf("error parsing GID: %w", err)
 	}
@@ -718,7 +718,7 @@ func GetHostMaxVMCpus() (uint16, error) {
 
 	maxCPUStr := strings.TrimSpace(string(stdOutBytes))
 
-	maxCPU, err := strconv.Atoi(maxCPUStr)
+	maxCPU, err := strconv.ParseInt(maxCPUStr, 10, 64)
 	if err != nil {
 		slog.Error("Failed converting max cpus to int", "err", err.Error())
 

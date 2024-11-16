@@ -103,7 +103,7 @@ func comLogger(thisVM *VM, comNum int) {
 
 func comLoggerGetLogFile(thisVM *VM, comNum int) (*os.File, error) {
 	logFilePath := config.Config.Disk.VM.Path.State + "/" + thisVM.Name + "/"
-	logFileName := logFilePath + "com" + strconv.Itoa(comNum) + "_out.log"
+	logFileName := logFilePath + "com" + strconv.FormatInt(int64(comNum), 10) + "_out.log"
 
 	err := GetVMLogPath(logFilePath)
 	if err != nil {

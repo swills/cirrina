@@ -207,7 +207,7 @@ func GetDummyBridgeName() string {
 	}
 
 	for bridgeNum > 0 {
-		bridgeName := "bridge" + strconv.Itoa(bridgeNum)
+		bridgeName := "bridge" + strconv.FormatInt(int64(bridgeNum), 10)
 		if util.ContainsStr(bridgeList, bridgeName) {
 			bridgeNum--
 		} else {

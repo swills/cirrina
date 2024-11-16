@@ -66,7 +66,7 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 		slog.Debug("getCDArg", "name", isoItem.Name, "id", isoItem.ID, "path", isoItem.Path)
 
 		if devCount <= maxSataDevs {
-			thisCd := []string{"-s", strconv.Itoa(slot) + ":0,ahci,cd:" + isoItem.Path}
+			thisCd := []string{"-s", strconv.FormatInt(int64(slot), 10) + ":0,ahci,cd:" + isoItem.Path}
 			cdString = append(cdString, thisCd...)
 			devCount++
 			slot++
@@ -92,7 +92,7 @@ func (vm *VM) getCPUArg() []string {
 		vmCpus = uint16(vm.Config.CPU)
 	}
 
-	return []string{"-c", strconv.Itoa(int(vmCpus))}
+	return []string{"-c", strconv.FormatInt(int64(vmCpus), 10)}
 }
 
 func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (string, error) {
@@ -188,7 +188,7 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 			continue
 		}
 
-		thisHd := []string{"-s", strconv.Itoa(slot) + "," + oneHdString}
+		thisHd := []string{"-s", strconv.FormatInt(int64(slot), 10) + "," + oneHdString}
 		diskString = append(diskString, thisHd...)
 		slot++
 	}
@@ -229,7 +229,7 @@ func (vm *VM) getHostBridgeArg(slot int) ([]string, int) {
 		return []string{}, slot
 	}
 
-	hostBridgeArg := []string{"-s", strconv.Itoa(slot) + ",hostbridge"}
+	hostBridgeArg := []string{"-s", strconv.FormatInt(int64(slot), 10) + ",hostbridge"}
 	slot++
 
 	return hostBridgeArg, slot
@@ -289,17 +289,25 @@ func (vm *VM) getDebugArg() []string {
 
 		debugListenPortInt, err = GetFreeTCPPortFunc(int(firstDebugPort), usedDebugPorts)
 		if err != nil {
+			slog.Error("error getting free tcp port", "err", err)
+
 			return []string{}
 		}
 
-		debugListenPort = strconv.Itoa(debugListenPortInt)
+		debugListenPort = strconv.FormatInt(int64(debugListenPortInt), 10)
 	} else {
+		var debugListenPortInt64 int64
+
 		debugListenPort = vm.Config.DebugPort
 
-		debugListenPortInt, err = strconv.Atoi(debugListenPort)
+		debugListenPortInt64, err = strconv.ParseInt(debugListenPort, 10, 64)
 		if err != nil {
+			slog.Error("error parsing debug listen port", "err", err)
+
 			return []string{}
 		}
+
+		debugListenPortInt = int(debugListenPortInt64)
 	}
 
 	vm.SetDebugPort(debugListenPortInt)
@@ -357,7 +365,7 @@ func (vm *VM) getSoundArg(slot int) ([]string, int) {
 		slog.Debug("sound input path does not exist", "path", vm.Config.SoundIn)
 	}
 
-	return []string{"-s", strconv.Itoa(slot) + soundString}, slot + 1
+	return []string{"-s", strconv.FormatInt(int64(slot), 10) + soundString}, slot + 1
 }
 
 func (vm *VM) getUTCArg() []string {
@@ -385,7 +393,7 @@ func (vm *VM) getTabletArg(slot int) ([]string, int) {
 		return []string{}, slot
 	}
 
-	tabletArg := []string{"-s", strconv.Itoa(slot) + ",xhci,tablet"}
+	tabletArg := []string{"-s", strconv.FormatInt(int64(slot), 10) + ",xhci,tablet"}
 	slot++
 
 	return tabletArg, slot
@@ -413,24 +421,28 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 			return []string{}, slot
 		}
 
-		vncListenPort = strconv.Itoa(vncListenPortInt)
+		vncListenPort = strconv.FormatInt(int64(vncListenPortInt), 10)
 	} else {
+		var vncListenPortInt64 int64
+
 		vncListenPort = vm.Config.VNCPort
 
-		vncListenPortInt, err = strconv.Atoi(vncListenPort)
+		vncListenPortInt64, err = strconv.ParseInt(vncListenPort, 10, 64)
 		if err != nil {
 			return []string{}, slot
 		}
+
+		vncListenPortInt = int(vncListenPortInt64)
 	}
 
 	vm.SetVNCPort(vncListenPortInt)
 
 	fbufArg := []string{
 		"-s",
-		strconv.Itoa(slot) +
+		strconv.FormatInt(int64(slot), 10) +
 			",fbuf" +
-			",w=" + strconv.Itoa(int(vm.Config.ScreenWidth)) +
-			",h=" + strconv.Itoa(int(vm.Config.ScreenHeight)) +
+			",w=" + strconv.FormatInt(int64(vm.Config.ScreenWidth), 10) +
+			",h=" + strconv.FormatInt(int64(vm.Config.ScreenHeight), 10) +
 			",tcp=" + vncListenIP + ":" + vncListenPort,
 	}
 	if vm.Config.VNCWait {
@@ -537,7 +549,7 @@ func (vm *VM) getNetArgs(slot int) ([]string, int) {
 			macString = ",mac=" + macAddress
 		}
 
-		netArg := []string{"-s", strconv.Itoa(slot) + "," + netType + "," + netDevArg + macString}
+		netArg := []string{"-s", strconv.FormatInt(int64(slot), 10) + "," + netType + "," + netDevArg + macString}
 		slot++
 
 		netArgs = append(netArgs, netArg...)
@@ -598,7 +610,7 @@ func getTapDev() (string, string) {
 	}
 
 	for !freeTapDevFound {
-		tapDev = "tap" + strconv.Itoa(tapNum)
+		tapDev = "tap" + strconv.FormatInt(int64(tapNum), 10)
 		if !util.ContainsStr(netDevs, tapDev) && !isNetPortUsed(tapDev) {
 			freeTapDevFound = true
 		} else {
@@ -624,7 +636,7 @@ func getVmnetDev() (string, string) {
 	}
 
 	for !freeVmnetDevFound {
-		vmnetDev = "vmnet" + strconv.Itoa(vmnetNum)
+		vmnetDev = "vmnet" + strconv.FormatInt(int64(vmnetNum), 10)
 		if !util.ContainsStr(netDevs, vmnetDev) && !isNetPortUsed(vmnetDev) {
 			freeVmnetDevFound = true
 		} else {
@@ -641,13 +653,13 @@ func getCom(comDev string, vmName string, num int) ([]string, string) {
 	var comArg []string
 
 	if comDev == "AUTO" {
-		nmdm = "/dev/nmdm-" + vmName + "-com" + strconv.Itoa(num) + "-A"
+		nmdm = "/dev/nmdm-" + vmName + "-com" + strconv.FormatInt(int64(num), 10) + "-A"
 	} else {
 		nmdm = comDev
 	}
 
 	slog.Debug("getCom", "nmdm", nmdm)
-	comArg = append(comArg, "-l", "com"+strconv.Itoa(num)+","+nmdm)
+	comArg = append(comArg, "-l", "com"+strconv.FormatInt(int64(num), 10)+","+nmdm)
 
 	return comArg, nmdm
 }

@@ -211,7 +211,7 @@ func comInteractive(stream cirrina.VMInfo_Com1InteractiveServer, vmInst *vm.VM, 
 
 	if thisComLog {
 		comLogPath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name + "/"
-		comLogFile := comLogPath + "com" + strconv.Itoa(comNum) + "_in.log"
+		comLogFile := comLogPath + "com" + strconv.FormatInt(int64(comNum), 10) + "_in.log"
 
 		err := vm.GetVMLogPath(comLogPath)
 		if err != nil {

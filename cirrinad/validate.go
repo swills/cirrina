@@ -78,7 +78,7 @@ nameLoop:
 		if err != nil {
 			return "", fmt.Errorf("couldn't find a tmp file %w", err)
 		}
-		tmpFileName = tmpDir + string(os.PathSeparator) + "cirrinad" + strconv.Itoa(randomNum)
+		tmpFileName = tmpDir + string(os.PathSeparator) + "cirrinad" + strconv.FormatInt(int64(randomNum), 10)
 		_, err = os.Stat(tmpFileName)
 		switch {
 		case err == nil:
@@ -381,7 +381,7 @@ func checkZpoolCapacity(poolName string) {
 		rawCapacity = strings.TrimSuffix(textFields[7], "%")
 	}
 
-	capacity, err := strconv.Atoi(rawCapacity)
+	capacity, err := strconv.ParseInt(rawCapacity, 10, 64)
 	if err != nil {
 		slog.Error("error checking zpool", "err", err)
 		os.Exit(1)

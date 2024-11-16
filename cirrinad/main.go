@@ -100,7 +100,7 @@ func writePidFile() {
 
 	var pidMode os.FileMode = 0x755
 
-	err = os.WriteFile(pidFilePath, []byte(strconv.Itoa(myPid)), pidMode)
+	err = os.WriteFile(pidFilePath, []byte(strconv.FormatInt(int64(myPid), 10)), pidMode)
 	if err != nil {
 		slog.Error("failed writing pid file", "err", err)
 		os.Exit(1)
@@ -116,7 +116,7 @@ func checkExistingPidFile(pidFilePath string) {
 		os.Exit(1)
 	}
 
-	existingPid, err := strconv.Atoi(string(existingPidFileContent))
+	existingPid, err := strconv.ParseInt(string(existingPidFileContent), 10, 64)
 	if err != nil {
 		slog.Error("failed getting existing pid")
 		os.Exit(1)
@@ -124,7 +124,7 @@ func checkExistingPidFile(pidFilePath string) {
 
 	slog.Debug("Checking pid", "pid", existingPid)
 
-	procExists, err := util.PidExists(existingPid)
+	procExists, err := util.PidExists(int(existingPid))
 	if err != nil {
 		slog.Error("failed checking existing pid")
 		os.Exit(1)

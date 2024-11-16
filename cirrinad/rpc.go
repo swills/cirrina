@@ -21,7 +21,8 @@ type server struct {
 }
 
 func rpcServer() {
-	listenAddress := config.Config.Network.Grpc.IP + ":" + strconv.Itoa(int(config.Config.Network.Grpc.Port))
+	listenAddress := config.Config.Network.Grpc.IP + ":" +
+		strconv.FormatInt(int64(int(config.Config.Network.Grpc.Port)), 10)
 	lis, err := net.Listen("tcp", listenAddress)
 
 	if err != nil {

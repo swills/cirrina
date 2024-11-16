@@ -77,12 +77,12 @@ func ngGetNodes() ([]NgNode, error) {
 			continue
 		}
 
-		aNodeHooks, _ := strconv.Atoi(textFields[8])
+		aNodeHooks, _ := strconv.ParseInt(textFields[8], 10, 64)
 		ngNodes = append(ngNodes, NgNode{
 			NodeName:  aNodeName,
 			NodeType:  aNodeType,
 			NodeID:    aNodeID,
-			NodeHooks: aNodeHooks,
+			NodeHooks: int(aNodeHooks),
 		})
 	}
 
@@ -152,7 +152,7 @@ func ngBridgeNextLink(peers []ngPeer) string {
 	}
 
 	for !found {
-		linkName = "link" + strconv.Itoa(linkNum)
+		linkName = "link" + strconv.FormatInt(int64(linkNum), 10)
 		if util.ContainsStr(hooks, linkName) {
 			linkNum++
 		} else {

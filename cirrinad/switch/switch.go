@@ -437,14 +437,14 @@ func switchNameValid(switchInst *Switch) bool {
 
 		bridgeNumStr := strings.TrimPrefix(switchInst.Name, "bridge")
 
-		bridgeNum, err := strconv.Atoi(bridgeNumStr)
+		bridgeNum, err := strconv.ParseInt(bridgeNumStr, 10, 32)
 		if err != nil {
 			slog.Error("invalid bridge name", "name", switchInst.Name)
 
 			return false
 		}
 
-		bridgeNumFormattedString := strconv.FormatInt(int64(bridgeNum), 10)
+		bridgeNumFormattedString := strconv.FormatInt(bridgeNum, 10)
 		// Check for silly things like "0123"
 		if bridgeNumStr != bridgeNumFormattedString {
 			slog.Error("invalid name", "name", switchInst.Name)
@@ -460,14 +460,14 @@ func switchNameValid(switchInst *Switch) bool {
 
 		bridgeNumStr := strings.TrimPrefix(switchInst.Name, "bnet")
 
-		bridgeNum, err := strconv.Atoi(bridgeNumStr)
+		bridgeNum, err := strconv.ParseInt(bridgeNumStr, 10, 32)
 		if err != nil {
 			slog.Error("invalid bridge name", "name", switchInst.Name)
 
 			return false
 		}
 
-		bridgeNumFormattedString := strconv.FormatInt(int64(bridgeNum), 10)
+		bridgeNumFormattedString := strconv.FormatInt(bridgeNum, 10)
 		// Check for silly things like "0123"
 		if bridgeNumStr != bridgeNumFormattedString {
 			slog.Error("invalid name", "name", switchInst.Name)
