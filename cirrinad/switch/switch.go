@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vmnic"
 )
@@ -30,8 +29,8 @@ type Switch struct {
 
 var vmnicGetAllFunc = vmnic.GetAll
 
-func switchTypeValid(switchInst *Switch) bool {
-	switch switchInst.Type {
+func (s *Switch) switchTypeValid() bool {
+	switch s.Type {
 	case "IF":
 		return true
 	case "NG":
@@ -41,11 +40,11 @@ func switchTypeValid(switchInst *Switch) bool {
 	}
 }
 
-func switchCheckUplink(switchInst *Switch) error {
-	switch switchInst.Type {
+func (s *Switch) switchCheckUplink() error {
+	switch s.Type {
 	case "IF":
-		if switchInst.Uplink != "" {
-			alreadyUsed, err := memberUsedByIfBridge(switchInst.Uplink)
+		if s.Uplink != "" {
+			alreadyUsed, err := memberUsedByIfSwitch(s.Uplink)
 			if err != nil {
 				return errSwitchInternalChecking
 			}
@@ -55,8 +54,8 @@ func switchCheckUplink(switchInst *Switch) error {
 			}
 		}
 	case "NG":
-		if switchInst.Uplink != "" {
-			alreadyUsed, err := memberUsedByNgBridge(switchInst.Uplink)
+		if s.Uplink != "" {
+			alreadyUsed, err := memberUsedByNgSwitch(s.Uplink)
 			if err != nil {
 				return errSwitchInternalChecking
 			}
@@ -66,7 +65,7 @@ func switchCheckUplink(switchInst *Switch) error {
 			}
 		}
 	default:
-		slog.Error("bad switch type", "switchType", switchInst.Type)
+		slog.Error("bad switch type", "switchType", s.Type)
 
 		return errSwitchInvalidType
 	}
@@ -74,251 +73,30 @@ func switchCheckUplink(switchInst *Switch) error {
 	return nil
 }
 
-func validateSwitch(switchInst *Switch) error {
+func (s *Switch) validate() error {
 	// switchNameValid also checks type, no need to check here
-	if !switchNameValid(switchInst) {
+	if !s.switchNameValid() {
 		return ErrSwitchInvalidName
 	}
 
-	err := switchCheckUplink(switchInst)
+	if !s.switchTypeValid() {
+		return errSwitchInvalidType
+	}
+
+	err := s.switchCheckUplink()
 	if err != nil {
 		return err
 	}
 
 	// default case unreachable
-	switch switchInst.Type {
+	switch s.Type {
 	case "IF":
-		return validateIfSwitch(switchInst)
+		return s.validateIfSwitch()
 	case "NG":
-		return validateNgSwitch(switchInst)
+		return s.validateNgSwitch()
 	default:
 		return errSwitchInvalidType
 	}
-}
-
-func memberUsedByNgBridge(member string) (bool, error) {
-	allBridges, err := GetAllNgBridges()
-	if err != nil {
-		slog.Error("error getting all if bridges", "err", err)
-
-		return false, err
-	}
-
-	for _, aBridge := range allBridges {
-		var allNgBridgeMembers []ngPeer
-
-		var existingMembers []string
-
-		// extra work here since this returns a ngPeer
-		allNgBridgeMembers, err = getNgBridgeMembers(aBridge)
-		if err != nil {
-			slog.Error("error getting ng bridge members", "bridge", aBridge)
-
-			return false, err
-		}
-
-		for _, m := range allNgBridgeMembers {
-			existingMembers = append(existingMembers, m.PeerName)
-		}
-
-		if util.ContainsStr(existingMembers, member) {
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
-func buildNgBridge(switchInst *Switch) error {
-	var members []string
-	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
-	memberList := strings.Split(switchInst.Uplink, ",")
-
-	// sanity checking of bridge members
-	for _, member := range memberList {
-		// it can't be empty
-		if member == "" {
-			continue
-		}
-		// it has to exist
-		exists := CheckInterfaceExists(member)
-		if !exists {
-			slog.Error("attempt to add non-existent member to bridge, ignoring",
-				"bridge", switchInst.Name, "uplink", member,
-			)
-
-			continue
-		}
-		// it can't be a member of another bridge already
-		alreadyUsed, err := memberUsedByNgBridge(member)
-		if err != nil {
-			slog.Error("error checking if member already used", "err", err)
-
-			continue
-		}
-
-		if alreadyUsed {
-			slog.Error("another bridge already contains member, member can not be in two bridges of "+
-				"same type, skipping adding", "bridge", switchInst.Name, "member", member,
-			)
-
-			continue
-		}
-
-		members = append(members, member)
-	}
-
-	err := createNgBridgeWithMembers(switchInst.Name, members)
-
-	return err
-}
-
-func memberUsedByIfBridge(member string) (bool, error) {
-	allBridges, err := GetAllIfBridges()
-	if err != nil {
-		slog.Error("error getting all if bridges", "err", err)
-
-		return true, err
-	}
-
-	for _, aBridge := range allBridges {
-		existingMembers, err := getIfBridgeMembers(aBridge)
-		if err != nil {
-			slog.Error("error getting if bridge members", "bridge", aBridge)
-
-			return true, err
-		}
-
-		if util.ContainsStr(existingMembers, member) {
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
-func buildIfBridge(switchInst *Switch) error {
-	var members []string
-	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
-	memberList := strings.Split(switchInst.Uplink, ",")
-
-	// sanity checking of bridge members
-	for _, member := range memberList {
-		// it can't be empty
-		if member == "" {
-			continue
-		}
-		// it has to exist
-		exists := CheckInterfaceExists(member)
-		if !exists {
-			slog.Error("attempt to add non-existent member to bridge, ignoring",
-				"bridge", switchInst.Name, "uplink", member,
-			)
-
-			continue
-		}
-		// it can't be a member of another bridge already
-		alreadyUsed, err := memberUsedByIfBridge(member)
-		if err != nil {
-			slog.Error("error checking if member already used", "err", err)
-
-			continue
-		}
-
-		if alreadyUsed {
-			slog.Error("another bridge already contains member, member can not be in two bridges of "+
-				"same type, skipping adding", "bridge", switchInst.Name, "member", member,
-			)
-
-			continue
-		}
-
-		members = append(members, member)
-	}
-
-	err := CreateIfBridgeWithMembers(switchInst.Name, members)
-
-	return err
-}
-
-func ngGetBridgeNextLink(bridge string) (string, error) {
-	var nextLink string
-
-	var err error
-
-	bridgePeers, err := getNgBridgeMembers(bridge)
-	if err != nil {
-		return nextLink, err
-	}
-
-	nextLink = ngBridgeNextLink(bridgePeers)
-
-	return nextLink, nil
-}
-
-func setUplinkNG(uplink string, switchInst *Switch) error {
-	// it can't be a member of another bridge already
-	alreadyUsed, err := memberUsedByNgBridge(uplink)
-	if err != nil {
-		slog.Error("error checking if member already used", "err", err)
-
-		return err
-	}
-
-	if alreadyUsed {
-		slog.Error("another bridge already contains member, member can not be in two bridges of "+
-			"same type, skipping adding", "member", uplink,
-		)
-
-		return errSwitchUplinkInUse
-	}
-
-	slog.Debug("setting NG bridge uplink", "id", switchInst.ID)
-
-	err = BridgeNgAddMember(switchInst.Name, uplink)
-	if err != nil {
-		return err
-	}
-
-	switchInst.Uplink = uplink
-
-	err = switchInst.Save()
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func setUplinkIf(uplink string, switchInst *Switch) error {
-	alreadyUsed, err := memberUsedByIfBridge(uplink)
-	if err != nil {
-		return err
-	}
-
-	if alreadyUsed {
-		slog.Error("another bridge already contains member, member can not be in two bridges of "+
-			"same type, skipping adding", "member", uplink,
-		)
-
-		return errSwitchUplinkInUse
-	}
-
-	slog.Debug("setting IF bridge uplink", "id", switchInst.ID)
-
-	err = BridgeIfAddMember(switchInst.Name, uplink)
-	if err != nil {
-		return err
-	}
-
-	switchInst.Uplink = uplink
-
-	err = switchInst.Save()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func switchExists(switchName string) (bool, error) {
@@ -336,27 +114,27 @@ func switchExists(switchName string) (bool, error) {
 	return true, nil
 }
 
-func bringUpNewSwitch(switchInst *Switch) error {
-	if switchInst == nil || switchInst.ID == "" {
+func (s *Switch) bringUpNewSwitch() error {
+	if s == nil || s.ID == "" {
 		return errSwitchInvalidID
 	}
 
-	switch switchInst.Type {
+	switch s.Type {
 	case "IF":
-		slog.Debug("creating if bridge", "name", switchInst.Name)
+		slog.Debug("creating if switch", "name", s.Name)
 
-		err := buildIfBridge(switchInst)
+		err := s.buildIfSwitch()
 		if err != nil {
-			slog.Error("error creating if bridge", "err", err)
+			slog.Error("error creating if switch", "err", err)
 			// already created in db, so ignore system state and proceed on...
 			return err
 		}
 	case "NG":
-		slog.Debug("creating ng bridge", "name", switchInst.Name)
+		slog.Debug("creating ng switch", "name", s.Name)
 
-		err := buildNgBridge(switchInst)
+		err := s.buildNgSwitch()
 		if err != nil {
-			slog.Error("error creating ng bridge", "err", err)
+			slog.Error("error creating ng switch", "err", err)
 			// already created in db, so ignore system state and proceed on...
 			return nil
 		}
@@ -369,44 +147,8 @@ func bringUpNewSwitch(switchInst *Switch) error {
 	return nil
 }
 
-func validateIfSwitch(switchInst *Switch) error {
-	// it can't be a member of another bridge of same type already
-	if switchInst.Uplink != "" {
-		alreadyUsed, err := memberUsedByIfBridge(switchInst.Uplink)
-		if err != nil {
-			slog.Error("error checking if member already used", "err", err)
-
-			return fmt.Errorf("error checking if switch uplink in use by another bridge: %w", err)
-		}
-
-		if alreadyUsed {
-			return errSwitchUplinkInUse
-		}
-	}
-
-	return nil
-}
-
-func validateNgSwitch(switchInst *Switch) error {
-	// it can't be a member of another bridge of same type already
-	if switchInst.Uplink != "" {
-		alreadyUsed, err := memberUsedByNgBridge(switchInst.Uplink)
-		if err != nil {
-			slog.Error("error checking if member already used", "err", err)
-
-			return fmt.Errorf("error checking if member already used: %w", err)
-		}
-
-		if alreadyUsed {
-			return errSwitchUplinkInUse
-		}
-	}
-
-	return nil
-}
-
-func switchNameValid(switchInst *Switch) bool {
-	if switchInst.Name == "" {
+func (s *Switch) switchNameValid() bool {
+	if s.Name == "" {
 		return false
 	}
 
@@ -422,55 +164,55 @@ func switchNameValid(switchInst *Switch) bool {
 		LatinOffset: 0,
 	}
 
-	validChars := util.CheckInRange(switchInst.Name, myRT)
+	validChars := util.CheckInRange(s.Name, myRT)
 	if !validChars {
 		return false
 	}
 
-	switch switchInst.Type {
+	switch s.Type {
 	case "IF":
-		if !strings.HasPrefix(switchInst.Name, "bridge") {
-			slog.Error("invalid name", "name", switchInst.Name)
+		if !strings.HasPrefix(s.Name, "bridge") {
+			slog.Error("invalid name", "name", s.Name)
 
 			return false
 		}
 
-		bridgeNumStr := strings.TrimPrefix(switchInst.Name, "bridge")
+		switchNumStr := strings.TrimPrefix(s.Name, "bridge")
 
-		bridgeNum, err := strconv.ParseInt(bridgeNumStr, 10, 32)
+		switchNum, err := strconv.ParseInt(switchNumStr, 10, 32)
 		if err != nil {
-			slog.Error("invalid bridge name", "name", switchInst.Name)
+			slog.Error("invalid switch name", "name", s.Name)
 
 			return false
 		}
 
-		bridgeNumFormattedString := strconv.FormatInt(bridgeNum, 10)
+		switchNumFormattedString := strconv.FormatInt(switchNum, 10)
 		// Check for silly things like "0123"
-		if bridgeNumStr != bridgeNumFormattedString {
-			slog.Error("invalid name", "name", switchInst.Name)
+		if switchNumStr != switchNumFormattedString {
+			slog.Error("invalid name", "name", s.Name)
 
 			return false
 		}
 	case "NG":
-		if !strings.HasPrefix(switchInst.Name, "bnet") {
-			slog.Error("invalid bridge name", "name", switchInst.Name)
+		if !strings.HasPrefix(s.Name, "bnet") {
+			slog.Error("invalid switch name", "name", s.Name)
 
 			return false
 		}
 
-		bridgeNumStr := strings.TrimPrefix(switchInst.Name, "bnet")
+		switchNumStr := strings.TrimPrefix(s.Name, "bnet")
 
-		bridgeNum, err := strconv.ParseInt(bridgeNumStr, 10, 32)
+		switchNum, err := strconv.ParseInt(switchNumStr, 10, 32)
 		if err != nil {
-			slog.Error("invalid bridge name", "name", switchInst.Name)
+			slog.Error("invalid switch name", "name", s.Name)
 
 			return false
 		}
 
-		bridgeNumFormattedString := strconv.FormatInt(bridgeNum, 10)
+		switchNumFormattedString := strconv.FormatInt(switchNum, 10)
 		// Check for silly things like "0123"
-		if bridgeNumStr != bridgeNumFormattedString {
-			slog.Error("invalid name", "name", switchInst.Name)
+		if switchNumStr != switchNumFormattedString {
+			slog.Error("invalid name", "name", s.Name)
 
 			return false
 		}
@@ -479,72 +221,6 @@ func switchNameValid(switchInst *Switch) bool {
 	}
 
 	return true
-}
-
-func BridgeIfAddMember(bridgeName string, memberName string) error {
-	// TODO - check that the member name is a host interface or a VM nic interface
-	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
-		config.Config.Sys.Sudo,
-		[]string{"/sbin/ifconfig", bridgeName, "addm", memberName},
-	)
-	if err != nil {
-		slog.Error("ifconfig error",
-			"stdOutBytes", stdOutBytes,
-			"stdErrBytes", stdErrBytes,
-			"returnCode", returnCode,
-			"err", err,
-		)
-
-		return fmt.Errorf("ifconfig error: %w", err)
-	}
-
-	return nil
-}
-
-func BridgeNgAddMember(bridgeName string, memberName string) error {
-	link, err := ngGetBridgeNextLink(bridgeName)
-	if err != nil {
-		return err
-	}
-
-	memberNameNg := strings.Replace(memberName, ".", "_", 1)
-
-	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
-		config.Config.Sys.Sudo,
-		[]string{"/usr/sbin/ngctl", "connect", memberNameNg + ":", bridgeName + ":", "lower", link},
-	)
-	if err != nil {
-		slog.Error("ngctl connect error",
-			"stdOutBytes", stdOutBytes,
-			"stdErrBytes", stdErrBytes,
-			"returnCode", returnCode,
-			"err", err,
-		)
-
-		return fmt.Errorf("ngctl connect error: %w", err)
-	}
-
-	link, err = ngGetBridgeNextLink(bridgeName)
-	if err != nil {
-		return err
-	}
-
-	stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
-		config.Config.Sys.Sudo,
-		[]string{"/usr/sbin/ngctl", "connect", memberNameNg + ":", bridgeName + ":", "upper", link},
-	)
-	if err != nil {
-		slog.Error("ngctl connect error",
-			"stdOutBytes", stdOutBytes,
-			"stdErrBytes", stdErrBytes,
-			"returnCode", returnCode,
-			"err", err,
-		)
-
-		return fmt.Errorf("ngctl connect error: %w", err)
-	}
-
-	return nil
 }
 
 func Create(switchInst *Switch) error {
@@ -561,7 +237,7 @@ func Create(switchInst *Switch) error {
 		return errSwitchExists
 	}
 
-	err = validateSwitch(switchInst)
+	err = switchInst.validate()
 	if err != nil {
 		slog.Error("error validating switch", "switch", switchInst.Name, "err", err)
 
@@ -606,36 +282,36 @@ func CheckInterfaceExists(interfaceName string) bool {
 	return false
 }
 
-func CreateBridges() error {
-	allBridges := GetAll()
+func CreateSwitches() error {
+	allSwitches := GetAll()
 
-	for num, bridge := range allBridges {
-		slog.Debug("creating bridge", "num", num, "bridge", bridge.Name)
+	for num, aSwitch := range allSwitches {
+		slog.Debug("creating switches", "num", num, "switch", aSwitch.Name)
 
-		switch bridge.Type {
+		switch aSwitch.Type {
 		case "IF":
-			slog.Debug("creating if bridge", "name", bridge.Name)
+			slog.Debug("creating if switch", "name", aSwitch.Name)
 
-			err := buildIfBridge(bridge)
+			err := aSwitch.buildIfSwitch()
 			if err != nil {
-				slog.Error("error creating if bridge", "err", err)
+				slog.Error("error creating if switch", "err", err)
 
-				return fmt.Errorf("error creating if bridge: %w", err)
+				return fmt.Errorf("error creating if switch: %w", err)
 			}
 		case "NG":
-			slog.Debug("creating ng bridge", "name", bridge.Name)
+			slog.Debug("creating ng switch", "name", aSwitch.Name)
 
-			err := buildNgBridge(bridge)
+			err := aSwitch.buildNgSwitch()
 			if err != nil {
-				slog.Error("error creating ng bridge",
-					"name", bridge.Name,
+				slog.Error("error creating ng switch",
+					"name", aSwitch.Name,
 					"err", err,
 				)
 
-				return fmt.Errorf("error creating ng bridge: %w", err)
+				return fmt.Errorf("error creating ng switch: %w", err)
 			}
 		default:
-			slog.Debug("unknown bridge type", "name", bridge.Name, "type", bridge.Type)
+			slog.Debug("unknown switch type", "name", aSwitch.Name, "type", aSwitch.Type)
 
 			return errSwitchInvalidType
 		}
@@ -671,110 +347,52 @@ func Delete(switchID string) error {
 	return nil
 }
 
-func DestroyBridges() error {
-	allBridges := GetAll()
+func DestroySwitches() error {
+	allSwitches := GetAll()
 
-	exitingIfBridges, err := GetAllIfBridges()
+	exitingIfSwitches, err := GetAllIfSwitches()
 	if err != nil {
-		slog.Error("error getting all if bridges")
+		slog.Error("error getting all if switches")
 
-		return fmt.Errorf("error getting all if bridges: %w", err)
+		return fmt.Errorf("error getting all if switches: %w", err)
 	}
 
-	exitingNgBridges, err := GetAllNgBridges()
+	exitingNgSwitches, err := GetAllNgSwitches()
 	if err != nil {
-		slog.Error("error getting all ng bridges")
+		slog.Error("error getting all ng switches")
 
-		return fmt.Errorf("error getting all ng bridges: %w", err)
+		return fmt.Errorf("error getting all ng switches: %w", err)
 	}
 
-	for _, bridge := range allBridges {
-		switch bridge.Type {
+	for _, aSwitch := range allSwitches {
+		switch aSwitch.Type {
 		case "IF":
-			if util.ContainsStr(exitingIfBridges, bridge.Name) {
-				slog.Debug("destroying if bridge", "name", bridge.Name)
+			if util.ContainsStr(exitingIfSwitches, aSwitch.Name) {
+				slog.Debug("destroying if switch", "name", aSwitch.Name)
 
-				err = DestroyIfBridge(bridge.Name, true)
+				err = DestroyIfSwitch(aSwitch.Name, true)
 				if err != nil {
-					slog.Error("error destroying if bridge", "err", err)
+					slog.Error("error destroying if switch", "err", err)
 
-					return fmt.Errorf("error destroying if bridge: %w", err)
+					return fmt.Errorf("error destroying if switch: %w", err)
 				}
 			}
 		case "NG":
-			if util.ContainsStr(exitingNgBridges, bridge.Name) {
-				slog.Debug("destroying ng bridge", "name", bridge.Name)
+			if util.ContainsStr(exitingNgSwitches, aSwitch.Name) {
+				slog.Debug("destroying ng switch", "name", aSwitch.Name)
 
-				err = DestroyNgBridge(bridge.Name)
+				err = DestroyNgSwitch(aSwitch.Name)
 				if err != nil {
-					slog.Error("error destroying ng bridge", "err", err)
+					slog.Error("error destroying ng switch", "err", err)
 
-					return fmt.Errorf("error destroying ng bridge: %w", err)
+					return fmt.Errorf("error destroying ng switch: %w", err)
 				}
 			}
 		default:
-			slog.Debug("unknown bridge type", "name", bridge.Name, "type", bridge.Type)
+			slog.Debug("unknown switch type", "name", aSwitch.Name, "type", aSwitch.Type)
 
 			return errSwitchInvalidType
 		}
-	}
-
-	return nil
-}
-
-func DestroyIfBridge(name string, cleanup bool) error {
-	// TODO allow other bridge names
-	if !strings.HasPrefix(name, "bridge") {
-		slog.Error("invalid bridge name", "name", name)
-
-		return ErrSwitchInvalidName
-	}
-
-	if cleanup {
-		err := bridgeIfDeleteAllMembers(name)
-		if err != nil {
-			return err
-		}
-	}
-
-	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
-		config.Config.Sys.Sudo,
-		[]string{"/sbin/ifconfig", name, "destroy"},
-	)
-	if err != nil {
-		slog.Error("ifconfig destroy error",
-			"stdOutBytes", stdOutBytes,
-			"stdErrBytes", stdErrBytes,
-			"returnCode", returnCode,
-			"err", err,
-		)
-
-		return fmt.Errorf("ifconfig destroy error: %w", err)
-	}
-
-	return nil
-}
-
-func DestroyNgBridge(netDev string) error {
-	var err error
-
-	if netDev == "" {
-		return errSwitchInvalidNetDevEmpty
-	}
-
-	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
-		config.Config.Sys.Sudo,
-		[]string{"/usr/sbin/ngctl", "msg", netDev + ":", "shutdown"},
-	)
-	if err != nil {
-		slog.Error("ngctl msg shutdown error",
-			"stdOutBytes", stdOutBytes,
-			"stdErrBytes", stdErrBytes,
-			"returnCode", returnCode,
-			"err", err,
-		)
-
-		return fmt.Errorf("ngctl msg shutdown error: %w", err)
 	}
 
 	return nil
@@ -827,30 +445,6 @@ func GetAll() []*Switch {
 	return result
 }
 
-// GetNgDev returns the netDev (stored in DB) and netDevArg (passed to bhyve)
-func GetNgDev(switchID string, name string) (string, string, error) {
-	var err error
-
-	thisSwitch, err := GetByID(switchID)
-	if err != nil {
-		slog.Error("switch lookup error", "switchid", switchID)
-
-		return "", "", err
-	}
-
-	bridgePeers, err := getNgBridgeMembers(thisSwitch.Name)
-	if err != nil {
-		return "", "", err
-	}
-
-	nextLink := ngBridgeNextLink(bridgePeers)
-
-	ngNetDev := thisSwitch.Name + "," + nextLink
-	netDevArg := "netgraph,path=" + thisSwitch.Name + ":,peerhook=" + nextLink + ",socket=" + name
-
-	return ngNetDev, netDevArg, nil
-}
-
 func ParseSwitchID(switchID string, netDevType string) (string, error) {
 	var res string
 
@@ -900,9 +494,9 @@ func ParseSwitchID(switchID string, netDevType string) (string, error) {
 func (s *Switch) UnsetUplink() error {
 	switch s.Type {
 	case "IF":
-		slog.Debug("unsetting IF bridge uplink", "id", s.ID)
+		slog.Debug("unsetting IF switch uplink", "id", s.ID)
 
-		err := bridgeIfDeleteMember(s.Name, s.Uplink)
+		err := switchIfDeleteMember(s.Name, s.Uplink)
 		if err != nil {
 			return err
 		}
@@ -916,9 +510,9 @@ func (s *Switch) UnsetUplink() error {
 
 		return nil
 	case "NG":
-		slog.Debug("unsetting NG bridge uplink", "id", s.ID)
+		slog.Debug("unsetting NG switch uplink", "id", s.ID)
 
-		err := bridgeNgRemoveUplink(s.Name, s.Uplink)
+		err := switchNgRemoveUplink(s.Name, s.Uplink)
 		if err != nil {
 			return err
 		}
@@ -945,9 +539,9 @@ func (s *Switch) SetUplink(uplink string) error {
 
 	switch s.Type {
 	case "IF":
-		return setUplinkIf(uplink, s)
+		return s.setUplinkIf(uplink)
 	case "NG":
-		return setUplinkNG(uplink, s)
+		return s.setUplinkNG(uplink)
 	default:
 		return errSwitchInvalidType
 	}

@@ -8,49 +8,50 @@ import (
 	"cirrina/cirrinad/util"
 )
 
-func (vm *VM) applyResourceLimits(vmPid uint32) {
+func (vm *VM) applyResourceLimits() {
 	if vm.proc == nil || vm.proc.Pid() == 0 || vm.BhyvePid == 0 {
 		slog.Error("attempted to apply resource limits to vm that may not be running")
 
 		return
 	}
 
-	actualVMPidStr := strconv.FormatUint(uint64(vmPid), 10)
-
 	vm.log.Debug("checking resource limits")
 
 	if vm.Config.Pcpu > 0 {
-		applyResourceLimitCPU(actualVMPidStr, vm)
+		vm.applyResourceLimitCPU()
 	}
 
 	if vm.Config.Rbps > 0 {
-		applyResourceLimitReadBPS(actualVMPidStr, vm)
+		vm.applyResourceLimitReadBPS()
 	}
 
 	if vm.Config.Wbps > 0 {
-		applyResourceLimitWriteBPS(actualVMPidStr, vm)
+		vm.applyResourceLimitWriteBPS()
 	}
 
 	if vm.Config.Riops > 0 {
-		applyResourceLimitReadIOPS(actualVMPidStr, vm)
+		vm.applyResourceLimitReadIOPS()
 	}
 
 	if vm.Config.Wiops > 0 {
-		applyResourceLimitWriteIOPS(actualVMPidStr, vm)
+		vm.applyResourceLimitWriteIOPS()
 	}
 }
 
-func applyResourceLimitWriteIOPS(vmPid string, vm *VM) {
+func (vm *VM) applyResourceLimitWriteIOPS() {
 	vm.log.Debug("Setting wiops limit")
 	wiopsLimitStr := strconv.FormatUint(uint64(vm.Config.Wiops), 10)
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		config.Config.Sys.Sudo,
-		[]string{"/usr/bin/rctl", "-a", "process:" + vmPid + ":writeiops:throttle=" + wiopsLimitStr},
+		[]string{
+			"/usr/bin/rctl", "-a", "process:" +
+				strconv.FormatUint(uint64(vm.BhyvePid), 10) + ":writeiops:throttle=" + wiopsLimitStr,
+		},
 	)
 
 	if err != nil {
 		slog.Error("failed to set resource limit",
-			"vmPid", vmPid,
+			"BhyvePid", vm.BhyvePid,
 			"stdOutBytes", stdOutBytes,
 			"stdErrBytes", stdErrBytes,
 			"returnCode", returnCode,
@@ -59,17 +60,20 @@ func applyResourceLimitWriteIOPS(vmPid string, vm *VM) {
 	}
 }
 
-func applyResourceLimitReadIOPS(vmPid string, vm *VM) {
+func (vm *VM) applyResourceLimitReadIOPS() {
 	vm.log.Debug("Setting riops limit")
 	riopsLimitStr := strconv.FormatUint(uint64(vm.Config.Riops), 10)
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		config.Config.Sys.Sudo,
-		[]string{"/usr/bin/rctl", "-a", "process:" + vmPid + ":readiops:throttle=" + riopsLimitStr},
+		[]string{
+			"/usr/bin/rctl", "-a", "process:" +
+				strconv.FormatUint(uint64(vm.BhyvePid), 10) + ":readiops:throttle=" + riopsLimitStr,
+		},
 	)
 
 	if err != nil {
 		slog.Error("failed to set resource limit",
-			"vmPid", vmPid,
+			"BhyvePid", vm.BhyvePid,
 			"stdOutBytes", stdOutBytes,
 			"stdErrBytes", stdErrBytes,
 			"returnCode", returnCode,
@@ -78,17 +82,20 @@ func applyResourceLimitReadIOPS(vmPid string, vm *VM) {
 	}
 }
 
-func applyResourceLimitWriteBPS(vmPid string, vm *VM) {
+func (vm *VM) applyResourceLimitWriteBPS() {
 	vm.log.Debug("Setting wbps limit")
 	wbpsLimitStr := strconv.FormatUint(uint64(vm.Config.Wbps), 10)
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		config.Config.Sys.Sudo,
-		[]string{"/usr/bin/rctl", "-a", "process:" + vmPid + ":writebps:throttle=" + wbpsLimitStr},
+		[]string{
+			"/usr/bin/rctl", "-a", "process:" +
+				strconv.FormatUint(uint64(vm.BhyvePid), 10) + ":writebps:throttle=" + wbpsLimitStr,
+		},
 	)
 
 	if err != nil {
 		slog.Error("failed to set resource limit",
-			"vmPid", vmPid,
+			"BhyvePid", vm.BhyvePid,
 			"stdOutBytes", stdOutBytes,
 			"stdErrBytes", stdErrBytes,
 			"returnCode", returnCode,
@@ -97,17 +104,20 @@ func applyResourceLimitWriteBPS(vmPid string, vm *VM) {
 	}
 }
 
-func applyResourceLimitReadBPS(vmPid string, vm *VM) {
+func (vm *VM) applyResourceLimitReadBPS() {
 	vm.log.Debug("Setting rbps limit")
 	rbpsLimitStr := strconv.FormatUint(uint64(vm.Config.Rbps), 10)
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		config.Config.Sys.Sudo,
-		[]string{"/usr/bin/rctl", "-a", "process:" + vmPid + ":readbps:throttle=" + rbpsLimitStr},
+		[]string{
+			"/usr/bin/rctl", "-a", "process:" +
+				strconv.FormatUint(uint64(vm.BhyvePid), 10) + ":readbps:throttle=" + rbpsLimitStr,
+		},
 	)
 
 	if err != nil {
 		slog.Error("failed to set resource limit",
-			"vmPid", vmPid,
+			"BhyvePid", vm.BhyvePid,
 			"stdOutBytes", stdOutBytes,
 			"stdErrBytes", stdErrBytes,
 			"returnCode", returnCode,
@@ -116,17 +126,20 @@ func applyResourceLimitReadBPS(vmPid string, vm *VM) {
 	}
 }
 
-func applyResourceLimitCPU(vmPid string, vm *VM) {
+func (vm *VM) applyResourceLimitCPU() {
 	vm.log.Debug("Setting pcpu limit")
 	cpuLimitStr := strconv.FormatUint(uint64(vm.Config.Pcpu), 10)
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		config.Config.Sys.Sudo,
-		[]string{"/usr/bin/rctl", "-a", "process:" + vmPid + ":pcpu:deny=" + cpuLimitStr},
+		[]string{
+			"/usr/bin/rctl", "-a", "process:" +
+				strconv.FormatUint(uint64(vm.BhyvePid), 10) + ":pcpu:deny=" + cpuLimitStr,
+		},
 	)
 
 	if err != nil {
 		slog.Error("failed to set resource limit",
-			"vmPid", vmPid,
+			"BhyvePid", vm.BhyvePid,
 			"stdOutBytes", stdOutBytes,
 			"stdErrBytes", stdErrBytes,
 			"returnCode", returnCode,

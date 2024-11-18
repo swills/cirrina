@@ -310,7 +310,7 @@ func Test_validateIso(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			err := validateIso(testCase.args.isoInst)
+			err := testCase.args.isoInst.validate()
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("validateIso() error = %v, wantErr %v", err, testCase.wantErr)
 			}

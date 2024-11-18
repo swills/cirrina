@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"os"
 	"slices"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -170,10 +172,9 @@ func vmDaemon(events chan supervisor.Event, thisVM *VM) {
 				slog.Debug("vmDaemon ProcessStart",
 					"bhyvePid", thisVM.BhyvePid,
 					"sudoPid", thisVM.proc.Pid(),
-					"realPid", vmPid,
 				)
 				thisVM.setupComLoggers()
-				thisVM.applyResourceLimits(vmPid)
+				thisVM.applyResourceLimits()
 			case "ProcessDone":
 				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
 			case "ProcessCrashed":
@@ -183,8 +184,8 @@ func vmDaemon(events chan supervisor.Event, thisVM *VM) {
 				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
 			}
 		case <-thisVM.proc.DoneNotifier():
-			slog.Debug("VM Stop init", "vm_name", thisVM.Name)
-			thisVM.log.Debug("VM Stop init")
+			slog.Debug("VM Stop initVM", "vm_name", thisVM.Name)
+			thisVM.log.Debug("VM Stop initVM")
 
 			thisVM.killComLoggers()
 			thisVM.unlockDisks()
@@ -211,14 +212,6 @@ func vmDaemon(events chan supervisor.Event, thisVM *VM) {
 	}
 }
 
-func validateVM(vmInst *VM) error {
-	if !util.ValidVMName(vmInst.Name) {
-		return errVMInvalidName
-	}
-
-	return nil
-}
-
 func Exists(vmName string) bool {
 	_, err := GetByName(vmName)
 
@@ -234,7 +227,7 @@ func Create(vmInst *VM) error {
 		return errVMDupe
 	}
 
-	err := validateVM(vmInst)
+	err := vmInst.validate()
 	if err != nil {
 		slog.Error("error validating vm", "VM", vmInst, "err", err)
 
@@ -256,7 +249,7 @@ func Create(vmInst *VM) error {
 		return fmt.Errorf("incorrect number of rows affected, err: %w", res.Error)
 	}
 
-	initOneVM(vmInst)
+	vmInst.initVM()
 
 	return nil
 }
@@ -565,9 +558,7 @@ func (vm *VM) Stop() error {
 	var err error
 
 	if vm.Status == STOPPED {
-		slog.Error("tried to stop VM already stopped", "vm", vm.Name)
-
-		return errVMAlreadyStopped
+		return nil
 	}
 
 	vm.SetStopping()
@@ -617,5 +608,69 @@ func (vm *VM) BhyvectlDestroy() {
 			"returnCode", returnCode,
 			"err", err,
 		)
+	}
+}
+
+func (vm *VM) validate() error {
+	if !util.ValidVMName(vm.Name) {
+		return errVMInvalidName
+	}
+
+	return nil
+}
+
+// initVM initializes and adds a VM to the in memory cache of VMs
+// note, callers must lock the in memory cache via List.Mu.Lock()
+func (vm *VM) initVM() {
+	vmLogPath := config.Config.Disk.VM.Path.State + "/" + vm.Name
+
+	err := GetVMLogPath(vmLogPath)
+	if err != nil {
+		panic(err)
+	}
+
+	vmLogFilePath := vmLogPath + "/log"
+
+	vmLogFile, err := OsOpenFileFunc(vmLogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		slog.Error("failed to open VM log file", "err", err)
+	}
+
+	programLevel := new(slog.LevelVar) // Info by default
+	vmLogger := slog.New(slog.NewTextHandler(vmLogFile, &slog.HandlerOptions{Level: programLevel}))
+
+	vm.log = *vmLogger
+
+	switch strings.ToLower(config.Config.Log.Level) {
+	case "debug":
+		programLevel.Set(slog.LevelDebug)
+	case "info":
+		programLevel.Set(slog.LevelInfo)
+	case "warn":
+		programLevel.Set(slog.LevelWarn)
+	case "error":
+		programLevel.Set(slog.LevelError)
+	default:
+		programLevel.Set(slog.LevelInfo)
+	}
+
+	List.VMList[vm.ID] = vm
+
+	if config.Config.Metrics.Enabled {
+		totalVMsGauge.Inc()
+	}
+}
+
+func (vm *VM) doAutostart() {
+	slog.Debug(
+		"AutoStartVMs sleeping for auto start delay",
+		"vm", vm.Name,
+		"auto_start_delay", vm.Config.AutoStartDelay,
+	)
+	time.Sleep(time.Duration(vm.Config.AutoStartDelay) * time.Second)
+
+	err := vm.Start()
+	if err != nil {
+		slog.Error("auto start failed", "vm", vm.ID, "name", vm.Name, "err", err)
 	}
 }

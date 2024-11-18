@@ -12,6 +12,7 @@ import (
 
 	"cirrina/cirrina"
 	"cirrina/cirrinad/cirrinadtest"
+	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
 )
 
@@ -1860,9 +1861,9 @@ func Test_validateNic(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			err := validateNic(testCase.args.vmNicInst)
+			err := testCase.args.vmNicInst.Validate()
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("validateNic() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("Validate() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}
@@ -2439,6 +2440,58 @@ func TestCreate(t *testing.T) {
 			err = mock.ExpectationsWereMet()
 			if err != nil {
 				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+func Test_getMac(t *testing.T) {
+	type args struct {
+		thisNic VMNic
+		vmName  string
+		vmID    string
+	}
+
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "Auto",
+			args: args{
+				thisNic: VMNic{
+					ID:   "f865c0c5-4a06-40c6-b066-2c10c81691d1",
+					Name: "test2024080901_int0",
+					Mac:  "AUTO",
+				},
+				vmName: "test2024080901",
+				vmID:   "58b45d43-b1f1-47fd-a94a-d877a89ec34f",
+			},
+			want: "d9:81:b2:3d:a7:a2",
+		},
+		{
+			name: "Specified",
+			args: args{
+				thisNic: VMNic{
+					ID:   "f865c0c5-4a06-40c6-b066-2c10c81691d1",
+					Name: "test2024080901_int0",
+					Mac:  "00:22:44:AA:BB:CC",
+				},
+				vmName: "test2024080901",
+				vmID:   "58b45d43-b1f1-47fd-a94a-d877a89ec34f",
+			},
+			want: "00:22:44:AA:BB:CC",
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			config.Config.Network.Mac.Oui = "d9:81:b2"
+			got := testCase.args.thisNic.GetMAC(testCase.args.vmID, testCase.args.vmName)
+
+			if got != testCase.want {
+				t.Errorf("GetMAC() = %v, want %v", got, testCase.want)
 			}
 		})
 	}

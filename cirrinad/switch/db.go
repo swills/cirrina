@@ -80,7 +80,7 @@ func (s *Switch) BeforeCreate(_ *gorm.DB) error {
 }
 
 func (s *Switch) AfterCreate(_ *gorm.DB) error {
-	return bringUpNewSwitch(s)
+	return s.bringUpNewSwitch()
 }
 
 func DBAutoMigrate() {

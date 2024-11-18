@@ -231,7 +231,7 @@ func CacheInit() {
 	}
 
 	for _, vmInst := range allVMs {
-		initOneVM(vmInst)
+		vmInst.initVM()
 	}
 }
 

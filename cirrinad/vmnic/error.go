@@ -13,4 +13,5 @@ var (
 	errInvalidMacMulticast = errors.New("may not use multicast MAC address")
 	ErrNicNotFound         = errors.New("nic not found")
 	ErrInvalidNic          = errors.New("invalid NIC")
+	ErrVMNICCleanupError   = errors.New("error cleaning up NIC, see logs")
 )

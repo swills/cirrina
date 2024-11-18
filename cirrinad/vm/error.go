@@ -26,12 +26,11 @@ var (
 	errVMInvalidName      = errors.New("invalid name")
 	errVMInternalDB       = errors.New("internal VM database error")
 	errVMNotStopped       = errors.New("VM must be stopped first")
-	errVMAlreadyStopped   = errors.New("VM already stopped")
 	errVMStopFail         = errors.New("stop failed")
 	errVMIDEmptyOrInvalid = errors.New("VM ID not specified or invalid")
 )
 
-var errVMSwitchNICMismatch = errors.New("bridge/interface type mismatch")
+var errSwitchNICMismatch = errors.New("bridge/interface type mismatch")
 
 var (
 	errVMComInvalid   = errors.New("invalid com port number")
@@ -46,8 +45,6 @@ var (
 )
 
 var (
-	errVMNICInvalid      = errors.New("nic id not specified or invalid")
-	errVMNICNotFound     = errors.New("nic not found")
 	errVMNicDupe         = errors.New("nic may only be added once")
 	errVMNicAttached     = errors.New("nic already attached")
 	errVMNICCleanupError = errors.New("error cleaning up NIC, see logs")

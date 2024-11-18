@@ -346,7 +346,7 @@ func Test_validateDisk(t *testing.T) {
 			// clear out list(s) from other parallel test runs
 			List.DiskList = map[string]*Disk{}
 
-			err := validateDisk(testCase.args.diskInst)
+			err := testCase.args.diskInst.validate()
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("validateDisk() error = %v, wantErr %v", err, testCase.wantErr)
 			}
@@ -1307,8 +1307,8 @@ func TestCreate(t *testing.T) {
 		name                  string
 		args                  args
 		mockClosure           func(testDB *gorm.DB, mock sqlmock.Sqlmock)
-		diskExistsCacheDBFunc func(diskInst *Disk) (bool, error)
-		diskValidateFunc      func(diskInst *Disk) error
+		diskExistsCacheDBFunc func(d *Disk) (bool, error)
+		diskValidateFunc      func(d *Disk) error
 		wantExists            bool
 		wantExistsErr         bool
 		wantCreateErr         bool
@@ -1482,6 +1482,7 @@ func TestCreate(t *testing.T) {
 				},
 			}, size: "1g"},
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				config.Config.Disk.VM.Path.Zpool = "someBogusZpool"
 				Instance = &Singleton{ // prevents parallel testing
 					DiskDB: testDB,
 				}
@@ -1584,10 +1585,6 @@ func TestCreate(t *testing.T) {
 			diskExistsCacheDBFunc = testCase.diskExistsCacheDBFunc
 
 			t.Cleanup(func() { diskExistsCacheDBFunc = diskExistsCacheDB })
-
-			validateDiskFunc = testCase.diskValidateFunc
-
-			t.Cleanup(func() { validateDiskFunc = validateDisk })
 
 			ctrl := gomock.NewController(t)
 			fileMock := NewMockFileInfoFetcher(ctrl)

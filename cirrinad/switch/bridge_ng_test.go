@@ -378,9 +378,9 @@ func TestGetAllNgBridges(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			got, err := GetAllNgBridges()
+			got, err := GetAllNgSwitches()
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("GetAllNgBridges() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("GetAllNgSwitches() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}
@@ -892,10 +892,10 @@ func Test_bridgeNgRemoveUplink(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := bridgeNgRemoveUplink(testCase.args.bridgeName, testCase.args.peerName)
+			err := switchNgRemoveUplink(testCase.args.bridgeName, testCase.args.peerName)
 
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("bridgeNgRemoveUplink() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("switchNgRemoveUplink() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}

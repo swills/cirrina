@@ -173,7 +173,7 @@ func shutdownHandler() {
 
 	shutdownHandlerRunning = true
 
-	vm.KillVMs()
+	vm.StopAll()
 
 	for {
 		runningVMs := vm.GetRunningVMs()
@@ -185,7 +185,7 @@ func shutdownHandler() {
 		time.Sleep(time.Second)
 	}
 
-	err := _switch.DestroyBridges()
+	err := _switch.DestroySwitches()
 	if err != nil {
 		slog.Error("failure destroying bridges, some may be left over", "err", err)
 	}
@@ -321,7 +321,7 @@ var rootCmd = &cobra.Command{
 		slog.Debug("Clean up complete")
 
 		slog.Debug("Creating bridges")
-		err = _switch.CreateBridges()
+		err = _switch.CreateSwitches()
 		if err != nil {
 			panic(err)
 		}

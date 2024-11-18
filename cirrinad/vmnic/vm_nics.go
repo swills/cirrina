@@ -8,9 +8,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rxwycdh/rxhash"
 	"gorm.io/gorm"
 
 	"cirrina/cirrina"
+	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
 )
 
@@ -34,6 +36,13 @@ type VMNic struct {
 	ConfigID    uint `gorm:"index;default:null"`
 }
 
+type macHashData struct {
+	VMID    string
+	VMName  string
+	NicID   string
+	NicName string
+}
+
 var MacIsBroadcastFunc = util.MacIsBroadcast
 var MacIsMulticastFunc = util.MacIsBroadcast
 
@@ -50,7 +59,7 @@ func Create(vmNicInst *VMNic) error {
 		vmNicInst.NetDevType = "TAP"
 	}
 
-	err := validateNic(vmNicInst)
+	err := vmNicInst.Validate()
 	if err != nil {
 		slog.Error("error validating nic", "VMNic", vmNicInst, "err", err)
 
@@ -148,15 +157,15 @@ func GetAll() []*VMNic {
 	return result
 }
 
-func (v *VMNic) Delete() error {
+func (vmNic *VMNic) Delete() error {
 	nicDB := GetVMNicDB()
 
-	_, err := uuid.Parse(v.ID)
+	_, err := uuid.Parse(vmNic.ID)
 	if err != nil {
 		return ErrInvalidNic
 	}
 
-	res := nicDB.Limit(1).Unscoped().Delete(&v)
+	res := nicDB.Limit(1).Unscoped().Delete(&vmNic)
 	if res.RowsAffected != 1 {
 		slog.Error("error saving vmnic", "res", res)
 
@@ -166,10 +175,10 @@ func (v *VMNic) Delete() error {
 	return nil
 }
 
-func (v *VMNic) SetSwitch(switchID string) error {
-	v.SwitchID = switchID
+func (vmNic *VMNic) SetSwitch(switchID string) error {
+	vmNic.SwitchID = switchID
 
-	err := v.Save()
+	err := vmNic.Save()
 	if err != nil {
 		slog.Error("error saving VM nic", "err", err)
 
@@ -179,24 +188,24 @@ func (v *VMNic) SetSwitch(switchID string) error {
 	return nil
 }
 
-func (v *VMNic) Save() error {
+func (vmNic *VMNic) Save() error {
 	db := GetVMNicDB()
 
-	res := db.Model(&v).
+	res := db.Model(&vmNic).
 		Updates(map[string]interface{}{
-			"name":         &v.Name,
-			"description":  &v.Description,
-			"mac":          &v.Mac,
-			"net_dev":      &v.NetDev,
-			"net_type":     &v.NetType,
-			"net_dev_type": &v.NetDevType,
-			"switch_id":    &v.SwitchID,
-			"rate_limit":   &v.RateLimit,
-			"rate_in":      &v.RateIn,
-			"rate_out":     &v.RateOut,
-			"inst_bridge":  &v.InstBridge,
-			"inst_epair":   &v.InstEpair,
-			"config_id":    &v.ConfigID,
+			"name":         &vmNic.Name,
+			"description":  &vmNic.Description,
+			"mac":          &vmNic.Mac,
+			"net_dev":      &vmNic.NetDev,
+			"net_type":     &vmNic.NetType,
+			"net_dev_type": &vmNic.NetDevType,
+			"switch_id":    &vmNic.SwitchID,
+			"rate_limit":   &vmNic.RateLimit,
+			"rate_in":      &vmNic.RateIn,
+			"rate_out":     &vmNic.RateOut,
+			"inst_bridge":  &vmNic.InstBridge,
+			"inst_epair":   &vmNic.InstEpair,
+			"config_id":    &vmNic.ConfigID,
 		},
 		)
 
@@ -287,8 +296,8 @@ func ParseNetType(netType cirrina.NetType) (string, error) {
 	return res, err
 }
 
-// validateNic validate and normalize new nic
-func validateNic(vmNic *VMNic) error {
+// Validate and normalize new nic
+func (vmNic *VMNic) Validate() error {
 	if !util.ValidNicName(vmNic.Name) {
 		return ErrInvalidNicName
 	}
@@ -355,4 +364,41 @@ func nicTypeValid(nicType string) bool {
 	default:
 		return false
 	}
+}
+
+func (vmNic *VMNic) GetMAC(vmID string, vmName string) string {
+	var macAddress string
+
+	if vmNic.Mac == "AUTO" {
+		// if MAC is AUTO, we still generate our own here rather than letting bhyve generate it, because:
+		// 1. Bhyve is still using the NetApp MAC:
+		// https://cgit.freebsd.org/src/tree/usr.sbin/bhyve/net_utils.c?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n115
+		// 2. We want to be able to distinguish our VMs from other VMs
+		slog.Debug("getNetArgs: Generating MAC")
+
+		thisNicHashData := macHashData{
+			VMID:    vmID,
+			VMName:  vmName,
+			NicID:   vmNic.ID,
+			NicName: vmNic.Name,
+		}
+
+		nicHash, err := rxhash.HashStruct(thisNicHashData)
+		if err != nil {
+			slog.Error("getNetArgs error generating mac", "err", err)
+
+			return ""
+		}
+
+		slog.Debug("getNetArgs", "nicHash", nicHash)
+		mac := string(nicHash[0]) + string(nicHash[1]) + ":" +
+			string(nicHash[2]) + string(nicHash[3]) + ":" +
+			string(nicHash[4]) + string(nicHash[5])
+		slog.Debug("getNetArgs", "mac", mac)
+		macAddress = config.Config.Network.Mac.Oui + ":" + mac
+	} else {
+		macAddress = vmNic.Mac
+	}
+
+	return macAddress
 }

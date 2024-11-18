@@ -10,8 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rxwycdh/rxhash"
-
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
 	_switch "cirrina/cirrinad/switch"
@@ -22,13 +20,6 @@ import (
 var getHostMaxVMCpusFunc = util.GetHostMaxVMCpus
 var NetInterfacesFunc = net.Interfaces
 var GetFreeTCPPortFunc = util.GetFreeTCPPort
-
-type MacHashData struct {
-	VMID    string
-	VMName  string
-	NicID   string
-	NicName string
-}
 
 func (vm *VM) getKeyboardArg() []string {
 	if vm.Config.Screen && vm.Config.KbdLayout != "default" {
@@ -541,7 +532,7 @@ func (vm *VM) getNetArgs(slot int) ([]string, int) {
 			return []string{}, slot
 		}
 
-		macAddress := getMac(nicItem, vm)
+		macAddress := nicItem.GetMAC(vm.ID, vm.Name)
 
 		var macString string
 
@@ -556,43 +547,6 @@ func (vm *VM) getNetArgs(slot int) ([]string, int) {
 	}
 
 	return netArgs, slot
-}
-
-func getMac(thisNic vmnic.VMNic, thisVM *VM) string {
-	var macAddress string
-
-	if thisNic.Mac == "AUTO" {
-		// if MAC is AUTO, we still generate our own here rather than letting bhyve generate it, because:
-		// 1. Bhyve is still using the NetApp MAC:
-		// https://cgit.freebsd.org/src/tree/usr.sbin/bhyve/net_utils.c?id=1d386b48a555f61cb7325543adbbb5c3f3407a66#n115
-		// 2. We want to be able to distinguish our VMs from other VMs
-		slog.Debug("getNetArgs: Generating MAC")
-
-		thisNicHashData := MacHashData{
-			VMID:    thisVM.ID,
-			VMName:  thisVM.Name,
-			NicID:   thisNic.ID,
-			NicName: thisNic.Name,
-		}
-
-		nicHash, err := rxhash.HashStruct(thisNicHashData)
-		if err != nil {
-			slog.Error("getNetArgs error generating mac", "err", err)
-
-			return ""
-		}
-
-		slog.Debug("getNetArgs", "nicHash", nicHash)
-		mac := string(nicHash[0]) + string(nicHash[1]) + ":" +
-			string(nicHash[2]) + string(nicHash[3]) + ":" +
-			string(nicHash[4]) + string(nicHash[5])
-		slog.Debug("getNetArgs", "mac", mac)
-		macAddress = config.Config.Network.Mac.Oui + ":" + mac
-	} else {
-		macAddress = thisNic.Mac
-	}
-
-	return macAddress
 }
 
 // getTapDev returns the netDev (stored in DB) and netDevArg (passed to bhyve) -- both happen to be the same here

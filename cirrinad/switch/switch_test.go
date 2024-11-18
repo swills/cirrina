@@ -495,7 +495,7 @@ func Test_switchNameValid(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := switchNameValid(testCase.args.switchInst)
+			got := testCase.args.switchInst.switchNameValid()
 			if got != testCase.want {
 				t.Errorf("switchNameValid() = %v, want %v", got, testCase.want)
 			}
@@ -954,7 +954,7 @@ func Test_bringUpNewSwitch(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := bringUpNewSwitch(testCase.args.switchInst)
+			err := testCase.args.switchInst.bringUpNewSwitch()
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("bringUpNewSwitch() error = %v, wantErr %v", err, testCase.wantErr)
 			}
@@ -1003,7 +1003,7 @@ func Test_switchTypeValid(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			got := switchTypeValid(testCase.args.switchInst)
+			got := testCase.args.switchInst.switchTypeValid()
 			if got != testCase.want {
 				t.Errorf("switchTypeValid() = %v, want %v", got, testCase.want)
 			}
@@ -1068,15 +1068,15 @@ func Test_memberUsedByIfBridge(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			got, err := memberUsedByIfBridge(testCase.args.member)
+			got, err := memberUsedByIfSwitch(testCase.args.member)
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("memberUsedByIfBridge() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("memberUsedByIfSwitch() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}
 
 			if got != testCase.want {
-				t.Errorf("memberUsedByIfBridge() got = %v, want %v", got, testCase.want)
+				t.Errorf("memberUsedByIfSwitch() got = %v, want %v", got, testCase.want)
 			}
 		})
 	}
@@ -1125,15 +1125,15 @@ func Test_memberUsedByNgBridge(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			got, err := memberUsedByNgBridge(testCase.args.member)
+			got, err := memberUsedByNgSwitch(testCase.args.member)
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("memberUsedByNgBridge() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("memberUsedByNgSwitch() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}
 
 			if got != testCase.want {
-				t.Errorf("memberUsedByNgBridge() got = %v, want %v", got, testCase.want)
+				t.Errorf("memberUsedByNgSwitch() got = %v, want %v", got, testCase.want)
 			}
 		})
 	}
@@ -1237,7 +1237,7 @@ func Test_validateIfSwitch(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := validateIfSwitch(testCase.args.switchInst)
+			err := testCase.args.switchInst.validateIfSwitch()
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("validateIfSwitch() error = %v, wantErr %v", err, testCase.wantErr)
 			}
@@ -1292,7 +1292,7 @@ func Test_validateNgSwitch(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := validateNgSwitch(testCase.args.switchInst)
+			err := testCase.args.switchInst.validateNgSwitch()
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("validateNgSwitch() error = %v, wantErr %v", err, testCase.wantErr)
 			}
@@ -1339,9 +1339,9 @@ func TestDestroyNgBridge(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := DestroyNgBridge(testCase.args.netDev)
+			err := DestroyNgSwitch(testCase.args.netDev)
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("DestroyNgBridge() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("DestroyNgSwitch() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}
@@ -1393,9 +1393,9 @@ func TestDestroyIfBridge(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := DestroyIfBridge(testCase.args.name, testCase.args.cleanup)
+			err := DestroyIfSwitch(testCase.args.name, testCase.args.cleanup)
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("DestroyIfBridge() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("DestroyIfSwitch() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}
@@ -1435,9 +1435,9 @@ func TestBridgeIfAddMember(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := BridgeIfAddMember(testCase.args.bridgeName, testCase.args.memberName)
+			err := SwitchIfAddMember(testCase.args.bridgeName, testCase.args.memberName)
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("BridgeIfAddMember() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("SwitchIfAddMember() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}
@@ -1495,9 +1495,9 @@ func TestBridgeNgAddMember(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := BridgeNgAddMember(testCase.args.bridgeName, testCase.args.memberName)
+			err := SwitchNgAddMember(testCase.args.bridgeName, testCase.args.memberName)
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("BridgeNgAddMember() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("SwitchNgAddMember() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}
@@ -2111,7 +2111,7 @@ func Test_switchCheckUplink(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := switchCheckUplink(testCase.args.switchInst)
+			err := testCase.args.switchInst.switchCheckUplink()
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("switchCheckUplink() error = %v, wantErr %v", err, testCase.wantErr)
 			}
@@ -2262,7 +2262,7 @@ func Test_setUplinkIf(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
 
-			err := setUplinkIf(testCase.args.uplink, testCase.args.switchInst)
+			err := testCase.args.switchInst.setUplinkIf(testCase.args.uplink)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("setUplinkIf() error = %v, wantErr %v", err, testCase.wantErr)
 			}
@@ -2430,7 +2430,7 @@ func Test_setUplinkNG(t *testing.T) {
 			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
 
-			err := setUplinkNG(testCase.args.uplink, testCase.args.switchInst)
+			err := testCase.args.switchInst.setUplinkNG(testCase.args.uplink)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("setUplinkNG() error = %v, wantErr %v", err, testCase.wantErr)
 			}
@@ -3108,7 +3108,7 @@ func Test_validateSwitch(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := validateSwitch(testCase.args.switchInst)
+			err := testCase.args.switchInst.validate()
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("validateSwitch() error = %v, wantErr %v", err, testCase.wantErr)
 			}
@@ -3373,7 +3373,7 @@ func TestDestroyBridges(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := DestroyBridges()
+			err := DestroySwitches()
 			if (err != nil) != testCase.wantErr {
 				// prevents parallel testing
 				fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -3381,7 +3381,7 @@ func TestDestroyBridges(t *testing.T) {
 
 				t.Cleanup(func() { util.TearDownTestCmd() })
 
-				t.Errorf("DestroyBridges() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("DestroySwitches() error = %v, wantErr %v", err, testCase.wantErr)
 
 				mock.ExpectClose()
 
@@ -3567,9 +3567,9 @@ func TestCreateBridges(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := CreateBridges()
+			err := CreateSwitches()
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("CreateBridges() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("CreateSwitches() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 
 			mock.ExpectClose()
@@ -4047,7 +4047,7 @@ func Test_buildNgBridge(t *testing.T) {
 
 			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
 
-			err := buildNgBridge(testCase.args.switchInst)
+			err := testCase.args.switchInst.buildNgSwitch()
 			if (err != nil) != testCase.wantErr {
 				// prevents parallel testing
 				fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
@@ -4055,7 +4055,7 @@ func Test_buildNgBridge(t *testing.T) {
 
 				t.Cleanup(func() { util.TearDownTestCmd() })
 
-				t.Errorf("buildNgBridge() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("buildNgSwitch() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}
@@ -4155,9 +4155,9 @@ func Test_buildIfBridge(t *testing.T) {
 
 			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
 
-			err := buildIfBridge(testCase.args.switchInst)
+			err := testCase.args.switchInst.buildIfSwitch()
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("buildIfBridge() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("buildIfSwitch() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}

@@ -40,9 +40,9 @@ func TestGetAllIfBridges(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			got, err := GetAllIfBridges()
+			got, err := GetAllIfSwitches()
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("GetAllIfBridges() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("GetAllIfSwitches() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}
@@ -299,9 +299,9 @@ func Test_bridgeIfDeleteMember(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := bridgeIfDeleteMember(testCase.args.bridgeName, testCase.args.memberName)
+			err := switchIfDeleteMember(testCase.args.bridgeName, testCase.args.memberName)
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("bridgeIfDeleteMember() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("switchIfDeleteMember() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}

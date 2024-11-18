@@ -49,7 +49,7 @@ func netStartupIf(vmNic vmnic.VMNic) error {
 			"switchid", vmNic.SwitchID,
 		)
 
-		return errVMSwitchNICMismatch
+		return errSwitchNICMismatch
 	}
 
 	var thisMemberName string
@@ -67,7 +67,7 @@ func netStartupIf(vmNic vmnic.VMNic) error {
 		thisMemberName = vmNic.NetDev
 	}
 
-	err = vmswitch.BridgeIfAddMember(thisSwitch.Name, thisMemberName)
+	err = vmswitch.SwitchIfAddMember(thisSwitch.Name, thisMemberName)
 	if err != nil {
 		slog.Error("failed to add nic to switch",
 			"nicname", vmNic.Name,
@@ -157,13 +157,13 @@ func netStartupNg(vmNic vmnic.VMNic) error {
 			"switchid", vmNic.SwitchID,
 		)
 
-		return errVMSwitchNICMismatch
+		return errSwitchNICMismatch
 	}
 
 	return nil
 }
 
-// cleanup tap/vmnet type nic
+// cleanupIfNic cleanup tap/vmnet type nic
 func cleanupIfNic(vmNic vmnic.VMNic) error {
 	var stdOutBytes []byte
 
@@ -196,7 +196,7 @@ func cleanupIfNic(vmNic vmnic.VMNic) error {
 	}
 
 	if vmNic.InstBridge != "" {
-		err3 = vmswitch.DestroyIfBridge(vmNic.InstBridge, false)
+		err3 = vmswitch.DestroyIfSwitch(vmNic.InstBridge, false)
 		if err3 != nil {
 			slog.Error("failed to destroy switch", "err", err3)
 		}
@@ -231,15 +231,25 @@ func (vm *VM) netStartup() error {
 	}
 
 	for _, vmNic := range vmNicsList {
-		switch {
-		case vmNic.NetDevType == "TAP" || vmNic.NetDevType == "VMNET":
+		// silence gosec
+		vmNic := vmNic
+
+		switch vmNic.NetDevType {
+		case "TAP":
 			err := netStartupIf(vmNic)
 			if err != nil {
 				slog.Error("error bringing up nic", "err", err)
 
 				return fmt.Errorf("error starting vm nic: %w", err)
 			}
-		case vmNic.NetDevType == "NETGRAPH":
+		case "VMNET":
+			err := netStartupIf(vmNic)
+			if err != nil {
+				slog.Error("error bringing up nic", "err", err)
+
+				return fmt.Errorf("error starting vm nic: %w", err)
+			}
+		case "NETGRAPH":
 			err := netStartupNg(vmNic)
 			if err != nil {
 				slog.Error("error bringing up nic", "err", err)
@@ -261,11 +271,9 @@ func (vm *VM) validateNics(nicIDs []string) error {
 	occurred := map[string]bool{}
 
 	for _, aNic := range nicIDs {
-		slog.Debug("checking nic exists", "vmnic", aNic)
-
 		nicUUID, err := uuid.Parse(aNic)
 		if err != nil {
-			return errVMNICInvalid
+			return fmt.Errorf("nic invalid: %w", err)
 		}
 
 		thisNic, err := vmnic.GetByID(nicUUID.String())
@@ -275,8 +283,9 @@ func (vm *VM) validateNics(nicIDs []string) error {
 			return fmt.Errorf("nic not found: %w", err)
 		}
 
-		if thisNic.Name == "" {
-			return errVMNICNotFound
+		err = thisNic.Validate()
+		if err != nil {
+			return fmt.Errorf("nic invalid: %w", err)
 		}
 
 		if !occurred[aNic] {
@@ -286,8 +295,6 @@ func (vm *VM) validateNics(nicIDs []string) error {
 
 			return errVMNicDupe
 		}
-
-		slog.Debug("checking if nic is already attached", "nic", aNic)
 
 		err = vm.nicAttached(aNic)
 		if err != nil {

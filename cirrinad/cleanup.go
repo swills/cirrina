@@ -3,9 +3,7 @@ package main
 import (
 	"log/slog"
 	"net"
-	"strconv"
 	"strings"
-	"time"
 
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
@@ -34,7 +32,7 @@ func cleanupVms() error {
 				slog.Error("error checking VM", "err", err)
 			} else if pidStat {
 				aVM.SetStopping()
-				killLeftoverVM(aVM)
+				aVM.Kill()
 			}
 		}
 
@@ -47,56 +45,6 @@ func cleanupVms() error {
 	}
 
 	return nil
-}
-
-func killLeftoverVM(aVM *vm.VM) {
-	var err error
-
-	var pidStat bool
-
-	var sleptTime time.Duration
-
-	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
-		config.Config.Sys.Sudo,
-		[]string{"/bin/kill", strconv.FormatUint(uint64(aVM.BhyvePid), 10)},
-	)
-	if err != nil {
-		slog.Error("ifconfig error",
-			"stdOutBytes", stdOutBytes,
-			"stdErrBytes", stdErrBytes,
-			"returnCode", returnCode,
-			"err", err,
-		)
-
-		return
-	}
-
-	for {
-		pidStat, err = util.PidExists(int(aVM.BhyvePid))
-		if err != nil {
-			slog.Error("error checking VM", "err", err)
-
-			break
-		}
-
-		if !pidStat {
-			break
-		}
-
-		time.Sleep(10 * time.Millisecond)
-
-		sleptTime += 10 * time.Millisecond
-		if sleptTime > (time.Duration(aVM.Config.MaxWait) * time.Second) {
-			break
-		}
-	}
-
-	pidStillExists, err := util.PidExists(int(aVM.BhyvePid))
-	if err != nil {
-		slog.Error("error checking VM", "err", err)
-	} else if pidStillExists {
-		slog.Error("VM refused to die")
-	}
 }
 
 func cleanupNet() error {
@@ -117,7 +65,7 @@ func cleanupNet() error {
 	}
 
 	// destroy all the bridges we know about
-	err = _switch.DestroyBridges()
+	err = _switch.DestroySwitches()
 	if err != nil {
 		panic(err)
 	}

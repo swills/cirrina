@@ -23,20 +23,6 @@ var statFunc = os.Stat
 var GetMyUIDGIDFunc = util.GetMyUIDGID
 var OsOpenFileFunc = os.OpenFile
 
-func doAutostart(vmInst *VM) {
-	slog.Debug(
-		"AutoStartVMs sleeping for auto start delay",
-		"vm", vmInst.Name,
-		"auto_start_delay", vmInst.Config.AutoStartDelay,
-	)
-	time.Sleep(time.Duration(vmInst.Config.AutoStartDelay) * time.Second)
-
-	err := vmInst.Start()
-	if err != nil {
-		slog.Error("auto start failed", "vm", vmInst.ID, "name", vmInst.Name, "err", err)
-	}
-}
-
 func ensureComDevReadable(comDev string) error {
 	if !strings.HasSuffix(comDev, "A") {
 		slog.Error("error checking com dev readable: invalid com dev", "comDev", comDev)
@@ -299,48 +285,6 @@ func getUsedNetPorts() []string {
 	return ret
 }
 
-// initOneVM initializes and adds a VM to the in memory cache of VMs
-// note, callers must lock the in memory cache via List.Mu.Lock()
-func initOneVM(vmInst *VM) {
-	vmLogPath := config.Config.Disk.VM.Path.State + "/" + vmInst.Name
-
-	err := GetVMLogPath(vmLogPath)
-	if err != nil {
-		panic(err)
-	}
-
-	vmLogFilePath := vmLogPath + "/log"
-
-	vmLogFile, err := OsOpenFileFunc(vmLogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
-	if err != nil {
-		slog.Error("failed to open VM log file", "err", err)
-	}
-
-	programLevel := new(slog.LevelVar) // Info by default
-	vmLogger := slog.New(slog.NewTextHandler(vmLogFile, &slog.HandlerOptions{Level: programLevel}))
-
-	vmInst.log = *vmLogger
-
-	switch strings.ToLower(config.Config.Log.Level) {
-	case "debug":
-		programLevel.Set(slog.LevelDebug)
-	case "info":
-		programLevel.Set(slog.LevelInfo)
-	case "warn":
-		programLevel.Set(slog.LevelWarn)
-	case "error":
-		programLevel.Set(slog.LevelError)
-	default:
-		programLevel.Set(slog.LevelInfo)
-	}
-
-	List.VMList[vmInst.ID] = vmInst
-
-	if config.Config.Metrics.Enabled {
-		totalVMsGauge.Inc()
-	}
-}
-
 func isNetPortUsed(netPort string) bool {
 	usedNetPorts := getUsedNetPorts()
 	for _, port := range usedNetPorts {
@@ -437,7 +381,7 @@ func startSerialPort(comDev string, comSpeed uint) (*serial.Port, error) {
 func AutoStartVMs() {
 	for _, vmInst := range List.VMList {
 		if vmInst.Config.AutoStart {
-			go doAutostart(vmInst)
+			go vmInst.doAutostart()
 		}
 	}
 }
@@ -542,7 +486,7 @@ func LogAllVMStatus() {
 	}
 }
 
-func KillVMs() {
+func StopAll() {
 	defer List.Mu.RUnlock()
 	List.Mu.RLock()
 	for _, vmInst := range List.VMList {
@@ -554,5 +498,105 @@ func KillVMs() {
 				}
 			}(vmInst)
 		}
+	}
+}
+
+func (vm *VM) Kill() {
+	var err error
+
+	var pidExists bool
+
+	var sleptTime time.Duration
+
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/bin/kill", strconv.FormatUint(uint64(vm.BhyvePid), 10)},
+	)
+	if err != nil {
+		slog.Error("ifconfig error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return
+	}
+
+	for {
+		pidExists, err = util.PidExists(int(vm.BhyvePid))
+		if err != nil {
+			slog.Error("error checking VM", "err", err)
+
+			break
+		}
+
+		if !pidExists {
+			break
+		}
+
+		time.Sleep(10 * time.Millisecond)
+
+		sleptTime += 10 * time.Millisecond
+		if sleptTime > (time.Duration(vm.Config.MaxWait) * time.Second) {
+			break
+		}
+	}
+
+	pidExists, err = util.PidExists(int(vm.BhyvePid))
+	if err != nil {
+		slog.Error("error checking VM", "err", err)
+	}
+
+	if !pidExists {
+		return
+	}
+
+	stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/bin/kill", "-9", strconv.FormatUint(uint64(vm.BhyvePid), 10)},
+	)
+	if err != nil {
+		slog.Error("ifconfig error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return
+	}
+
+	sleptTime = time.Duration(0)
+
+	for {
+		pidExists, err = util.PidExists(int(vm.BhyvePid))
+		if err != nil {
+			slog.Error("error checking VM", "err", err)
+
+			break
+		}
+
+		if !pidExists {
+			break
+		}
+
+		time.Sleep(10 * time.Millisecond)
+
+		sleptTime += 10 * time.Millisecond
+		if sleptTime > (time.Duration(vm.Config.MaxWait) * time.Second) {
+			break
+		}
+	}
+
+	pidExists, err = util.PidExists(int(vm.BhyvePid))
+	if err != nil {
+		slog.Error("error checking VM", "err", err)
+	}
+
+	// it's possible kill -9 doesn't kill the VM for various reasons, at least log it, nothing else we can do
+	// hopefully the user sees the log and takes care of it, we won't be able to start the VM until it's cleared up
+	if pidExists {
+		slog.Error("VM refused to die", "vm", vm.Name, "pid", vm.BhyvePid)
 	}
 }

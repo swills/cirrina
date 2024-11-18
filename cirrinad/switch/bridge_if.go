@@ -60,7 +60,7 @@ func createIfBridge(name string) error {
 		return errSwitchInvalidBridgeNameIF
 	}
 
-	allIfBridges, err := GetAllIfBridges()
+	allIfBridges, err := GetAllIfSwitches()
 	if err != nil {
 		slog.Debug("failed to get all if bridges", "err", err)
 
@@ -109,7 +109,7 @@ func bridgeIfDeleteAllMembers(name string) error {
 	}
 
 	for _, member := range bridgeMembers {
-		err := bridgeIfDeleteMember(name, member)
+		err := switchIfDeleteMember(name, member)
 		if err != nil {
 			return err
 		}
@@ -118,7 +118,7 @@ func bridgeIfDeleteAllMembers(name string) error {
 	return nil
 }
 
-func bridgeIfDeleteMember(bridgeName string, memberName string) error {
+func switchIfDeleteMember(bridgeName string, memberName string) error {
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		config.Config.Sys.Sudo,
 		[]string{"/sbin/ifconfig", bridgeName, "deletem", memberName},
@@ -137,7 +137,7 @@ func bridgeIfDeleteMember(bridgeName string, memberName string) error {
 	return nil
 }
 
-func GetAllIfBridges() ([]string, error) {
+func GetAllIfSwitches() ([]string, error) {
 	var err error
 
 	var bridges []string
@@ -188,7 +188,7 @@ func CreateIfBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 
 	for _, member := range bridgeMembers {
 		// we always learn on the uplink
-		err = BridgeIfAddMember(bridgeName, member)
+		err = SwitchIfAddMember(bridgeName, member)
 		if err != nil {
 			return err
 		}
@@ -201,7 +201,7 @@ func GetDummyBridgeName() string {
 	// highest if_bridge num
 	bridgeNum := 32767
 
-	bridgeList, err := GetAllIfBridges()
+	bridgeList, err := GetAllIfSwitches()
 	if err != nil {
 		return ""
 	}
@@ -216,4 +216,174 @@ func GetDummyBridgeName() string {
 	}
 
 	return ""
+}
+
+func memberUsedByIfSwitch(member string) (bool, error) {
+	allBridges, err := GetAllIfSwitches()
+	if err != nil {
+		slog.Error("error getting all if bridges", "err", err)
+
+		return true, err
+	}
+
+	for _, aBridge := range allBridges {
+		existingMembers, err := getIfBridgeMembers(aBridge)
+		if err != nil {
+			slog.Error("error getting if bridge members", "bridge", aBridge)
+
+			return true, err
+		}
+
+		if util.ContainsStr(existingMembers, member) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func (s *Switch) buildIfSwitch() error {
+	var members []string
+	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
+	memberList := strings.Split(s.Uplink, ",")
+
+	// sanity checking of bridge members
+	for _, member := range memberList {
+		// it can't be empty
+		if member == "" {
+			continue
+		}
+		// it has to exist
+		exists := CheckInterfaceExists(member)
+		if !exists {
+			slog.Error("attempt to add non-existent member to bridge, ignoring",
+				"bridge", s.Name, "uplink", member,
+			)
+
+			continue
+		}
+		// it can't be a member of another bridge already
+		alreadyUsed, err := memberUsedByIfSwitch(member)
+		if err != nil {
+			slog.Error("error checking if member already used", "err", err)
+
+			continue
+		}
+
+		if alreadyUsed {
+			slog.Error("another bridge already contains member, member can not be in two bridges of "+
+				"same type, skipping adding", "bridge", s.Name, "member", member,
+			)
+
+			continue
+		}
+
+		members = append(members, member)
+	}
+
+	err := CreateIfBridgeWithMembers(s.Name, members)
+
+	return err
+}
+
+func (s *Switch) setUplinkIf(uplink string) error {
+	alreadyUsed, err := memberUsedByIfSwitch(uplink)
+	if err != nil {
+		return err
+	}
+
+	if alreadyUsed {
+		slog.Error("another bridge already contains member, member can not be in two bridges of "+
+			"same type, skipping adding", "member", uplink,
+		)
+
+		return errSwitchUplinkInUse
+	}
+
+	slog.Debug("setting IF bridge uplink", "id", s.ID)
+
+	err = SwitchIfAddMember(s.Name, uplink)
+	if err != nil {
+		return err
+	}
+
+	s.Uplink = uplink
+
+	err = s.Save()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Switch) validateIfSwitch() error {
+	// it can't be a member of another bridge of same type already
+	if s.Uplink != "" {
+		alreadyUsed, err := memberUsedByIfSwitch(s.Uplink)
+		if err != nil {
+			slog.Error("error checking if member already used", "err", err)
+
+			return fmt.Errorf("error checking if switch uplink in use by another bridge: %w", err)
+		}
+
+		if alreadyUsed {
+			return errSwitchUplinkInUse
+		}
+	}
+
+	return nil
+}
+
+func SwitchIfAddMember(bridgeName string, memberName string) error {
+	// TODO - check that the member name is a host interface or a VM nic interface
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/sbin/ifconfig", bridgeName, "addm", memberName},
+	)
+	if err != nil {
+		slog.Error("ifconfig error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return fmt.Errorf("ifconfig error: %w", err)
+	}
+
+	return nil
+}
+
+func DestroyIfSwitch(name string, cleanup bool) error {
+	// TODO allow other bridge names
+	if !strings.HasPrefix(name, "bridge") {
+		slog.Error("invalid bridge name", "name", name)
+
+		return ErrSwitchInvalidName
+	}
+
+	if cleanup {
+		err := bridgeIfDeleteAllMembers(name)
+		if err != nil {
+			return err
+		}
+	}
+
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/sbin/ifconfig", name, "destroy"},
+	)
+	if err != nil {
+		slog.Error("ifconfig destroy error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return fmt.Errorf("ifconfig destroy error: %w", err)
+	}
+
+	return nil
 }

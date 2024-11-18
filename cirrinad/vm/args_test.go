@@ -1586,62 +1586,6 @@ func Test_getComArgs(t *testing.T) {
 	}
 }
 
-//nolint:paralleltest
-func Test_getMac(t *testing.T) {
-	type args struct {
-		thisNic vmnic.VMNic
-		thisVM  *VM
-	}
-
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "Auto",
-			args: args{
-				thisNic: vmnic.VMNic{
-					ID:   "f865c0c5-4a06-40c6-b066-2c10c81691d1",
-					Name: "test2024080901_int0",
-					Mac:  "AUTO",
-				},
-				thisVM: &VM{
-					ID:   "58b45d43-b1f1-47fd-a94a-d877a89ec34f",
-					Name: "test2024080901",
-				},
-			},
-			want: "d9:81:b2:3d:a7:a2",
-		},
-		{
-			name: "Specified",
-			args: args{
-				thisNic: vmnic.VMNic{
-					ID:   "f865c0c5-4a06-40c6-b066-2c10c81691d1",
-					Name: "test2024080901_int0",
-					Mac:  "00:22:44:AA:BB:CC",
-				},
-				thisVM: &VM{
-					ID:   "58b45d43-b1f1-47fd-a94a-d877a89ec34f",
-					Name: "test2024080901",
-				},
-			},
-			want: "00:22:44:AA:BB:CC",
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			config.Config.Network.Mac.Oui = "d9:81:b2"
-			got := getMac(testCase.args.thisNic, testCase.args.thisVM)
-
-			if got != testCase.want {
-				t.Errorf("getMac() = %v, want %v", got, testCase.want)
-			}
-		})
-	}
-}
-
 func Test_addComArgs(t *testing.T) {
 	type args struct {
 		com1Arg []string

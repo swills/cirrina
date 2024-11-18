@@ -1366,7 +1366,7 @@ func Test_validateVM(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			err := validateVM(testCase.args.vmInst)
+			err := testCase.args.vmInst.validate()
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("validateVM() error = %v, wantErr %v", err, testCase.wantErr)
 			}

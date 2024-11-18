@@ -103,12 +103,12 @@ func (s *server) RemoveSwitch(_ context.Context, switchID *cirrina.SwitchId) (*c
 
 	switch switchInst.Type {
 	case "IF":
-		err = _switch.DestroyIfBridge(switchInst.Name, true)
+		err = _switch.DestroyIfSwitch(switchInst.Name, true)
 		if err != nil {
 			return &res, fmt.Errorf("error destroying bridge: %w", err)
 		}
 	case "NG":
-		err = _switch.DestroyNgBridge(switchInst.Name)
+		err = _switch.DestroyNgSwitch(switchInst.Name)
 		if err != nil {
 			slog.Error("switch removal failure")
 

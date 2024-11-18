@@ -27,8 +27,8 @@ type ISO struct {
 
 var pathExistsFunc = util.PathExists
 
-func validateIso(isoInst *ISO) error {
-	if !util.ValidIsoName(isoInst.Name) {
+func (i *ISO) validate() error {
+	if !util.ValidIsoName(i.Name) {
 		return ErrIsoInvalidName
 	}
 
@@ -97,7 +97,7 @@ func Create(isoInst *ISO) error {
 		return errIsoExists
 	}
 
-	err = validateIso(isoInst)
+	err = isoInst.validate()
 	if err != nil {
 		return fmt.Errorf("error creating iso: %w", err)
 	}

@@ -21,14 +21,9 @@ func TestVM_applyResourceLimits(t *testing.T) {
 		Config   Config
 	}
 
-	type args struct {
-		vmPid uint32
-	}
-
 	tests := []struct {
 		name   string
 		fields fields
-		args   args
 	}{
 		{
 			name: "nilProc",
@@ -45,7 +40,7 @@ func TestVM_applyResourceLimits(t *testing.T) {
 				proc:     testCase.fields.proc,
 				Config:   testCase.fields.Config,
 			}
-			vm.applyResourceLimits(testCase.args.vmPid)
+			vm.applyResourceLimits()
 		})
 	}
 }
@@ -118,7 +113,7 @@ func Test_applyResourceLimitWriteIOPS(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			applyResourceLimitWriteIOPS(testCase.args.vmPid, testCase.args.vm)
+			testCase.args.vm.applyResourceLimitWriteIOPS()
 		})
 	}
 }
@@ -183,9 +178,9 @@ func Test_applyResourceLimitReadIOPS(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(_ *testing.T) {
-			applyResourceLimitReadIOPS(tt.args.vmPid, tt.args.vm)
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(_ *testing.T) {
+			testCase.args.vm.applyResourceLimitReadIOPS()
 		})
 	}
 }
@@ -258,7 +253,7 @@ func Test_applyResourceLimitWriteBPS(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			applyResourceLimitWriteBPS(testCase.args.vmPid, testCase.args.vm)
+			testCase.args.vm.applyResourceLimitWriteBPS()
 		})
 	}
 }
@@ -325,7 +320,7 @@ func Test_applyResourceLimitReadBPS(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(_ *testing.T) {
-			applyResourceLimitReadBPS(testCase.args.vmPid, testCase.args.vm)
+			testCase.args.vm.applyResourceLimitReadBPS()
 		})
 	}
 }
@@ -384,7 +379,7 @@ func Test_applyResourceLimitCPU(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(_ *testing.T) {
-			applyResourceLimitCPU(testCase.args.vmPid, testCase.args.vm)
+			testCase.args.vm.applyResourceLimitCPU()
 		})
 	}
 }

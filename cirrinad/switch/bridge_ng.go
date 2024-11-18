@@ -176,7 +176,7 @@ func createNgBridge(name string) error {
 		return errSwitchInvalidBridgeNameNG
 	}
 
-	allIfBridges, err := GetAllNgBridges()
+	allIfBridges, err := GetAllNgSwitches()
 	if err != nil {
 		slog.Debug("failed to get all if bridges", "err", err)
 
@@ -275,7 +275,7 @@ func actualNgBridgeCreate(netDev string) error {
 	}
 
 	// and delete our dummy if_bridge
-	err = DestroyIfBridge(dummyIfBridgeName, false)
+	err = DestroyIfSwitch(dummyIfBridgeName, false)
 	if err != nil {
 		slog.Error("dummy if_bridge deletion error", "err", err)
 
@@ -316,7 +316,7 @@ func createNgBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 			continue
 		}
 
-		err = BridgeNgAddMember(bridgeName, member)
+		err = SwitchNgAddMember(bridgeName, member)
 		if err != nil {
 			slog.Error("createNgBridgeWithMembers error adding bridge member",
 				"name", bridgeName,
@@ -368,7 +368,7 @@ func bridgeNgDeletePeer(bridgeName string, hook string) error {
 	return nil
 }
 
-func bridgeNgRemoveUplink(bridgeName string, peerName string) error {
+func switchNgRemoveUplink(bridgeName string, peerName string) error {
 	var thisPeer ngPeer
 
 	bridgePeers, err := getNgBridgeMembers(bridgeName)
@@ -377,7 +377,7 @@ func bridgeNgRemoveUplink(bridgeName string, peerName string) error {
 	}
 
 	for _, peer := range bridgePeers {
-		slog.Debug("bridgeNgRemoveUplink", "peer", peer)
+		slog.Debug("switchNgRemoveUplink", "peer", peer)
 
 		if peer.PeerName == peerName {
 			thisPeer = peer
@@ -392,7 +392,7 @@ func bridgeNgRemoveUplink(bridgeName string, peerName string) error {
 	return nil
 }
 
-func GetAllNgBridges() ([]string, error) {
+func GetAllNgSwitches() ([]string, error) {
 	var bridges []string
 
 	netgraphNodes, err := ngGetNodes()
@@ -407,4 +407,243 @@ func GetAllNgBridges() ([]string, error) {
 	}
 
 	return bridges, nil
+}
+
+func memberUsedByNgSwitch(member string) (bool, error) {
+	allBridges, err := GetAllNgSwitches()
+	if err != nil {
+		slog.Error("error getting all if bridges", "err", err)
+
+		return false, err
+	}
+
+	for _, aBridge := range allBridges {
+		var allNgBridgeMembers []ngPeer
+
+		var existingMembers []string
+
+		// extra work here since this returns a ngPeer
+		allNgBridgeMembers, err = getNgBridgeMembers(aBridge)
+		if err != nil {
+			slog.Error("error getting ng bridge members", "bridge", aBridge)
+
+			return false, err
+		}
+
+		for _, m := range allNgBridgeMembers {
+			existingMembers = append(existingMembers, m.PeerName)
+		}
+
+		if util.ContainsStr(existingMembers, member) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func ngGetBridgeNextLink(bridge string) (string, error) {
+	var nextLink string
+
+	var err error
+
+	bridgePeers, err := getNgBridgeMembers(bridge)
+	if err != nil {
+		return nextLink, err
+	}
+
+	nextLink = ngBridgeNextLink(bridgePeers)
+
+	return nextLink, nil
+}
+
+func (s *Switch) setUplinkNG(uplink string) error {
+	// it can't be a member of another bridge already
+	alreadyUsed, err := memberUsedByNgSwitch(uplink)
+	if err != nil {
+		slog.Error("error checking if member already used", "err", err)
+
+		return err
+	}
+
+	if alreadyUsed {
+		slog.Error("another bridge already contains member, member can not be in two bridges of "+
+			"same type, skipping adding", "member", uplink,
+		)
+
+		return errSwitchUplinkInUse
+	}
+
+	slog.Debug("setting NG bridge uplink", "id", s.ID)
+
+	err = SwitchNgAddMember(s.Name, uplink)
+	if err != nil {
+		return err
+	}
+
+	s.Uplink = uplink
+
+	err = s.Save()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Switch) validateNgSwitch() error {
+	// it can't be a member of another bridge of same type already
+	if s.Uplink != "" {
+		alreadyUsed, err := memberUsedByNgSwitch(s.Uplink)
+		if err != nil {
+			slog.Error("error checking if member already used", "err", err)
+
+			return fmt.Errorf("error checking if member already used: %w", err)
+		}
+
+		if alreadyUsed {
+			return errSwitchUplinkInUse
+		}
+	}
+
+	return nil
+}
+
+func SwitchNgAddMember(bridgeName string, memberName string) error {
+	link, err := ngGetBridgeNextLink(bridgeName)
+	if err != nil {
+		return err
+	}
+
+	memberNameNg := strings.Replace(memberName, ".", "_", 1)
+
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "connect", memberNameNg + ":", bridgeName + ":", "lower", link},
+	)
+	if err != nil {
+		slog.Error("ngctl connect error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return fmt.Errorf("ngctl connect error: %w", err)
+	}
+
+	link, err = ngGetBridgeNextLink(bridgeName)
+	if err != nil {
+		return err
+	}
+
+	stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "connect", memberNameNg + ":", bridgeName + ":", "upper", link},
+	)
+	if err != nil {
+		slog.Error("ngctl connect error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return fmt.Errorf("ngctl connect error: %w", err)
+	}
+
+	return nil
+}
+
+func DestroyNgSwitch(netDev string) error {
+	var err error
+
+	if netDev == "" {
+		return errSwitchInvalidNetDevEmpty
+	}
+
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		config.Config.Sys.Sudo,
+		[]string{"/usr/sbin/ngctl", "msg", netDev + ":", "shutdown"},
+	)
+	if err != nil {
+		slog.Error("ngctl msg shutdown error",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return fmt.Errorf("ngctl msg shutdown error: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Switch) buildNgSwitch() error {
+	var members []string
+	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
+	memberList := strings.Split(s.Uplink, ",")
+
+	// sanity checking of bridge members
+	for _, member := range memberList {
+		// it can't be empty
+		if member == "" {
+			continue
+		}
+		// it has to exist
+		exists := CheckInterfaceExists(member)
+		if !exists {
+			slog.Error("attempt to add non-existent member to bridge, ignoring",
+				"bridge", s.Name, "uplink", member,
+			)
+
+			continue
+		}
+		// it can't be a member of another bridge already
+		alreadyUsed, err := memberUsedByNgSwitch(member)
+		if err != nil {
+			slog.Error("error checking if member already used", "err", err)
+
+			continue
+		}
+
+		if alreadyUsed {
+			slog.Error("another bridge already contains member, member can not be in two bridges of "+
+				"same type, skipping adding", "bridge", s.Name, "member", member,
+			)
+
+			continue
+		}
+
+		members = append(members, member)
+	}
+
+	err := createNgBridgeWithMembers(s.Name, members)
+
+	return err
+}
+
+// GetNgDev returns the netDev (stored in DB) and netDevArg (passed to bhyve)
+func GetNgDev(switchID string, name string) (string, string, error) {
+	var err error
+
+	thisSwitch, err := GetByID(switchID)
+	if err != nil {
+		slog.Error("switch lookup error", "switchid", switchID)
+
+		return "", "", err
+	}
+
+	bridgePeers, err := getNgBridgeMembers(thisSwitch.Name)
+	if err != nil {
+		return "", "", err
+	}
+
+	nextLink := ngBridgeNextLink(bridgePeers)
+
+	ngNetDev := thisSwitch.Name + "," + nextLink
+	netDevArg := "netgraph,path=" + thisSwitch.Name + ":,peerhook=" + nextLink + ",socket=" + name
+
+	return ngNetDev, netDevArg, nil
 }

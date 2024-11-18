@@ -50,7 +50,6 @@ var List = &ListType{
 
 var PathExistsFunc = util.PathExists
 var diskExistsCacheDBFunc = diskExistsCacheDB
-var validateDiskFunc = validateDisk
 var getDiskDBFunc = GetDiskDB
 var FileInfoFetcherImpl FileInfoFetcher = FileInfoCmds{}
 var ZfsInfoFetcherImpl ZfsVolInfoFetcher = ZfsVolInfoCmds{}
@@ -81,20 +80,20 @@ func diskTypeValid(diskType string) bool {
 	}
 }
 
-func validateDisk(diskInst *Disk) error {
-	if !util.ValidDiskName(diskInst.Name) {
+func (d *Disk) validate() error {
+	if !util.ValidDiskName(d.Name) {
 		return ErrDiskInvalidName
 	}
 
-	if !diskTypeValid(diskInst.Type) {
+	if !diskTypeValid(d.Type) {
 		return errDiskInvalidType
 	}
 
-	if !diskDevTypeValid(diskInst.DevType) {
+	if !diskDevTypeValid(d.DevType) {
 		return errDiskInvalidDevType
 	}
 
-	if diskInst.DevType == "ZVOL" && config.Config.Disk.VM.Path.Zpool == "" {
+	if d.DevType == "ZVOL" && config.Config.Disk.VM.Path.Zpool == "" {
 		return errDiskZPoolNotConfigured
 	}
 
@@ -182,7 +181,7 @@ func Create(diskInst *Disk, size string) error {
 		return errDiskExists
 	}
 
-	err = validateDiskFunc(diskInst)
+	err = diskInst.validate()
 	if err != nil {
 		return fmt.Errorf("error creating disk: %w", err)
 	}
