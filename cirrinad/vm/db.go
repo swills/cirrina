@@ -56,12 +56,14 @@ func GetVMDB() *gorm.DB {
 		)
 
 		if err != nil {
-			panic("failed to connect database")
+			slog.Error("failed to connect to database", "err", err)
+			panic("failed to connect database, err: " + err.Error())
 		}
 
 		sqlDB, err := vmDB.DB()
 		if err != nil {
-			panic("failed to create sqlDB database")
+			slog.Error("failed to create sqlDB", "err", err)
+			panic("failed to create sqlDB database, err: " + err.Error())
 		}
 
 		sqlDB.SetMaxIdleConns(1)
@@ -211,7 +213,8 @@ func DBAutoMigrate() {
 
 	err := vmdb.AutoMigrate(&VM{})
 	if err != nil {
-		panic("failed to auto-migrate VMs")
+		slog.Error("failed to auto-migrate VMs", "err", err)
+		panic("failed to auto-migrate VMs, err: " + err.Error())
 	}
 
 	err = vmdb.AutoMigrate(&Config{})
@@ -227,6 +230,7 @@ func CacheInit() {
 
 	allVMs, err := GetAllDB()
 	if err != nil {
+		slog.Error("failed to init cache", "err", err)
 		panic(err)
 	}
 
@@ -319,7 +323,7 @@ func getDisksForVM(vmID string, vmDB *gorm.DB) ([]*disk.Disk, error) {
 	if err != nil {
 		slog.Error("error getting vm_disks rows", "err", err)
 
-		return returnDisks, fmt.Errorf("error getting VM Diss: %w", rowErr)
+		return returnDisks, fmt.Errorf("error getting VM Disks: %w", rowErr)
 	}
 
 	defer func() {

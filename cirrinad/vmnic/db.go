@@ -2,6 +2,7 @@ package vmnic
 
 import (
 	"log"
+	"log/slog"
 	"os"
 	"sync"
 	"time"
@@ -49,12 +50,14 @@ func GetVMNicDB() *gorm.DB {
 			},
 		)
 		if err != nil {
-			panic("failed to connect database")
+			slog.Error("failed to connect database", "err", err)
+			panic("failed to connect database, err: " + err.Error())
 		}
 
 		sqlDB, err := vmNicDB.DB()
 		if err != nil {
-			panic("failed to create sqlDB database")
+			slog.Error("failed to create sqlDB database", "err", err)
+			panic("failed to create sqlDB database, err: " + err.Error())
 		}
 
 		sqlDB.SetMaxIdleConns(1)
@@ -84,7 +87,8 @@ func DBAutoMigrate() {
 
 	err := vmNicDB.AutoMigrate(&VMNic{})
 	if err != nil {
-		panic("failed to auto-migrate VmNics")
+		slog.Error("failed to auto-migrate VmNics", "err", err)
+		panic("failed to auto-migrate VmNics, err:" + err.Error())
 	}
 }
 

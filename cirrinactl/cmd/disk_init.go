@@ -84,7 +84,7 @@ func setupDiskCreateCmd() error {
 		return fmt.Errorf("error marking flag required: %w", err)
 	}
 
-	DiskCreateCmd.Flags().StringVarP(&DiskSize, "size", "s", DiskName, "size of disk")
+	DiskCreateCmd.Flags().StringVarP(&DiskSize, "size", "s", DiskName, "size of disk (bytes)")
 
 	err = DiskCreateCmd.MarkFlagRequired("size")
 	if err != nil {

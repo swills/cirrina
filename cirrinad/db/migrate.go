@@ -56,12 +56,14 @@ func getMetaDB() *gorm.DB {
 		metaDB.Preload("Config")
 
 		if err != nil {
-			panic("failed to connect database")
+			slog.Error("failed to connect database", "err", err)
+			panic("failed to connect database, err: " + err.Error())
 		}
 
 		sqlDB, err := metaDB.DB()
 		if err != nil {
-			panic("failed to create sqlDB database")
+			slog.Error("failed to create sqlDB database", "err", err)
+			panic("failed to create sqlDB database, err: " + err.Error())
 		}
 
 		sqlDB.SetMaxIdleConns(1)
@@ -78,7 +80,8 @@ func AutoMigrate() {
 
 	err := db.AutoMigrate(&meta{})
 	if err != nil {
-		panic("failed to auto-migrate meta")
+		slog.Error("failed to auto-migrate meta", "err", err)
+		panic("failed to auto-migrate meta, err: " + err.Error())
 	}
 }
 
@@ -168,12 +171,13 @@ func migration2024022401(schemaVersion uint32, vmNicDB *gorm.DB, vmDB *gorm.DB) 
 
 				err = vmNicDB.Migrator().AddColumn(vmnic.VMNic{}, "config_id")
 				if err != nil {
-					slog.Debug("error adding config_id column", "err", err)
+					slog.Error("error adding config_id column", "err", err)
 					panic(err)
 				}
 
 				allVMs, err := vm.GetAllDB()
 				if err != nil {
+					slog.Error("migration failed", "error", err)
 					panic(err)
 				}
 
@@ -204,7 +208,7 @@ func migration2024022401(schemaVersion uint32, vmNicDB *gorm.DB, vmDB *gorm.DB) 
 					}
 
 					if err != nil {
-						slog.Debug("error looking up VMs Nics", "err", err)
+						slog.Error("error looking up VMs Nics", "err", err)
 						panic(err)
 					}
 
@@ -293,6 +297,7 @@ func migration2024062701(schemaVersion uint32, vmDB *gorm.DB) {
 
 			res := vmDB.Exec(vmIsoCreateTableRawSQL)
 			if res.Error != nil {
+				slog.Error("migration failed", "error", res.Error)
 				panic(res.Error)
 			}
 		}
@@ -315,6 +320,7 @@ func migration2024062702(schemaVersion uint32, vmDB *gorm.DB) {
 
 			res := vmDB.Raw("SELECT vm_id, is_os from configs where deleted_at is null and is_os != \"\"").Scan(&result)
 			if res.Error != nil {
+				slog.Error("migration failed", "error", res.Error)
 				panic(res.Error)
 			}
 
@@ -355,6 +361,7 @@ func migration2024062703(schemaVersion uint32, vmDB *gorm.DB) {
 		if haveOldISOsColumn {
 			err := vmDB.Migrator().DropColumn(&vm.Config{}, "is_os")
 			if err != nil {
+				slog.Error("migration failed", "err", err)
 				panic(err)
 			}
 		}
@@ -383,6 +390,7 @@ func migration2024063001(schemaVersion uint32, vmDB *gorm.DB) {
 
 			res := vmDB.Exec(vmDiskCreateTableRawSQL)
 			if res.Error != nil {
+				slog.Error("migration failed", "error", res.Error)
 				panic(res.Error)
 			}
 		}
@@ -405,6 +413,7 @@ func migration2024063002(schemaVersion uint32, vmDB *gorm.DB) {
 
 			res := vmDB.Raw("SELECT vm_id, disks from configs where deleted_at is null and disks != \"\"").Scan(&result)
 			if res.Error != nil {
+				slog.Error("migration failed", "error", res.Error)
 				panic(res.Error)
 			}
 
@@ -445,6 +454,7 @@ func migration2024063003(schemaVersion uint32, vmDB *gorm.DB) {
 		if haveOldDisksColumn {
 			err := vmDB.Migrator().DropColumn(&vm.Config{}, "disks")
 			if err != nil {
+				slog.Error("migration failed", "err", err)
 				panic(err)
 			}
 		}
@@ -461,6 +471,7 @@ func migration2024110601(schemaVersion uint32, vmDB *gorm.DB) { //nolint:funlen
 
 		res = vmDB.Exec(dropIndexConfigsDeletedAt)
 		if res.Error != nil {
+			slog.Error("migration failed", "error", res.Error)
 			panic(res.Error)
 		}
 
@@ -612,6 +623,7 @@ create table configs_new
 
 		res = vmDB.Exec(createConfigsNew)
 		if res.Error != nil {
+			slog.Error("migration failed", "error", res.Error)
 			panic(res.Error)
 		}
 
@@ -619,6 +631,7 @@ create table configs_new
 
 		res = vmDB.Exec(createConfigsNewDeletedAtIndex)
 		if res.Error != nil {
+			slog.Error("migration failed", "error", res.Error)
 			panic(res.Error)
 		}
 
@@ -626,6 +639,7 @@ create table configs_new
 
 		res = vmDB.Exec(insertIntoConfigsNew)
 		if res.Error != nil {
+			slog.Error("migration failed", "error", res.Error)
 			panic(res.Error)
 		}
 
@@ -633,6 +647,7 @@ create table configs_new
 
 		res = vmDB.Exec(renameConfigsToConfigsOld)
 		if res.Error != nil {
+			slog.Error("migration failed", "error", res.Error)
 			panic(res.Error)
 		}
 
@@ -640,6 +655,7 @@ create table configs_new
 
 		res = vmDB.Exec(renameConfigsNewToConfigs)
 		if res.Error != nil {
+			slog.Error("migration failed", "error", res.Error)
 			panic(res.Error)
 		}
 

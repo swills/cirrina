@@ -67,12 +67,14 @@ func cleanupNet() error {
 	// destroy all the bridges we know about
 	err = _switch.DestroySwitches()
 	if err != nil {
+		slog.Error("error destroying switches", "err", err)
 		panic(err)
 	}
 
 	// look for network things in cirrinad group and destroy them
 	netInterfaces, err := net.Interfaces()
 	if err != nil {
+		slog.Error("error getting interfaces", "err", err)
 		panic(err)
 	}
 

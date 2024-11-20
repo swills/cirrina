@@ -50,12 +50,14 @@ func GetDiskDB() *gorm.DB {
 			},
 		)
 		if err != nil {
-			panic("failed to connect database")
+			slog.Error("failed to connect to database", "err", err)
+			panic("failed to connect database, err: " + err.Error())
 		}
 
 		sqlDB, err := diskDB.DB()
 		if err != nil {
-			panic("failed to create sqlDB database")
+			slog.Error("failed to create sqlDB database", "err", err)
+			panic("failed to create sqlDB database, err: " + err.Error())
 		}
 
 		sqlDB.SetMaxIdleConns(1)
@@ -85,7 +87,8 @@ func DBAutoMigrate() {
 
 	err := diskDB.AutoMigrate(&Disk{})
 	if err != nil {
-		panic("failed to auto-migrate disk")
+		slog.Error("failed to auto-migrate disk table", "err", err)
+		panic("failed to auto-migrate disk, err: " + err.Error())
 	}
 
 	err = diskDB.Migrator().DropColumn(&Disk{}, "path")

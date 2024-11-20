@@ -542,6 +542,7 @@ func (vm *VM) Start() error {
 
 	err = vmProc.Start()
 	if err != nil {
+		slog.Error("failed to start process", "err", err)
 		panic(fmt.Sprintf("failed to start process: %s", err))
 	}
 
@@ -626,6 +627,7 @@ func (vm *VM) initVM() {
 
 	err := GetVMLogPath(vmLogPath)
 	if err != nil {
+		slog.Error("failed to init vm", "err", err)
 		panic(err)
 	}
 

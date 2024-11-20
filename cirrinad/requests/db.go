@@ -3,6 +3,7 @@ package requests
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"time"
 
@@ -53,12 +54,14 @@ func GetReqDB() *gorm.DB {
 			},
 		)
 		if err != nil {
-			panic("failed to connect database")
+			slog.Error("failed to connect to database", "err", err)
+			panic("failed to connect database, err: " + err.Error())
 		}
 
 		sqlDB, err := reqDB.DB()
 		if err != nil {
-			panic("failed to create sqlDB database")
+			slog.Error("failed to create sqlDB database", "err", err)
+			panic("failed to create sqlDB database, err: " + err.Error())
 		}
 
 		sqlDB.SetMaxIdleConns(1)
@@ -76,7 +79,8 @@ func DBAutoMigrate() {
 
 	err := db.AutoMigrate(&Request{})
 	if err != nil {
-		panic("failed to auto-migrate Requests")
+		slog.Error("failed to auto-migrate Requests", "err", err)
+		panic("failed to auto-migrate Requests, err: " + err.Error())
 	}
 }
 

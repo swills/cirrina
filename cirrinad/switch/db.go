@@ -2,6 +2,7 @@ package vmswitch
 
 import (
 	"log"
+	"log/slog"
 	"os"
 	"sync"
 	"time"
@@ -49,12 +50,14 @@ func getSwitchDB() *gorm.DB {
 			},
 		)
 		if err != nil {
-			panic("failed to connect database")
+			slog.Error("failed to connect to database", "err", err)
+			panic("failed to connect database, err: " + err.Error())
 		}
 
 		sqlDB, err := switchDB.DB()
 		if err != nil {
-			panic("failed to create sqlDB database")
+			slog.Error("failed to create sqlDB database", "err", err)
+			panic("failed to create sqlDB database, err: " + err.Error())
 		}
 
 		sqlDB.SetMaxIdleConns(1)
@@ -88,6 +91,7 @@ func DBAutoMigrate() {
 
 	err := db.AutoMigrate(&Switch{})
 	if err != nil {
-		panic("failed to auto-migrate switches")
+		slog.Error("failed to auto-migrate switches", "err", err)
+		panic("failed to auto-migrate switches, err: " + err.Error())
 	}
 }

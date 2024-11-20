@@ -316,6 +316,7 @@ var rootCmd = &cobra.Command{
 		slog.Debug("Clean up starting")
 		err = cleanupSystem()
 		if err != nil {
+			slog.Error("error cleaning up", "err", err)
 			panic(err)
 		}
 		slog.Debug("Clean up complete")
@@ -323,6 +324,7 @@ var rootCmd = &cobra.Command{
 		slog.Debug("Creating bridges")
 		err = _switch.CreateSwitches()
 		if err != nil {
+			slog.Error("error creating switches", "err", err)
 			panic(err)
 		}
 		slog.Info("Starting Daemon")

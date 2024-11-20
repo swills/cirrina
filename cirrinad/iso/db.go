@@ -2,6 +2,7 @@ package iso
 
 import (
 	"log"
+	"log/slog"
 	"os"
 	"sync"
 	"time"
@@ -49,12 +50,14 @@ func GetIsoDB() *gorm.DB {
 			},
 		)
 		if err != nil {
-			panic("failed to connect database")
+			slog.Error("failed to connect to database", "err", err)
+			panic("failed to connect database, err: " + err.Error())
 		}
 
 		sqlDB, err := isoDB.DB()
 		if err != nil {
-			panic("failed to create sqlDB database")
+			slog.Error("failed to create sqlDB database", "err", err)
+			panic("failed to create sqlDB database, err: " + err.Error())
 		}
 
 		sqlDB.SetMaxIdleConns(1)
@@ -84,6 +87,7 @@ func DBAutoMigrate() {
 
 	err := db.AutoMigrate(&ISO{})
 	if err != nil {
-		panic("failed to auto-migrate ISOs")
+		slog.Error("failed to auto-migrate ISOs", "err", err)
+		panic("failed to auto-migrate ISOs, err: " + err.Error())
 	}
 }
