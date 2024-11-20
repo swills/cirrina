@@ -191,6 +191,7 @@ linters-settings:
       - structtag
       - testinggoroutine
       - tests
+      - timeformat
       - unmarshal
       - unreachable
       - unsafeptr
