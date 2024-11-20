@@ -23,7 +23,7 @@ func Test_ngGetNodes(t *testing.T) {
 		{
 			name:        "success1",
 			mockCmdFunc: "Test_ngGetNodesSuccess1",
-			want:        nil,
+			want:        []NgNode{},
 			wantErr:     false,
 		},
 		{

@@ -224,8 +224,10 @@ func findProcName(pid uint32) string {
 }
 
 func getUsedVncPorts() []int {
-	var ret []int
 	defer List.Mu.RUnlock()
+
+	ret := make([]int, 0, len(List.VMList))
+
 	List.Mu.RLock()
 
 	// TODO -- this was initially meant to avoid two VMs using the same VNC port
@@ -246,8 +248,10 @@ func getUsedVncPorts() []int {
 }
 
 func getUsedDebugPorts() []int {
-	var ret []int
 	defer List.Mu.RUnlock()
+
+	ret := make([]int, 0, len(List.VMList))
+
 	List.Mu.RLock()
 	for _, vmInst := range List.VMList {
 		if vmInst.Status == STOPPED {
@@ -387,7 +391,7 @@ func AutoStartVMs() {
 }
 
 func GetAll() []*VM {
-	var allVMs []*VM
+	allVMs := make([]*VM, 0, len(List.VMList))
 	for _, value := range List.VMList {
 		allVMs = append(allVMs, value)
 	}

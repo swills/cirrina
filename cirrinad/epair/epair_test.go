@@ -357,7 +357,7 @@ func Test_getAllEpair(t *testing.T) {
 		{
 			name:        "empty1",
 			mockCmdFunc: "Test_getAllEpairEmpty1",
-			want:        nil,
+			want:        []string{},
 			wantErr:     false,
 		},
 		{

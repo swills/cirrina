@@ -182,7 +182,7 @@ func TestGetAll(t *testing.T) {
 				// clear out list from other parallel test runs
 				List.VMList = map[string]*VM{}
 			},
-			want: nil,
+			want: []*VM{},
 		},
 		{
 			name: "Success2",
@@ -748,7 +748,7 @@ func Test_getUsedVncPorts(t *testing.T) {
 				List.VMList = map[string]*VM{}
 				List.VMList[testVM.ID] = &testVM
 			},
-			want: nil,
+			want: []int{},
 		},
 		{
 			name: "OneUsed",
@@ -796,7 +796,7 @@ func Test_getUsedDebugPorts(t *testing.T) {
 				List.VMList = map[string]*VM{}
 				List.VMList[testVM.ID] = &testVM
 			},
-			want: nil,
+			want: []int{},
 		},
 		{
 			name: "OneUsed",

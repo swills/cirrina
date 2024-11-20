@@ -11,8 +11,6 @@ import (
 )
 
 func getAllEpair() ([]string, error) {
-	var epairs []string
-
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		"/sbin/ifconfig",
 		[]string{"-g", "epair"},
@@ -28,7 +26,11 @@ func getAllEpair() ([]string, error) {
 		return nil, fmt.Errorf("ifconfig error: %w", err)
 	}
 
-	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+	epairStrs := strings.Split(string(stdOutBytes), "\n")
+
+	epairs := make([]string, 0, len(epairStrs))
+
+	for _, line := range epairStrs {
 		if len(line) == 0 {
 			continue
 		}

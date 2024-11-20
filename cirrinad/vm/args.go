@@ -553,12 +553,13 @@ func (vm *VM) getNetArgs(slot int) ([]string, int) {
 func getTapDev() (string, string) {
 	freeTapDevFound := false
 
-	var netDevs []string
-
 	tapDev := ""
 	tapNum := 0
 
 	interfaces, _ := NetInterfacesFunc()
+
+	netDevs := make([]string, 0, len(interfaces))
+
 	for _, inter := range interfaces {
 		netDevs = append(netDevs, inter.Name)
 	}
@@ -579,12 +580,13 @@ func getTapDev() (string, string) {
 func getVmnetDev() (string, string) {
 	freeVmnetDevFound := false
 
-	var netDevs []string
-
 	vmnetDev := ""
 	vmnetNum := 0
 
 	interfaces, _ := NetInterfacesFunc()
+
+	netDevs := make([]string, 0, len(interfaces))
+
 	for _, inter := range interfaces {
 		netDevs = append(netDevs, inter.Name)
 	}

@@ -958,7 +958,7 @@ func TestZfsVolInfoCmds_FetchAll(t *testing.T) {
 		{
 			name:        "errorFields",
 			mockCmdFunc: "TestGetAllZfsVolumesErrorFields",
-			want:        nil,
+			want:        []string{},
 			wantErr:     false,
 		},
 	}

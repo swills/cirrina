@@ -11,8 +11,6 @@ import (
 )
 
 func getIfBridgeMembers(name string) ([]string, error) {
-	var members []string
-
 	var err error
 
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd("/sbin/ifconfig", []string{name})
@@ -27,7 +25,11 @@ func getIfBridgeMembers(name string) ([]string, error) {
 		return nil, fmt.Errorf("ifconfig error: %w", err)
 	}
 
-	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+	bridgeMembersStrings := strings.Split(string(stdOutBytes), "\n")
+
+	members := make([]string, 0, len(bridgeMembersStrings))
+
+	for _, line := range bridgeMembersStrings {
 		if len(line) == 0 {
 			continue
 		}
@@ -140,8 +142,6 @@ func switchIfDeleteMember(bridgeName string, memberName string) error {
 func GetAllIfSwitches() ([]string, error) {
 	var err error
 
-	var bridges []string
-
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd("/sbin/ifconfig", []string{"-g", "bridge"})
 	if err != nil {
 		slog.Error("ifconfig error",
@@ -154,7 +154,11 @@ func GetAllIfSwitches() ([]string, error) {
 		return nil, fmt.Errorf("ifconfig error: %w", err)
 	}
 
-	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+	bridgesStrs := strings.Split(string(stdOutBytes), "\n")
+
+	bridges := make([]string, 0, len(bridgesStrs))
+
+	for _, line := range bridgesStrs {
 		if len(line) == 0 {
 			continue
 		}
@@ -243,9 +247,10 @@ func memberUsedByIfSwitch(member string) (bool, error) {
 }
 
 func (s *Switch) buildIfSwitch() error {
-	var members []string
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	memberList := strings.Split(s.Uplink, ",")
+
+	members := make([]string, 0, len(memberList))
 
 	// sanity checking of bridge members
 	for _, member := range memberList {

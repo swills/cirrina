@@ -48,14 +48,14 @@ var (
 func getVMItems() ([]vmItem, error) {
 	var vmIDs []string
 
-	var theseVMItems []vmItem
-
 	var err error
 
 	vmIDs, err = rpc.GetVMIds()
 	if err != nil {
 		return []vmItem{}, fmt.Errorf("error getting vm list: %w", err)
 	}
+
+	theseVMItems := make([]vmItem, 0, len(vmIDs))
 
 	for _, vmID := range vmIDs {
 		var res rpc.VMConfig

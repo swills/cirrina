@@ -235,8 +235,6 @@ func PidExists(pid int) (bool, error) {
 }
 
 func OSReadDir(path string) ([]string, error) {
-	var files []string
-
 	pathFile, err := osOpenFunc(path)
 	if err != nil {
 		return []string{}, fmt.Errorf("failed reading OS dir: %w", err)
@@ -248,6 +246,8 @@ func OSReadDir(path string) ([]string, error) {
 	if err != nil {
 		return []string{}, fmt.Errorf("failed reading OS dir: %w", err)
 	}
+
+	files := make([]string, 0, len(fileInfo))
 
 	for _, file := range fileInfo {
 		files = append(files, file.Name())
@@ -376,9 +376,9 @@ func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (int, error) {
 }
 
 func GetHostInterfaces() []string {
-	var netDevs []string
-
 	netInterfaces, _ := NetInterfacesFunc()
+
+	netDevs := make([]string, 0, len(netInterfaces))
 
 	for _, inter := range netInterfaces {
 		intGroups, err := GetIntGroupsFunc(inter.Name)
@@ -781,7 +781,7 @@ func GetOsVersion() (*version.Version, error) {
 		return nil, fmt.Errorf("error getting os version: %w", err)
 	}
 
-	var rBuf []byte
+	rBuf := make([]byte, 0, len(utsname.Release))
 
 	for _, b := range utsname.Release {
 		if b == 0 {

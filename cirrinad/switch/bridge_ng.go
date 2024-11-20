@@ -28,8 +28,6 @@ type ngPeer struct {
 func ngGetNodes() ([]NgNode, error) {
 	var err error
 
-	var ngNodes []NgNode
-
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		config.Config.Sys.Sudo,
 		[]string{"/usr/sbin/ngctl", "list"},
@@ -45,7 +43,11 @@ func ngGetNodes() ([]NgNode, error) {
 		return nil, fmt.Errorf("ngctl error: %w", err)
 	}
 
-	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+	nodesStrs := strings.Split(string(stdOutBytes), "\n")
+
+	ngNodes := make([]NgNode, 0, len(nodesStrs))
+
+	for _, line := range nodesStrs {
 		if len(line) == 0 {
 			continue
 		}
@@ -92,8 +94,6 @@ func ngGetNodes() ([]NgNode, error) {
 func getNgBridgeMembers(bridge string) ([]ngPeer, error) {
 	var err error
 
-	var peers []ngPeer
-
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		config.Config.Sys.Sudo,
 		[]string{"/usr/sbin/ngctl", "show", bridge + ":"},
@@ -111,7 +111,10 @@ func getNgBridgeMembers(bridge string) ([]ngPeer, error) {
 
 	lineNo := 0
 
-	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+	bridgeMembers := strings.Split(string(stdOutBytes), "\n")
+	peers := make([]ngPeer, 0, len(bridgeMembers))
+
+	for _, line := range bridgeMembers {
 		if len(line) == 0 {
 			continue
 		}
@@ -145,7 +148,7 @@ func ngBridgeNextLink(peers []ngPeer) string {
 	linkNum := 0
 	linkName := ""
 
-	var hooks []string
+	hooks := make([]string, 0, len(peers))
 
 	for _, peer := range peers {
 		hooks = append(hooks, peer.LocalHook)
@@ -581,9 +584,10 @@ func DestroyNgSwitch(netDev string) error {
 }
 
 func (s *Switch) buildNgSwitch() error {
-	var members []string
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 	memberList := strings.Split(s.Uplink, ",")
+
+	members := make([]string, 0, len(memberList))
 
 	// sanity checking of bridge members
 	for _, member := range memberList {

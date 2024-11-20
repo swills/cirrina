@@ -2062,7 +2062,7 @@ func TestOSReadDir(t *testing.T) {
 		{
 			name:    "readEmpty",
 			args:    args{root: testOSReadDirPath1},
-			want:    nil,
+			want:    []string{},
 			wantErr: false,
 		},
 		{

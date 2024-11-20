@@ -847,7 +847,7 @@ func (s *server) SetVMISOs(_ context.Context, setISOReq *cirrina.SetISOReq) (*ci
 
 	isoIDStrs := setISOReq.GetIsoid()
 
-	var isoIDs []*iso.ISO
+	isoIDs := make([]*iso.ISO, 0, len(isoIDStrs))
 
 	for _, i := range isoIDStrs {
 		var thisIso *iso.ISO

@@ -422,8 +422,6 @@ func (e ZfsVolInfoCmds) Add(volName string, size uint64) error {
 func (e ZfsVolInfoCmds) FetchAll() ([]string, error) {
 	var err error
 
-	var allVolumes []string
-
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		"/sbin/zfs",
 		[]string{"list", "-t", "volume", "-o", "name", "-H"},
@@ -440,7 +438,11 @@ func (e ZfsVolInfoCmds) FetchAll() ([]string, error) {
 		return nil, fmt.Errorf("failed to list zfs volumes: %w", err)
 	}
 
-	for _, line := range strings.Split(string(stdOutBytes), "\n") {
+	volumesStrs := strings.Split(string(stdOutBytes), "\n")
+
+	allVolumes := make([]string, 0, len(volumesStrs))
+
+	for _, line := range volumesStrs {
 		if len(line) == 0 {
 			continue
 		}
