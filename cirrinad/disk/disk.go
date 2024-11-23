@@ -264,7 +264,7 @@ func Delete(diskID string) error {
 
 	db := GetDiskDB()
 
-	res := db.Limit(1).Delete(&Disk{ID: diskID})
+	res := db.Limit(1).Unscoped().Delete(&Disk{ID: diskID})
 
 	if res.Error != nil || res.RowsAffected != 1 {
 		slog.Error("error saving disk", "res", res)

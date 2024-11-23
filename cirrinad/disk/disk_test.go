@@ -979,9 +979,9 @@ func TestDelete(t *testing.T) {
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
-					regexp.QuoteMeta("UPDATE `disks` SET `deleted_at`=? WHERE `disks`.`id` = ? AND `disks`.`deleted_at` IS NULL"),
+					regexp.QuoteMeta("DELETE FROM `disks` WHERE `disks`.`id` = ?"),
 				).
-					WithArgs(sqlmock.AnyArg(), "e89be82f-25c7-42b9-823a-df432e64320e").
+					WithArgs("e89be82f-25c7-42b9-823a-df432e64320e").
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
 			},
@@ -1053,9 +1053,9 @@ func TestDelete(t *testing.T) {
 				}
 				mock.ExpectBegin()
 				mock.ExpectExec(
-					regexp.QuoteMeta("UPDATE `disks` SET `deleted_at`=? WHERE `disks`.`id` = ? AND `disks`.`deleted_at` IS NULL"),
+					regexp.QuoteMeta("DELETE FROM `disks` WHERE `disks`.`id` = ?"),
 				).
-					WithArgs(sqlmock.AnyArg(), "e89be82f-25c7-42b9-823a-df432e64320e").
+					WithArgs("e89be82f-25c7-42b9-823a-df432e64320e").
 					WillReturnResult(sqlmock.NewResult(1, 0))
 				mock.ExpectCommit()
 			},

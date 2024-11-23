@@ -980,9 +980,9 @@ func Test_server_RemoveDisk(t *testing.T) {
 
 				mock.ExpectBegin()
 				mock.ExpectExec(
-					regexp.QuoteMeta("UPDATE `disks` SET `deleted_at`=? WHERE `disks`.`id` = ? AND `disks`.`deleted_at` IS NULL"),
+					regexp.QuoteMeta("DELETE FROM `disks` WHERE `disks`.`id` = ?"),
 				).
-					WithArgs(sqlmock.AnyArg(), "0d4a0338-0b68-4645-b99d-9cbb30df272d").
+					WithArgs("0d4a0338-0b68-4645-b99d-9cbb30df272d").
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
 			},

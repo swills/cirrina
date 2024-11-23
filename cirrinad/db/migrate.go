@@ -158,6 +158,12 @@ func CustomMigrate() {
 	// 2024110601 - update configs table constraints on screen_width and screen_height
 	migration2024110601(schemaVersion, vmDB)
 
+	// 2024112301 - remove configs_2024110601
+	migration2024112301(schemaVersion, vmDB)
+
+	// 2024112302 - remove soft deleted disks
+	migration2024112302(schemaVersion, diskDB)
+
 	slog.Debug("finished custom migration")
 }
 
@@ -660,5 +666,37 @@ create table configs_new
 		}
 
 		setSchemaVersion(2024110601)
+	}
+}
+
+func migration2024112301(schemaVersion uint32, vmDB *gorm.DB) {
+	if schemaVersion < 2024112301 {
+		if vmDB.Migrator().HasTable("configs_2024110601") {
+			slog.Debug("dropping configs_2024110601 table")
+
+			err := vmDB.Migrator().DropTable("configs_2024110601")
+			if err != nil {
+				slog.Error("failure dropping requests table", "err", err)
+				panic(err)
+			}
+		}
+
+		setSchemaVersion(2024112301)
+	}
+}
+
+func migration2024112302(schemaVersion uint32, diskDB *gorm.DB) {
+	if schemaVersion < 2024112302 {
+		slog.Debug("removing soft deleted disks")
+
+		dropDisksDeletedAtIsNotNull := `DELETE FROM disks WHERE deleted_at is not null`
+
+		res := diskDB.Exec(dropDisksDeletedAtIsNotNull)
+		if res.Error != nil {
+			slog.Error("migration failed", "error", res.Error)
+			panic(res.Error)
+		}
+
+		setSchemaVersion(2024112302)
 	}
 }
