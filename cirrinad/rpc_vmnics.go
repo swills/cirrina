@@ -281,22 +281,6 @@ func (s *server) RemoveVMNic(_ context.Context, vmNicID *cirrina.VmNicId) (*cirr
 		return &res, errNotFound
 	}
 
-	allVms := vm.GetAll()
-	for _, aVM := range allVms {
-		var nics []vmnic.VMNic
-
-		nics, err = vmnic.GetNics(aVM.Config.ID)
-		if err != nil {
-			return &res, fmt.Errorf("error getting NICs: %w", err)
-		}
-
-		for _, aNic := range nics {
-			if aNic.ID == nicUUID.String() {
-				return &res, errNicInUse
-			}
-		}
-	}
-
 	err = vmNic.Delete()
 	if err != nil {
 		return &res, fmt.Errorf("error deleting NIC: %w", err)

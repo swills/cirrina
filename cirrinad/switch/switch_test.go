@@ -1505,14 +1505,14 @@ func TestBridgeNgAddMember(t *testing.T) {
 
 func TestCheckSwitchInUse(t *testing.T) {
 	type args struct {
-		id string
+		switchInst *Switch
 	}
 
 	tests := []struct {
 		name        string
 		mockClosure func() []*vmnic.VMNic
 		args        args
-		wantErr     bool
+		want        bool
 	}{
 		{
 			name: "success1",
@@ -1521,8 +1521,8 @@ func TestCheckSwitchInUse(t *testing.T) {
 					SwitchID: "14152233-f90c-49e2-b53e-89d1f8b5ac2b",
 				}}
 			},
-			args:    args{id: "56df0e88-9edd-4536-af80-6b53537f1708"},
-			wantErr: false,
+			args: args{switchInst: &Switch{ID: "56df0e88-9edd-4536-af80-6b53537f1708"}},
+			want: false,
 		},
 		{
 			name: "error1",
@@ -1531,8 +1531,8 @@ func TestCheckSwitchInUse(t *testing.T) {
 					SwitchID: "56df0e88-9edd-4536-af80-6b53537f1708",
 				}}
 			},
-			args:    args{id: "56df0e88-9edd-4536-af80-6b53537f1708"},
-			wantErr: true,
+			args: args{switchInst: &Switch{ID: "56df0e88-9edd-4536-af80-6b53537f1708"}},
+			want: true,
 		},
 	}
 
@@ -1542,9 +1542,9 @@ func TestCheckSwitchInUse(t *testing.T) {
 
 			t.Cleanup(func() { vmnicGetAllFunc = vmnic.GetAll })
 
-			err := CheckSwitchInUse(testCase.args.id)
-			if (err != nil) != testCase.wantErr {
-				t.Errorf("CheckSwitchInUse() error = %v, wantErr %v", err, testCase.wantErr)
+			inUse := testCase.args.switchInst.InUse()
+			if inUse != testCase.want {
+				t.Errorf("InUse() inUse %v, want %v", inUse, testCase.want)
 			}
 		})
 	}
@@ -1795,10 +1795,8 @@ func TestSwitch_Save(t *testing.T) {
 }
 
 func TestDelete(t *testing.T) {
-	createUpdateTime := time.Now()
-
 	type args struct {
-		switchID string
+		switchInst *Switch
 	}
 
 	tests := []struct {
@@ -1819,33 +1817,6 @@ func TestDelete(t *testing.T) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
 				}
-				mock.ExpectQuery(
-					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
-				).
-					WithArgs("9a463b0e-094a-401b-b508-2390367b376a").
-					WillReturnRows(sqlmock.NewRows(
-						[]string{
-							"id",
-							"created_at",
-							"updated_at",
-							"deleted_at",
-							"name",
-							"description",
-							"type",
-							"uplink",
-						}).
-						AddRow(
-							"9a463b0e-094a-401b-b508-2390367b376a",
-							createUpdateTime,
-							createUpdateTime,
-							nil,
-							"bridge0",
-							"a simple test bridge",
-							"IF",
-							"em0",
-						),
-					)
-
 				mock.ExpectBegin()
 				mock.ExpectExec(
 					regexp.QuoteMeta(
@@ -1856,7 +1827,7 @@ func TestDelete(t *testing.T) {
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
 			},
-			args:    args{switchID: "9a463b0e-094a-401b-b508-2390367b376a"},
+			args:    args{&Switch{ID: "9a463b0e-094a-401b-b508-2390367b376a"}},
 			wantErr: false,
 		},
 		{
@@ -1866,38 +1837,9 @@ func TestDelete(t *testing.T) {
 					SwitchID: "9a463b0e-094a-401b-b508-2390367b376a",
 				}}
 			},
-			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &Singleton{ // prevents parallel testing
-					SwitchDB: testDB,
-				}
-				mock.ExpectQuery(
-					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
-				).
-					WithArgs("9a463b0e-094a-401b-b508-2390367b376a").
-					WillReturnRows(sqlmock.NewRows(
-						[]string{
-							"id",
-							"created_at",
-							"updated_at",
-							"deleted_at",
-							"name",
-							"description",
-							"type",
-							"uplink",
-						}).
-						AddRow(
-							"9a463b0e-094a-401b-b508-2390367b376a",
-							createUpdateTime,
-							createUpdateTime,
-							nil,
-							"bridge0",
-							"a simple test bridge",
-							"IF",
-							"em0",
-						),
-					)
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
 			},
-			args:    args{switchID: "9a463b0e-094a-401b-b508-2390367b376a"},
+			args:    args{&Switch{ID: "9a463b0e-094a-401b-b508-2390367b376a"}},
 			wantErr: true,
 		},
 		{
@@ -1911,32 +1853,6 @@ func TestDelete(t *testing.T) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
 				}
-				mock.ExpectQuery(
-					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
-				).
-					WithArgs("9a463b0e-094a-401b-b508-2390367b376a").
-					WillReturnRows(sqlmock.NewRows(
-						[]string{
-							"id",
-							"created_at",
-							"updated_at",
-							"deleted_at",
-							"name",
-							"description",
-							"type",
-							"uplink",
-						}).
-						AddRow(
-							"9a463b0e-094a-401b-b508-2390367b376a",
-							createUpdateTime,
-							createUpdateTime,
-							nil,
-							"bridge0",
-							"a simple test bridge",
-							"IF",
-							"em0",
-						),
-					)
 				mock.ExpectBegin()
 
 				mock.ExpectExec(
@@ -1948,7 +1864,7 @@ func TestDelete(t *testing.T) {
 					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
 				mock.ExpectRollback()
 			},
-			args:    args{switchID: "9a463b0e-094a-401b-b508-2390367b376a"},
+			args:    args{&Switch{ID: "9a463b0e-094a-401b-b508-2390367b376a"}},
 			wantErr: true,
 		},
 		{
@@ -1958,17 +1874,9 @@ func TestDelete(t *testing.T) {
 					SwitchID: "56df0e88-9edd-4536-af80-6b53537f1708",
 				}}
 			},
-			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				Instance = &Singleton{ // prevents parallel testing
-					SwitchDB: testDB,
-				}
-				mock.ExpectQuery(
-					regexp.QuoteMeta("SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1"),
-				).
-					WithArgs("9a463b0e-094a-401b-b508-2390367b376a").
-					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
 			},
-			args:    args{switchID: "9a463b0e-094a-401b-b508-2390367b376a"},
+			args:    args{&Switch{ID: "9a463b0e-094a-401b-b508-2390367b376a"}},
 			wantErr: true,
 		},
 		{
@@ -1978,7 +1886,7 @@ func TestDelete(t *testing.T) {
 			},
 			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
 			},
-			args:    args{switchID: ""},
+			args:    args{&Switch{ID: ""}},
 			wantErr: true,
 		},
 	}
@@ -1992,7 +1900,7 @@ func TestDelete(t *testing.T) {
 
 			t.Cleanup(func() { vmnicGetAllFunc = vmnic.GetAll })
 
-			err := Delete(testCase.args.switchID)
+			err := testCase.args.switchInst.Delete()
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("Delete() error = %v, wantErr %v", err, testCase.wantErr)
 			}

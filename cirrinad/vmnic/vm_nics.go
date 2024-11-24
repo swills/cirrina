@@ -7,7 +7,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/rxwycdh/rxhash"
 	"gorm.io/gorm"
 
@@ -160,9 +159,8 @@ func GetAll() []*VMNic {
 func (vmNic *VMNic) Delete() error {
 	nicDB := GetVMNicDB()
 
-	_, err := uuid.Parse(vmNic.ID)
-	if err != nil {
-		return ErrInvalidNic
+	if vmNic.InUse() {
+		return ErrNicInUse
 	}
 
 	res := nicDB.Limit(1).Unscoped().Delete(&vmNic)
@@ -173,6 +171,10 @@ func (vmNic *VMNic) Delete() error {
 	}
 
 	return nil
+}
+
+func (vmNic *VMNic) InUse() bool {
+	return vmNic.ConfigID != 0
 }
 
 func (vmNic *VMNic) SetSwitch(switchID string) error {

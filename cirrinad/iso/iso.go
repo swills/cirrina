@@ -164,26 +164,56 @@ func GetByName(name string) (*ISO, error) {
 	return result, nil
 }
 
-func Delete(isoID string) error {
-	if isoID == "" {
-		return errIsoIDEmptyOrInvalid
-	}
-
+func (i *ISO) Delete() error {
 	isoDB := GetIsoDB()
 
-	dIso, err := GetByID(isoID)
-	if err != nil {
-		return errIsoNotFound
+	if i.InUse() {
+		return errIsoInUse
 	}
 
-	res := isoDB.Limit(1).Unscoped().Delete(&dIso)
+	res := isoDB.Limit(1).Unscoped().Delete(&i)
 	if res.RowsAffected != 1 {
 		slog.Error("iso delete error", "RowsAffected", res.RowsAffected)
 
 		return errIsoInternalDB
 	}
 
+	// TODO actually delete data from disk, maybe?
 	return nil
+}
+
+func (i *ISO) InUse() bool {
+	db := GetIsoDB()
+
+	res := db.Table("vm_isos").Select([]string{"vm_id", "iso_id", "position"}).
+		Where("iso_id LIKE ?", i.ID).Limit(1)
+
+	rows, rowErr := res.Rows()
+	if rowErr != nil {
+		slog.Error("error getting vm_disks rows", "rowErr", rowErr)
+
+		// fail-safe
+		return true
+	}
+
+	err := rows.Err()
+	if err != nil {
+		slog.Error("error getting vm_disks rows", "err", err)
+
+		// fail-safe
+		return true
+	}
+
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	count := 0
+	for rows.Next() {
+		count++
+	}
+
+	return count > 0
 }
 
 func (i *ISO) Save() error {

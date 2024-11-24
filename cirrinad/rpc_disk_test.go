@@ -978,6 +978,13 @@ func Test_server_RemoveDisk(t *testing.T) {
 
 				disk.List.DiskList[diskInst.ID] = diskInst
 
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT vm_id,disk_id,position FROM `vm_disks` WHERE disk_id LIKE ? LIMIT 1"),
+				).
+					WithArgs("0d4a0338-0b68-4645-b99d-9cbb30df272d").
+					WillReturnRows(sqlmock.NewRows([]string{"vm_id", "disk_id", "position"}))
+
 				mock.ExpectBegin()
 				mock.ExpectExec(
 					regexp.QuoteMeta("DELETE FROM `disks` WHERE `disks`.`id` = ?"),

@@ -13,4 +13,5 @@ var (
 	errDiskZPoolNotConfigured = errors.New("zfs pool not configured")
 	errDiskShrinkage          = errors.New("new disk smaller than current disk")
 	errDiskDupe               = errors.New("duplicate disk found")
+	ErrDiskInUse              = errors.New("disk in use")
 )

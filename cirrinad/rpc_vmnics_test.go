@@ -3264,56 +3264,10 @@ func Test_server_RemoveVMNic(t *testing.T) {
 
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
-						"SELECT * FROM `vm_nics` WHERE id = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
-				).
-					WithArgs("61ba8ba5-8dc3-465a-a482-d043f53b9053").
-					WillReturnRows(
-						sqlmock.NewRows(
-							[]string{
-								"id",
-								"created_at",
-								"updated_at",
-								"deleted_at",
-								"name",
-								"description",
-								"mac",
-								"net_type",
-								"net_dev_type",
-								"switch_id",
-								"net_dev",
-								"rate_limit",
-								"rate_in",
-								"rate_out",
-								"inst_bridge",
-								"inst_epair",
-								"config_id",
-							}).
-							AddRow(
-								"61ba8ba5-8dc3-465a-a482-d043f53b9053",
-								createUpdateTime,
-								createUpdateTime,
-								nil,
-								"test2023072702_int0",
-								"another test nic",
-								"AUTO",
-								"VIRTIONET",
-								"TAP",
-								"5a919407-07dc-4332-825b-3fd65a8804ec",
-								"",
-								false,
-								0,
-								0,
-								"",
-								"",
-								6543,
-							))
-
-				mock.ExpectQuery(
-					regexp.QuoteMeta(
-						"SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL",
+						"SELECT * FROM `vm_nics` WHERE id = ? AND `vm_nics`.`deleted_at` IS NULL",
 					),
 				).
-					WithArgs(6543).
+					WithArgs("61ba8ba5-8dc3-465a-a482-d043f53b9053").
 					WillReturnRows(
 						sqlmock.NewRows(
 							[]string{
@@ -3392,56 +3346,10 @@ func Test_server_RemoveVMNic(t *testing.T) {
 
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
-						"SELECT * FROM `vm_nics` WHERE id = ? AND `vm_nics`.`deleted_at` IS NULL LIMIT 1"),
-				).
-					WithArgs("61ba8ba5-8dc3-465a-a482-d043f53b9053").
-					WillReturnRows(
-						sqlmock.NewRows(
-							[]string{
-								"id",
-								"created_at",
-								"updated_at",
-								"deleted_at",
-								"name",
-								"description",
-								"mac",
-								"net_type",
-								"net_dev_type",
-								"switch_id",
-								"net_dev",
-								"rate_limit",
-								"rate_in",
-								"rate_out",
-								"inst_bridge",
-								"inst_epair",
-								"config_id",
-							}).
-							AddRow(
-								"61ba8ba5-8dc3-465a-a482-d043f53b9053",
-								createUpdateTime,
-								createUpdateTime,
-								nil,
-								"test2023072702_int0",
-								"another test nic",
-								"AUTO",
-								"VIRTIONET",
-								"TAP",
-								"5a919407-07dc-4332-825b-3fd65a8804ec",
-								"",
-								false,
-								0,
-								0,
-								"",
-								"",
-								6543,
-							))
-
-				mock.ExpectQuery(
-					regexp.QuoteMeta(
-						"SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL",
+						"SELECT * FROM `vm_nics` WHERE id = ? AND `vm_nics`.`deleted_at` IS NULL",
 					),
 				).
-					WithArgs(6543).
+					WithArgs("61ba8ba5-8dc3-465a-a482-d043f53b9053").
 					WillReturnError(gorm.ErrInvalidData)
 			},
 			args: args{

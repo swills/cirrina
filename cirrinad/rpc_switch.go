@@ -91,14 +91,9 @@ func (s *server) RemoveSwitch(_ context.Context, switchID *cirrina.SwitchId) (*c
 		return &res, errNotFound
 	}
 
-	err2 := _switch.CheckSwitchInUse(switchID.GetValue())
-	if err2 != nil {
-		slog.Debug("attempted to delete switch which is in use",
-			"switch", switchID.GetValue(),
-			"switch_name", switchInst.Name,
-		)
-
-		return &res, errSwitchInUse
+	err = switchInst.Delete()
+	if err != nil {
+		return &res, fmt.Errorf("error deleting bridge: %w", err)
 	}
 
 	switch switchInst.Type {
@@ -116,13 +111,6 @@ func (s *server) RemoveSwitch(_ context.Context, switchID *cirrina.SwitchId) (*c
 		}
 	default:
 		return &res, errSwitchInvalidType
-	}
-
-	slog.Debug("RemoveSwitch", "switchid", switchID.GetValue())
-
-	err = _switch.Delete(switchID.GetValue())
-	if err != nil {
-		return &res, fmt.Errorf("error deleting bridge: %w", err)
 	}
 
 	res.Success = true

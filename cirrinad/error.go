@@ -20,12 +20,10 @@ var (
 var (
 	errInvalidNicID          = errors.New("nic id not specified or invalid")
 	errNicInUseByMultipleVMs = errors.New("nic in use by more than one VM")
-	errNicInUse              = errors.New("nic in use")
 )
 
 var (
 	errSwitchNotFound      = errors.New("switch not found")
-	errSwitchInUse         = errors.New("switch in use")
 	errSwitchInvalidType   = errors.New("invalid switch type")
 	errSwitchInvalidUplink = errors.New("uplink not specified")
 	errSwitchUplinkInUse   = errors.New("uplink already in use")

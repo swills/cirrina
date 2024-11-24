@@ -179,23 +179,11 @@ func (s *server) RemoveDisk(_ context.Context, diskID *cirrina.DiskId) (*cirrina
 		return &res, errNotFound
 	}
 
-	// check that disk is not in use by a VM
-	var diskVM *vm.VM
-
-	diskVM, err = getDiskVM(diskUUID)
-	if err != nil {
-		return &res, err
-	}
-
-	if diskVM != nil {
-		return &res, errDiskInUse
-	}
-
 	// prevent deleting disk while it's being uploaded etc
 	defer diskInst.Unlock()
 	diskInst.Lock()
 
-	err = disk.Delete(diskInst.ID)
+	err = diskInst.Delete()
 	if err != nil {
 		slog.Error("error deleting disk", "err", err)
 

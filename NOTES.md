@@ -6,8 +6,6 @@
 * Remove in memory "cache", Lists, or replace with eko/gocache (v3 or v4)
 * Add setting for maximum disk/iso size and check them during upload
 * Check that we have enough space for a disk/iso before allowing upload
-* Make sure iso, nic, disk switch are uniform, ie, take same args for all funcs
-  * For example, iso delete takes string, nic delete takes object
 * Convert NICs to using custom join table, in order to preserve order
 * Convert all UUIDs from strings to UUID type
 * Convert all paths from strings to path/filepath
@@ -22,11 +20,11 @@
 * arm64 support: kern.osreldate 1500018 -- need to wait for 1500019 and test for that or higher
 * Fix zvol ownership!
 * Fix cirrinactl over IPv6
-* Actually delete disks from the database
+* Actually delete disks from system (file/zvol)
+* Actually delete isos from system (file)
 * Add a force kill function for OSs that will not shut down properly and when you do not want to wait
 * Add feature to remove CD after first boot
-* Add a "remove disk" feature to actually destroy a disk that was deleted from DB (or does not exist)
-* have all cirrinactl commands which use server make a call to hostPing() before doing anything with the server
+* Have all cirrinactl commands which use server make a call to hostPing() before doing anything with the server
 * Use consistent terminology:
   * destroy, remove -> always use remove?
   * error, failed -> always use error?

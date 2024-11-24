@@ -252,19 +252,14 @@ func GetByName(name string) (*Disk, error) {
 	return nil, errDiskNotFound
 }
 
-func Delete(diskID string) error {
-	if diskID == "" {
-		return errDiskIDEmptyOrInvalid
+func (d *Disk) Delete() error {
+	diskDB := GetDiskDB()
+
+	if d.InUse() {
+		return ErrDiskInUse
 	}
 
-	_, valid := List.DiskList[diskID]
-	if !valid {
-		return errDiskIDEmptyOrInvalid
-	}
-
-	db := GetDiskDB()
-
-	res := db.Limit(1).Unscoped().Delete(&Disk{ID: diskID})
+	res := diskDB.Limit(1).Unscoped().Delete(&d)
 
 	if res.Error != nil || res.RowsAffected != 1 {
 		slog.Error("error saving disk", "res", res)
@@ -272,9 +267,44 @@ func Delete(diskID string) error {
 		return errDiskInternalDB
 	}
 
-	delete(List.DiskList, diskID)
+	delete(List.DiskList, d.ID)
 
+	// TODO actually delete data from disk, maybe?
 	return nil
+}
+
+func (d *Disk) InUse() bool {
+	db := GetDiskDB()
+
+	res := db.Table("vm_disks").Select([]string{"vm_id", "disk_id", "position"}).
+		Where("disk_id LIKE ?", d.ID).Limit(1)
+
+	rows, rowErr := res.Rows()
+	if rowErr != nil {
+		slog.Error("error getting vm_disks rows", "rowErr", rowErr)
+
+		// fail-safe
+		return true
+	}
+
+	err := rows.Err()
+	if err != nil {
+		slog.Error("error getting vm_disks rows", "err", err)
+
+		// fail-safe
+		return true
+	}
+
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	count := 0
+	for rows.Next() {
+		count++
+	}
+
+	return count > 0
 }
 
 func (d *Disk) Save() error {

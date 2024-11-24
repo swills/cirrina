@@ -259,17 +259,6 @@ func Create(switchInst *Switch) error {
 	return nil
 }
 
-func CheckSwitchInUse(id string) error {
-	vmNics := vmnicGetAllFunc()
-	for _, vmNic := range vmNics {
-		if vmNic.SwitchID == id {
-			return errSwitchInUse
-		}
-	}
-
-	return nil
-}
-
 func CheckInterfaceExists(interfaceName string) bool {
 	netDevs := util.GetHostInterfaces()
 
@@ -320,24 +309,14 @@ func CreateSwitches() error {
 	return nil
 }
 
-func Delete(switchID string) error {
-	if switchID == "" {
-		return errSwitchInvalidID
-	}
-
+func (s *Switch) Delete() error {
 	switchDB := getSwitchDB()
 
-	dSwitch, err := GetByID(switchID)
-	if err != nil {
-		return errSwitchNotFound
+	if s.InUse() {
+		return errSwitchInUse
 	}
 
-	err2 := CheckSwitchInUse(switchID)
-	if err2 != nil {
-		return err2
-	}
-
-	res := switchDB.Limit(1).Unscoped().Delete(&dSwitch)
+	res := switchDB.Limit(1).Unscoped().Delete(&s)
 	if res.RowsAffected != 1 {
 		slog.Error("error saving switch", "res", res)
 
@@ -345,6 +324,17 @@ func Delete(switchID string) error {
 	}
 
 	return nil
+}
+
+func (s *Switch) InUse() bool {
+	vmNics := vmnicGetAllFunc()
+	for _, vmNic := range vmNics {
+		if vmNic.SwitchID == s.ID {
+			return true
+		}
+	}
+
+	return false
 }
 
 func DestroySwitches() error {

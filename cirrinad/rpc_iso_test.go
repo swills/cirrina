@@ -676,6 +676,14 @@ func Test_server_RemoveISO(t *testing.T) {
 							"totalGarbage",
 						),
 					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT vm_id,iso_id,position FROM `vm_isos` WHERE iso_id LIKE ? LIMIT 1"),
+				).
+					WithArgs("515df28c-c52d-4fa1-b696-f02f10b1ae1b").
+					WillReturnRows(sqlmock.NewRows([]string{"vm_id", "iso_id", "position"}))
+
 				mock.ExpectBegin()
 				mock.ExpectExec(
 					regexp.QuoteMeta("DELETE FROM `isos` WHERE `isos`.`id` = ?"),

@@ -275,6 +275,11 @@ func (s *server) RemoveISO(_ context.Context, isoID *cirrina.ISOID) (*cirrina.Re
 		return &res, errInvalidID
 	}
 
+	dIso, err := iso.GetByID(isoUUID.String())
+	if err != nil {
+		return &res, errIsoNotFound
+	}
+
 	// check that iso is not in use by a VM
 	allVMs := vm.GetAll()
 	for _, thisVM := range allVMs {
@@ -285,7 +290,7 @@ func (s *server) RemoveISO(_ context.Context, isoID *cirrina.ISOID) (*cirrina.Re
 				continue
 			}
 
-			if vmISO.ID == isoUUID.String() {
+			if vmISO.ID == dIso.ID {
 				slog.Error("RemoveISO",
 					"msg", "tried to remove ISO in use by VM",
 					"isoid", isoUUID.String(),
@@ -298,14 +303,12 @@ func (s *server) RemoveISO(_ context.Context, isoID *cirrina.ISOID) (*cirrina.Re
 		}
 	}
 
-	err = iso.Delete(isoUUID.String())
+	err = dIso.Delete()
 	if err != nil {
 		slog.Error("error deleting iso", "err", err)
 
 		return &res, errISOInternalDB
 	}
-
-	// TODO dare we actually delete data from disk?
 
 	res.Success = true
 
