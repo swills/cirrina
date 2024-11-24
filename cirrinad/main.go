@@ -155,15 +155,14 @@ func doDBMigrations() {
 
 	// gorm auto migrations
 	disk.DBAutoMigrate()
-	disk.CacheInit()
 	iso.DBAutoMigrate()
 	vmnic.DBAutoMigrate()
 	_switch.DBAutoMigrate()
-
 	vm.DBAutoMigrate()
-	vm.CacheInit()
-
 	requests.DBAutoMigrate()
+
+	disk.CacheInit()
+	vm.CacheInit()
 }
 
 func shutdownHandler() {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -207,4 +208,33 @@ func (i *ISO) Save() error {
 
 func (i *ISO) GetPath() string {
 	return filepath.Join(config.Config.Disk.VM.Path.Iso, i.Name)
+}
+
+func CheckAll() {
+	for _, anISO := range GetAll() {
+		exists, err := isoExistsFS(filepath.Join(config.Config.Disk.VM.Path.Iso, anISO.Name))
+		if err != nil {
+			slog.Error("error checking iso exist", "err", err)
+
+			return
+		}
+
+		if !exists {
+			slog.Error("iso backing does not exists", "iso.Name", anISO.Name, "iso.ID", anISO.ID)
+		}
+	}
+
+	isoFiles, err := os.ReadDir(config.Config.Disk.VM.Path.Iso)
+	if err != nil {
+		slog.Error("failed checking isos", "err", err)
+	} else {
+		for _, v := range isoFiles {
+			if util.ValidIsoName(v.Name()) {
+				_, err = GetByName(v.Name())
+				if err != nil {
+					slog.Warn("possible left over iso", "iso.Name", v.Name(), "file.Name", v.Name())
+				}
+			}
+		}
+	}
 }

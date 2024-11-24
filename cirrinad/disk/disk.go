@@ -346,7 +346,7 @@ func (d *Disk) Unlock() {
 	d.mu.Unlock()
 }
 
-// initOneDisk initializes and adds a Disk to the in memory cache of Disks
+// initOneDisk initializes and adds a Disk to the in-memory cache of Disks
 // note, callers must lock the in memory cache via List.Mu.Lock()
 func (d *Disk) initOneDisk() {
 	if d == nil {
@@ -354,4 +354,23 @@ func (d *Disk) initOneDisk() {
 	}
 
 	List.DiskList[d.ID] = d
+}
+
+func CheckAll() {
+	for _, aDiskZVol := range GetAllDB() {
+		exists, err := aDiskZVol.VerifyExists()
+		if err != nil {
+			slog.Error("error checking disks exist", "err", err)
+
+			return
+		}
+
+		if !exists {
+			slog.Error("disk backing does not exists", "disk.Name", aDiskZVol.Name, "disk.ID", aDiskZVol.ID)
+		}
+	}
+
+	checkLeftoversFile()
+
+	checkLeftoversZvol()
 }

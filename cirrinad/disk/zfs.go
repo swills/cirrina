@@ -512,3 +512,37 @@ func rollBackToEmptySnapshot(volName string) error {
 
 	return nil
 }
+
+func checkLeftoversZvol() {
+	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+		"/sbin/zfs",
+		[]string{"list", "-t", "volume", "-o", "name", "-H"},
+	)
+
+	if err != nil {
+		slog.Error("failed to list zfs volumes",
+			"stdOutBytes", stdOutBytes,
+			"stdErrBytes", stdErrBytes,
+			"returnCode", returnCode,
+			"err", err,
+		)
+
+		return
+	}
+
+	zvols := strings.Split(string(stdOutBytes), "\n")
+	for _, aZVol := range zvols {
+		// match GetPath()
+		if !strings.HasPrefix(aZVol, config.Config.Disk.VM.Path.Zpool+"/") {
+			continue
+		}
+
+		zvolName := strings.TrimPrefix(aZVol, config.Config.Disk.VM.Path.Zpool+"/")
+		if util.ValidDiskName(zvolName) {
+			_, err = GetByName(zvolName)
+			if err != nil {
+				slog.Warn("possible left over disk (zvol)", "disk.Name", zvolName, "vol.Name", zvolName)
+			}
+		}
+	}
+}

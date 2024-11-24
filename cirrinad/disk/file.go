@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/user"
 	"strconv"
+	"strings"
 	"syscall"
 
 	"cirrina/cirrinad/config"
@@ -279,4 +280,27 @@ func (n FileInfoService) RemoveBacking(targetDisk *Disk) error {
 	}
 
 	return nil
+}
+
+func checkLeftoversFile() {
+	diskFiles, err := os.ReadDir(config.Config.Disk.VM.Path.Image)
+	if err != nil {
+		slog.Error("failed checking disks", "err", err)
+
+		return
+	}
+
+	for _, aDiskFile := range diskFiles {
+		if !strings.HasSuffix(aDiskFile.Name(), ".img") {
+			continue
+		}
+
+		diskName := strings.TrimSuffix(aDiskFile.Name(), ".img")
+		if util.ValidDiskName(diskName) {
+			_, err = GetByName(diskName)
+			if err != nil {
+				slog.Warn("possible left over disk (file)", "disk.Name", diskName, "file.Name", aDiskFile.Name())
+			}
+		}
+	}
 }

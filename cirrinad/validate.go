@@ -18,6 +18,8 @@ import (
 	"golang.org/x/sys/unix"
 
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/disk"
+	"cirrina/cirrinad/iso"
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vmnic"
@@ -708,41 +710,9 @@ func validateMyID() {
 // validateDB validate db contents are sane: assume DB is correct, but maybe system state has changed
 // called after migrations
 func validateDB() {
-	// TODO -- validate the backing (file, zvol, volpath) of every disk/iso exists
-	var ifUplinks []string
-
-	var ngUplinks []string
-	// validate every switch's uplink interface exist, check for duplicates
-	allBridges := _switch.GetAll()
-	for _, bridge := range allBridges {
-		if bridge.Uplink == "" {
-			continue
-		}
-
-		exists := _switch.CheckInterfaceExists(bridge.Uplink)
-		if !exists {
-			slog.Warn("bridge uplink does not exist, will be ignored", "bridge", bridge.Name, "uplink", bridge.Uplink)
-
-			continue
-		}
-
-		switch bridge.Type {
-		case "IF":
-			if util.ContainsStr(ifUplinks, bridge.Uplink) {
-				slog.Error("uplink used twice", "bridge", bridge.Name, "uplink", bridge.Uplink)
-			} else {
-				ifUplinks = append(ifUplinks, bridge.Uplink)
-			}
-		case "NG":
-			if util.ContainsStr(ngUplinks, bridge.Uplink) {
-				slog.Error("uplink used twice", "bridge", bridge.Name, "uplink", bridge.Uplink)
-			} else {
-				ngUplinks = append(ngUplinks, bridge.Uplink)
-			}
-		default:
-			slog.Error("unknown switch type checking uplinks", "bridge", bridge.Name, "type", bridge.Type)
-		}
-	}
+	disk.CheckAll()
+	iso.CheckAll()
+	_switch.CheckAll()
 }
 
 // TODO check that users home dir is /nonexistent and that their login shell is /sbin/nologin

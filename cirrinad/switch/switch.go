@@ -565,3 +565,40 @@ func (s *Switch) Save() error {
 
 	return nil
 }
+
+func CheckAll() {
+	var ifUplinks []string
+
+	var ngUplinks []string
+	// validate every switch's uplink interface exist, check for duplicates
+	allBridges := GetAll()
+	for _, bridge := range allBridges {
+		if bridge.Uplink == "" {
+			continue
+		}
+
+		exists := CheckInterfaceExists(bridge.Uplink)
+		if !exists {
+			slog.Warn("bridge uplink does not exist, will be ignored", "bridge", bridge.Name, "uplink", bridge.Uplink)
+
+			continue
+		}
+
+		switch bridge.Type {
+		case "IF":
+			if util.ContainsStr(ifUplinks, bridge.Uplink) {
+				slog.Error("uplink used twice", "bridge", bridge.Name, "uplink", bridge.Uplink)
+			} else {
+				ifUplinks = append(ifUplinks, bridge.Uplink)
+			}
+		case "NG":
+			if util.ContainsStr(ngUplinks, bridge.Uplink) {
+				slog.Error("uplink used twice", "bridge", bridge.Name, "uplink", bridge.Uplink)
+			} else {
+				ngUplinks = append(ngUplinks, bridge.Uplink)
+			}
+		default:
+			slog.Error("unknown switch type checking uplinks", "bridge", bridge.Name, "type", bridge.Type)
+		}
+	}
+}
