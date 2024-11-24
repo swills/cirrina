@@ -200,6 +200,8 @@ func sigHandler(signal os.Signal) {
 	switch signal {
 	case syscall.SIGINFO:
 		handleSigInfo()
+	case syscall.SIGHUP:
+		shutdownHandler()
 	case syscall.SIGINT:
 		shutdownHandler()
 	case syscall.SIGTERM:
