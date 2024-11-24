@@ -147,7 +147,7 @@ func checkExistingPidFile(pidFilePath string) {
 func doDBMigrations() {
 	util.ValidateDBConfig()
 
-	// auto migration for meta (schema_version)
+	// auto-migration for meta (schema_version)
 	db.AutoMigrate()
 
 	// my custom migrations
@@ -225,6 +225,7 @@ var rootCmd = &cobra.Command{
 
 		signals := make(chan os.Signal, 1)
 		signal.Notify(signals, os.Interrupt, syscall.SIGINFO)
+		signal.Notify(signals, os.Interrupt, syscall.SIGHUP)
 		signal.Notify(signals, os.Interrupt, syscall.SIGINT)
 		signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
