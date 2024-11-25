@@ -178,9 +178,9 @@ var VMNicsAddCmd = &cobra.Command{
 	},
 }
 
-var VMNicsRmCmd = &cobra.Command{
-	Use:          "remove",
-	Short:        "Un-attach a NIC from a VM",
+var VMNicsDisconnectCmd = &cobra.Command{
+	Use:          "disconnect",
+	Short:        "Disconnect a NIC from a VM",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
@@ -225,7 +225,7 @@ var VMNicsRmCmd = &cobra.Command{
 		if !res {
 			return errReqFailed
 		}
-		fmt.Printf("Removed\n")
+		fmt.Printf("Deleted\n")
 
 		return nil
 	},

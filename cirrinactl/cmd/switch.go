@@ -23,7 +23,7 @@ var (
 var SwitchCmd = &cobra.Command{
 	Use:   "switch",
 	Args:  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
-	Short: "Create, list, modify, destroy virtual switches",
+	Short: "Create, list, modify, delete virtual switches",
 }
 
 var SwitchListCmd = &cobra.Command{
@@ -111,9 +111,9 @@ var SwitchCreateCmd = &cobra.Command{
 	},
 }
 
-var SwitchDestroyCmd = &cobra.Command{
-	Use:          "destroy",
-	Short:        "destroy virtual switch",
+var SwitchDeleteCmd = &cobra.Command{
+	Use:          "delete",
+	Short:        "delete virtual switch",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
@@ -127,7 +127,7 @@ var SwitchDestroyCmd = &cobra.Command{
 			}
 		}
 
-		err = rpc.RemoveSwitch(SwitchID)
+		err = rpc.DeleteSwitch(SwitchID)
 		if err != nil {
 			return fmt.Errorf("error removing switch: %w", err)
 		}

@@ -383,9 +383,9 @@ var IsoUploadCmd = &cobra.Command{
 	},
 }
 
-var IsoRemoveCmd = &cobra.Command{
-	Use:          "remove",
-	Short:        "Remove an ISO",
+var IsoDeleteCmd = &cobra.Command{
+	Use:          "delete",
+	Short:        "Delete an ISO",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
@@ -411,5 +411,5 @@ var IsoRemoveCmd = &cobra.Command{
 
 var IsoCmd = &cobra.Command{
 	Use:   "iso",
-	Short: "Create, list, modify, destroy ISOs",
+	Short: "Create, list, modify, delete ISOs",
 }

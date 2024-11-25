@@ -175,7 +175,7 @@ func SetSwitchUplink(switchID string, uplinkNamePtr *string) error {
 	return nil
 }
 
-func RemoveSwitch(switchID string) error {
+func DeleteSwitch(switchID string) error {
 	var err error
 
 	if switchID == "" {

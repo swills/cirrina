@@ -21,16 +21,16 @@ func init() {
 	VMNicsAddCmd.MarkFlagsOneRequired("nic-name", "nic-id")
 	VMNicsAddCmd.MarkFlagsMutuallyExclusive("nic-name", "nic-id")
 
-	disableFlagSorting(VMNicsRmCmd)
-	addNameOrIDArgs(VMNicsRmCmd, &VMName, &VMID, "VM")
-	VMNicsRmCmd.Flags().StringVarP(&NicName, "nic-name", "N", NicName, "Name of Nic")
-	VMNicsRmCmd.Flags().StringVarP(&NicID, "nic-id", "I", NicID, "ID of Nic")
-	VMNicsRmCmd.MarkFlagsOneRequired("nic-name", "nic-id")
-	VMNicsRmCmd.MarkFlagsMutuallyExclusive("nic-name", "nic-id")
+	disableFlagSorting(VMNicsDisconnectCmd)
+	addNameOrIDArgs(VMNicsDisconnectCmd, &VMName, &VMID, "VM")
+	VMNicsDisconnectCmd.Flags().StringVarP(&NicName, "nic-name", "N", NicName, "Name of Nic")
+	VMNicsDisconnectCmd.Flags().StringVarP(&NicID, "nic-id", "I", NicID, "ID of Nic")
+	VMNicsDisconnectCmd.MarkFlagsOneRequired("nic-name", "nic-id")
+	VMNicsDisconnectCmd.MarkFlagsMutuallyExclusive("nic-name", "nic-id")
 
 	VMNicsCmd.AddCommand(VMNicsListCmd)
 	VMNicsCmd.AddCommand(VMNicsAddCmd)
-	VMNicsCmd.AddCommand(VMNicsRmCmd)
+	VMNicsCmd.AddCommand(VMNicsDisconnectCmd)
 
 	VMCmd.AddCommand(VMNicsCmd)
 }

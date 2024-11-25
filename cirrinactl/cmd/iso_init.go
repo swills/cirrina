@@ -27,8 +27,8 @@ func init() {
 		"description", "d", IsoDescription, "description of ISO",
 	)
 
-	disableFlagSorting(IsoRemoveCmd)
-	addNameOrIDArgs(IsoRemoveCmd, &IsoName, &IsoID, "ISO")
+	disableFlagSorting(IsoDeleteCmd)
+	addNameOrIDArgs(IsoDeleteCmd, &IsoName, &IsoID, "ISO")
 
 	disableFlagSorting(IsoUploadCmd)
 	addNameOrIDArgs(IsoUploadCmd, &IsoName, &IsoID, "ISO")
@@ -45,6 +45,6 @@ func init() {
 
 	IsoCmd.AddCommand(IsoListCmd)
 	IsoCmd.AddCommand(IsoCreateCmd)
-	IsoCmd.AddCommand(IsoRemoveCmd)
+	IsoCmd.AddCommand(IsoDeleteCmd)
 	IsoCmd.AddCommand(IsoUploadCmd)
 }

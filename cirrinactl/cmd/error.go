@@ -27,7 +27,7 @@ var (
 var (
 	errVMEmptyName     = errors.New("empty VM name")
 	errVMNotFound      = errors.New("VM not found")
-	errVMInUseStop     = errors.New("VM must be stopped in order to be destroyed")
+	errVMInUseStop     = errors.New("VM must be stopped before deleting")
 	errVMNotRunning    = errors.New("VM not running")
 	errVMNotStopped    = errors.New("VM must be stopped in order to be started")
 	errVMUnknownFormat = errors.New("unknown output format")

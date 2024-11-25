@@ -14,7 +14,7 @@ func init() {
 		panic(err)
 	}
 
-	setupVMDestroyCmd()
+	setupVMDeleteCmd()
 	setupVMStartCmd()
 	setupVMStopCmd()
 	setupVMConfigCmd()
@@ -23,7 +23,7 @@ func init() {
 
 	VMCmd.AddCommand(VMListCmd)
 	VMCmd.AddCommand(VMCreateCmd)
-	VMCmd.AddCommand(VMDestroyCmd)
+	VMCmd.AddCommand(VMDeleteCmd)
 	VMCmd.AddCommand(VMConfigCmd)
 	VMCmd.AddCommand(VMGetCmd)
 	VMCmd.AddCommand(VMStartCmd)
@@ -201,9 +201,9 @@ func setupVMStartCmd() {
 	VMStartCmd.Flags().BoolVarP(&CheckReqStat, "status", "s", CheckReqStat, "Check status")
 }
 
-func setupVMDestroyCmd() {
-	disableFlagSorting(VMDestroyCmd)
-	addNameOrIDArgs(VMDestroyCmd, &VMName, &VMID, "VM")
+func setupVMDeleteCmd() {
+	disableFlagSorting(VMDeleteCmd)
+	addNameOrIDArgs(VMDeleteCmd, &VMName, &VMID, "VM")
 }
 
 func setupVMCreateCmd() error {

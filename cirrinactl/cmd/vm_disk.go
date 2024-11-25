@@ -160,9 +160,9 @@ var VMDiskAddCmd = &cobra.Command{
 	},
 }
 
-var VMDiskRmCmd = &cobra.Command{
-	Use:          "remove",
-	Short:        "Detach a disk from a VM",
+var VMDiskDisconnectCmd = &cobra.Command{
+	Use:          "disconnect",
+	Short:        "Disconnect a disk from a VM",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
@@ -206,7 +206,7 @@ var VMDiskRmCmd = &cobra.Command{
 		if !res {
 			return errReqFailed
 		}
-		fmt.Printf("Disk removed from VM\n")
+		fmt.Printf("Disk disconnected from VM\n")
 
 		return nil
 	},

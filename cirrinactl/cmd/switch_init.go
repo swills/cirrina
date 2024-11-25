@@ -26,8 +26,8 @@ func init() {
 		"uplink", "u", SwitchName, "uplink name",
 	)
 
-	disableFlagSorting(SwitchDestroyCmd)
-	addNameOrIDArgs(SwitchDestroyCmd, &SwitchName, &SwitchID, "switch")
+	disableFlagSorting(SwitchDeleteCmd)
+	addNameOrIDArgs(SwitchDeleteCmd, &SwitchName, &SwitchID, "switch")
 
 	disableFlagSorting(SwitchUplinkCmd)
 	addNameOrIDArgs(SwitchUplinkCmd, &SwitchName, &SwitchID, "switch")
@@ -48,7 +48,7 @@ func init() {
 
 	SwitchCmd.AddCommand(SwitchListCmd)
 	SwitchCmd.AddCommand(SwitchCreateCmd)
-	SwitchCmd.AddCommand(SwitchDestroyCmd)
+	SwitchCmd.AddCommand(SwitchDeleteCmd)
 	SwitchCmd.AddCommand(SwitchUpdateCmd)
 	SwitchCmd.AddCommand(SwitchUplinkCmd)
 }

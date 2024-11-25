@@ -299,9 +299,9 @@ var VMListCmd = &cobra.Command{
 	},
 }
 
-var VMDestroyCmd = &cobra.Command{
-	Use:          "destroy",
-	Short:        "Remove a VM",
+var VMDeleteCmd = &cobra.Command{
+	Use:          "delete",
+	Short:        "Delete a VM",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
@@ -329,7 +329,7 @@ var VMDestroyCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed deleting VM: %w", err)
 		}
-		fmt.Printf("VM Removed\n")
+		fmt.Printf("VM Deleted\n")
 
 		return nil
 	},
@@ -1032,5 +1032,5 @@ var VMClearUefiVarsCmd = &cobra.Command{
 
 var VMCmd = &cobra.Command{
 	Use:   "vm",
-	Short: "Create, list, modify, destroy VMs",
+	Short: "Create, list, modify, delete VMs",
 }

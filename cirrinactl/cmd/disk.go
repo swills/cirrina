@@ -167,9 +167,9 @@ var DiskCreateCmd = &cobra.Command{
 	},
 }
 
-var DiskRemoveCmd = &cobra.Command{
-	Use:          "destroy",
-	Short:        "remove virtual disk",
+var DiskDeleteCmd = &cobra.Command{
+	Use:          "delete",
+	Short:        "delete virtual disk",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
@@ -599,5 +599,5 @@ var DiskUploadCmd = &cobra.Command{
 
 var DiskCmd = &cobra.Command{
 	Use:   "disk",
-	Short: "Create, list, modify, destroy virtual disks",
+	Short: "Create, list, modify, delete virtual disks",
 }

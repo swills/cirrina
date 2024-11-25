@@ -14,14 +14,14 @@ func init() {
 		panic(err)
 	}
 
-	setupNicRemoveCmd()
+	setupNicDeleteCmd()
 	setupNicSetSwitchCmd()
 	setupNicCloneCmd()
 	setupNicUpdateCmd()
 
 	NicCmd.AddCommand(NicListCmd)
 	NicCmd.AddCommand(NicCreateCmd)
-	NicCmd.AddCommand(NicRemoveCmd)
+	NicCmd.AddCommand(NicDeleteCmd)
 	NicCmd.AddCommand(NicSetSwitchCmd)
 	NicCmd.AddCommand(NicCloneCmd)
 	NicCmd.AddCommand(NicUpdateCmd)
@@ -68,9 +68,9 @@ func setupNicSetSwitchCmd() {
 	NicSetSwitchCmd.MarkFlagsMutuallyExclusive("switch-name", "switch-id")
 }
 
-func setupNicRemoveCmd() {
-	disableFlagSorting(NicRemoveCmd)
-	addNameOrIDArgs(NicRemoveCmd, &NicName, &NicID, "NIC")
+func setupNicDeleteCmd() {
+	disableFlagSorting(NicDeleteCmd)
+	addNameOrIDArgs(NicDeleteCmd, &NicName, &NicID, "NIC")
 }
 
 func setupNicCreateCmd() error {

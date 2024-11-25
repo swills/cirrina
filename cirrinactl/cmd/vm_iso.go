@@ -140,8 +140,8 @@ var VMIsosAddCmd = &cobra.Command{
 }
 
 var VMIsosRmCmd = &cobra.Command{
-	Use:          "remove",
-	Short:        "Un-attach a ISO from a VM",
+	Use:          "disconnect",
+	Short:        "Disconnect an ISO from a VM",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
@@ -194,7 +194,7 @@ var VMIsosRmCmd = &cobra.Command{
 		if !res {
 			return errReqFailed
 		}
-		fmt.Printf("Removed\n")
+		fmt.Printf("Deleted\n")
 
 		return nil
 	},

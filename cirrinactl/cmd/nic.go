@@ -180,9 +180,9 @@ var NicCreateCmd = &cobra.Command{
 	},
 }
 
-var NicRemoveCmd = &cobra.Command{
-	Use:          "destroy",
-	Short:        "remove virtual nic",
+var NicDeleteCmd = &cobra.Command{
+	Use:          "delete",
+	Short:        "delete virtual nic",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
@@ -206,9 +206,9 @@ var NicRemoveCmd = &cobra.Command{
 }
 
 var NicSetSwitchCmd = &cobra.Command{
-	Use:          "setswitch",
+	Use:          "connect",
 	Short:        "Connect NIC to switch",
-	Long:         "Connect a NIC to a switch, or set switch to empty to remove",
+	Long:         "Connect a NIC to a switch, or set switch to empty to disconnect",
 	SilenceUsage: true,
 	Args: func(cmd *cobra.Command, _ []string) error {
 		NicSwitchIDChanged = cmd.Flags().Changed("switch-id")
@@ -393,5 +393,5 @@ var NicUpdateCmd = &cobra.Command{
 
 var NicCmd = &cobra.Command{
 	Use:   "nic",
-	Short: "Create, list, modify, destroy virtual NICs",
+	Short: "Create, list, modify, delete virtual NICs",
 }

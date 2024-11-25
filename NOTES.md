@@ -26,12 +26,11 @@
 * Add feature to remove CD after first boot
 * Have all cirrinactl commands which use server make a call to hostPing() before doing anything with the server
 * Use consistent terminology:
-  * destroy, remove -> always use remove?
   * error, failed -> always use error?
   * switch, bridge -> always use switch?
   * nic, vmnic -> always use nic?
   * iso, ISO -> always use ISO in messages? something else?
-  * Convert disk/iso on disk file name from actual disk/iso name to uuid, maybe
+* Convert disk/iso on disk file name from actual disk/iso name to uuid, maybe
 * Add option to cirrinactl com stream to:
   * Avoid quit info message and pause on startup
   * Avoid clearing screen

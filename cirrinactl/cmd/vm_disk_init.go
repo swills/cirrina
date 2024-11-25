@@ -21,16 +21,16 @@ func init() {
 	VMDiskAddCmd.MarkFlagsOneRequired("disk-name", "disk-id")
 	VMDiskAddCmd.MarkFlagsMutuallyExclusive("disk-name", "disk-id")
 
-	disableFlagSorting(VMDiskRmCmd)
-	addNameOrIDArgs(VMDiskRmCmd, &VMName, &VMID, "VM")
-	VMDiskRmCmd.Flags().StringVarP(&DiskName, "disk-name", "N", DiskName, "Name of Disk")
-	VMDiskRmCmd.Flags().StringVarP(&DiskID, "disk-id", "I", DiskID, "ID of Disk")
-	VMDiskRmCmd.MarkFlagsOneRequired("disk-name", "disk-id")
-	VMDiskRmCmd.MarkFlagsMutuallyExclusive("disk-name", "disk-id")
+	disableFlagSorting(VMDiskDisconnectCmd)
+	addNameOrIDArgs(VMDiskDisconnectCmd, &VMName, &VMID, "VM")
+	VMDiskDisconnectCmd.Flags().StringVarP(&DiskName, "disk-name", "N", DiskName, "Name of Disk")
+	VMDiskDisconnectCmd.Flags().StringVarP(&DiskID, "disk-id", "I", DiskID, "ID of Disk")
+	VMDiskDisconnectCmd.MarkFlagsOneRequired("disk-name", "disk-id")
+	VMDiskDisconnectCmd.MarkFlagsMutuallyExclusive("disk-name", "disk-id")
 
 	VMDisksCmd.AddCommand(VMDisksListCmd)
 	VMDisksCmd.AddCommand(VMDiskAddCmd)
-	VMDisksCmd.AddCommand(VMDiskRmCmd)
+	VMDisksCmd.AddCommand(VMDiskDisconnectCmd)
 
 	VMCmd.AddCommand(VMDisksCmd)
 }
