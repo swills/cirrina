@@ -1218,6 +1218,7 @@ func TestGetNics(t *testing.T) {
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
 				).
+					WithArgs(321).
 					WillReturnRows(sqlmock.NewRows([]string{
 						"id",
 						"created_at",

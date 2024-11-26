@@ -240,6 +240,51 @@ func (i *ISO) GetPath() string {
 	return filepath.Join(config.Config.Disk.VM.Path.Iso, i.Name)
 }
 
+func (i *ISO) GetVMIDs() []string {
+	var retVal []string
+
+	db := GetIsoDB()
+
+	res := db.Table("vm_isos").Select([]string{"vm_id"}).
+		Where("iso_id LIKE ?", i.ID)
+
+	rows, rowErr := res.Rows()
+
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	if rowErr != nil {
+		slog.Error("error getting vm_isos rows", "rowErr", rowErr)
+
+		return retVal
+	}
+
+	err := rows.Err()
+	if err != nil {
+		slog.Error("error getting vm_isos rows", "err", err)
+
+		return retVal
+	}
+
+	for rows.Next() {
+		var vmID string
+
+		err = rows.Scan(&vmID)
+		if err != nil {
+			slog.Error("error scanning vm_isos row", "err", err)
+
+			continue
+		}
+
+		retVal = append(retVal, vmID)
+	}
+
+	return retVal
+}
+
+// CheckAll checks that the file for the ISO actually exists and also checks for any iso files that don't exist in
+// the database
 func CheckAll() {
 	for _, anISO := range GetAll() {
 		exists, err := isoExistsFS(filepath.Join(config.Config.Disk.VM.Path.Iso, anISO.Name))

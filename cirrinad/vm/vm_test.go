@@ -15,6 +15,7 @@ import (
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
 	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vmnic"
 )
 
 //nolint:paralleltest,maintidx
@@ -1525,6 +1526,7 @@ func TestVM_Delete(t *testing.T) {
 			name: "Success",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{VMDB: testDB}
+				vmnic.Instance = &vmnic.Singleton{VMNicDB: testDB}
 
 				testVM1 := VM{
 					ID:     "506fa4f9-307e-40cf-ac3e-9196423042fe",
@@ -1539,6 +1541,95 @@ func TestVM_Delete(t *testing.T) {
 
 				List.VMList = map[string]*VM{}
 				List.VMList[testVM1.ID] = &testVM1
+
+				// save
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(false, false, false, false, false, 0, "", false, 0, "", false, 0, "", false, 0, false, "", false, 0, 2, false, "", false, false, false, "", false, false, "", 120, 2048, 0, 0, nil, 0, true, 0, 0, true, 1080, 1920, false, "", "", false, false, false, false, "AUTO", false, 0, 0, false, sqlmock.AnyArg(), 378). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `com1_dev`=?,`com2_dev`=?,`com3_dev`=?,`com4_dev`=?,`debug_port`=?,`description`=?,`name`=?,`vnc_port`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs("", "", "", "", 0, "a test VM", "test2024082510", 0, sqlmock.AnyArg(), "506fa4f9-307e-40cf-ac3e-9196423042fe"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_isos` WHERE `vm_id` = ?"),
+				).
+					WithArgs("506fa4f9-307e-40cf-ac3e-9196423042fe").
+					WillReturnResult(sqlmock.NewResult(1, 27))
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_disks` WHERE `vm_id` = ?"),
+				).
+					WithArgs("506fa4f9-307e-40cf-ac3e-9196423042fe").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+
+				// save
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(false, false, false, false, false, 0, "", false, 0, "", false, 0, "", false, 0, false, "", false, 0, 2, false, "", false, false, false, "", false, false, "", 120, 2048, 0, 0, nil, 0, true, 0, 0, true, 1080, 1920, false, "", "", false, false, false, false, "AUTO", false, 0, 0, false, sqlmock.AnyArg(), 378). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `com1_dev`=?,`com2_dev`=?,`com3_dev`=?,`com4_dev`=?,`debug_port`=?,`description`=?,`name`=?,`vnc_port`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs("", "", "", "", 0, "a test VM", "test2024082510", 0, sqlmock.AnyArg(), "506fa4f9-307e-40cf-ac3e-9196423042fe"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_isos` WHERE `vm_id` = ?"),
+				).
+					WithArgs("506fa4f9-307e-40cf-ac3e-9196423042fe").
+					WillReturnResult(sqlmock.NewResult(1, 27))
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_disks` WHERE `vm_id` = ?"),
+				).
+					WithArgs("506fa4f9-307e-40cf-ac3e-9196423042fe").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WithArgs(378).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"mac",
+						"net_type",
+						"net_dev_type",
+						"switch_id",
+						"net_dev",
+						"rate_limit",
+						"rate_in",
+						"rate_out",
+						"inst_bridge",
+						"inst_epair",
+						"config_id",
+					}))
 
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -1601,6 +1692,7 @@ func TestVM_Delete(t *testing.T) {
 			name: "ErrorDeletingVM",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{VMDB: testDB}
+				vmnic.Instance = &vmnic.Singleton{VMNicDB: testDB}
 
 				testVM1 := VM{
 					ID:     "506fa4f9-307e-40cf-ac3e-9196423042fe",
@@ -1615,6 +1707,95 @@ func TestVM_Delete(t *testing.T) {
 
 				List.VMList = map[string]*VM{}
 				List.VMList[testVM1.ID] = &testVM1
+
+				// save
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(false, false, false, false, false, 0, "", false, 0, "", false, 0, "", false, 0, false, "", false, 0, 2, false, "", false, false, false, "", false, false, "", 120, 2048, 0, 0, nil, 0, true, 0, 0, true, 1080, 1920, false, "", "", false, false, false, false, "AUTO", false, 0, 0, false, sqlmock.AnyArg(), 378). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `com1_dev`=?,`com2_dev`=?,`com3_dev`=?,`com4_dev`=?,`debug_port`=?,`description`=?,`name`=?,`vnc_port`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs("", "", "", "", 0, "a test VM", "test2024082510", 0, sqlmock.AnyArg(), "506fa4f9-307e-40cf-ac3e-9196423042fe"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_isos` WHERE `vm_id` = ?"),
+				).
+					WithArgs("506fa4f9-307e-40cf-ac3e-9196423042fe").
+					WillReturnResult(sqlmock.NewResult(1, 27))
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_disks` WHERE `vm_id` = ?"),
+				).
+					WithArgs("506fa4f9-307e-40cf-ac3e-9196423042fe").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+
+				// save
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(false, false, false, false, false, 0, "", false, 0, "", false, 0, "", false, 0, false, "", false, 0, 2, false, "", false, false, false, "", false, false, "", 120, 2048, 0, 0, nil, 0, true, 0, 0, true, 1080, 1920, false, "", "", false, false, false, false, "AUTO", false, 0, 0, false, sqlmock.AnyArg(), 378). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `com1_dev`=?,`com2_dev`=?,`com3_dev`=?,`com4_dev`=?,`debug_port`=?,`description`=?,`name`=?,`vnc_port`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs("", "", "", "", 0, "a test VM", "test2024082510", 0, sqlmock.AnyArg(), "506fa4f9-307e-40cf-ac3e-9196423042fe"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_isos` WHERE `vm_id` = ?"),
+				).
+					WithArgs("506fa4f9-307e-40cf-ac3e-9196423042fe").
+					WillReturnResult(sqlmock.NewResult(1, 27))
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_disks` WHERE `vm_id` = ?"),
+				).
+					WithArgs("506fa4f9-307e-40cf-ac3e-9196423042fe").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WithArgs(378).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"mac",
+						"net_type",
+						"net_dev_type",
+						"switch_id",
+						"net_dev",
+						"rate_limit",
+						"rate_in",
+						"rate_out",
+						"inst_bridge",
+						"inst_epair",
+						"config_id",
+					}))
 
 				mock.ExpectBegin()
 				mock.ExpectExec(
@@ -1678,6 +1859,7 @@ func TestVM_Delete(t *testing.T) {
 			name: "ErrorDeletingConfig",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{VMDB: testDB}
+				vmnic.Instance = &vmnic.Singleton{VMNicDB: testDB}
 
 				testVM1 := VM{
 					ID:     "506fa4f9-307e-40cf-ac3e-9196423042fe",
@@ -1693,6 +1875,95 @@ func TestVM_Delete(t *testing.T) {
 				List.VMList = map[string]*VM{}
 				List.VMList[testVM1.ID] = &testVM1
 
+				// save
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(false, false, false, false, false, 0, "", false, 0, "", false, 0, "", false, 0, false, "", false, 0, 2, false, "", false, false, false, "", false, false, "", 120, 2048, 0, 0, nil, 0, true, 0, 0, true, 1080, 1920, false, "", "", false, false, false, false, "AUTO", false, 0, 0, false, sqlmock.AnyArg(), 378). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `com1_dev`=?,`com2_dev`=?,`com3_dev`=?,`com4_dev`=?,`debug_port`=?,`description`=?,`name`=?,`vnc_port`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs("", "", "", "", 0, "a test VM", "test2024082510", 0, sqlmock.AnyArg(), "506fa4f9-307e-40cf-ac3e-9196423042fe"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_isos` WHERE `vm_id` = ?"),
+				).
+					WithArgs("506fa4f9-307e-40cf-ac3e-9196423042fe").
+					WillReturnResult(sqlmock.NewResult(1, 27))
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_disks` WHERE `vm_id` = ?"),
+				).
+					WithArgs("506fa4f9-307e-40cf-ac3e-9196423042fe").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+
+				// save
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `configs` SET `com1`=?,`com2`=?,`com3`=?,`acpi`=?,`auto_start`=?,`auto_start_delay`=?,`com1_dev`=?,`com1_log`=?,`com1_speed`=?,`com2_dev`=?,`com2_log`=?,`com2_speed`=?,`com3_dev`=?,`com3_log`=?,`com3_speed`=?,`com4`=?,`com4_dev`=?,`com4_log`=?,`com4_speed`=?,`cpu`=?,`debug`=?,`debug_port`=?,`debug_wait`=?,`destroy_power_off`=?,`exit_on_pause`=?,`extra_args`=?,`host_bridge`=?,`ignore_unknown_msr`=?,`kbd_layout`=?,`max_wait`=?,`mem`=?,`pcpu`=?,`priority`=?,`protect`=?,`rbps`=?,`restart`=?,`restart_delay`=?,`riops`=?,`screen`=?,`screen_height`=?,`screen_width`=?,`sound`=?,`sound_in`=?,`sound_out`=?,`store_uefi_vars`=?,`tablet`=?,`use_hlt`=?,`utc_time`=?,`vnc_port`=?,`vnc_wait`=?,`wbps`=?,`wiops`=?,`wire_guest_mem`=?,`updated_at`=? WHERE `configs`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(false, false, false, false, false, 0, "", false, 0, "", false, 0, "", false, 0, false, "", false, 0, 2, false, "", false, false, false, "", false, false, "", 120, 2048, 0, 0, nil, 0, true, 0, 0, true, 1080, 1920, false, "", "", false, false, false, false, "AUTO", false, 0, 0, false, sqlmock.AnyArg(), 378). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `com1_dev`=?,`com2_dev`=?,`com3_dev`=?,`com4_dev`=?,`debug_port`=?,`description`=?,`name`=?,`vnc_port`=?,`updated_at`=? WHERE `vms`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs("", "", "", "", 0, "a test VM", "test2024082510", 0, sqlmock.AnyArg(), "506fa4f9-307e-40cf-ac3e-9196423042fe"). //nolint:lll
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_isos` WHERE `vm_id` = ?"),
+				).
+					WithArgs("506fa4f9-307e-40cf-ac3e-9196423042fe").
+					WillReturnResult(sqlmock.NewResult(1, 27))
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `vm_disks` WHERE `vm_id` = ?"),
+				).
+					WithArgs("506fa4f9-307e-40cf-ac3e-9196423042fe").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+
+				mock.ExpectBegin()
+				mock.ExpectCommit()
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WithArgs(378).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"mac",
+						"net_type",
+						"net_dev_type",
+						"switch_id",
+						"net_dev",
+						"rate_limit",
+						"rate_in",
+						"rate_out",
+						"inst_bridge",
+						"inst_epair",
+						"config_id",
+					}))
+
 				mock.ExpectBegin()
 				mock.ExpectExec(
 					regexp.QuoteMeta(
@@ -1702,6 +1973,16 @@ func TestVM_Delete(t *testing.T) {
 					WithArgs(sqlmock.AnyArg(), 378).
 					WillReturnError(gorm.ErrInvalidData)
 				mock.ExpectRollback()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"UPDATE `vms` SET `deleted_at`=? WHERE `vms`.`id` = ? AND `vms`.`deleted_at` IS NULL",
+					),
+				).
+					WithArgs(sqlmock.AnyArg(), "506fa4f9-307e-40cf-ac3e-9196423042fe").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
 			},
 			fields: fields{
 				ID:        "506fa4f9-307e-40cf-ac3e-9196423042fe",
@@ -1739,7 +2020,7 @@ func TestVM_Delete(t *testing.T) {
 					VNCPort:      "AUTO",
 				},
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "ErrorVMNotFound",

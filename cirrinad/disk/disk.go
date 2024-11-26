@@ -280,16 +280,9 @@ func (d *Disk) InUse() bool {
 		Where("disk_id LIKE ?", d.ID).Limit(1)
 
 	rows, rowErr := res.Rows()
+
 	if rowErr != nil {
 		slog.Error("error getting vm_disks rows", "rowErr", rowErr)
-
-		// fail-safe
-		return true
-	}
-
-	err := rows.Err()
-	if err != nil {
-		slog.Error("error getting vm_disks rows", "err", err)
 
 		// fail-safe
 		return true
@@ -298,6 +291,14 @@ func (d *Disk) InUse() bool {
 	defer func() {
 		_ = rows.Close()
 	}()
+
+	err := rows.Err()
+	if err != nil {
+		slog.Error("error getting vm_disks rows", "err", err)
+
+		// fail-safe
+		return true
+	}
 
 	count := 0
 	for rows.Next() {
@@ -386,9 +387,54 @@ func (d *Disk) initOneDisk() {
 	List.DiskList[d.ID] = d
 }
 
+func (d *Disk) GetVMIDs() []string {
+	var retVal []string
+
+	db := GetDiskDB()
+
+	res := db.Table("vm_disks").Select([]string{"vm_id"}).
+		Where("disk_id LIKE ?", d.ID)
+
+	rows, rowErr := res.Rows()
+
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	if rowErr != nil {
+		slog.Error("error getting vm_disks rows", "rowErr", rowErr)
+
+		return retVal
+	}
+
+	err := rows.Err()
+	if err != nil {
+		slog.Error("error getting vm_disks rows", "err", err)
+
+		return retVal
+	}
+
+	for rows.Next() {
+		var vmID string
+
+		err = rows.Scan(&vmID)
+		if err != nil {
+			slog.Error("error scanning vm_disks row", "err", err)
+
+			continue
+		}
+
+		retVal = append(retVal, vmID)
+	}
+
+	return retVal
+}
+
+// CheckAll verifies the backing of the disk exists and also checks for any backing that doesn't have a disk in the
+// database
 func CheckAll() {
-	for _, aDiskZVol := range GetAllDB() {
-		exists, err := aDiskZVol.VerifyExists()
+	for _, aDisk := range GetAllDB() {
+		exists, err := aDisk.VerifyExists()
 		if err != nil {
 			slog.Error("error checking disks exist", "err", err)
 
@@ -396,7 +442,7 @@ func CheckAll() {
 		}
 
 		if !exists {
-			slog.Error("disk backing does not exists", "disk.Name", aDiskZVol.Name, "disk.ID", aDiskZVol.ID)
+			slog.Error("disk backing does not exists", "disk.Name", aDisk.Name, "disk.ID", aDisk.ID)
 		}
 	}
 

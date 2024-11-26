@@ -404,3 +404,54 @@ func (vmNic *VMNic) GetMAC(vmID string, vmName string) string {
 
 	return macAddress
 }
+
+func (vmNic *VMNic) GetVMIDs() []string {
+	var retVal []string
+
+	if vmNic.ConfigID == 0 {
+		return retVal
+	}
+
+	db := GetVMNicDB()
+
+	res := db.Table("configs").Select([]string{"vm_id"}).
+		Where("id LIKE ?", vmNic.ConfigID)
+
+	rows, rowErr := res.Rows()
+
+	defer func() {
+		_ = rows.Close()
+	}()
+
+	if rowErr != nil {
+		slog.Error("error getting config rows", "rowErr", rowErr)
+
+		return retVal
+	}
+
+	err := rows.Err()
+	if err != nil {
+		slog.Error("error getting config rows", "err", err)
+
+		return retVal
+	}
+
+	for rows.Next() {
+		var vmID string
+
+		err = rows.Scan(&vmID)
+		if err != nil {
+			slog.Error("error scanning config row", "err", err)
+
+			continue
+		}
+
+		retVal = append(retVal, vmID)
+	}
+
+	return retVal
+}
+
+// CheckAll verifies that the uplink for a NIC exists -- TODO
+func CheckAll() {
+}

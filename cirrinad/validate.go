@@ -22,6 +22,7 @@ import (
 	"cirrina/cirrinad/iso"
 	_switch "cirrina/cirrinad/switch"
 	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vm"
 	"cirrina/cirrinad/vmnic"
 )
 
@@ -713,6 +714,8 @@ func validateDB() {
 	disk.CheckAll()
 	iso.CheckAll()
 	_switch.CheckAll()
+	vmnic.CheckAll()
+	vm.CheckAll()
 }
 
 // TODO check that users home dir is /nonexistent and that their login shell is /sbin/nologin

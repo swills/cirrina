@@ -20,6 +20,7 @@ import (
 	"cirrina/cirrinad/disk"
 	"cirrina/cirrinad/iso"
 	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vmnic"
 )
 
 type StatusType string
@@ -435,10 +436,23 @@ func (vm *VM) Save() error {
 
 func (vm *VM) Delete() error {
 	vmDB := GetVMDB()
-	vmDB.Model(&VM{}).Preload("Config").Limit(1).Find(&vm, &VM{ID: vm.ID})
 
-	if vm.ID == "" {
-		return errVMNotFound
+	// detach disks
+	err := vm.AttachDisks([]string{})
+	if err != nil {
+		slog.Error("failed detaching disks from VM", "err", err)
+	}
+
+	// detach isos
+	err = vm.AttachIsos([]*iso.ISO{})
+	if err != nil {
+		slog.Error("failed detaching isos from VM", "err", err)
+	}
+
+	// detach nics
+	err = vm.SetNics([]string{})
+	if err != nil {
+		slog.Error("failed detaching nics from VM", "err", err)
 	}
 
 	res := vmDB.Limit(1).Delete(&vm.Config)
@@ -674,5 +688,56 @@ func (vm *VM) doAutostart() {
 	err := vm.Start()
 	if err != nil {
 		slog.Error("auto start failed", "vm", vm.ID, "name", vm.Name, "err", err)
+	}
+}
+
+// CheckAll gets all disks/nics/isos and ensure the VM they are attached in the join table exists
+func CheckAll() {
+	checkNicAttachments()
+	checkIsoAttachments()
+	checkDiskAttachments()
+}
+
+func checkDiskAttachments() {
+	allDisks := disk.GetAllDB()
+	for _, aDisk := range allDisks {
+		vmIDs := aDisk.GetVMIDs()
+		for _, vmID := range vmIDs {
+			// check the VM exists
+			_, err := GetByID(vmID)
+			if err != nil {
+				// TODO - remove the attachment
+				slog.Error("disk attached to non-existent VM", "disk.ID", aDisk.ID, "vm.ID", vmID)
+			}
+		}
+	}
+}
+
+func checkNicAttachments() {
+	allNics := vmnic.GetAll()
+	for _, aNic := range allNics {
+		vmIDs := aNic.GetVMIDs()
+		for _, vmID := range vmIDs {
+			// check the VM exists
+			_, err := GetByID(vmID)
+			if err != nil {
+				slog.Error("nic attached to non-existent VM", "nic.ID", aNic.ID, "vm.ID", vmID)
+			}
+		}
+	}
+}
+
+func checkIsoAttachments() {
+	allISOs := iso.GetAll()
+	for _, aISO := range allISOs {
+		vmIDs := aISO.GetVMIDs()
+		for _, vmID := range vmIDs {
+			// check the VM exists
+			_, err := GetByID(vmID)
+			if err != nil {
+				// TODO - remove the attachment
+				slog.Error("iso attached to non-existent VM", "iso.ID", aISO.ID, "vm.ID", vmID)
+			}
+		}
 	}
 }
