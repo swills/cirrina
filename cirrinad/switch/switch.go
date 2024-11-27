@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"cirrina/cirrinad/epair"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vmnic"
 )
@@ -592,4 +593,62 @@ func CheckAll() {
 			slog.Error("unknown switch type checking uplinks", "bridge", bridge.Name, "type", bridge.Type)
 		}
 	}
+}
+
+func SetupVMNicRateLimit(vmNic vmnic.VMNic) (string, error) {
+	var err error
+
+	thisEpair := epair.GetDummyEpairName()
+	slog.Debug("netStartup rate limiting", "thisEpair", thisEpair)
+
+	err = epair.CreateEpair(thisEpair)
+	if err != nil {
+		slog.Error("error creating epair", "err", err)
+
+		return "", fmt.Errorf("error creating epair: %w", err)
+	}
+
+	vmNic.InstEpair = thisEpair
+	err = vmNic.Save()
+
+	if err != nil {
+		slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+
+		return "", fmt.Errorf("error saving NIC: %w", err)
+	}
+
+	err = epair.SetRateLimit(thisEpair, vmNic.RateIn, vmNic.RateOut)
+	if err != nil {
+		slog.Error("failed to set epair rate limit", "epair", thisEpair)
+
+		return "", fmt.Errorf("error setting rate limit: %w", err)
+	}
+
+	thisInstSwitch := GetDummyBridgeName()
+
+	var bridgeMembers []string
+	bridgeMembers = append(bridgeMembers, thisEpair+"a")
+	bridgeMembers = append(bridgeMembers, vmNic.NetDev)
+
+	err = CreateIfBridgeWithMembers(thisInstSwitch, bridgeMembers)
+	if err != nil {
+		slog.Error("failed to create switch",
+			"nic", vmNic.ID,
+			"thisInstSwitch", thisInstSwitch,
+			"err", err,
+		)
+
+		return "", fmt.Errorf("error creating bridge: %w", err)
+	}
+
+	vmNic.InstBridge = thisInstSwitch
+	err = vmNic.Save()
+
+	if err != nil {
+		slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+
+		return "", fmt.Errorf("error saving NIC: %w", err)
+	}
+
+	return thisEpair, nil
 }

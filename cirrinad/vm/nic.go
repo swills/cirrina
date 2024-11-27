@@ -57,9 +57,9 @@ func netStartupIf(vmNic vmnic.VMNic) error {
 	if vmNic.RateLimit {
 		var thisEpair string
 
-		thisEpair, err = setupVMNicRateLimit(vmNic)
+		thisEpair, err = vmswitch.SetupVMNicRateLimit(vmNic)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed setting up nic: %w", err)
 		}
 
 		thisMemberName = thisEpair + "b"
@@ -81,64 +81,6 @@ func netStartupIf(vmNic vmnic.VMNic) error {
 	}
 
 	return nil
-}
-
-func setupVMNicRateLimit(vmNic vmnic.VMNic) (string, error) {
-	var err error
-
-	thisEpair := epair.GetDummyEpairName()
-	slog.Debug("netStartup rate limiting", "thisEpair", thisEpair)
-
-	err = epair.CreateEpair(thisEpair)
-	if err != nil {
-		slog.Error("error creating epair", "err", err)
-
-		return "", fmt.Errorf("error creating epair: %w", err)
-	}
-
-	vmNic.InstEpair = thisEpair
-	err = vmNic.Save()
-
-	if err != nil {
-		slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
-
-		return "", fmt.Errorf("error saving NIC: %w", err)
-	}
-
-	err = epair.SetRateLimit(thisEpair, vmNic.RateIn, vmNic.RateOut)
-	if err != nil {
-		slog.Error("failed to set epair rate limit", "epair", thisEpair)
-
-		return "", fmt.Errorf("error setting rate limit: %w", err)
-	}
-
-	thisInstSwitch := vmswitch.GetDummyBridgeName()
-
-	var bridgeMembers []string
-	bridgeMembers = append(bridgeMembers, thisEpair+"a")
-	bridgeMembers = append(bridgeMembers, vmNic.NetDev)
-
-	err = vmswitch.CreateIfBridgeWithMembers(thisInstSwitch, bridgeMembers)
-	if err != nil {
-		slog.Error("failed to create switch",
-			"nic", vmNic.ID,
-			"thisInstSwitch", thisInstSwitch,
-			"err", err,
-		)
-
-		return "", fmt.Errorf("error creating bridge: %w", err)
-	}
-
-	vmNic.InstBridge = thisInstSwitch
-	err = vmNic.Save()
-
-	if err != nil {
-		slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
-
-		return "", fmt.Errorf("error saving NIC: %w", err)
-	}
-
-	return thisEpair, nil
 }
 
 func netStartupNg(vmNic vmnic.VMNic) error {
@@ -206,12 +148,12 @@ func cleanupIfNic(vmNic vmnic.VMNic) error {
 	if vmNic.InstEpair != "" {
 		err4 = epair.NgDestroyPipe(vmNic.InstEpair + "a")
 		if err4 != nil {
-			slog.Error("failed to ng pipe", "err", err4)
+			slog.Error("failed to destroy ng pipe", "err", err4)
 		}
 
 		err5 = epair.NgDestroyPipe(vmNic.InstEpair + "b")
 		if err5 != nil {
-			slog.Error("failed to ng pipe", "err", err5)
+			slog.Error("failed to destroy ng pipe", "err", err5)
 		}
 	}
 

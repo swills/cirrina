@@ -191,7 +191,6 @@ func CreateIfBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 	}
 
 	for _, member := range bridgeMembers {
-		// we always learn on the uplink
 		err = SwitchIfAddMember(bridgeName, member)
 		if err != nil {
 			return err
