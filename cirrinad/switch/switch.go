@@ -556,6 +556,7 @@ func (s *Switch) Save() error {
 	return nil
 }
 
+// CheckAll verifies that the uplink for the switch exists in the host
 func CheckAll() {
 	var ifUplinks []string
 
@@ -569,7 +570,7 @@ func CheckAll() {
 
 		exists := CheckInterfaceExists(bridge.Uplink)
 		if !exists {
-			slog.Warn("bridge uplink does not exist, will be ignored", "bridge", bridge.Name, "uplink", bridge.Uplink)
+			slog.Error("bridge uplink does not exist, will be ignored", "bridge", bridge.Name, "uplink", bridge.Uplink)
 
 			continue
 		}
