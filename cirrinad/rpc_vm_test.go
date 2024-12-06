@@ -1779,7 +1779,7 @@ func Test_server_AddVM(t *testing.T) {
 
 			t.Cleanup(func() { vm.OsOpenFileFunc = os.OpenFile })
 
-			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
+			testDB, mockDB := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mockDB)
 
 			lis := bufconn.Listen(1024 * 1024)
@@ -2169,7 +2169,7 @@ func Test_server_DeleteVM(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
+			testDB, mockDB := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mockDB)
 
 			lis := bufconn.Listen(1024 * 1024)
@@ -4947,7 +4947,7 @@ func Test_server_UpdateVM(t *testing.T) {
 
 			util.SetupTestCmd(fakeCommand)
 
-			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
+			testDB, mockDB := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mockDB)
 
 			lis := bufconn.Listen(1024 * 1024)
@@ -5366,7 +5366,7 @@ func Test_server_SetVMISOs(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
+			testDB, mockDB := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mockDB)
 
 			lis := bufconn.Listen(1024 * 1024)
@@ -5953,7 +5953,7 @@ func Test_server_SetVMNics(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
+			testDB, mockDB := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mockDB)
 
 			lis := bufconn.Listen(1024 * 1024)
@@ -6339,7 +6339,7 @@ func Test_server_SetVMDisks(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
+			testDB, mockDB := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mockDB)
 
 			lis := bufconn.Listen(1024 * 1024)
@@ -6691,7 +6691,7 @@ func Test_server_StopVM(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
+			testDB, mockDB := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mockDB)
 
 			lis := bufconn.Listen(1024 * 1024)
@@ -7064,7 +7064,7 @@ func Test_server_StartVM(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
+			testDB, mockDB := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mockDB)
 
 			lis := bufconn.Listen(1024 * 1024)

@@ -266,7 +266,7 @@ func Test_server_AddDisk(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mockDB := cirrinadtest.NewMockDB("diskTest")
+			testDB, mockDB := cirrinadtest.NewMockDB(testCase.name)
 			config.Config.Disk.Default.Size = "1G"
 
 			ctrl := gomock.NewController(t)
@@ -1009,7 +1009,7 @@ func Test_server_RemoveDisk(t *testing.T) {
 			disk.List.DiskList = map[string]*disk.Disk{}
 			vm.List.VMList = map[string]*vm.VM{}
 
-			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			lis := bufconn.Listen(1024 * 1024)
@@ -1636,7 +1636,7 @@ func Test_server_SetDiskInfo(t *testing.T) {
 			// clear out list(s) from other parallel test runs
 			disk.List.DiskList = map[string]*disk.Disk{}
 
-			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			lis := bufconn.Listen(1024 * 1024)
@@ -2549,7 +2549,7 @@ func Test_server_UploadDisk(t *testing.T) {
 			disk.List.DiskList = map[string]*disk.Disk{}
 			vm.List.VMList = map[string]*vm.VM{}
 
-			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			lis := bufconn.Listen(1024 * 1024)

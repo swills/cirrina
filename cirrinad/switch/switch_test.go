@@ -95,7 +95,7 @@ func TestGetAll(t *testing.T) {
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			got := GetAll()
@@ -242,7 +242,7 @@ func TestGetByName(t *testing.T) {
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			got, err := GetByName(testCase.args.name)
@@ -382,7 +382,7 @@ func TestGetByID(t *testing.T) {
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			got, err := GetByID(testCase.args.switchID)
@@ -748,7 +748,7 @@ func TestParseSwitchID(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			got, err := ParseSwitchID(testCase.args.switchID, testCase.args.netDevType)
@@ -1652,7 +1652,7 @@ func Test_switchExists(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			got, err := switchExists(testCase.args.switchName)
@@ -1756,7 +1756,7 @@ func TestSwitch_Save(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			testSwitch := &Switch{
@@ -1922,7 +1922,7 @@ func TestDelete(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			vmnicGetAllFunc = testCase.mockVmnicGetAllFunc
@@ -2196,7 +2196,7 @@ func Test_setUplinkIf(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			err := testCase.args.switchInst.setUplinkIf(testCase.args.uplink)
@@ -2364,7 +2364,7 @@ func Test_setUplinkNG(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			err := testCase.args.switchInst.setUplinkNG(testCase.args.uplink)
@@ -2540,7 +2540,7 @@ func TestSwitch_SetUplink(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			testSwitch := &Switch{
@@ -2753,7 +2753,7 @@ func TestSwitch_UnsetUplink(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			// prevents parallel testing
@@ -2923,7 +2923,7 @@ func TestGetNgDev(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			// prevents parallel testing
@@ -3310,7 +3310,7 @@ func TestDestroyBridges(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			// prevents parallel testing
@@ -3535,7 +3535,7 @@ func TestCreateBridges(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			// prevents parallel testing
@@ -3892,7 +3892,7 @@ func TestCreate(t *testing.T) {
 
 			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
 
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			// prevents parallel testing
@@ -4441,7 +4441,7 @@ func Test_SetupVMNicRateLimit(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			got, err := setupVMNicRateLimit(&testCase.args.vmNic)

@@ -1012,7 +1012,7 @@ func Test_getUsedNetPorts(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 
 			testCase.mockClosure(testDB, mock)
 
@@ -1201,7 +1201,7 @@ func Test_isNetPortUsed(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 
 			testCase.mockClosure(testDB, mock)
 

@@ -123,7 +123,7 @@ func TestGetAllDB(t *testing.T) {
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			got := GetAllDB()
@@ -439,7 +439,7 @@ func TestGetByID(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 
 			testCase.mockClosure()
 
@@ -905,7 +905,7 @@ func TestDisk_Save(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			testDisk := &Disk{
@@ -1126,7 +1126,7 @@ func TestDelete(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			err := testCase.args.diskInst.Delete()
@@ -1315,7 +1315,7 @@ func Test_diskExists(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			GetByNameFunc = testCase.getByNameFunc
@@ -1648,7 +1648,7 @@ func TestCreate(t *testing.T) {
 			fileMock := NewMockFileInfoFetcher(ctrl)
 			zfsMock := NewMockZfsVolInfoFetcher(ctrl)
 
-			testDB, mockDB := cirrinadtest.NewMockDB("diskTest")
+			testDB, mockDB := cirrinadtest.NewMockDB(testCase.name)
 
 			testCase.mockClosure(testDB, mockDB)
 
@@ -2038,7 +2038,7 @@ func TestDisk_InUse(t *testing.T) {
 				DiskDirect:  testCase.fields.DiskDirect,
 			}
 
-			testDB, mock := cirrinadtest.NewMockDB("diskTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			got := testDisk.InUse()

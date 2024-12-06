@@ -149,7 +149,7 @@ func TestGetByID(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			got, err := GetByID(testCase.args.id)
@@ -395,7 +395,7 @@ func TestCreateVMReq(t *testing.T) { //nolint:maintidx
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			got, err := CreateVMReq(testCase.args.requestType, testCase.args.vmID)
@@ -603,7 +603,7 @@ func TestCreateNicCloneReq(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 			got, err := CreateNicCloneReq(testCase.args.nicID, testCase.args.newName)
 
@@ -676,7 +676,7 @@ func TestGetUnStarted(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			got := GetUnStarted()
@@ -758,7 +758,7 @@ func TestRequest_Start(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			req := &Request{
@@ -848,7 +848,7 @@ func TestRequest_Succeeded(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			req := &Request{
@@ -938,7 +938,7 @@ func TestRequest_Failed(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			req := &Request{
@@ -1268,7 +1268,7 @@ func TestPendingReqExists(t *testing.T) { //nolint:maintidx
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			got := PendingReqExists(testCase.args.objID)
@@ -1340,7 +1340,7 @@ func TestFailAllPending(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			got := FailAllPending()
@@ -1408,7 +1408,7 @@ func TestDBInitialized(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("requestTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			got := DBInitialized()

@@ -179,7 +179,7 @@ func Test_server_GetSwitchInfo(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("testDB")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 
 			testCase.mockClosure(testDB, mock)
 
@@ -320,7 +320,7 @@ func Test_server_GetSwitches(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("testDB")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 
 			testCase.mockClosure(testDB, mock)
 
@@ -942,7 +942,7 @@ func Test_server_RemoveSwitch(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			testDB, mock := cirrinadtest.NewMockDB("testDB")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 
 			testCase.mockClosure(testDB, mock)
 
@@ -1412,7 +1412,7 @@ func Test_server_SetSwitchInfo(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("testDB")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 
 			testCase.mockClosure(testDB, mock)
 
@@ -2322,7 +2322,7 @@ func Test_server_SetSwitchUplink(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			testDB, mock := cirrinadtest.NewMockDB("testDB")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 
 			testCase.mockClosure(testDB, mock)
 
@@ -2535,7 +2535,7 @@ func Test_server_AddSwitch(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			testDB, mock := cirrinadtest.NewMockDB("testDB")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 
 			testCase.mockClosure(testDB, mock)
 

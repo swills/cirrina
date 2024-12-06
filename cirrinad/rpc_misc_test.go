@@ -363,7 +363,7 @@ func Test_server_RequestStatus(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("testDB")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 
 			testCase.mockClosure(testDB, mock)
 

@@ -239,7 +239,7 @@ func TestVM_nicAttached(t *testing.T) {
 			// clear out list from other parallel test runs
 			List.VMList = map[string]*VM{}
 
-			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 
 			testCase.mockClosure(testDB, mock)
 
@@ -972,7 +972,7 @@ func TestVM_validateNics(t *testing.T) {
 			// clear out list from other parallel test runs
 			List.VMList = map[string]*VM{}
 
-			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 
 			testCase.mockClosure(testDB, mock)
 
@@ -1278,7 +1278,7 @@ func TestVM_removeAllNicsFromVM(t *testing.T) {
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 
 			testCase.mockClosure(testDB, mock)
 
@@ -1315,7 +1315,7 @@ func TestVM_removeAllNicsFromVM(t *testing.T) {
 }
 
 //nolint:paralleltest,maintidx
-func TestVM_netStartup(t *testing.T) {
+func TestVM_NetStartup(t *testing.T) {
 	createUpdateTime := time.Now()
 
 	type fields struct {
@@ -1994,7 +1994,7 @@ func TestVM_netStartup(t *testing.T) {
 			// clear out list from other parallel test runs
 			List.VMList = map[string]*VM{}
 
-			testDB, mock := cirrinadtest.NewMockDB("nicTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			mock.MatchExpectationsInOrder(true)
 
 			testCase.mockClosure(testDB, mock)
@@ -2697,7 +2697,7 @@ func TestVM_NetStop(t *testing.T) {
 
 				t.Cleanup(func() { util.TearDownTestCmd() })
 
-				testDB, mock := cirrinadtest.NewMockDB("nicTest")
+				testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 				testCase.mockClosure(testDB, mock)
 
 				testVM := &VM{
@@ -3587,7 +3587,7 @@ func TestVM_SetNics(t *testing.T) {
 
 			List.VMList[testVM.ID] = testVM
 
-			testDB, mock := cirrinadtest.NewMockDB("switchTest")
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
 			testCase.mockClosure(testDB, mock)
 
 			err := testVM.SetNics(testCase.args.nicIDs)
