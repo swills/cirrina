@@ -21,8 +21,9 @@ import (
 )
 
 var (
-	defaultVMCpuCount uint32 = 1
-	defaultVMMemCount uint32 = 128
+	defaultVMCpuCount     uint32 = 1
+	defaultVMMemCount     uint32 = 128
+	GetKbdLayoutNamesFunc        = GetKbdLayoutNames
 )
 
 func (s *server) UpdateVM(_ context.Context, vmConfig *cirrina.VMConfig) (*cirrina.ReqBool, error) {
@@ -378,7 +379,7 @@ func updateVMScreenOptions(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 	}
 
 	if vmConfig.Keyboard != nil {
-		layoutNames := GetKbdLayoutNames()
+		layoutNames := GetKbdLayoutNamesFunc()
 		if !util.ContainsStr(layoutNames, vmConfig.GetKeyboard()) {
 			return errInvalidKeyboardLayout
 		}
