@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -2241,13 +2242,15 @@ func Test_server_UpdateVM(t *testing.T) {
 
 	tests := []struct {
 		name        string
+		mockCmdFunc string
 		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
 		args        args
 		want        *cirrina.ReqBool
 		wantErr     bool
 	}{
 		{
-			name: "Success",
+			name:        "Success",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -2472,7 +2475,8 @@ func Test_server_UpdateVM(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "BadDebugPort",
+			name:        "BadDebugPort",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -2546,7 +2550,8 @@ func Test_server_UpdateVM(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "BadAutostartDelay",
+			name:        "BadAutostartDelay",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -2620,7 +2625,8 @@ func Test_server_UpdateVM(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "BadSoundIn",
+			name:        "BadSoundIn",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -2694,7 +2700,8 @@ func Test_server_UpdateVM(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "BadSoundOut",
+			name:        "BadSoundOut",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -2768,7 +2775,8 @@ func Test_server_UpdateVM(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "BadVNCPort",
+			name:        "BadVNCPort",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -2842,7 +2850,8 @@ func Test_server_UpdateVM(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "BadKeymap",
+			name:        "BadKeymap",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -2916,7 +2925,8 @@ func Test_server_UpdateVM(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "BadCom1Dev",
+			name:        "BadCom1Dev",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -2990,7 +3000,8 @@ func Test_server_UpdateVM(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "BadCom2Dev",
+			name:        "BadCom2Dev",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -3064,7 +3075,8 @@ func Test_server_UpdateVM(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "BadCom3Dev",
+			name:        "BadCom3Dev",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -3138,7 +3150,8 @@ func Test_server_UpdateVM(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "BadCom4Dev",
+			name:        "BadCom4Dev",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -3212,7 +3225,8 @@ func Test_server_UpdateVM(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "BadName",
+			name:        "BadName",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -3286,7 +3300,8 @@ func Test_server_UpdateVM(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "DupeName",
+			name:        "DupeName",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -3360,7 +3375,8 @@ func Test_server_UpdateVM(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "NewName",
+			name:        "NewName",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -3531,7 +3547,8 @@ func Test_server_UpdateVM(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "EmptyExistingName",
+			name:        "EmptyExistingName",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -3556,7 +3573,8 @@ func Test_server_UpdateVM(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "VMNotFound",
+			name:        "VMNotFound",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -3581,7 +3599,8 @@ func Test_server_UpdateVM(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "BadUuid",
+			name:        "BadUuid",
+			mockCmdFunc: "Test_server_UpdateVMSuccess",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{ // prevents parallel testing
 					VMDB: testDB,
@@ -3609,6 +3628,11 @@ func Test_server_UpdateVM(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+
+			util.SetupTestCmd(fakeCommand)
+
 			testDB, mockDB := cirrinadtest.NewMockDB("testDB")
 			testCase.mockClosure(testDB, mockDB)
 
@@ -5795,6 +5819,22 @@ func Test_server_StartVM(t *testing.T) {
 func Test_server_AddVMSuccess(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_server_UpdateVMSuccess(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	for _, v := range os.Args {
+		if v == "hw.vmm.maxcpu" {
+			fmt.Printf("64") //nolint:forbidigo
+			os.Exit(0)
+		}
 	}
 
 	os.Exit(0)
