@@ -36,8 +36,9 @@ export GOMAXPROCS=$((${NCPU}-${RESERVED_CPUS}))
 idprio -t nice gci write --skip-generated --skip-vendor -s standard -s default -s 'prefix(cirrina)' cirrinad cirrinactl
 idprio -t nice pre-commit run --all-files
 
-idprio -t nice go test -v ./... -coverprofile=coverage.txt -covermode count -tags test > /dev/null
+idprio -t nice go test -v ./... -coverpkg=./... -coverprofile=coverage.txt -covermode atomic -tags test > /dev/null
 idprio -t nice go tool cover -func coverage.txt | tail -n 1
+idprio -t nice go tool cover -html coverage.txt -o cover.html
 
 idprio -t nice go test -race ./cirrinad
 
