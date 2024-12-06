@@ -109,7 +109,7 @@ go-test:
   script:
     - export GOBIN=${HOME}/bin
     - export PATH=${GOBIN}:${PATH}
-    - go test -shuffle=on -v ./... -coverprofile=coverage.txt -covermode count -tags test
+    - go test -shuffle=on -v ./... -coverpkg=./... -coverprofile=coverage.txt -covermode count -tags test
     - go tool cover -func coverage.txt
     - go tool cover -html coverage.txt -o cover.html
     - go install gotest.tools/gotestsum@v1.11.0
