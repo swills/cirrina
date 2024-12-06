@@ -947,9 +947,7 @@ func Test_bringUpNewSwitch(t *testing.T) {
 
 			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
 
-			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
-
 			util.SetupTestCmd(fakeCommand)
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
@@ -1922,6 +1920,8 @@ func TestDelete(t *testing.T) {
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)
 
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
 			testDB, mock := cirrinadtest.NewMockDB("switchTest")
 			testCase.mockClosure(testDB, mock)
 
@@ -2758,7 +2758,6 @@ func TestSwitch_UnsetUplink(t *testing.T) {
 
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
-
 			util.SetupTestCmd(fakeCommand)
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
@@ -3322,30 +3321,24 @@ func TestDestroyBridges(t *testing.T) {
 
 			err := DestroySwitches()
 			if (err != nil) != testCase.wantErr {
-				// prevents parallel testing
-				fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
-				util.SetupTestCmd(fakeCommand)
-
-				t.Cleanup(func() { util.TearDownTestCmd() })
-
 				t.Errorf("DestroySwitches() error = %v, wantErr %v", err, testCase.wantErr)
+			}
 
-				mock.ExpectClose()
+			mock.ExpectClose()
 
-				db, err := testDB.DB()
-				if err != nil {
-					t.Error(err)
-				}
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
 
-				err = db.Close()
-				if err != nil {
-					t.Error(err)
-				}
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
 
-				err = mock.ExpectationsWereMet()
-				if err != nil {
-					t.Errorf("there were unfulfilled expectations: %s", err)
-				}
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
 			}
 		})
 	}
@@ -4033,12 +4026,6 @@ func Test_buildNgBridge(t *testing.T) {
 
 			err := testCase.args.switchInst.buildNgSwitch()
 			if (err != nil) != testCase.wantErr {
-				// prevents parallel testing
-				fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
-				util.SetupTestCmd(fakeCommand)
-
-				t.Cleanup(func() { util.TearDownTestCmd() })
-
 				t.Errorf("buildNgSwitch() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
@@ -4627,6 +4614,8 @@ func TestSwitch_DestroySwitch(t *testing.T) {
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)
 
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
 			vmnicGetAllFunc = testCase.mockVmnicGetAllFunc
 
 			t.Cleanup(func() { vmnicGetAllFunc = vmnic.GetAll })
@@ -4874,6 +4863,8 @@ func TestSwitch_ConnectNic(t *testing.T) {
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)
 
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
 			testSwitch := &Switch{
 				ID:          testCase.fields.ID,
 				CreatedAt:   testCase.fields.CreatedAt,
@@ -5066,6 +5057,8 @@ func TestSwitch_DisconnectNic(t *testing.T) {
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
 
 			testSwitch := &Switch{
 				ID:          testCase.fields.ID,
