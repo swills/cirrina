@@ -55,7 +55,8 @@ func cleanupNet() error {
 
 	for _, aVM := range vmList {
 		slog.Debug("cleaning up VM net(s)", "name", aVM.Name)
-		aVM.NetCleanup()
+		aVM.NetStop()
+
 		slog.Debug("marking VM stopped", "name", aVM.Name)
 
 		err = aVM.SetStopped()

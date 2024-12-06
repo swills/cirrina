@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"cirrina/cirrinad/config"
+	"cirrina/cirrinad/epair"
 	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vmnic"
 )
 
 func getIfBridgeMembers(name string) ([]string, error) {
@@ -62,14 +64,14 @@ func createIfBridge(name string) error {
 		return errSwitchInvalidBridgeNameIF
 	}
 
-	allIfBridges, err := GetAllIfSwitches()
+	allIfSwitches, err := getAllIfSwitches()
 	if err != nil {
 		slog.Debug("failed to get all if bridges", "err", err)
 
 		return err
 	}
 
-	if util.ContainsStr(allIfBridges, name) {
+	if util.ContainsStr(allIfSwitches, name) {
 		slog.Debug("bridge already exists", "bridge", name)
 
 		return errSwitchInvalidBridgeDupe
@@ -120,10 +122,10 @@ func bridgeIfDeleteAllMembers(name string) error {
 	return nil
 }
 
-func switchIfDeleteMember(bridgeName string, memberName string) error {
+func switchIfDeleteMember(name string, memberName string) error {
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		config.Config.Sys.Sudo,
-		[]string{"/sbin/ifconfig", bridgeName, "deletem", memberName},
+		[]string{"/sbin/ifconfig", name, "deletem", memberName},
 	)
 	if err != nil {
 		slog.Error("ifconfig error",
@@ -139,7 +141,7 @@ func switchIfDeleteMember(bridgeName string, memberName string) error {
 	return nil
 }
 
-func GetAllIfSwitches() ([]string, error) {
+func getAllIfSwitches() ([]string, error) {
 	var err error
 
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd("/sbin/ifconfig", []string{"-g", "bridge"})
@@ -175,23 +177,23 @@ func GetAllIfSwitches() ([]string, error) {
 	return bridges, nil
 }
 
-func CreateIfBridgeWithMembers(bridgeName string, bridgeMembers []string) error {
-	if bridgeName == "" {
+func createIfSwitchWithMembers(name string, bridgeMembers []string) error {
+	if name == "" {
 		return errSwitchInvalidBridgeNameIF
 	}
 
-	err := createIfBridge(bridgeName)
+	err := createIfBridge(name)
 	if err != nil {
 		return err
 	}
 
-	err = bridgeIfDeleteAllMembers(bridgeName)
+	err = bridgeIfDeleteAllMembers(name)
 	if err != nil {
 		return err
 	}
 
 	for _, member := range bridgeMembers {
-		err = SwitchIfAddMember(bridgeName, member)
+		err = switchIfAddMember(name, member)
 		if err != nil {
 			return err
 		}
@@ -200,11 +202,11 @@ func CreateIfBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 	return nil
 }
 
-func GetDummyBridgeName() string {
+func getDummyBridgeName() string {
 	// highest if_bridge num
 	bridgeNum := 32767
 
-	bridgeList, err := GetAllIfSwitches()
+	bridgeList, err := getAllIfSwitches()
 	if err != nil {
 		return ""
 	}
@@ -222,7 +224,7 @@ func GetDummyBridgeName() string {
 }
 
 func memberUsedByIfSwitch(member string) (bool, error) {
-	allBridges, err := GetAllIfSwitches()
+	allBridges, err := getAllIfSwitches()
 	if err != nil {
 		slog.Error("error getting all if bridges", "err", err)
 
@@ -285,7 +287,7 @@ func (s *Switch) buildIfSwitch() error {
 		members = append(members, member)
 	}
 
-	err := CreateIfBridgeWithMembers(s.Name, members)
+	err := createIfSwitchWithMembers(s.Name, members)
 
 	return err
 }
@@ -306,7 +308,7 @@ func (s *Switch) setUplinkIf(uplink string) error {
 
 	slog.Debug("setting IF bridge uplink", "id", s.ID)
 
-	err = SwitchIfAddMember(s.Name, uplink)
+	err = switchIfAddMember(s.Name, uplink)
 	if err != nil {
 		return err
 	}
@@ -339,7 +341,7 @@ func (s *Switch) validateIfSwitch() error {
 	return nil
 }
 
-func SwitchIfAddMember(bridgeName string, memberName string) error {
+func switchIfAddMember(bridgeName string, memberName string) error {
 	// TODO - check that the member name is a host interface or a VM nic interface
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		config.Config.Sys.Sudo,
@@ -359,10 +361,10 @@ func SwitchIfAddMember(bridgeName string, memberName string) error {
 	return nil
 }
 
-func DestroyIfSwitch(name string, cleanup bool) error {
+func destroyIfSwitch(name string, cleanup bool) error {
 	// TODO allow other bridge names
 	if !strings.HasPrefix(name, "bridge") {
-		slog.Error("invalid bridge name", "name", name)
+		slog.Error("invalid switch name", "name", name)
 
 		return ErrSwitchInvalidName
 	}
@@ -387,6 +389,185 @@ func DestroyIfSwitch(name string, cleanup bool) error {
 		)
 
 		return fmt.Errorf("ifconfig destroy error: %w", err)
+	}
+
+	return nil
+}
+
+func setupVMNicRateLimit(vmNic *vmnic.VMNic) (string, error) {
+	var err error
+
+	thisEpair := epair.GetDummyEpairName()
+	slog.Debug("netStartup rate limiting", "thisEpair", thisEpair)
+
+	err = epair.CreateEpair(thisEpair)
+	if err != nil {
+		slog.Error("error creating epair", "err", err)
+
+		return "", fmt.Errorf("error creating epair: %w", err)
+	}
+
+	vmNic.InstEpair = thisEpair
+	err = vmNic.Save()
+
+	if err != nil {
+		slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+
+		return "", fmt.Errorf("error saving NIC: %w", err)
+	}
+
+	err = epair.SetRateLimit(thisEpair, vmNic.RateIn, vmNic.RateOut)
+	if err != nil {
+		slog.Error("failed to set epair rate limit", "epair", thisEpair)
+
+		return "", fmt.Errorf("error setting rate limit: %w", err)
+	}
+
+	thisInstSwitch := getDummyBridgeName()
+
+	var bridgeMembers []string
+	bridgeMembers = append(bridgeMembers, thisEpair+"a")
+	bridgeMembers = append(bridgeMembers, vmNic.NetDev)
+
+	err = createIfSwitchWithMembers(thisInstSwitch, bridgeMembers)
+	if err != nil {
+		slog.Error("failed to create switch",
+			"nic", vmNic.ID,
+			"thisInstSwitch", thisInstSwitch,
+			"err", err,
+		)
+
+		return "", fmt.Errorf("error creating bridge: %w", err)
+	}
+
+	vmNic.InstBridge = thisInstSwitch
+	err = vmNic.Save()
+
+	if err != nil {
+		slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+
+		return "", fmt.Errorf("error saving NIC: %w", err)
+	}
+
+	return thisEpair, nil
+}
+
+func unsetVMNicRateLimit(vmNic *vmnic.VMNic) error {
+	var changed bool
+
+	if vmNic.InstBridge == "" && vmNic.InstEpair == "" {
+		return nil
+	}
+
+	if vmNic.InstBridge != "" {
+		err := destroyIfSwitch(vmNic.InstBridge, false)
+		if err != nil {
+			slog.Error("failed to destroy switch", "err", err)
+		}
+
+		vmNic.InstBridge = ""
+		changed = true
+	}
+
+	// tap/vmnet nics may be connected to an epair which is connected
+	// to a netgraph pipe for purposes for rate limiting
+	if vmNic.InstEpair != "" {
+		err := epair.NgShutdownPipe(vmNic.InstEpair + "a")
+		if err != nil {
+			slog.Error("failed to destroy ng pipe", "err", err)
+		}
+
+		err = epair.NgShutdownPipe(vmNic.InstEpair + "b")
+		if err != nil {
+			slog.Error("failed to destroy ng pipe", "err", err)
+		}
+
+		err = epair.DestroyEpair(vmNic.InstEpair)
+		if err != nil {
+			slog.Error("failed to destroy epair", "err", err)
+		}
+
+		vmNic.InstEpair = ""
+		changed = true
+	}
+
+	if changed {
+		err := vmNic.Save()
+		if err != nil {
+			return fmt.Errorf("error unsetting nic rate limit: %w", err)
+		}
+
+		return nil
+	}
+
+	return nil
+}
+
+func (s *Switch) connectIfNic(vmNic *vmnic.VMNic) error {
+	var err error
+
+	var thisMemberName string
+
+	if vmNic.RateLimit {
+		var thisEpair string
+
+		thisEpair, err = setupVMNicRateLimit(vmNic)
+		if err != nil {
+			return fmt.Errorf("failed setting up nic: %w", err)
+		}
+
+		thisMemberName = thisEpair + "b"
+	} else {
+		thisMemberName = vmNic.NetDev
+	}
+
+	err = switchIfAddMember(s.Name, thisMemberName)
+	if err != nil {
+		slog.Error("failed to add nic to switch",
+			"nicname", vmNic.Name,
+			"nicid", vmNic.ID,
+			"switchid", vmNic.SwitchID,
+			"netdev", vmNic.NetDev,
+			"err", err,
+		)
+
+		return fmt.Errorf("error adding member to switch: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Switch) disconnectIfNic(vmNic *vmnic.VMNic) error {
+	var err error
+
+	var thisMemberName string
+
+	if vmNic.RateLimit {
+		// nothing to do
+		if vmNic.InstEpair == "" {
+			return nil
+		}
+
+		thisMemberName = vmNic.InstEpair + "b"
+	} else {
+		// nothing to do
+		if vmNic.NetDev == "" {
+			return nil
+		}
+
+		thisMemberName = vmNic.NetDev
+	}
+
+	err = switchIfDeleteMember(s.Name, thisMemberName)
+	if err != nil {
+		return fmt.Errorf("error removing member from switch: %w", err)
+	}
+
+	err = unsetVMNicRateLimit(vmNic)
+	if err != nil {
+		slog.Error("failed to unset nic rate limit", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+
+		return fmt.Errorf("error removing member from switch: %w", err)
 	}
 
 	return nil

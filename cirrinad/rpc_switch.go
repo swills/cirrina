@@ -96,23 +96,6 @@ func (s *server) RemoveSwitch(_ context.Context, switchID *cirrina.SwitchId) (*c
 		return &res, fmt.Errorf("error deleting bridge: %w", err)
 	}
 
-	switch switchInst.Type {
-	case "IF":
-		err = _switch.DestroyIfSwitch(switchInst.Name, true)
-		if err != nil {
-			return &res, fmt.Errorf("error destroying bridge: %w", err)
-		}
-	case "NG":
-		err = _switch.DestroyNgSwitch(switchInst.Name)
-		if err != nil {
-			slog.Error("switch removal failure")
-
-			return &res, fmt.Errorf("error destroying bridge: %w", err)
-		}
-	default:
-		return &res, errSwitchInvalidType
-	}
-
 	res.Success = true
 
 	return &res, nil

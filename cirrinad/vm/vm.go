@@ -189,15 +189,16 @@ func vmDaemon(events chan supervisor.Event, thisVM *VM) {
 			thisVM.log.Debug("VM Stop initVM")
 
 			thisVM.killComLoggers()
-			thisVM.unlockDisks()
 			thisVM.BhyvectlDestroy()
-			thisVM.NetCleanup()
-			err := thisVM.SetStopped()
 
+			err := thisVM.SetStopped()
 			if err != nil {
 				// log error but continue
 				slog.Error("error stopping VM", "err", err)
 			}
+
+			thisVM.unlockDisks()
+			thisVM.NetStop()
 
 			slog.Debug("VM Stop finalized", "vm_name", thisVM.Name)
 			thisVM.log.Debug("VM Stop finalized")
@@ -502,10 +503,10 @@ func (vm *VM) Start() error {
 	vm.log.Info("start", "cmd", cmdName, "args", cmdArgs)
 	vm.createUefiVarsFile()
 
-	err = vm.netStartup()
+	err = vm.netStart()
 	if err != nil {
 		slog.Error("Failed VM net startup, cleaning up", "err", err)
-		vm.NetCleanup()
+		vm.NetStop()
 
 		return err
 	}

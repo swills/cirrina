@@ -176,10 +176,10 @@ func createNgBridge(name string) error {
 	if !strings.HasPrefix(name, "bnet") {
 		slog.Error("invalid bridge name", "name", name)
 
-		return errSwitchInvalidBridgeNameNG
+		return ErrSwitchInvalidName
 	}
 
-	allIfBridges, err := GetAllNgSwitches()
+	allIfBridges, err := getAllNgSwitches()
 	if err != nil {
 		slog.Debug("failed to get all if bridges", "err", err)
 
@@ -203,7 +203,7 @@ func createNgBridge(name string) error {
 
 func actualNgBridgeCreate(netDev string) error {
 	// create a dummy if_bridge to connect the ng_bridge to
-	dummyIfBridgeName := GetDummyBridgeName()
+	dummyIfBridgeName := getDummyBridgeName()
 	if dummyIfBridgeName == "" {
 		return errSwitchFailDummy
 	}
@@ -278,7 +278,7 @@ func actualNgBridgeCreate(netDev string) error {
 	}
 
 	// and delete our dummy if_bridge
-	err = DestroyIfSwitch(dummyIfBridgeName, false)
+	err = destroyIfSwitch(dummyIfBridgeName, false)
 	if err != nil {
 		slog.Error("dummy if_bridge deletion error", "err", err)
 
@@ -319,7 +319,7 @@ func createNgBridgeWithMembers(bridgeName string, bridgeMembers []string) error 
 			continue
 		}
 
-		err = SwitchNgAddMember(bridgeName, member)
+		err = switchNgAddMember(bridgeName, member)
 		if err != nil {
 			slog.Error("createNgBridgeWithMembers error adding bridge member",
 				"name", bridgeName,
@@ -395,7 +395,7 @@ func switchNgRemoveUplink(bridgeName string, peerName string) error {
 	return nil
 }
 
-func GetAllNgSwitches() ([]string, error) {
+func getAllNgSwitches() ([]string, error) {
 	var bridges []string
 
 	netgraphNodes, err := ngGetNodes()
@@ -413,7 +413,7 @@ func GetAllNgSwitches() ([]string, error) {
 }
 
 func memberUsedByNgSwitch(member string) (bool, error) {
-	allBridges, err := GetAllNgSwitches()
+	allBridges, err := getAllNgSwitches()
 	if err != nil {
 		slog.Error("error getting all if bridges", "err", err)
 
@@ -479,7 +479,7 @@ func (s *Switch) setUplinkNG(uplink string) error {
 
 	slog.Debug("setting NG bridge uplink", "id", s.ID)
 
-	err = SwitchNgAddMember(s.Name, uplink)
+	err = switchNgAddMember(s.Name, uplink)
 	if err != nil {
 		return err
 	}
@@ -512,7 +512,7 @@ func (s *Switch) validateNgSwitch() error {
 	return nil
 }
 
-func SwitchNgAddMember(bridgeName string, memberName string) error {
+func switchNgAddMember(bridgeName string, memberName string) error {
 	link, err := ngGetBridgeNextLink(bridgeName)
 	if err != nil {
 		return err
@@ -558,11 +558,17 @@ func SwitchNgAddMember(bridgeName string, memberName string) error {
 	return nil
 }
 
-func DestroyNgSwitch(netDev string) error {
+func destroyNgSwitch(netDev string) error {
 	var err error
 
 	if netDev == "" {
-		return errSwitchInvalidNetDevEmpty
+		return ErrSwitchInvalidName
+	}
+
+	if !strings.HasPrefix(netDev, "bnet") {
+		slog.Error("invalid switch name", "name", netDev)
+
+		return ErrSwitchInvalidName
 	}
 
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(

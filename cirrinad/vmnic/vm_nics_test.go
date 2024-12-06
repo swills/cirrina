@@ -2,7 +2,9 @@ package vmnic
 
 import (
 	"errors"
+	"os"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -2496,4 +2498,355 @@ func Test_getMac(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestVMNic_Build(t *testing.T) {
+	type fields struct {
+		ID          string
+		CreatedAt   time.Time
+		UpdatedAt   time.Time
+		DeletedAt   gorm.DeletedAt
+		Name        string
+		Description string
+		Mac         string
+		NetDev      string
+		NetType     string
+		NetDevType  string
+		SwitchID    string
+		RateLimit   bool
+		RateIn      uint64
+		RateOut     uint64
+		InstBridge  string
+		InstEpair   string
+		ConfigID    uint
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		fields      fields
+		wantErr     bool
+	}{
+		{
+			name:        "BadType",
+			mockCmdFunc: "TestVMNic_BuildSuccess",
+			fields: fields{
+				NetType: "garbage",
+			},
+			wantErr: true,
+		},
+		{
+			name:        "SuccessNG",
+			mockCmdFunc: "TestVMNic_BuildSuccess",
+			fields: fields{
+				NetDevType: "NETGRAPH",
+			},
+			wantErr: false,
+		},
+		{
+			name:        "TapNoNetDev",
+			mockCmdFunc: "TestVMNic_BuildSuccess",
+			fields: fields{
+				NetDev:     "",
+				NetDevType: "TAP",
+			},
+			wantErr: true,
+		},
+		{
+			name:        "TapError",
+			mockCmdFunc: "TestVMNic_BuildError",
+			fields: fields{
+				NetDev:     "tap0",
+				NetDevType: "TAP",
+			},
+			wantErr: true,
+		},
+		{
+			name:        "VmnetError",
+			mockCmdFunc: "TestVMNic_BuildError",
+			fields: fields{
+				NetDev:     "vmnet0",
+				NetDevType: "VMNET",
+			},
+			wantErr: true,
+		},
+		{
+			name:        "TapSuccess",
+			mockCmdFunc: "TestVMNic_BuildSuccess",
+			fields: fields{
+				NetDev:     "tap0",
+				NetDevType: "TAP",
+			},
+			wantErr: false,
+		},
+		{
+			name:        "VmnetSuccess",
+			mockCmdFunc: "TestVMNic_BuildSuccess",
+			fields: fields{
+				NetDev:     "vmnet0",
+				NetDevType: "VMNET",
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+
+			util.SetupTestCmd(fakeCommand)
+
+			vmNic := &VMNic{
+				ID:          testCase.fields.ID,
+				CreatedAt:   testCase.fields.CreatedAt,
+				UpdatedAt:   testCase.fields.UpdatedAt,
+				DeletedAt:   testCase.fields.DeletedAt,
+				Name:        testCase.fields.Name,
+				Description: testCase.fields.Description,
+				Mac:         testCase.fields.Mac,
+				NetDev:      testCase.fields.NetDev,
+				NetType:     testCase.fields.NetType,
+				NetDevType:  testCase.fields.NetDevType,
+				SwitchID:    testCase.fields.SwitchID,
+				RateLimit:   testCase.fields.RateLimit,
+				RateIn:      testCase.fields.RateIn,
+				RateOut:     testCase.fields.RateOut,
+				InstBridge:  testCase.fields.InstBridge,
+				InstEpair:   testCase.fields.InstEpair,
+				ConfigID:    testCase.fields.ConfigID,
+			}
+
+			err := vmNic.Build()
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("Build() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
+func Test_Demolish(t *testing.T) {
+	type args struct {
+		vmNic VMNic
+	}
+
+	tests := []struct {
+		name        string
+		mockCmdFunc string
+		args        args
+		wantErr     bool
+	}{
+		{
+			name:        "TapSuccessNoRateLimit",
+			mockCmdFunc: "Test_cleanupIfNicSuccess",
+			args: args{
+				vmNic: VMNic{
+					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
+					Name:        "fladsorp",
+					Description: "a silly nic",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "21b42894-d0da-410f-b45c-afcdddae15b2",
+					RateLimit:   false,
+					RateIn:      0,
+					RateOut:     0,
+					InstBridge:  "",
+					InstEpair:   "",
+					ConfigID:    25,
+				},
+			},
+		},
+		{
+			name:        "TapSuccessRateLimit",
+			mockCmdFunc: "Test_cleanupIfNicSuccess",
+			args: args{
+				vmNic: VMNic{
+					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
+					Name:        "fladsorp",
+					Description: "a silly nic",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "21b42894-d0da-410f-b45c-afcdddae15b2",
+					RateLimit:   true,
+					RateIn:      500000,
+					RateOut:     250000,
+					InstBridge:  "bridge32766",
+					InstEpair:   "epair32766",
+					ConfigID:    25,
+				},
+			},
+		},
+		{
+			name:        "Fail1",
+			mockCmdFunc: "Test_cleanupIfNicFail1",
+			args: args{
+				vmNic: VMNic{
+					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
+					Name:        "fladsorp",
+					Description: "a silly nic",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "21b42894-d0da-410f-b45c-afcdddae15b2",
+					RateLimit:   true,
+					RateIn:      500000,
+					RateOut:     250000,
+					InstBridge:  "bridge32766",
+					InstEpair:   "epair32766",
+					ConfigID:    25,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:        "FailAll",
+			mockCmdFunc: "Test_cleanupIfNicFailAll",
+			args: args{
+				vmNic: VMNic{
+					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
+					Name:        "fladsorp",
+					Description: "a silly nic",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "21b42894-d0da-410f-b45c-afcdddae15b2",
+					RateLimit:   true,
+					RateIn:      500000,
+					RateOut:     250000,
+					InstBridge:  "bridge32766",
+					InstEpair:   "epair32766",
+					ConfigID:    25,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name:        "TapSuccessNG",
+			mockCmdFunc: "Test_cleanupIfNicSuccess",
+			args: args{
+				vmNic: VMNic{
+					ID:          "c593b77c-0a97-4eac-be8b-f7a6daffeb70",
+					Name:        "bonk",
+					Description: "BONK",
+					Mac:         "AUTO",
+					NetDev:      "bnet0,link2",
+					NetType:     "VIRTIONET",
+					NetDevType:  "NETGRAPH",
+					SwitchID:    "8040b24b-5456-427b-9ff9-819ca756ca25",
+					ConfigID:    25,
+				},
+			},
+		},
+		{
+			name:        "BadType",
+			mockCmdFunc: "Test_cleanupIfNicSuccess",
+			args: args{
+				vmNic: VMNic{
+					ID:          "c593b77c-0a97-4eac-be8b-f7a6daffeb70",
+					Name:        "bonk",
+					Description: "BONK",
+					Mac:         "AUTO",
+					NetDev:      "bnet0,link2",
+					NetType:     "VIRTIONET",
+					NetDevType:  "garbage",
+					SwitchID:    "8040b24b-5456-427b-9ff9-819ca756ca25",
+					ConfigID:    25,
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			err := testCase.args.vmNic.Demolish()
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("Demolish() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
+// test helpers from here down
+
+func Test_cleanupIfNicSuccess(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(0)
+}
+
+func Test_cleanupIfNicFail1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/sbin/ifconfig" && cmdWithArgs[2] == "tap0" && cmdWithArgs[3] == "destroy" { //nolint:lll
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+//nolint:cyclop
+func Test_cleanupIfNicFailAll(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	cmdWithArgs := os.Args[3:]
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/sbin/ifconfig" && cmdWithArgs[2] == "tap0" && cmdWithArgs[3] == "destroy" { //nolint:lll
+		os.Exit(1)
+	}
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/sbin/ifconfig" && cmdWithArgs[2] == "epair32766a" && cmdWithArgs[3] == "destroy" { //nolint:lll
+		os.Exit(1)
+	}
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/sbin/ifconfig" && cmdWithArgs[2] == "bridge32766" && cmdWithArgs[3] == "destroy" { //nolint:lll
+		os.Exit(1)
+	}
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/usr/sbin/ngctl" && strings.HasSuffix(cmdWithArgs[3], "a_pipe:") {
+		os.Exit(1)
+	}
+
+	if len(cmdWithArgs) >= 2 && cmdWithArgs[1] == "/usr/sbin/ngctl" && strings.HasSuffix(cmdWithArgs[3], "b_pipe:") {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func TestVMNic_BuildSuccess(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(0)
+}
+
+func TestVMNic_BuildError(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(1)
 }

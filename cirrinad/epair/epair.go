@@ -158,7 +158,7 @@ func SetRateLimit(name string, rateIn uint64, rateOut uint64) error {
 		"rateOut", rateOut,
 	)
 
-	err = NgCreatePipeWithRateLimit(name+"a", rateIn)
+	err = NgConnectPipeWithRateLimit(name+"a", rateIn)
 	if err != nil {
 		slog.Error("error creating ng pipe with rate limit",
 			"name", name,
@@ -168,7 +168,7 @@ func SetRateLimit(name string, rateIn uint64, rateOut uint64) error {
 		return fmt.Errorf("failed setting rate limit: %w", err)
 	}
 
-	err = NgCreatePipeWithRateLimit(name+"b", rateOut)
+	err = NgConnectPipeWithRateLimit(name+"b", rateOut)
 	if err != nil {
 		slog.Error("error creating ng pipe with rate limit",
 			"name", name,
@@ -181,7 +181,7 @@ func SetRateLimit(name string, rateIn uint64, rateOut uint64) error {
 	return nil
 }
 
-func NgCreatePipeWithRateLimit(name string, rate uint64) error {
+func NgConnectPipeWithRateLimit(name string, rate uint64) error {
 	var err error
 
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
@@ -251,7 +251,7 @@ func NgCreatePipeWithRateLimit(name string, rate uint64) error {
 	return nil
 }
 
-func NgDestroyPipe(name string) error {
+func NgShutdownPipe(name string) error {
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		config.Config.Sys.Sudo,
 		[]string{"/usr/sbin/ngctl", "shutdown", name + "_pipe" + ":"},

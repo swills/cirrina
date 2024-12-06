@@ -378,9 +378,9 @@ func TestGetAllNgBridges(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			got, err := GetAllNgSwitches()
+			got, err := getAllNgSwitches()
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("GetAllNgSwitches() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("getAllNgSwitches() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}

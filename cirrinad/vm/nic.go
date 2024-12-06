@@ -6,168 +6,14 @@ import (
 
 	"github.com/google/uuid"
 
-	"cirrina/cirrinad/config"
-	"cirrina/cirrinad/epair"
 	vmswitch "cirrina/cirrinad/switch"
-	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vmnic"
 )
 
-func netStartupIf(vmNic vmnic.VMNic) error {
-	// Create interface
-	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
-		config.Config.Sys.Sudo, []string{"/sbin/ifconfig", vmNic.NetDev, "create", "group", "cirrinad"},
-	)
-	if err != nil {
-		slog.Error("failed to create tap",
-			"stdOutBytes", stdOutBytes,
-			"stdErrBytes", stdErrBytes,
-			"returnCode", returnCode,
-			"err", err,
-		)
-
-		return fmt.Errorf("error running ifconfig command: %w", err)
-	}
-
-	if vmNic.SwitchID == "" {
-		return nil
-	}
-
-	// Add interface to bridge
-	thisSwitch, err := vmswitch.GetByID(vmNic.SwitchID)
-	if err != nil {
-		slog.Error("bad switch id",
-			"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchID)
-
-		return fmt.Errorf("error getting switch id: %w", err)
-	}
-
-	if thisSwitch.Type != "IF" {
-		slog.Error("bridge/interface type mismatch",
-			"nicname", vmNic.Name,
-			"nicid", vmNic.ID,
-			"switchid", vmNic.SwitchID,
-		)
-
-		return errSwitchNICMismatch
-	}
-
-	var thisMemberName string
-
-	if vmNic.RateLimit {
-		var thisEpair string
-
-		thisEpair, err = vmswitch.SetupVMNicRateLimit(vmNic)
-		if err != nil {
-			return fmt.Errorf("failed setting up nic: %w", err)
-		}
-
-		thisMemberName = thisEpair + "b"
-	} else {
-		thisMemberName = vmNic.NetDev
-	}
-
-	err = vmswitch.SwitchIfAddMember(thisSwitch.Name, thisMemberName)
-	if err != nil {
-		slog.Error("failed to add nic to switch",
-			"nicname", vmNic.Name,
-			"nicid", vmNic.ID,
-			"switchid", vmNic.SwitchID,
-			"netdev", vmNic.NetDev,
-			"err", err,
-		)
-
-		return fmt.Errorf("error adding member to bridge: %w", err)
-	}
-
-	return nil
-}
-
-func netStartupNg(vmNic vmnic.VMNic) error {
-	thisSwitch, err := vmswitch.GetByID(vmNic.SwitchID)
-	if err != nil {
-		slog.Error("bad switch id",
-			"nicname", vmNic.Name, "nicid", vmNic.ID, "switchid", vmNic.SwitchID)
-
-		return fmt.Errorf("error getting switch ID: %w", err)
-	}
-
-	if thisSwitch.Type != "NG" {
-		slog.Error("bridge/interface type mismatch",
-			"nicname", vmNic.Name,
-			"nicid", vmNic.ID,
-			"switchid", vmNic.SwitchID,
-		)
-
-		return errSwitchNICMismatch
-	}
-
-	return nil
-}
-
-// cleanupIfNic cleanup tap/vmnet type nic
-func cleanupIfNic(vmNic vmnic.VMNic) error {
-	var stdOutBytes []byte
-
-	var stdErrBytes []byte
-
-	var returnCode int
-
-	var err1, err2, err3, err4, err5 error
-
-	if vmNic.NetDev != "" {
-		stdOutBytes, stdErrBytes, returnCode, err1 = util.RunCmd(
-			config.Config.Sys.Sudo, []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"},
-		)
-		if err1 != nil {
-			// don't return error just in case the other bits are populated
-			slog.Error("failed to destroy network interface",
-				"stdOutBytes", stdOutBytes,
-				"stdErrBytes", stdErrBytes,
-				"returnCode", returnCode,
-				"err", err1,
-			)
-		}
-	}
-
-	if vmNic.InstEpair != "" {
-		err2 = epair.DestroyEpair(vmNic.InstEpair)
-		if err2 != nil {
-			slog.Error("failed to destroy epair", "err", err2)
-		}
-	}
-
-	if vmNic.InstBridge != "" {
-		err3 = vmswitch.DestroyIfSwitch(vmNic.InstBridge, false)
-		if err3 != nil {
-			slog.Error("failed to destroy switch", "err", err3)
-		}
-	}
-	// tap/vmnet nics may be connected to an epair which is connected
-	// to a netgraph pipe for purposes for rate limiting
-	if vmNic.InstEpair != "" {
-		err4 = epair.NgDestroyPipe(vmNic.InstEpair + "a")
-		if err4 != nil {
-			slog.Error("failed to destroy ng pipe", "err", err4)
-		}
-
-		err5 = epair.NgDestroyPipe(vmNic.InstEpair + "b")
-		if err5 != nil {
-			slog.Error("failed to destroy ng pipe", "err", err5)
-		}
-	}
-
-	if err1 != nil || err2 != nil || err3 != nil || err4 != nil || err5 != nil {
-		return errVMNICCleanupError
-	}
-
-	return nil
-}
-
-func (vm *VM) netStartup() error {
+func (vm *VM) netStart() error {
 	vmNicsList, err := vmnic.GetNics(vm.Config.ID)
 	if err != nil {
-		slog.Error("netStartup failed to get nics", "err", err)
+		slog.Error("netStart failed to get nics", "err", err)
 
 		return fmt.Errorf("error getting vm nics: %w", err)
 	}
@@ -176,32 +22,42 @@ func (vm *VM) netStartup() error {
 		// silence gosec
 		vmNic := vmNic
 
-		switch vmNic.NetDevType {
-		case "TAP":
-			err := netStartupIf(vmNic)
-			if err != nil {
-				slog.Error("error bringing up nic", "err", err)
+		err = vmNic.Build()
+		if err != nil {
+			slog.Error("error creating nic", "err", err)
 
-				return fmt.Errorf("error starting vm nic: %w", err)
-			}
-		case "VMNET":
-			err := netStartupIf(vmNic)
-			if err != nil {
-				slog.Error("error bringing up nic", "err", err)
+			continue
+		}
 
-				return fmt.Errorf("error starting vm nic: %w", err)
-			}
-		case "NETGRAPH":
-			err := netStartupNg(vmNic)
-			if err != nil {
-				slog.Error("error bringing up nic", "err", err)
+		// nothing to do
+		if vmNic.SwitchID == "" {
+			continue
+		}
 
-				return fmt.Errorf("error starting vm nic: %w", err)
-			}
-		default:
-			slog.Debug("unknown net type, can't set up")
+		// get switch
+		thisSwitch, err := vmswitch.GetByID(vmNic.SwitchID)
+		if err != nil {
+			slog.Error("bad switch id",
+				"err", err,
+				"nic.Name", vmNic.Name,
+				"nic.ID", vmNic.ID,
+				"switch.ID", vmNic.SwitchID,
+			)
 
-			return errVMUnknownNetDevType
+			continue
+		}
+
+		// connect nic to switch
+		err = thisSwitch.ConnectNic(&vmNic)
+		if err != nil {
+			slog.Error("error connecting switch",
+				"err", err,
+				"nic.Name", vmNic.Name,
+				"nic.ID", vmNic.ID,
+				"switch.ID", vmNic.SwitchID,
+			)
+
+			continue
 		}
 	}
 
@@ -293,8 +149,8 @@ func (vm *VM) removeAllNicsFromVM() error {
 	return nil
 }
 
-// NetCleanup clean up all of a VMs nics
-func (vm *VM) NetCleanup() {
+// NetStop clean up all of a VMs nics
+func (vm *VM) NetStop() {
 	vmNicsList, err := vmnic.GetNics(vm.Config.ID)
 	if err != nil {
 		slog.Error("failed to get nics", "err", err)
@@ -303,25 +159,29 @@ func (vm *VM) NetCleanup() {
 	}
 
 	for _, vmNic := range vmNicsList {
-		switch {
-		case vmNic.NetDevType == "TAP" || vmNic.NetDevType == "VMNET":
-			err = cleanupIfNic(vmNic)
-			if err != nil {
-				slog.Error("error cleaning up nic", "vmNic", vmNic, "err", err)
+		// disconnect nic from switch
+		if vmNic.SwitchID != "" {
+			thisSwitch, err := vmswitch.GetByID(vmNic.SwitchID)
+			if err != nil || thisSwitch == nil {
+				slog.Error("bad switch id",
+					"nic.Name", vmNic.Name, "nic.ID", vmNic.ID, "switch.ID", vmNic.SwitchID)
+			} else {
+				err = thisSwitch.DisconnectNic(&vmNic)
+				if err != nil {
+					slog.Error("error disconnecting switch",
+						"err", err,
+						"nic.Name", vmNic.Name,
+						"nic.ID", vmNic.ID,
+						"switch.ID", vmNic.SwitchID,
+					)
+				}
 			}
-		case vmNic.NetDevType == "NETGRAPH":
-			// nothing to do for netgraph
-		default:
-			slog.Error("unknown net type, can't clean up")
 		}
 
-		vmNic.NetDev = ""
-		vmNic.InstEpair = ""
-		vmNic.InstBridge = ""
-		err = vmNic.Save()
-
+		// destroy interface
+		err := vmNic.Demolish()
 		if err != nil {
-			slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+			slog.Error("error destroying nic", "err", err)
 		}
 	}
 }

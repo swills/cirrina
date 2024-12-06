@@ -455,3 +455,68 @@ func (vmNic *VMNic) GetVMIDs() []string {
 // CheckAll verifies that the uplink for a NIC exists -- TODO
 func CheckAll() {
 }
+
+func (vmNic *VMNic) Build() error {
+	switch vmNic.NetDevType {
+	case "TAP":
+		fallthrough
+	case "VMNET":
+		if vmNic.NetDev == "" {
+			return ErrInvalidNicName
+		}
+
+		stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+			config.Config.Sys.Sudo, []string{"/sbin/ifconfig", vmNic.NetDev, "create", "group", "cirrinad"},
+		)
+		if err != nil {
+			slog.Error("failed to create tap",
+				"stdOutBytes", stdOutBytes,
+				"stdErrBytes", stdErrBytes,
+				"returnCode", returnCode,
+				"err", err,
+			)
+
+			return fmt.Errorf("error running ifconfig command: %w", err)
+		}
+
+		return nil
+	case "NETGRAPH":
+		return nil
+	default:
+		return ErrNicUnknownNetDevType
+	}
+}
+
+func (vmNic *VMNic) Demolish() error {
+	switch vmNic.NetDevType {
+	case "TAP":
+		fallthrough
+	case "VMNET":
+		if vmNic.NetDev != "" {
+			stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
+				config.Config.Sys.Sudo, []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"},
+			)
+			if err != nil {
+				slog.Error("failed to destroy network interface",
+					"stdOutBytes", stdOutBytes,
+					"stdErrBytes", stdErrBytes,
+					"returnCode", returnCode,
+					"err", err,
+				)
+
+				return fmt.Errorf("error destroying nic: %w", err)
+			}
+
+			return nil
+		}
+	case "NETGRAPH":
+		// nothing to do
+		return nil
+	default:
+		slog.Error("unknown net type, can't clean up")
+
+		return ErrNicUnknownNetDevType
+	}
+
+	return nil // unreachable
+}

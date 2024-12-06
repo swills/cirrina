@@ -224,9 +224,9 @@ func TestNgCreatePipeWithRateLimit(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := NgCreatePipeWithRateLimit(testCase.args.name, testCase.args.rate)
+			err := NgConnectPipeWithRateLimit(testCase.args.name, testCase.args.rate)
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("NgCreatePipeWithRateLimit() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("NgConnectPipeWithRateLimit() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}
@@ -270,9 +270,9 @@ func TestNgDestroyPipe(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := NgDestroyPipe(testCase.args.name)
+			err := NgShutdownPipe(testCase.args.name)
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("NgDestroyPipe() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("NgShutdownPipe() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}

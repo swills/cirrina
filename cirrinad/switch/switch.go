@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"cirrina/cirrinad/epair"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vmnic"
 )
@@ -68,7 +67,7 @@ func (s *Switch) switchCheckUplink() error {
 	default:
 		slog.Error("bad switch type", "switchType", s.Type)
 
-		return errSwitchInvalidType
+		return ErrSwitchInvalidType
 	}
 
 	return nil
@@ -80,23 +79,19 @@ func (s *Switch) validate() error {
 		return ErrSwitchInvalidName
 	}
 
-	if !s.switchTypeValid() {
-		return errSwitchInvalidType
-	}
-
 	err := s.switchCheckUplink()
 	if err != nil {
 		return err
 	}
 
-	// default case unreachable
+	// default case unreachable because we checked the type above, unless the two are out of sync
 	switch s.Type {
 	case "IF":
 		return s.validateIfSwitch()
 	case "NG":
 		return s.validateNgSwitch()
-	default:
-		return errSwitchInvalidType
+	default: // unreachable
+		return ErrSwitchInvalidType // unreachable
 	}
 }
 
@@ -142,7 +137,7 @@ func (s *Switch) bringUpNewSwitch() error {
 	default:
 		slog.Error("unknown switch type bringing up new switch")
 
-		return errSwitchInvalidType
+		return ErrSwitchInvalidType
 	}
 
 	return nil
@@ -303,7 +298,7 @@ func CreateSwitches() error {
 		default:
 			slog.Debug("unknown switch type", "name", aSwitch.Name, "type", aSwitch.Type)
 
-			return errSwitchInvalidType
+			return ErrSwitchInvalidType
 		}
 	}
 
@@ -313,7 +308,7 @@ func CreateSwitches() error {
 func (s *Switch) Delete() error {
 	switchDB := getSwitchDB()
 
-	if s.InUse() {
+	if s.inUse() {
 		return errSwitchInUse
 	}
 
@@ -324,10 +319,15 @@ func (s *Switch) Delete() error {
 		return errSwitchInternalDB
 	}
 
+	err := s.destroySwitch()
+	if err != nil {
+		return fmt.Errorf("error deleting switch: %w", err)
+	}
+
 	return nil
 }
 
-func (s *Switch) InUse() bool {
+func (s *Switch) inUse() bool {
 	vmNics := vmnicGetAllFunc()
 	for _, vmNic := range vmNics {
 		if vmNic.SwitchID == s.ID {
@@ -341,14 +341,14 @@ func (s *Switch) InUse() bool {
 func DestroySwitches() error {
 	allSwitches := GetAll()
 
-	exitingIfSwitches, err := GetAllIfSwitches()
+	exitingIfSwitches, err := getAllIfSwitches()
 	if err != nil {
 		slog.Error("error getting all if switches")
 
 		return fmt.Errorf("error getting all if switches: %w", err)
 	}
 
-	exitingNgSwitches, err := GetAllNgSwitches()
+	exitingNgSwitches, err := getAllNgSwitches()
 	if err != nil {
 		slog.Error("error getting all ng switches")
 
@@ -361,7 +361,7 @@ func DestroySwitches() error {
 			if util.ContainsStr(exitingIfSwitches, aSwitch.Name) {
 				slog.Debug("destroying if switch", "name", aSwitch.Name)
 
-				err = DestroyIfSwitch(aSwitch.Name, true)
+				err = destroyIfSwitch(aSwitch.Name, true)
 				if err != nil {
 					slog.Error("error destroying if switch", "err", err)
 
@@ -372,7 +372,7 @@ func DestroySwitches() error {
 			if util.ContainsStr(exitingNgSwitches, aSwitch.Name) {
 				slog.Debug("destroying ng switch", "name", aSwitch.Name)
 
-				err = DestroyNgSwitch(aSwitch.Name)
+				err = destroyNgSwitch(aSwitch.Name)
 				if err != nil {
 					slog.Error("error destroying ng switch", "err", err)
 
@@ -382,7 +382,7 @@ func DestroySwitches() error {
 		default:
 			slog.Debug("unknown switch type", "name", aSwitch.Name, "type", aSwitch.Type)
 
-			return errSwitchInvalidType
+			return ErrSwitchInvalidType
 		}
 	}
 
@@ -517,7 +517,7 @@ func (s *Switch) UnsetUplink() error {
 
 		return nil
 	default:
-		return errSwitchInvalidType
+		return ErrSwitchInvalidType
 	}
 }
 
@@ -534,7 +534,7 @@ func (s *Switch) SetUplink(uplink string) error {
 	case "NG":
 		return s.setUplinkNG(uplink)
 	default:
-		return errSwitchInvalidType
+		return ErrSwitchInvalidType
 	}
 }
 
@@ -595,60 +595,112 @@ func CheckAll() {
 	}
 }
 
-func SetupVMNicRateLimit(vmNic vmnic.VMNic) (string, error) {
+func (s *Switch) destroySwitch() error {
 	var err error
 
-	thisEpair := epair.GetDummyEpairName()
-	slog.Debug("netStartup rate limiting", "thisEpair", thisEpair)
-
-	err = epair.CreateEpair(thisEpair)
-	if err != nil {
-		slog.Error("error creating epair", "err", err)
-
-		return "", fmt.Errorf("error creating epair: %w", err)
+	if s.inUse() {
+		return errSwitchInUse
 	}
 
-	vmNic.InstEpair = thisEpair
-	err = vmNic.Save()
+	switch s.Type {
+	case "IF":
+		err = destroyIfSwitch(s.Name, true)
+		if err != nil {
+			return fmt.Errorf("error destroying switch: %w", err)
+		}
 
-	if err != nil {
-		slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
+		return nil
+	case "NG":
+		err = destroyNgSwitch(s.Name)
+		if err != nil {
+			slog.Error("switch removal failure")
 
-		return "", fmt.Errorf("error saving NIC: %w", err)
+			return fmt.Errorf("error destroying switch: %w", err)
+		}
+
+		return nil
+	default:
+		return ErrSwitchInvalidType
+	}
+}
+
+func (s *Switch) nicTypeMatch(vmNic *vmnic.VMNic) bool {
+	switch s.Type {
+	case "IF":
+		if vmNic.NetDevType != "TAP" && vmNic.NetDevType != "VMNET" {
+			slog.Error("switch/nic type mismatch",
+				"switch.ID", s.ID,
+				"switch.Type", s.Type,
+				"nic.Name", vmNic.Name,
+				"nic.ID", vmNic.ID,
+				"nic.SwitchID", vmNic.SwitchID,
+			)
+
+			return false
+		}
+	case "NG":
+		if vmNic.NetDevType != "NETGRAPH" {
+			slog.Error("switch/nic type mismatch",
+				"switch.ID", s.ID,
+				"switch.Type", s.Type,
+				"nic.Name", vmNic.Name,
+				"nic.ID", vmNic.ID,
+				"nic.SwitchID", vmNic.SwitchID,
+			)
+
+			return false
+		}
+	default:
+		return false
 	}
 
-	err = epair.SetRateLimit(thisEpair, vmNic.RateIn, vmNic.RateOut)
-	if err != nil {
-		slog.Error("failed to set epair rate limit", "epair", thisEpair)
+	return true
+}
 
-		return "", fmt.Errorf("error setting rate limit: %w", err)
+func (s *Switch) ConnectNic(vmNic *vmnic.VMNic) error {
+	if !s.nicTypeMatch(vmNic) {
+		return errSwitchUplinkWrongType
 	}
 
-	thisInstSwitch := GetDummyBridgeName()
+	switch s.Type {
+	case "IF":
+		err := s.connectIfNic(vmNic)
+		if err != nil {
+			slog.Error("error connecting nic", "err", err)
 
-	var bridgeMembers []string
-	bridgeMembers = append(bridgeMembers, thisEpair+"a")
-	bridgeMembers = append(bridgeMembers, vmNic.NetDev)
+			return fmt.Errorf("error connecting nic: %w", err)
+		}
+	case "NG":
+		// nothing to do
+		return nil
+	default: // unreachable
+		slog.Debug("unknown net type, unable to connect") // unreachable
 
-	err = CreateIfBridgeWithMembers(thisInstSwitch, bridgeMembers)
-	if err != nil {
-		slog.Error("failed to create switch",
-			"nic", vmNic.ID,
-			"thisInstSwitch", thisInstSwitch,
-			"err", err,
-		)
-
-		return "", fmt.Errorf("error creating bridge: %w", err)
+		return ErrSwitchInvalidType // unreachable
 	}
 
-	vmNic.InstBridge = thisInstSwitch
-	err = vmNic.Save()
+	return nil
+}
 
-	if err != nil {
-		slog.Error("failed to save net dev", "nic", vmNic.ID, "netdev", vmNic.NetDev)
-
-		return "", fmt.Errorf("error saving NIC: %w", err)
+func (s *Switch) DisconnectNic(vmNic *vmnic.VMNic) error {
+	if !s.nicTypeMatch(vmNic) {
+		return errSwitchUplinkWrongType
 	}
 
-	return thisEpair, nil
+	switch s.Type {
+	case "IF":
+		err := s.disconnectIfNic(vmNic)
+		if err != nil {
+			slog.Error("error connecting nic", "err", err)
+
+			return fmt.Errorf("error connecting nic: %w", err)
+		}
+	case "NG":
+		// nothing to do
+	default: // unreachable
+		// no error return so that we try to disconnect other bits just in case
+		slog.Debug("unknown net type, unable to disconnect") // unreachable
+	}
+
+	return nil
 }

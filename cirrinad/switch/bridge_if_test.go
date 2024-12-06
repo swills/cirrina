@@ -32,6 +32,7 @@ func TestGetAllIfBridges(t *testing.T) {
 			wantErr:     true,
 		},
 	}
+
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
 			// prevents parallel testing
@@ -40,9 +41,9 @@ func TestGetAllIfBridges(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			got, err := GetAllIfSwitches()
+			got, err := getAllIfSwitches()
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("GetAllIfSwitches() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("getAllIfSwitches() error = %v, wantErr %v", err, testCase.wantErr)
 
 				return
 			}
@@ -360,9 +361,9 @@ func TestCreateIfBridgeWithMembers(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := CreateIfBridgeWithMembers(testCase.args.bridgeName, testCase.args.bridgeMembers)
+			err := createIfSwitchWithMembers(testCase.args.bridgeName, testCase.args.bridgeMembers)
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("CreateIfBridgeWithMembers() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("createIfSwitchWithMembers() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}
@@ -404,9 +405,9 @@ func TestGetDummyBridgeName(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			got := GetDummyBridgeName()
+			got := getDummyBridgeName()
 			if got != testCase.want {
-				t.Errorf("GetDummyBridgeName() = %v, want %v", got, testCase.want)
+				t.Errorf("getDummyBridgeName() = %v, want %v", got, testCase.want)
 			}
 		})
 	}

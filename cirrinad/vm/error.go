@@ -30,8 +30,6 @@ var (
 	errVMIDEmptyOrInvalid = errors.New("VM ID not specified or invalid")
 )
 
-var errSwitchNICMismatch = errors.New("bridge/interface type mismatch")
-
 var (
 	errVMComInvalid   = errors.New("invalid com port number")
 	errVMComDevNotSet = errors.New("com port enabled but comDev not set")
@@ -45,7 +43,6 @@ var (
 )
 
 var (
-	errVMNicDupe         = errors.New("nic may only be added once")
-	errVMNicAttached     = errors.New("nic already attached")
-	errVMNICCleanupError = errors.New("error cleaning up NIC, see logs")
+	errVMNicDupe     = errors.New("nic may only be added once")
+	errVMNicAttached = errors.New("nic already attached")
 )
