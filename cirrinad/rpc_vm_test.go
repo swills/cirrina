@@ -6696,7 +6696,7 @@ func Test_server_StopVM(t *testing.T) {
 		},
 		{
 			name: "ErrorVMNotRunning",
-			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vm.Instance = &vm.Singleton{VMDB: testDB}
 				requests.Instance = &requests.Singleton{ReqDB: testDB}
 
@@ -6713,6 +6713,27 @@ func Test_server_StopVM(t *testing.T) {
 
 				vm.List.VMList = map[string]*vm.VM{}
 				vm.List.VMList[testVM1.ID] = &testVM1
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `requests` WHERE `complete` = ? AND `requests`.`deleted_at` IS NULL",
+					),
+				).
+					WithArgs(false).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"started_at",
+								"successful",
+								"complete",
+								"type",
+								"data",
+							}),
+					)
 			},
 			args: args{
 				vmID: &cirrina.VMID{
