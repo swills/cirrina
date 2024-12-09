@@ -463,7 +463,7 @@ func Test_server_GetVMNicVM(t *testing.T) {
 
 			ctx := context.Background()
 
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
 			got, err = client.GetVMNicVM(ctx, testCase.args.vmNicID)
@@ -989,7 +989,7 @@ func Test_server_AddVMNic(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
 			lis := bufconn.Listen(1024 * 1024)
@@ -1160,7 +1160,7 @@ func Test_server_GetVMNicsAll(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
 			lis := bufconn.Listen(1024 * 1024)
@@ -2037,7 +2037,7 @@ func Test_server_GetVMNicInfo(t *testing.T) {
 			// clear out list(s) from other parallel test runs
 			vm.List.VMList = map[string]*vm.VM{}
 
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
 			lis := bufconn.Listen(1024 * 1024)
@@ -2884,7 +2884,7 @@ func Test_server_SetVMNicSwitch(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
 			lis := bufconn.Listen(1024 * 1024)
@@ -3368,7 +3368,7 @@ func Test_server_RemoveVMNic(t *testing.T) {
 			disk.List.DiskList = map[string]*disk.Disk{}
 			vm.List.VMList = map[string]*vm.VM{}
 
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
 			lis := bufconn.Listen(1024 * 1024)
@@ -4222,7 +4222,7 @@ func Test_server_UpdateVMNic(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
 			lis := bufconn.Listen(1024 * 1024)
@@ -4824,7 +4824,7 @@ func Test_server_CloneVMNic(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
 			lis := bufconn.Listen(1024 * 1024)

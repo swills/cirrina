@@ -1169,7 +1169,7 @@ func TestVM_Save(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockVMClosure(testDB, mock)
 
 			testVM := &VM{
@@ -2038,7 +2038,7 @@ func TestVM_Delete(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mockDB := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mockDB := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mockDB)
 
 			testVM := &VM{
@@ -2333,7 +2333,7 @@ func TestCreate(t *testing.T) {
 
 			t.Cleanup(func() { OsOpenFileFunc = os.OpenFile })
 
-			testDB, mockDB := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mockDB := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mockDB)
 
 			err := Create(testCase.args.vmInst)

@@ -681,7 +681,7 @@ func Test_setupVMNicRateLimit(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
 			got, err := setupVMNicRateLimit(&testCase.args.vmNic)

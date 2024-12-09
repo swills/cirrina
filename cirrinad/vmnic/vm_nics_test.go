@@ -268,7 +268,7 @@ func TestGetByName(t *testing.T) {
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
 			got, err := GetByName(testCase.args.name)
@@ -425,7 +425,7 @@ func TestGetAll(t *testing.T) {
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
 			got := GetAll()
@@ -609,7 +609,7 @@ func TestGetByID(t *testing.T) {
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
 			got, err := GetByID(testCase.args.id)
@@ -1004,7 +1004,7 @@ func TestVMNic_Delete(t *testing.T) {
 				ConfigID:    testCase.fields.ConfigID,
 			}
 
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 
 			testCase.mockClosure(testDB, mock)
 
@@ -1166,7 +1166,7 @@ func TestVMNic_Save(t *testing.T) {
 				ConfigID:    testCase.fields.ConfigID,
 			}
 
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 
 			testCase.mockClosure(testDB, mock)
 
@@ -1334,7 +1334,7 @@ func TestGetNics(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 
 			testCase.mockClosure(testDB, mock)
 
@@ -1505,7 +1505,7 @@ func TestVMNic_SetSwitch(t *testing.T) {
 				InstEpair:   testCase.fields.InstEpair,
 				ConfigID:    testCase.fields.ConfigID,
 			}
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 
 			testCase.mockClosure(testDB, mock)
 
@@ -1659,7 +1659,7 @@ func Test_nicExists(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 
 			testCase.mockClosure(testDB, mock)
 
@@ -2419,7 +2419,7 @@ func TestCreate(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 
 			testCase.mockClosure(testDB, mock)
 

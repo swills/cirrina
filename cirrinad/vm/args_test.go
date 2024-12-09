@@ -2583,7 +2583,7 @@ func TestVM_getDiskArg(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			disk.List.DiskList = map[string]*disk.Disk{}
 
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 
 			testCase.mockClosure()
 
@@ -3657,7 +3657,7 @@ func TestVM_getVideoArg(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockVMClosure(testDB, mock)
 
 			GetFreeTCPPortFunc = testCase.mockGetPortFunc
@@ -3906,7 +3906,7 @@ func Test_getNetDevTypeArg(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockVMClosure(testDB, mock)
 
 			gotNetDev, gotNetDevArg, err := getNetDevTypeArg(
@@ -4427,7 +4427,7 @@ func TestVM_getNetArgs(t *testing.T) {
 
 			t.Cleanup(func() { NetInterfacesFunc = net.Interfaces })
 
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 
 			testCase.mockClosure(testDB, mock)
 

@@ -1494,13 +1494,13 @@ func TestGetAllDB(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			isoTestDB, isoMock := cirrinadtest.NewMockDB(testCase.name)
+			isoTestDB, isoMock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockISOClosure(isoTestDB, isoMock)
 
-			diskTestDB, diskMock := cirrinadtest.NewMockDB(testCase.name)
+			diskTestDB, diskMock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockDiskClosure(diskTestDB, diskMock)
 
-			vmTestDB, VMmock := cirrinadtest.NewMockDB(testCase.name)
+			vmTestDB, VMmock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockVMClosure(vmTestDB, VMmock)
 
 			got, err := GetAllDB()
@@ -1747,7 +1747,7 @@ func TestVM_SetStopped(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
 			List.VMList = map[string]*VM{}
@@ -1966,7 +1966,7 @@ func TestVM_SetDebugPort(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockVMClosure(testDB, mock)
 
 			testVM := &VM{
@@ -2169,7 +2169,7 @@ func TestVM_SetVNCPort(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockVMClosure(testDB, mock)
 
 			testVM := &VM{
@@ -2425,7 +2425,7 @@ func TestVM_SetRunning(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
 			List.VMList = map[string]*VM{}
@@ -2581,7 +2581,7 @@ func TestVM_SetStarting(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
 			List.VMList = map[string]*VM{}
@@ -2733,7 +2733,7 @@ func TestVM_SetStopping(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
 			List.VMList = map[string]*VM{}
