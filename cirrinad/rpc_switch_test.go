@@ -448,6 +448,7 @@ func Test_server_RemoveSwitch(t *testing.T) {
 							"re3",
 						),
 					)
+
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
 						"SELECT * FROM `vm_nics` WHERE `vm_nics`.`deleted_at` IS NULL",
@@ -606,6 +607,31 @@ func Test_server_RemoveSwitch(t *testing.T) {
 						),
 					)
 
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `vm_nics` WHERE `vm_nics`.`deleted_at` IS NULL",
+					),
+				).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"mac",
+						"net_type",
+						"net_dev_type",
+						"switch_id",
+						"net_dev",
+						"rate_limit",
+						"rate_in",
+						"rate_out",
+						"inst_bridge",
+						"inst_epair",
+						"config_id",
+					}))
+
 				mock.ExpectBegin()
 				mock.ExpectExec(
 					regexp.QuoteMeta(
@@ -615,51 +641,6 @@ func Test_server_RemoveSwitch(t *testing.T) {
 					WithArgs("3d595921-b225-49f7-b8eb-c416cfd1ea63").
 					WillReturnError(gorm.ErrInvalidData)
 				mock.ExpectRollback()
-			},
-			args: args{
-				switchID: &cirrina.SwitchId{
-					Value: "3d595921-b225-49f7-b8eb-c416cfd1ea63",
-				},
-			},
-			want:    nil,
-			wantErr: true,
-		},
-		{
-			name:        "ErrorInvalidType",
-			mockCmdFunc: "Test_server_RemoveSwitchSuccessIF",
-			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				_switch.Instance = &_switch.Singleton{
-					SwitchDB: testDB,
-				}
-				vmnic.Instance = &vmnic.Singleton{VMNicDB: testDB}
-
-				mock.ExpectQuery(
-					regexp.QuoteMeta(
-						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
-					),
-				).
-					WithArgs("3d595921-b225-49f7-b8eb-c416cfd1ea63").
-					WillReturnRows(sqlmock.NewRows([]string{
-						"id",
-						"created_at",
-						"updated_at",
-						"deleted_at",
-						"name",
-						"description",
-						"type",
-						"uplink",
-					}).
-						AddRow(
-							"3d595921-b225-49f7-b8eb-c416cfd1ea63",
-							createUpdateTime,
-							createUpdateTime,
-							nil,
-							"bridge0",
-							"a switch",
-							"junk",
-							"re3",
-						),
-					)
 			},
 			args: args{
 				switchID: &cirrina.SwitchId{
@@ -705,6 +686,7 @@ func Test_server_RemoveSwitch(t *testing.T) {
 							"re3",
 						),
 					)
+
 				mock.ExpectQuery(
 					regexp.QuoteMeta(
 						"SELECT * FROM `vm_nics` WHERE `vm_nics`.`deleted_at` IS NULL",
@@ -729,6 +711,16 @@ func Test_server_RemoveSwitch(t *testing.T) {
 						"inst_epair",
 						"config_id",
 					}))
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"DELETE FROM `switches` WHERE `switches`.`id` = ?",
+					),
+				).
+					WithArgs("3d595921-b225-49f7-b8eb-c416cfd1ea63").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
 			},
 			args: args{
 				switchID: &cirrina.SwitchId{
@@ -798,6 +790,16 @@ func Test_server_RemoveSwitch(t *testing.T) {
 						"inst_epair",
 						"config_id",
 					}))
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"DELETE FROM `switches` WHERE `switches`.`id` = ?",
+					),
+				).
+					WithArgs("3d595921-b225-49f7-b8eb-c416cfd1ea63").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
 			},
 			args: args{
 				switchID: &cirrina.SwitchId{
@@ -987,6 +989,8 @@ func Test_server_RemoveSwitch(t *testing.T) {
 			}
 
 			mock.ExpectClose()
+
+			mock.MatchExpectationsInOrder(true)
 
 			db, err := testDB.DB()
 			if err != nil {

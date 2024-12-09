@@ -4181,7 +4181,7 @@ func TestCheckInterfaceExists(t *testing.T) {
 	}
 }
 
-func TestSwitch_DestroySwitch(t *testing.T) {
+func TestSwitch_destroySwitch(t *testing.T) {
 	type fields struct {
 		ID          string
 		CreatedAt   time.Time
@@ -4200,25 +4200,6 @@ func TestSwitch_DestroySwitch(t *testing.T) {
 		mockCmdFunc         string
 		wantErr             bool
 	}{
-		{
-			name:    "SwitchInUse",
-			wantErr: true,
-			mockVmnicGetAllFunc: func() []*vmnic.VMNic {
-				return []*vmnic.VMNic{{
-					SwitchID: "6d7e60be-fa2c-49e4-904b-447ebb0e5471",
-				}}
-			},
-			fields: fields{
-				ID:          "6d7e60be-fa2c-49e4-904b-447ebb0e5471",
-				CreatedAt:   time.Time{},
-				UpdatedAt:   time.Time{},
-				DeletedAt:   gorm.DeletedAt{},
-				Name:        "bridge0",
-				Description: "",
-				Type:        "IF",
-				Uplink:      "em12",
-			},
-		},
 		{
 			name:    "InvalidType",
 			wantErr: true,

@@ -595,12 +595,9 @@ func CheckAll() {
 	}
 }
 
+// destroySwitch destroy a switch which is confirmed not in use by caller
 func (s *Switch) destroySwitch() error {
 	var err error
-
-	if s.inUse() {
-		return errSwitchInUse
-	}
 
 	switch s.Type {
 	case "IF":

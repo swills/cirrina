@@ -1556,6 +1556,7 @@ func Test_server_UploadIso(t *testing.T) {
 					"3753c1dd-48f4-49ca-a415-53a9ee9e2a2f",
 				).
 					WillReturnError(errInvalidRequest)
+				mock.ExpectRollback()
 
 				osCreateFunc = func(_ string) (*os.File, error) {
 					f, _ := os.OpenFile("/dev/null", os.O_WRONLY|os.O_APPEND, 0644)
