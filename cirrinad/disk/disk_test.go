@@ -1051,7 +1051,7 @@ func TestDelete(t *testing.T) {
 		},
 		{
 			name: "error2",
-			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				diskInst := &Disk{
 					ID:          "e89be82f-25c7-42b9-823a-df432e64320e",
 					Name:        "aDisk",
@@ -1072,6 +1072,21 @@ func TestDelete(t *testing.T) {
 				Instance = &Singleton{ // prevents parallel testing
 					DiskDB: testDB,
 				}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT vm_id,disk_id,position FROM `vm_disks` WHERE disk_id LIKE ? LIMIT 1"),
+				).
+					WithArgs("2e1f3582-7bc1-4a7a-beeb-1651e371435e").
+					WillReturnRows(sqlmock.NewRows([]string{"vm_id", "disk_id", "position"}))
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("DELETE FROM `disks` WHERE `disks`.`id` = ?"),
+				).
+					WithArgs("2e1f3582-7bc1-4a7a-beeb-1651e371435e").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
 			},
 			args: args{
 				diskInst: &Disk{ID: "2e1f3582-7bc1-4a7a-beeb-1651e371435e"},
