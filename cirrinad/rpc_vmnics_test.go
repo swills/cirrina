@@ -3150,6 +3150,7 @@ func Test_server_RemoveVMNic(t *testing.T) {
 								"",
 								0,
 							))
+
 				mock.ExpectBegin()
 				mock.ExpectExec(
 					regexp.QuoteMeta(
@@ -3158,6 +3159,7 @@ func Test_server_RemoveVMNic(t *testing.T) {
 				).
 					WithArgs("61ba8ba5-8dc3-465a-a482-d043f53b9053").
 					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
 			},
 			args: args{
 				vmNicID: &cirrina.VmNicId{
@@ -3227,6 +3229,7 @@ func Test_server_RemoveVMNic(t *testing.T) {
 				).
 					WithArgs("61ba8ba5-8dc3-465a-a482-d043f53b9053").
 					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
 			},
 			args: args{
 				vmNicID: &cirrina.VmNicId{
