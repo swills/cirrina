@@ -496,8 +496,6 @@ func unsetVMNicRateLimit(vmNic *vmnic.VMNic) error {
 		if err != nil {
 			return fmt.Errorf("error unsetting nic rate limit: %w", err)
 		}
-
-		return nil
 	}
 
 	return nil

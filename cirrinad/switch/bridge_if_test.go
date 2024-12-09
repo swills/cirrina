@@ -3,12 +3,17 @@ package vmswitch
 import (
 	"fmt"
 	"os"
+	"regexp"
+	"strings"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/go-test/deep"
+	"gorm.io/gorm"
 
 	"cirrina/cirrinad/cirrinadtest"
 	"cirrina/cirrinad/util"
+	"cirrina/cirrinad/vmnic"
 )
 
 //nolint:paralleltest
@@ -413,6 +418,603 @@ func TestGetDummyBridgeName(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest,maintidx
+func Test_setupVMNicRateLimit(t *testing.T) {
+	type args struct {
+		vmNic vmnic.VMNic
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockCmdFunc string
+		args        args
+		want        string
+		wantErr     bool
+	}{
+		{
+			name: "Success",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(9912, "a NIC", "", "epair32767", "00:22:44:aa:bb:cc", "someNic", "tap0", "TAP",
+						"VIRTIONET", 400000000, true, 100000000, "81184199-c672-4641-b6a7-75ad01c48059", sqlmock.AnyArg(),
+						"8a99b08f-1105-4f81-ac87-48edd69bc058").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(9912, "a NIC", "bridge32767", "epair32767", "00:22:44:aa:bb:cc", "someNic", "tap0", "TAP",
+						"VIRTIONET", 400000000, true, 100000000, "81184199-c672-4641-b6a7-75ad01c48059", sqlmock.AnyArg(),
+						"8a99b08f-1105-4f81-ac87-48edd69bc058").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			mockCmdFunc: "Test_setupVMNicRateLimitSuccess",
+			args: args{
+				vmNic: vmnic.VMNic{
+					ID:          "8a99b08f-1105-4f81-ac87-48edd69bc058",
+					Name:        "someNic",
+					Description: "a NIC",
+					Mac:         "00:22:44:aa:bb:cc",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "81184199-c672-4641-b6a7-75ad01c48059",
+					RateLimit:   true,
+					RateIn:      400000000,
+					RateOut:     100000000,
+					InstBridge:  "",
+					InstEpair:   "",
+					ConfigID:    9912,
+				},
+			},
+			want:    "epair32767",
+			wantErr: false,
+		},
+		{
+			name: "createEpairErr",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+			},
+			mockCmdFunc: "Test_setupVMNicRateLimitCreateEpairErr",
+			args: args{
+				vmNic: vmnic.VMNic{
+					ID:          "8a99b08f-1105-4f81-ac87-48edd69bc058",
+					Name:        "someNic",
+					Description: "a NIC",
+					Mac:         "00:22:44:aa:bb:cc",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "81184199-c672-4641-b6a7-75ad01c48059",
+					RateLimit:   true,
+					RateIn:      400000000,
+					RateOut:     100000000,
+					InstBridge:  "",
+					InstEpair:   "",
+					ConfigID:    9912,
+				},
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "saveErr",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(9912, "a NIC", "bridge0", "epair32767", "00:22:44:aa:bb:cc", "someNic", "", "TAP",
+						"VIRTIONET", 400000000, true, 100000000, "81184199-c672-4641-b6a7-75ad01c48059", sqlmock.AnyArg(),
+										"8a99b08f-1105-4f81-ac87-48edd69bc058").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
+			},
+			mockCmdFunc: "Test_setupVMNicRateLimitSuccess",
+			args: args{
+				vmNic: vmnic.VMNic{
+					ID:          "8a99b08f-1105-4f81-ac87-48edd69bc058",
+					Name:        "someNic",
+					Description: "a NIC",
+					Mac:         "00:22:44:aa:bb:cc",
+					NetDev:      "",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "81184199-c672-4641-b6a7-75ad01c48059",
+					RateLimit:   true,
+					RateIn:      400000000,
+					RateOut:     100000000,
+					InstBridge:  "bridge0",
+					InstEpair:   "",
+					ConfigID:    9912,
+				},
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "setRateLimitError",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(9912, "a NIC", "", "epair32767", "00:22:44:aa:bb:cc", "someNic", "tap0", "TAP",
+						"VIRTIONET", 400000000, true, 100000000, "81184199-c672-4641-b6a7-75ad01c48059", sqlmock.AnyArg(),
+						"8a99b08f-1105-4f81-ac87-48edd69bc058").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			mockCmdFunc: "Test_setupVMNicRateLimit_setRateLimitErr",
+			args: args{
+				vmNic: vmnic.VMNic{
+					ID:          "8a99b08f-1105-4f81-ac87-48edd69bc058",
+					Name:        "someNic",
+					Description: "a NIC",
+					Mac:         "00:22:44:aa:bb:cc",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "81184199-c672-4641-b6a7-75ad01c48059",
+					RateLimit:   true,
+					RateIn:      400000000,
+					RateOut:     100000000,
+					InstBridge:  "",
+					InstEpair:   "",
+					ConfigID:    9912,
+				},
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "createIfBridgeErr",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(9912, "a NIC", "", "epair32767", "00:22:44:aa:bb:cc", "someNic", "tap0", "TAP",
+						"VIRTIONET", 400000000, true, 100000000, "81184199-c672-4641-b6a7-75ad01c48059", sqlmock.AnyArg(),
+						"8a99b08f-1105-4f81-ac87-48edd69bc058").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			mockCmdFunc: "Test_setupVMNicRateLimitCreateIfBridgeErr",
+			args: args{
+				vmNic: vmnic.VMNic{
+					ID:          "8a99b08f-1105-4f81-ac87-48edd69bc058",
+					Name:        "someNic",
+					Description: "a NIC",
+					Mac:         "00:22:44:aa:bb:cc",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "81184199-c672-4641-b6a7-75ad01c48059",
+					RateLimit:   true,
+					RateIn:      400000000,
+					RateOut:     100000000,
+					InstBridge:  "",
+					InstEpair:   "",
+					ConfigID:    9912,
+				},
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "saveErr2",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(9912, "a NIC", "", "epair32767", "00:22:44:aa:bb:cc", "someNic", "tap0", "TAP",
+						"VIRTIONET", 400000000, true, 100000000, "81184199-c672-4641-b6a7-75ad01c48059", sqlmock.AnyArg(),
+						"8a99b08f-1105-4f81-ac87-48edd69bc058").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(9912, "a NIC", "bridge32767", "epair32767", "00:22:44:aa:bb:cc", "someNic", "tap0", "TAP",
+						"VIRTIONET", 400000000, true, 100000000, "81184199-c672-4641-b6a7-75ad01c48059", sqlmock.AnyArg(),
+										"8a99b08f-1105-4f81-ac87-48edd69bc058").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
+			},
+			mockCmdFunc: "Test_setupVMNicRateLimitSuccess",
+			args: args{
+				vmNic: vmnic.VMNic{
+					ID:          "8a99b08f-1105-4f81-ac87-48edd69bc058",
+					Name:        "someNic",
+					Description: "a NIC",
+					Mac:         "00:22:44:aa:bb:cc",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "81184199-c672-4641-b6a7-75ad01c48059",
+					RateLimit:   true,
+					RateIn:      400000000,
+					RateOut:     100000000,
+					InstBridge:  "",
+					InstEpair:   "",
+					ConfigID:    9912,
+				},
+			},
+			want:    "",
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			testDB, mock := cirrinadtest.NewMockDB(testCase.name)
+			testCase.mockClosure(testDB, mock)
+
+			got, err := setupVMNicRateLimit(&testCase.args.vmNic)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("setupVMNicRateLimit() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("setupVMNicRateLimit() got = %v, want %v", got, testCase.want)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest,maintidx
+func Test_unsetVMNicRateLimit(t *testing.T) {
+	type args struct {
+		vmNic *vmnic.VMNic
+	}
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockCmdFunc string
+		args        args
+		wantErr     bool
+	}{
+		{
+			name: "SuccessRateLimited",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(661, "a NIC also", "", "", "AUTO", "someOtherNic", "tap0", "TAP",
+						"VIRTIONET", 400000000, true, 100000000, "04afeae3-09fc-4d45-9c00-81c3f785f1c1", sqlmock.AnyArg(),
+						"7c1887c6-bdf1-4e2d-a56f-4ac2e36d1303").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			mockCmdFunc: "Test_unsetVMNicRateLimitSuccess",
+			args: args{
+				vmNic: &vmnic.VMNic{
+					ID:          "7c1887c6-bdf1-4e2d-a56f-4ac2e36d1303",
+					Name:        "someOtherNic",
+					Description: "a NIC also",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "04afeae3-09fc-4d45-9c00-81c3f785f1c1",
+					RateLimit:   true,
+					RateIn:      400000000,
+					RateOut:     100000000,
+					InstBridge:  "bridge32767",
+					InstEpair:   "epair32767",
+					ConfigID:    661,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "SuccessNotRateLimited",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+			},
+			mockCmdFunc: "Test_unsetVMNicRateLimitSuccess",
+			args: args{
+				vmNic: &vmnic.VMNic{
+					ID:          "7c1887c6-bdf1-4e2d-a56f-4ac2e36d1303",
+					Name:        "someOtherNic",
+					Description: "a NIC also",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "04afeae3-09fc-4d45-9c00-81c3f785f1c1",
+					RateLimit:   true,
+					RateIn:      400000000,
+					RateOut:     100000000,
+					InstBridge:  "",
+					InstEpair:   "",
+					ConfigID:    661,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "SuccessRateLimited_destroyIfSwitchErr",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(661, "a NIC also", "", "", "AUTO", "someOtherNic", "tap0", "TAP",
+						"VIRTIONET", 400000000, true, 100000000, "04afeae3-09fc-4d45-9c00-81c3f785f1c1", sqlmock.AnyArg(),
+						"7c1887c6-bdf1-4e2d-a56f-4ac2e36d1303").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			mockCmdFunc: "Test_unsetVMNicRateLimitSuccessRateLimited_destroyIfSwitchErr",
+			args: args{
+				vmNic: &vmnic.VMNic{
+					ID:          "7c1887c6-bdf1-4e2d-a56f-4ac2e36d1303",
+					Name:        "someOtherNic",
+					Description: "a NIC also",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "04afeae3-09fc-4d45-9c00-81c3f785f1c1",
+					RateLimit:   true,
+					RateIn:      400000000,
+					RateOut:     100000000,
+					InstBridge:  "bridge32767",
+					InstEpair:   "epair32767",
+					ConfigID:    661,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "SuccessRateLimited_shutdownEpairAErr",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(661, "a NIC also", "", "", "AUTO", "someOtherNic", "tap0", "TAP",
+						"VIRTIONET", 400000000, true, 100000000, "04afeae3-09fc-4d45-9c00-81c3f785f1c1", sqlmock.AnyArg(),
+						"7c1887c6-bdf1-4e2d-a56f-4ac2e36d1303").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			mockCmdFunc: "Test_unsetVMNicRateLimitSuccessRateLimited_shutdownEpairAErr",
+			args: args{
+				vmNic: &vmnic.VMNic{
+					ID:          "7c1887c6-bdf1-4e2d-a56f-4ac2e36d1303",
+					Name:        "someOtherNic",
+					Description: "a NIC also",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "04afeae3-09fc-4d45-9c00-81c3f785f1c1",
+					RateLimit:   true,
+					RateIn:      400000000,
+					RateOut:     100000000,
+					InstBridge:  "bridge32767",
+					InstEpair:   "epair32767",
+					ConfigID:    661,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "SuccessRateLimited_shutdownEpairBErr",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(661, "a NIC also", "", "", "AUTO", "someOtherNic", "tap0", "TAP",
+						"VIRTIONET", 400000000, true, 100000000, "04afeae3-09fc-4d45-9c00-81c3f785f1c1", sqlmock.AnyArg(),
+						"7c1887c6-bdf1-4e2d-a56f-4ac2e36d1303").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			mockCmdFunc: "Test_unsetVMNicRateLimitSuccessRateLimited_shutdownEpairBErr",
+			args: args{
+				vmNic: &vmnic.VMNic{
+					ID:          "7c1887c6-bdf1-4e2d-a56f-4ac2e36d1303",
+					Name:        "someOtherNic",
+					Description: "a NIC also",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "04afeae3-09fc-4d45-9c00-81c3f785f1c1",
+					RateLimit:   true,
+					RateIn:      400000000,
+					RateOut:     100000000,
+					InstBridge:  "bridge32767",
+					InstEpair:   "epair32767",
+					ConfigID:    661,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "SuccessRateLimited_DestroyEpairErr",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(661, "a NIC also", "", "", "AUTO", "someOtherNic", "tap0", "TAP",
+						"VIRTIONET", 400000000, true, 100000000, "04afeae3-09fc-4d45-9c00-81c3f785f1c1", sqlmock.AnyArg(),
+						"7c1887c6-bdf1-4e2d-a56f-4ac2e36d1303").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
+			},
+			mockCmdFunc: "Test_unsetVMNicRateLimitSuccessRateLimited_DestroyEpairErr",
+			args: args{
+				vmNic: &vmnic.VMNic{
+					ID:          "7c1887c6-bdf1-4e2d-a56f-4ac2e36d1303",
+					Name:        "someOtherNic",
+					Description: "a NIC also",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "04afeae3-09fc-4d45-9c00-81c3f785f1c1",
+					RateLimit:   true,
+					RateIn:      400000000,
+					RateOut:     100000000,
+					InstBridge:  "bridge32767",
+					InstEpair:   "epair32767",
+					ConfigID:    661,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "RateLimitedSaveErr",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(661, "a NIC also", "", "", "AUTO", "someOtherNic", "tap0", "TAP",
+						"VIRTIONET", 400000000, true, 100000000, "04afeae3-09fc-4d45-9c00-81c3f785f1c1", sqlmock.AnyArg(),
+										"7c1887c6-bdf1-4e2d-a56f-4ac2e36d1303").
+					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+			},
+			mockCmdFunc: "Test_unsetVMNicRateLimitSuccess",
+			args: args{
+				vmNic: &vmnic.VMNic{
+					ID:          "7c1887c6-bdf1-4e2d-a56f-4ac2e36d1303",
+					Name:        "someOtherNic",
+					Description: "a NIC also",
+					Mac:         "AUTO",
+					NetDev:      "tap0",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "04afeae3-09fc-4d45-9c00-81c3f785f1c1",
+					RateLimit:   true,
+					RateIn:      400000000,
+					RateOut:     100000000,
+					InstBridge:  "bridge32767",
+					InstEpair:   "epair32767",
+					ConfigID:    661,
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
+			testCase.mockClosure(testDB, mock)
+
+			err := unsetVMNicRateLimit(testCase.args.vmNic)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("unsetVMNicRateLimit() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 //nolint:paralleltest
@@ -700,6 +1302,75 @@ func TestGetDummyBridgeNameError2(_ *testing.T) {
 
 	for i := 32767; i >= 0; i-- {
 		fmt.Printf("bridge%d\n", i) //nolint:forbidigo
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_unsetVMNicRateLimitSuccess(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_unsetVMNicRateLimitSuccessRateLimited_destroyIfSwitchErr(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	for _, v := range os.Args {
+		if strings.Contains(v, "ifconfig") {
+			os.Exit(1)
+		}
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_unsetVMNicRateLimitSuccessRateLimited_shutdownEpairAErr(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	for _, v := range os.Args {
+		if strings.Contains(v, "epair") && strings.HasSuffix(v, "a_pipe:") {
+			os.Exit(1)
+		}
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_unsetVMNicRateLimitSuccessRateLimited_shutdownEpairBErr(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	for _, v := range os.Args {
+		if strings.Contains(v, "epair") && strings.HasSuffix(v, "b_pipe:") {
+			os.Exit(1)
+		}
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_unsetVMNicRateLimitSuccessRateLimited_DestroyEpairErr(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	for i, v := range os.Args {
+		if strings.Contains(v, "destroy") && i > 1 && strings.HasPrefix(os.Args[i-1], "epair") {
+			os.Exit(1)
+		}
 	}
 
 	os.Exit(0)
