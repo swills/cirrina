@@ -344,6 +344,12 @@ func nicExists(nicName string) (bool, error) {
 	return true, nil
 }
 
+func hostNicExists(name string) bool {
+	hostInterfaces := util.GetHostInterfaces()
+
+	return util.ContainsStr(hostInterfaces, name)
+}
+
 func nicDevTypeValid(nicDevType string) bool {
 	switch nicDevType {
 	case "TAP":
@@ -461,6 +467,10 @@ func (vmNic *VMNic) Build() error {
 	case "TAP":
 		fallthrough
 	case "VMNET":
+		if hostNicExists(vmNic.NetDev) {
+			return errNicExists
+		}
+
 		if vmNic.NetDev == "" {
 			return ErrInvalidNicName
 		}
@@ -492,6 +502,10 @@ func (vmNic *VMNic) Demolish() error {
 	case "TAP":
 		fallthrough
 	case "VMNET":
+		if !hostNicExists(vmNic.NetDev) {
+			return nil
+		}
+
 		if vmNic.NetDev != "" {
 			stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 				config.Config.Sys.Sudo, []string{"/sbin/ifconfig", vmNic.NetDev, "destroy"},

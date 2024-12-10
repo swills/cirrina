@@ -803,3 +803,15 @@ func GetOsVersion() (*version.Version, error) {
 
 	return ovi, nil
 }
+
+func CheckInterfaceExists(interfaceName string) bool {
+	netDevs := GetHostInterfaces()
+
+	for _, nic := range netDevs {
+		if nic == interfaceName {
+			return true
+		}
+	}
+
+	return false
+}

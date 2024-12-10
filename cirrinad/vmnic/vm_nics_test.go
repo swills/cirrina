@@ -2,6 +2,7 @@ package vmnic
 
 import (
 	"errors"
+	"net"
 	"os"
 	"regexp"
 	"strings"
@@ -2513,30 +2514,34 @@ func TestVMNic_Build(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockCmdFunc string
-		fields      fields
-		wantErr     bool
+		name            string
+		mockCmdFunc     string
+		hostIntStubFunc func() ([]net.Interface, error)
+		fields          fields
+		wantErr         bool
 	}{
 		{
-			name:        "BadType",
-			mockCmdFunc: "TestVMNic_BuildSuccess",
+			name:            "BadType",
+			hostIntStubFunc: StubhostinterfacestestBuild,
+			mockCmdFunc:     "TestVMNic_BuildSuccess",
 			fields: fields{
 				NetType: "garbage",
 			},
 			wantErr: true,
 		},
 		{
-			name:        "SuccessNG",
-			mockCmdFunc: "TestVMNic_BuildSuccess",
+			name:            "SuccessNG",
+			hostIntStubFunc: StubhostinterfacestestBuild,
+			mockCmdFunc:     "TestVMNic_BuildSuccess",
 			fields: fields{
 				NetDevType: "NETGRAPH",
 			},
 			wantErr: false,
 		},
 		{
-			name:        "TapNoNetDev",
-			mockCmdFunc: "TestVMNic_BuildSuccess",
+			name:            "TapNoNetDev",
+			hostIntStubFunc: StubhostinterfacestestBuild,
+			mockCmdFunc:     "TestVMNic_BuildSuccess",
 			fields: fields{
 				NetDev:     "",
 				NetDevType: "TAP",
@@ -2544,8 +2549,9 @@ func TestVMNic_Build(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "TapError",
-			mockCmdFunc: "TestVMNic_BuildError",
+			name:            "TapError",
+			hostIntStubFunc: StubhostinterfacestestBuild,
+			mockCmdFunc:     "TestVMNic_BuildError",
 			fields: fields{
 				NetDev:     "tap0",
 				NetDevType: "TAP",
@@ -2553,8 +2559,9 @@ func TestVMNic_Build(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "VmnetError",
-			mockCmdFunc: "TestVMNic_BuildError",
+			name:            "VmnetError",
+			hostIntStubFunc: StubhostinterfacestestBuild,
+			mockCmdFunc:     "TestVMNic_BuildError",
 			fields: fields{
 				NetDev:     "vmnet0",
 				NetDevType: "VMNET",
@@ -2562,8 +2569,9 @@ func TestVMNic_Build(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "TapSuccess",
-			mockCmdFunc: "TestVMNic_BuildSuccess",
+			name:            "TapSuccess",
+			hostIntStubFunc: StubhostinterfacestestBuild,
+			mockCmdFunc:     "TestVMNic_BuildSuccess",
 			fields: fields{
 				NetDev:     "tap0",
 				NetDevType: "TAP",
@@ -2571,18 +2579,33 @@ func TestVMNic_Build(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "VmnetSuccess",
-			mockCmdFunc: "TestVMNic_BuildSuccess",
+			name:            "VmnetSuccess",
+			hostIntStubFunc: StubhostinterfacestestBuild,
+			mockCmdFunc:     "TestVMNic_BuildSuccess",
 			fields: fields{
 				NetDev:     "vmnet0",
 				NetDevType: "VMNET",
 			},
 			wantErr: false,
+		},
+		{
+			name:            "TapAlreadyExists",
+			hostIntStubFunc: StubhostinterfacestestBuild,
+			mockCmdFunc:     "TestVMNic_BuildSuccess",
+			fields: fields{
+				NetDev:     "tap1",
+				NetDevType: "TAP",
+			},
+			wantErr: true,
 		},
 	}
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 
@@ -2622,14 +2645,16 @@ func Test_Demolish(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockCmdFunc string
-		args        args
-		wantErr     bool
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockCmdFunc     string
+		args            args
+		wantErr         bool
 	}{
 		{
-			name:        "TapSuccessNoRateLimit",
-			mockCmdFunc: "Test_cleanupIfNicSuccess",
+			name:            "TapSuccessNoRateLimit",
+			hostIntStubFunc: StubhostinterfacestestDemolish,
+			mockCmdFunc:     "Test_cleanupIfNicSuccess",
 			args: args{
 				vmNic: VMNic{
 					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
@@ -2650,8 +2675,9 @@ func Test_Demolish(t *testing.T) {
 			},
 		},
 		{
-			name:        "TapSuccessRateLimit",
-			mockCmdFunc: "Test_cleanupIfNicSuccess",
+			name:            "TapSuccessRateLimit",
+			hostIntStubFunc: StubhostinterfacestestDemolish,
+			mockCmdFunc:     "Test_cleanupIfNicSuccess",
 			args: args{
 				vmNic: VMNic{
 					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
@@ -2672,8 +2698,9 @@ func Test_Demolish(t *testing.T) {
 			},
 		},
 		{
-			name:        "Fail1",
-			mockCmdFunc: "Test_cleanupIfNicFail1",
+			name:            "Fail1",
+			hostIntStubFunc: StubhostinterfacestestDemolish,
+			mockCmdFunc:     "Test_cleanupIfNicFail1",
 			args: args{
 				vmNic: VMNic{
 					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
@@ -2695,8 +2722,9 @@ func Test_Demolish(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "FailAll",
-			mockCmdFunc: "Test_cleanupIfNicFailAll",
+			name:            "FailAll",
+			hostIntStubFunc: StubhostinterfacestestDemolish,
+			mockCmdFunc:     "Test_cleanupIfNicFailAll",
 			args: args{
 				vmNic: VMNic{
 					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
@@ -2735,8 +2763,9 @@ func Test_Demolish(t *testing.T) {
 			},
 		},
 		{
-			name:        "BadType",
-			mockCmdFunc: "Test_cleanupIfNicSuccess",
+			name:            "BadType",
+			hostIntStubFunc: StubhostinterfacestestDemolish,
+			mockCmdFunc:     "Test_cleanupIfNicSuccess",
 			args: args{
 				vmNic: VMNic{
 					ID:          "c593b77c-0a97-4eac-be8b-f7a6daffeb70",
@@ -2752,10 +2781,37 @@ func Test_Demolish(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name:            "TapSuccessInterfaceDoesNotExist",
+			hostIntStubFunc: StubhostinterfacestestDemolish,
+			mockCmdFunc:     "Test_cleanupIfNicSuccess",
+			args: args{
+				vmNic: VMNic{
+					ID:          "8a060fe1-5b6a-4309-9f9b-bcdc0a4bad05",
+					Name:        "fladsorp",
+					Description: "a silly nic",
+					Mac:         "AUTO",
+					NetDev:      "tap1",
+					NetType:     "VIRTIONET",
+					NetDevType:  "TAP",
+					SwitchID:    "21b42894-d0da-410f-b45c-afcdddae15b2",
+					RateLimit:   false,
+					RateIn:      0,
+					RateOut:     0,
+					InstBridge:  "",
+					InstEpair:   "",
+					ConfigID:    25,
+				},
+			},
+		},
 	}
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 
@@ -2840,4 +2896,70 @@ func TestVMNic_BuildError(_ *testing.T) {
 	}
 
 	os.Exit(1)
+}
+
+func StubhostinterfacestestDemolish() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "abc0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "def0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        4,
+			MTU:          1500,
+			Name:         "tap0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubhostinterfacestestBuild() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "abc0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "def0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        4,
+			MTU:          1500,
+			Name:         "tap1",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+	}, nil
 }

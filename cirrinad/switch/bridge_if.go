@@ -260,7 +260,7 @@ func (s *Switch) buildIfSwitch() error {
 			continue
 		}
 		// it has to exist
-		exists := CheckInterfaceExists(member)
+		exists := util.CheckInterfaceExists(member)
 		if !exists {
 			slog.Error("attempt to add non-existent member to bridge, ignoring",
 				"bridge", s.Name, "uplink", member,

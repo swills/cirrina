@@ -255,18 +255,6 @@ func Create(switchInst *Switch) error {
 	return nil
 }
 
-func CheckInterfaceExists(interfaceName string) bool {
-	netDevs := util.GetHostInterfaces()
-
-	for _, nic := range netDevs {
-		if nic == interfaceName {
-			return true
-		}
-	}
-
-	return false
-}
-
 func CreateSwitches() error {
 	allSwitches := GetAll()
 
@@ -569,7 +557,7 @@ func CheckAll() {
 			continue
 		}
 
-		exists := CheckInterfaceExists(bridge.Uplink)
+		exists := util.CheckInterfaceExists(bridge.Uplink)
 		if !exists {
 			slog.Error("bridge uplink does not exist, will be ignored", "bridge", bridge.Name, "uplink", bridge.Uplink)
 

@@ -4173,7 +4173,7 @@ func TestCheckInterfaceExists(t *testing.T) {
 
 			t.Cleanup(func() { util.GetIntGroupsFunc = util.GetIntGroups })
 
-			got := CheckInterfaceExists(testCase.args.interfaceName)
+			got := util.CheckInterfaceExists(testCase.args.interfaceName)
 			if got != testCase.want {
 				t.Errorf("CheckInterfaceExists() = %v, want %v", got, testCase.want)
 			}
