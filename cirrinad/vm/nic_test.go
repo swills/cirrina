@@ -1107,6 +1107,7 @@ func TestVM_removeAllNicsFromVM(t *testing.T) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
 				}
+
 				mock.ExpectQuery(
 					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
 				).
