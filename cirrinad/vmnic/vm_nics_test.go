@@ -919,45 +919,35 @@ func TestVMNic_Delete(t *testing.T) {
 		wantErr     bool
 	}{
 		{
-			name: "err1",
-			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				Instance = &Singleton{ // prevents parallel testing
-					VMNicDB: testDB,
-				}
-			},
-			fields: fields{
-				ID: "",
-			},
-			wantErr: true,
-		},
-		{
-			name: "err2",
-			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
-				Instance = &Singleton{ // prevents parallel testing
-					VMNicDB: testDB,
-				}
-			},
-			fields: fields{
-				ID: "garbage",
-			},
-			wantErr: true,
-		},
-		{
-			name: "err3",
+			name: "ErrorDeleting",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
 				}
+
 				mock.ExpectBegin()
 				mock.ExpectExec(
 					regexp.QuoteMeta("DELETE FROM `vm_nics` WHERE `vm_nics`.`id` = ?"),
 				).
-					WithArgs("00e58e32-b058-4617-a3db-a270e80ff801").
-					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+					WithArgs("0804a461-4ac3-4f6d-bf40-e7c3c404a77f").
+					WillReturnError(gorm.ErrInvalidField)
 				mock.ExpectRollback()
 			},
 			fields: fields{
-				ID: "00e58e32-b058-4617-a3db-a270e80ff801",
+				ID: "0804a461-4ac3-4f6d-bf40-e7c3c404a77f",
+			},
+			wantErr: true,
+		},
+		{
+			name: "ErrNicInUse",
+			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+				Instance = &Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+			},
+			fields: fields{
+				ID:       "00e58e32-b058-4617-a3db-a270e80ff801",
+				ConfigID: 1,
 			},
 			wantErr: true,
 		},
