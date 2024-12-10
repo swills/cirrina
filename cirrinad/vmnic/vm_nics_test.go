@@ -2315,6 +2315,7 @@ func TestCreate(t *testing.T) {
 					"VIRTIONET", "TAP", "c7f025f6-f6a0-4ed7-886d-a3cfa923d17a", false, 0, 0, "", "",
 					sqlmock.AnyArg(), "aTestNic2024061501_int0", 11).
 					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
 			},
 			args: args{&VMNic{
 				ID:        "0bd10557-f1ed-4998-a25d-fc883da80a03",
