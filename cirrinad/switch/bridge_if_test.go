@@ -955,6 +955,7 @@ func Test_unsetVMNicRateLimit(t *testing.T) {
 						"VIRTIONET", 400000000, true, 100000000, "04afeae3-09fc-4d45-9c00-81c3f785f1c1", sqlmock.AnyArg(),
 										"7c1887c6-bdf1-4e2d-a56f-4ac2e36d1303").
 					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
 			},
 			mockCmdFunc: "Test_unsetVMNicRateLimitSuccess",
 			args: args{

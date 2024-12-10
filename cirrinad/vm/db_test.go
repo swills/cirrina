@@ -2712,6 +2712,7 @@ func TestVM_SetStopping(t *testing.T) {
 				).
 					WithArgs("STOPPING", sqlmock.AnyArg(), "1231e316-0358-4a6b-bf8a-ebc61b75c49c").
 					WillReturnError(gorm.ErrInvalidData)
+				mock.ExpectRollback()
 			},
 			fields: fields{
 				ID:          "1231e316-0358-4a6b-bf8a-ebc61b75c49c",
