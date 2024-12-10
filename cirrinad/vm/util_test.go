@@ -864,7 +864,7 @@ func Test_getUsedNetPorts(t *testing.T) {
 		},
 		{
 			name: "GetNicsErr",
-			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
 				}
@@ -885,6 +885,12 @@ func Test_getUsedNetPorts(t *testing.T) {
 				// clear out list from other parallel test runs
 				List.VMList = map[string]*VM{}
 				List.VMList[testVM.ID] = &testVM
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WithArgs(123).
+					WillReturnError(gorm.ErrInvalidField)
 			},
 			want: nil,
 		},
