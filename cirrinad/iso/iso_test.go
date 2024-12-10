@@ -815,6 +815,7 @@ func TestDelete(t *testing.T) {
 					regexp.QuoteMeta("DELETE FROM `isos` WHERE `isos`.`id` = ?"),
 				).
 					WillReturnError(gorm.ErrInvalidField) // does not matter what error is returned
+				mock.ExpectRollback()
 			},
 			args:    args{isoInst: &ISO{ID: "97737cc1-5890-4148-bf1f-948949b625c2"}},
 			wantErr: true,
