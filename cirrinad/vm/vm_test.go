@@ -2971,6 +2971,272 @@ func TestCreate(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
+func Test_checkNicAttachments(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+	}{
+		{
+			name: "NoNics",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"mac",
+								"net_type",
+								"net_dev_type",
+								"switch_id",
+								"net_dev",
+								"rate_limit",
+								"rate_in",
+								"rate_out",
+								"inst_bridge",
+								"inst_epair",
+								"config_id",
+							}),
+					)
+			},
+		},
+		{
+			name: "OneNicNotAttachedToSwitchNorVM",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"mac",
+								"net_type",
+								"net_dev_type",
+								"switch_id",
+								"net_dev",
+								"rate_limit",
+								"rate_in",
+								"rate_out",
+								"inst_bridge",
+								"inst_epair",
+								"config_id",
+							}).
+							AddRow(
+								"b72fa5ce-08ac-4f7c-99fa-473e3339d4de",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2024121201_int0",
+								"first VM nic for test2024121201",
+								"AUTO",
+								"VIRTIONET",
+								"TAP",
+								"",
+								"",
+								false,
+								0,
+								0,
+								"",
+								"",
+								0,
+							),
+					)
+			},
+		},
+		{
+			name: "OneNicOneVMNoSwitch",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+
+				testVM := VM{
+					ID:     "42e845b4-fe69-4240-90d8-6038e81f60f4",
+					Name:   "test2024121202",
+					Status: "STOPPED",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 1919,
+						},
+						VMID: "42e845b4-fe69-4240-90d8-6038e81f60f4",
+						CPU:  2,
+						Mem:  1024,
+					},
+				}
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM.ID] = &testVM
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"mac",
+								"net_type",
+								"net_dev_type",
+								"switch_id",
+								"net_dev",
+								"rate_limit",
+								"rate_in",
+								"rate_out",
+								"inst_bridge",
+								"inst_epair",
+								"config_id",
+							}).
+							AddRow(
+								"b72fa5ce-08ac-4f7c-99fa-473e3339d4de",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2024121201_int0",
+								"first VM nic for test2024121201",
+								"AUTO",
+								"VIRTIONET",
+								"TAP",
+								"",
+								"",
+								false,
+								0,
+								0,
+								"",
+								"",
+								1919,
+							),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT vm_id FROM `configs` WHERE id LIKE ?",
+					),
+				).
+					WithArgs(1919).
+					WillReturnRows(sqlmock.NewRows([]string{"vm_id"}).
+						AddRow("42e845b4-fe69-4240-90d8-6038e81f60f4"))
+			},
+		},
+		{
+			name: "OneNicOneVMNoSwitch",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"mac",
+								"net_type",
+								"net_dev_type",
+								"switch_id",
+								"net_dev",
+								"rate_limit",
+								"rate_in",
+								"rate_out",
+								"inst_bridge",
+								"inst_epair",
+								"config_id",
+							}).
+							AddRow(
+								"b72fa5ce-08ac-4f7c-99fa-473e3339d4de",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2024121201_int0",
+								"first VM nic for test2024121201",
+								"AUTO",
+								"VIRTIONET",
+								"TAP",
+								"",
+								"",
+								false,
+								0,
+								0,
+								"",
+								"",
+								1919,
+							),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT vm_id FROM `configs` WHERE id LIKE ?",
+					),
+				).
+					WithArgs(1919).
+					WillReturnRows(sqlmock.NewRows([]string{"vm_id"}).
+						AddRow("42e845b4-fe69-4240-90d8-6038e81f60f4"))
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
+			testCase.mockClosure(testDB, mock)
+
+			checkNicAttachments()
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 //nolint:paralleltest
