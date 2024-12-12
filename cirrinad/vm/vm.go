@@ -722,7 +722,14 @@ func checkNicAttachments() {
 			// check the VM exists
 			_, err := GetByID(vmID)
 			if err != nil {
-				slog.Error("nic attached to non-existent VM", "nic.ID", aNic.ID, "vm.ID", vmID)
+				slog.Error("nic attached to non-existent VM, removing", "nic.ID", aNic.ID, "vm.ID", vmID)
+
+				aNic.ConfigID = 0
+
+				err = aNic.Save()
+				if err != nil {
+					slog.Error("error saving NIC", "err", err)
+				}
 			}
 		}
 	}

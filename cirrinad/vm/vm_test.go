@@ -3144,7 +3144,7 @@ func Test_checkNicAttachments(t *testing.T) {
 			},
 		},
 		{
-			name: "OneNicOneVMNoSwitch",
+			name: "OneNicOneVMDoesNotExist",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -3206,6 +3206,16 @@ func Test_checkNicAttachments(t *testing.T) {
 					WithArgs(1919).
 					WillReturnRows(sqlmock.NewRows([]string{"vm_id"}).
 						AddRow("42e845b4-fe69-4240-90d8-6038e81f60f4"))
+
+				mock.ExpectBegin()
+				mock.ExpectExec(
+					regexp.QuoteMeta("UPDATE `vm_nics` SET `config_id`=?,`description`=?,`inst_bridge`=?,`inst_epair`=?,`mac`=?,`name`=?,`net_dev`=?,`net_dev_type`=?,`net_type`=?,`rate_in`=?,`rate_limit`=?,`rate_out`=?,`switch_id`=?,`updated_at`=? WHERE `vm_nics`.`deleted_at` IS NULL AND `id` = ?"), //nolint:lll
+				).
+					WithArgs(0, "first VM nic for test2024121201", "", "", "AUTO", "test2024121201_int0", "", "TAP",
+						"VIRTIONET", 0, false, 0, "", sqlmock.AnyArg(),
+						"b72fa5ce-08ac-4f7c-99fa-473e3339d4de").
+					WillReturnResult(sqlmock.NewResult(1, 1))
+				mock.ExpectCommit()
 			},
 		},
 	}
