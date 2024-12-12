@@ -3467,6 +3467,222 @@ func Test_checkDiskAttachments(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
+func Test_checkIsoAttachments(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+	}{
+		{
+			name: "NoISOs",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{ISODB: testDB}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE `isos`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}),
+					)
+			},
+		},
+		{
+			name: "OneISONotAttached",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{ISODB: testDB}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE `isos`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"5ad10b52-94f9-4666-95a7-7aa4f136aae0",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"FreeBSD-13.1-RELEASE-amd64-dvd1.iso",
+								"FreeBSD 13.1",
+								"/bhyve/isos/FreeBSD-13.1-RELEASE-amd64-dvd1.iso",
+								4621281280,
+								"326c7a07a393972d3fcd47deaa08e2b932d9298d96e9b4f63a17a2730f93384abc5feb1f511436dc91fcc8b6f56ed25b43dc91d9cdfc700d2655f7e35420d494", //nolint:lll
+							),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT vm_id FROM `vm_isos` WHERE iso_id LIKE ?",
+					),
+				).
+					WithArgs("5ad10b52-94f9-4666-95a7-7aa4f136aae0").
+					WillReturnRows(sqlmock.NewRows([]string{"vm_id"}))
+			},
+		},
+		{
+			name: "OneISOAttachedVMExists",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{ISODB: testDB}
+
+				testVM := VM{
+					ID:     "1385122d-555d-48e1-9843-97edd4c193c4",
+					Name:   "test2024121201",
+					Status: "STOPPED",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 1922,
+						},
+						VMID: "1385122d-555d-48e1-9843-97edd4c193c4",
+						CPU:  2,
+						Mem:  1024,
+					},
+				}
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM.ID] = &testVM
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE `isos`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"5ad10b52-94f9-4666-95a7-7aa4f136aae0",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"FreeBSD-13.1-RELEASE-amd64-dvd1.iso",
+								"FreeBSD 13.1",
+								"/bhyve/isos/FreeBSD-13.1-RELEASE-amd64-dvd1.iso",
+								4621281280,
+								"326c7a07a393972d3fcd47deaa08e2b932d9298d96e9b4f63a17a2730f93384abc5feb1f511436dc91fcc8b6f56ed25b43dc91d9cdfc700d2655f7e35420d494", //nolint:lll
+							),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT vm_id FROM `vm_isos` WHERE iso_id LIKE ?",
+					),
+				).
+					WithArgs("5ad10b52-94f9-4666-95a7-7aa4f136aae0").
+					WillReturnRows(
+						sqlmock.NewRows([]string{"vm_id"}).
+							AddRow("1385122d-555d-48e1-9843-97edd4c193c4"),
+					)
+			},
+		},
+		{
+			name: "OneISOAttachedVMDoesNotExist",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				iso.Instance = &iso.Singleton{ISODB: testDB}
+
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `isos` WHERE `isos`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"path",
+								"size",
+								"checksum",
+							}).
+							AddRow(
+								"5ad10b52-94f9-4666-95a7-7aa4f136aae0",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"FreeBSD-13.1-RELEASE-amd64-dvd1.iso",
+								"FreeBSD 13.1",
+								"/bhyve/isos/FreeBSD-13.1-RELEASE-amd64-dvd1.iso",
+								4621281280,
+								"326c7a07a393972d3fcd47deaa08e2b932d9298d96e9b4f63a17a2730f93384abc5feb1f511436dc91fcc8b6f56ed25b43dc91d9cdfc700d2655f7e35420d494", //nolint:lll
+							),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT vm_id FROM `vm_isos` WHERE iso_id LIKE ?",
+					),
+				).
+					WithArgs("5ad10b52-94f9-4666-95a7-7aa4f136aae0").
+					WillReturnRows(
+						sqlmock.NewRows([]string{"vm_id"}).
+							AddRow("1385122d-555d-48e1-9843-97edd4c193c4"),
+					)
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
+			testCase.mockClosure(testDB, mock)
+
+			checkIsoAttachments()
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 //nolint:paralleltest
