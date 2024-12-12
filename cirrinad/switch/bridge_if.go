@@ -52,7 +52,7 @@ func getIfBridgeMembers(name string) ([]string, error) {
 	return members, nil
 }
 
-func createIfBridge(name string) error {
+func createIfSwitch(name string) error {
 	if name == "" {
 		return ErrSwitchInvalidName
 	}
@@ -74,7 +74,7 @@ func createIfBridge(name string) error {
 	if util.ContainsStr(allIfSwitches, name) {
 		slog.Debug("bridge already exists", "bridge", name)
 
-		return errSwitchInvalidBridgeDupe
+		return ErrSwitchExists
 	}
 
 	err = actualIfBridgeCreate(name)
@@ -104,7 +104,7 @@ func actualIfBridgeCreate(name string) error {
 	return nil
 }
 
-func bridgeIfDeleteAllMembers(name string) error {
+func switchIfDeleteAllMembers(name string) error {
 	bridgeMembers, err := getIfBridgeMembers(name)
 	slog.Debug("deleting all if bridge members", "bridge", name, "members", bridgeMembers)
 
@@ -123,6 +123,21 @@ func bridgeIfDeleteAllMembers(name string) error {
 }
 
 func switchIfDeleteMember(name string, memberName string) error {
+	hostInterfaces := util.GetAllHostInterfaces()
+
+	if !util.ContainsStr(hostInterfaces, name) {
+		return nil
+	}
+
+	bridgeMembers, err := getIfBridgeMembers(name)
+	if err != nil {
+		return fmt.Errorf("error deleting if switch member: %w", err)
+	}
+
+	if !util.ContainsStr(bridgeMembers, memberName) {
+		return nil
+	}
+
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		config.Config.Sys.Sudo,
 		[]string{"/sbin/ifconfig", name, "deletem", memberName},
@@ -182,12 +197,7 @@ func createIfSwitchWithMembers(name string, bridgeMembers []string) error {
 		return errSwitchInvalidBridgeNameIF
 	}
 
-	err := createIfBridge(name)
-	if err != nil {
-		return err
-	}
-
-	err = bridgeIfDeleteAllMembers(name)
+	err := createIfSwitch(name)
 	if err != nil {
 		return err
 	}
@@ -341,11 +351,31 @@ func (s *Switch) validateIfSwitch() error {
 	return nil
 }
 
-func switchIfAddMember(bridgeName string, memberName string) error {
+func switchIfAddMember(name string, memberName string) error {
+	hostInterfaces := util.GetAllHostInterfaces()
+
+	if !util.ContainsStr(hostInterfaces, name) {
+		return ErrSwitchDoesNotExist
+	}
+
+	if !util.ContainsStr(hostInterfaces, memberName) {
+		return ErrSwitchInterfaceDoesNotExist
+	}
+
+	bridgeMembers, err := getIfBridgeMembers(name)
+	if err != nil {
+		return fmt.Errorf("error getting if switch member: %w", err)
+	}
+
+	// already a member
+	if util.ContainsStr(bridgeMembers, memberName) {
+		return nil
+	}
+
 	// TODO - check that the member name is a host interface or a VM nic interface
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		config.Config.Sys.Sudo,
-		[]string{"/sbin/ifconfig", bridgeName, "addm", memberName},
+		[]string{"/sbin/ifconfig", name, "addm", memberName},
 	)
 	if err != nil {
 		slog.Error("ifconfig error",
@@ -369,8 +399,14 @@ func destroyIfSwitch(name string, cleanup bool) error {
 		return ErrSwitchInvalidName
 	}
 
+	hostInterfaces := util.GetAllHostInterfaces()
+
+	if !util.ContainsStr(hostInterfaces, name) {
+		return nil
+	}
+
 	if cleanup {
-		err := bridgeIfDeleteAllMembers(name)
+		err := switchIfDeleteAllMembers(name)
 		if err != nil {
 			return err
 		}

@@ -375,6 +375,20 @@ func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (int, error) {
 	return vncPort, nil
 }
 
+// GetAllHostInterfaces returns *all* the network interfaces on the host, including ones created by cirrinad
+func GetAllHostInterfaces() []string {
+	netInterfaces, _ := NetInterfacesFunc()
+
+	netDevs := make([]string, 0, len(netInterfaces))
+
+	for _, inter := range netInterfaces {
+		netDevs = append(netDevs, inter.Name)
+	}
+
+	return netDevs
+}
+
+// GetHostInterfaces returns the network interfaces on the host that are *NOT* created by cirrinad
 func GetHostInterfaces() []string {
 	netInterfaces, _ := NetInterfacesFunc()
 
@@ -550,7 +564,7 @@ func ValidNicName(name string) bool {
 	return CheckInRange(name, myRT)
 }
 
-// CheckInRange check if a name contains any characters not in the unicode range table provided
+// CheckInRange check if a name contains any characters not in the Unicode range table provided
 func CheckInRange(name string, myRT *unicode.RangeTable) bool {
 	for _, i := range name {
 		if !unicode.In(i, myRT) {
@@ -804,6 +818,7 @@ func GetOsVersion() (*version.Version, error) {
 	return ovi, nil
 }
 
+// CheckInterfaceExists returns true if the interface exists on the host, and it was *NOT* created by cirrinad
 func CheckInterfaceExists(interfaceName string) bool {
 	netDevs := GetHostInterfaces()
 

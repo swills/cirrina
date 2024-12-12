@@ -345,7 +345,7 @@ func nicExists(nicName string) (bool, error) {
 }
 
 func hostNicExists(name string) bool {
-	hostInterfaces := util.GetHostInterfaces()
+	hostInterfaces := util.GetAllHostInterfaces()
 
 	return util.ContainsStr(hostInterfaces, name)
 }

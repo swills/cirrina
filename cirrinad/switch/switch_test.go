@@ -854,8 +854,8 @@ func Test_bringUpNewSwitch(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:            "successIFWithUplink",
-			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
+			name:            "SuccessIFWithUplink",
+			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccessIFWithUplink,
 			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
 			args: args{switchInst: &Switch{
 				ID:        "4f5f7bad-0718-492f-af75-d6f4c179b6c1",
@@ -872,7 +872,7 @@ func Test_bringUpNewSwitch(t *testing.T) {
 			}},
 		},
 		{
-			name:            "successNGWithUplink",
+			name:            "SuccessNGWithUplink",
 			hostIntStubFunc: StubBringUpNewSwitchHostInterfacesSuccess1,
 			mockCmdFunc:     "Test_bringUpNewSwitchSuccess1",
 			args: args{switchInst: &Switch{
@@ -1353,39 +1353,55 @@ func TestDestroyIfBridge(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockCmdFunc string
-		args        args
-		wantErr     bool
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockCmdFunc     string
+		args            args
+		wantErr         bool
 	}{
 		{
-			name:        "success1",
-			mockCmdFunc: "TestDestroyIfBridgeSuccess1",
-			args:        args{name: "bridge0", cleanup: false},
-			wantErr:     false,
+			name:            "Success1",
+			hostIntStubFunc: StubHostInterfacesTestDestroyIfBridgeSuccess1,
+			mockCmdFunc:     "TestDestroyIfBridgeSuccess1",
+			args:            args{name: "bridge0", cleanup: false},
+			wantErr:         false,
 		},
 		{
-			name:        "error1",
-			mockCmdFunc: "TestDestroyIfBridgeSuccess1",
-			args:        args{name: "garbage", cleanup: false},
-			wantErr:     true,
+			name:            "error1",
+			hostIntStubFunc: StubHostInterfacesTestDestroyIfBridgeSuccess1,
+			mockCmdFunc:     "TestDestroyIfBridgeSuccess1",
+			args:            args{name: "garbage", cleanup: false},
+			wantErr:         true,
 		},
 		{
-			name:        "error2",
-			mockCmdFunc: "TestDestroyIfBridgeError2",
-			args:        args{name: "bridge0", cleanup: false},
-			wantErr:     true,
+			name:            "error2",
+			hostIntStubFunc: StubHostInterfacesTestDestroyIfBridgeSuccess1,
+			mockCmdFunc:     "TestDestroyIfBridgeError2",
+			args:            args{name: "bridge0", cleanup: false},
+			wantErr:         true,
 		},
 		{
-			name:        "error3",
-			mockCmdFunc: "TestDestroyIfBridgeError2",
-			args:        args{name: "bridge0", cleanup: true},
-			wantErr:     true,
+			name:            "error3",
+			hostIntStubFunc: StubHostInterfacesTestDestroyIfBridgeSuccess1,
+			mockCmdFunc:     "TestDestroyIfBridgeError2",
+			args:            args{name: "bridge0", cleanup: true},
+			wantErr:         true,
+		},
+		{
+			name:            "SwitchDoesNotExist",
+			hostIntStubFunc: StubHostInterfacesTestDestroyIfBridgeSuccess1,
+			mockCmdFunc:     "TestDestroyIfBridgeSuccess1",
+			args:            args{name: "bridge4", cleanup: false},
+			wantErr:         false,
 		},
 	}
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)
@@ -1395,48 +1411,6 @@ func TestDestroyIfBridge(t *testing.T) {
 			err := destroyIfSwitch(testCase.args.name, testCase.args.cleanup)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("destroyIfSwitch() error = %v, wantErr %v", err, testCase.wantErr)
-			}
-		})
-	}
-}
-
-func TestBridgeIfAddMember(t *testing.T) {
-	type args struct {
-		bridgeName string
-		memberName string
-	}
-
-	tests := []struct {
-		name        string
-		mockCmdFunc string
-		args        args
-		wantErr     bool
-	}{
-		{
-			name:        "success1",
-			mockCmdFunc: "TestBridgeIfAddMemberSuccess1",
-			args:        args{bridgeName: "bridge0", memberName: "tap0"},
-			wantErr:     false,
-		},
-		{
-			name:        "error1",
-			mockCmdFunc: "TestBridgeIfAddMemberError1",
-			args:        args{bridgeName: "bridge0", memberName: "tap0"},
-			wantErr:     true,
-		},
-	}
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			// prevents parallel testing
-			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
-			util.SetupTestCmd(fakeCommand)
-
-			t.Cleanup(func() { util.TearDownTestCmd() })
-
-			err := switchIfAddMember(testCase.args.bridgeName, testCase.args.memberName)
-			if (err != nil) != testCase.wantErr {
-				t.Errorf("switchIfAddMember() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}
@@ -1800,6 +1774,7 @@ func TestDelete(t *testing.T) {
 
 	tests := []struct {
 		name                string
+		hostIntStubFunc     func() ([]net.Interface, error)
 		mockCmdFunc         string
 		mockClosure         func(testDB *gorm.DB, mock sqlmock.Sqlmock)
 		mockVmnicGetAllFunc func() []*vmnic.VMNic
@@ -1807,7 +1782,8 @@ func TestDelete(t *testing.T) {
 		wantErr             bool
 	}{
 		{
-			name: "success1",
+			name:            "success1",
+			hostIntStubFunc: StubHostInterfacesTestDeleteSuccess1,
 			mockVmnicGetAllFunc: func() []*vmnic.VMNic {
 				return []*vmnic.VMNic{{
 					SwitchID: "56df0e88-9edd-4536-af80-6b53537f1708",
@@ -1841,8 +1817,9 @@ func TestDelete(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "errorSwitchInUse",
-			mockCmdFunc: "TestDelete_success1",
+			name:            "errorSwitchInUse",
+			mockCmdFunc:     "TestDelete_success1",
+			hostIntStubFunc: StubHostInterfacesTestDeleteSuccess1,
 			mockVmnicGetAllFunc: func() []*vmnic.VMNic {
 				return []*vmnic.VMNic{{
 					SwitchID: "9a463b0e-094a-401b-b508-2390367b376a",
@@ -1854,8 +1831,9 @@ func TestDelete(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "errorDBError",
-			mockCmdFunc: "TestDelete_success1",
+			name:            "errorDBError",
+			mockCmdFunc:     "TestDelete_success1",
+			hostIntStubFunc: StubHostInterfacesTestDeleteSuccess1,
 			mockVmnicGetAllFunc: func() []*vmnic.VMNic {
 				return []*vmnic.VMNic{{
 					SwitchID: "56df0e88-9edd-4536-af80-6b53537f1708",
@@ -1880,7 +1858,8 @@ func TestDelete(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "destroySwitchError",
+			name:            "destroySwitchError",
+			hostIntStubFunc: StubHostInterfacesTestDeleteSuccess1,
 			mockVmnicGetAllFunc: func() []*vmnic.VMNic {
 				return []*vmnic.VMNic{{
 					SwitchID: "56df0e88-9edd-4536-af80-6b53537f1708",
@@ -1917,6 +1896,10 @@ func TestDelete(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)
@@ -2064,15 +2047,17 @@ func Test_setUplinkIf(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
-		mockCmdFunc string
-		args        args
-		wantErr     bool
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockClosure     func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockCmdFunc     string
+		args            args
+		wantErr         bool
 	}{
 		{
-			name:        "success1",
-			mockCmdFunc: "Test_setUplinkIfSuccess1",
+			name:            "Success1",
+			hostIntStubFunc: StubHostInterfacesTestSetUplinkIfSuccess1,
+			mockCmdFunc:     "Test_setUplinkIfSuccess1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -2099,8 +2084,9 @@ func Test_setUplinkIf(t *testing.T) {
 			},
 		},
 		{
-			name:        "MemberCheckError",
-			mockCmdFunc: "Test_setUplinkIfMemberCheckError",
+			name:            "MemberCheckError",
+			hostIntStubFunc: StubHostInterfacesTestSetUplinkIfSuccess1,
+			mockCmdFunc:     "Test_setUplinkIfMemberCheckError",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -2119,8 +2105,9 @@ func Test_setUplinkIf(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "MemberInUse1",
-			mockCmdFunc: "Test_setUplinkIfMemberInUse1",
+			name:            "MemberInUse1",
+			hostIntStubFunc: StubHostInterfacesTestSetUplinkIfSuccess1,
+			mockCmdFunc:     "Test_setUplinkIfMemberInUse1",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -2139,8 +2126,9 @@ func Test_setUplinkIf(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "AddMemberError1",
-			mockCmdFunc: "Test_setUplinkIfAddMemberError1",
+			name:            "AddMemberError1",
+			hostIntStubFunc: StubHostInterfacesTestSetUplinkIfSuccess1,
+			mockCmdFunc:     "Test_setUplinkIfAddMemberError1",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -2159,8 +2147,9 @@ func Test_setUplinkIf(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "SaveError",
-			mockCmdFunc: "Test_setUplinkIfSuccess1",
+			name:            "SaveError",
+			hostIntStubFunc: StubHostInterfacesTestSetUplinkIfSuccess1,
+			mockCmdFunc:     "Test_setUplinkIfSuccess1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -2191,6 +2180,10 @@ func Test_setUplinkIf(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)
@@ -2232,15 +2225,17 @@ func Test_setUplinkNG(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
-		mockCmdFunc string
-		args        args
-		wantErr     bool
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockClosure     func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockCmdFunc     string
+		args            args
+		wantErr         bool
 	}{
 		{
-			name:        "success1",
-			mockCmdFunc: "Test_setUplinkNGSuccess1",
+			name:            "Success1",
+			mockCmdFunc:     "Test_setUplinkNGSuccess1",
+			hostIntStubFunc: StubHostInterfacesTestSetUplinkNGSuccess1,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -2267,8 +2262,9 @@ func Test_setUplinkNG(t *testing.T) {
 			},
 		},
 		{
-			name:        "MemberUsedError",
-			mockCmdFunc: "Test_setUplinkNGMemberUsedError",
+			name:            "MemberUsedError",
+			hostIntStubFunc: StubHostInterfacesTestSetUplinkNGSuccess1,
+			mockCmdFunc:     "Test_setUplinkNGMemberUsedError",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -2287,8 +2283,9 @@ func Test_setUplinkNG(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "MemberAlreadyUsed",
-			mockCmdFunc: "Test_setUplinkNGMemberAlreadyUsed",
+			name:            "MemberAlreadyUsed",
+			hostIntStubFunc: StubHostInterfacesTestSetUplinkNGSuccess1,
+			mockCmdFunc:     "Test_setUplinkNGMemberAlreadyUsed",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -2307,8 +2304,9 @@ func Test_setUplinkNG(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "MemberAddError",
-			mockCmdFunc: "Test_setUplinkNGMemberAddError",
+			name:            "MemberAddError",
+			hostIntStubFunc: StubHostInterfacesTestSetUplinkNGSuccess1,
+			mockCmdFunc:     "Test_setUplinkNGMemberAddError",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -2327,8 +2325,9 @@ func Test_setUplinkNG(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "SaveError",
-			mockCmdFunc: "Test_setUplinkNGSuccess1",
+			name:            "SaveError",
+			hostIntStubFunc: StubHostInterfacesTestSetUplinkNGSuccess1,
+			mockCmdFunc:     "Test_setUplinkNGSuccess1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -2359,6 +2358,10 @@ func Test_setUplinkNG(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)
@@ -2421,7 +2424,7 @@ func TestSwitch_SetUplink(t *testing.T) {
 	}{
 		{
 			name:                "successIF",
-			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			hostIntStubFunc:     StubHostInterfacesTestSwitchSetUplinkSuccessIF,
 			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
 			mockCmdFunc:         "Test_setUplinkIfSuccess1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
@@ -2451,7 +2454,7 @@ func TestSwitch_SetUplink(t *testing.T) {
 		},
 		{
 			name:                "successNG",
-			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			hostIntStubFunc:     StubHostInterfacesTestSwitchSetUplinkSuccessIF,
 			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
 			mockCmdFunc:         "Test_setUplinkNgSuccess1",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
@@ -2481,7 +2484,7 @@ func TestSwitch_SetUplink(t *testing.T) {
 		},
 		{
 			name:                "UplinkNotFound",
-			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			hostIntStubFunc:     StubHostInterfacesTestSwitchSetUplinkSuccessIF,
 			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
 			mockCmdFunc:         "Test_setUplinkIfSuccess1",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
@@ -2503,7 +2506,7 @@ func TestSwitch_SetUplink(t *testing.T) {
 		},
 		{
 			name:                "InvalidSwitchType",
-			hostIntStubFunc:     StubHostInterfacesSuccess1,
+			hostIntStubFunc:     StubHostInterfacesTestSwitchSetUplinkSuccessIF,
 			getIntGroupStubFunc: StubGetHostIntGroupSuccess1,
 			mockCmdFunc:         "Test_setUplinkIfSuccess1",
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
@@ -3067,14 +3070,16 @@ func TestDestroyBridges(t *testing.T) {
 	createUpdateTime := time.Now()
 
 	tests := []struct {
-		name        string
-		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
-		mockCmdFunc string
-		wantErr     bool
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockClosure     func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockCmdFunc     string
+		wantErr         bool
 	}{
 		{
-			name:        "Success",
-			mockCmdFunc: "TestDestroyBridgesSuccess",
+			name:            "Success",
+			hostIntStubFunc: StubHostInterfacesTestDestroyBridgesSuccess,
+			mockCmdFunc:     "TestDestroyBridgesSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -3120,8 +3125,9 @@ func TestDestroyBridges(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "GetAllIfBridgesError",
-			mockCmdFunc: "TestDestroyBridgesGetAllIfBridgesError",
+			name:            "GetAllIfBridgesError",
+			hostIntStubFunc: StubHostInterfacesTestDestroyBridgesSuccess,
+			mockCmdFunc:     "TestDestroyBridgesGetAllIfBridgesError",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -3167,8 +3173,9 @@ func TestDestroyBridges(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "GetAllNgBridgesError",
-			mockCmdFunc: "TestDestroyBridgesGetAllNgBridgesError",
+			name:            "GetAllNgBridgesError",
+			hostIntStubFunc: StubHostInterfacesTestDestroyBridgesSuccess,
+			mockCmdFunc:     "TestDestroyBridgesGetAllNgBridgesError",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -3214,8 +3221,9 @@ func TestDestroyBridges(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "DestroyIfBridgeError",
-			mockCmdFunc: "TestDestroyBridgesDestroyIfBridgeError",
+			name:            "DestroyIfBridgeError",
+			hostIntStubFunc: StubHostInterfacesTestDestroyBridgesSuccess,
+			mockCmdFunc:     "TestDestroyBridgesDestroyIfBridgeError",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -3261,8 +3269,9 @@ func TestDestroyBridges(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "DestroyNgBridgeError",
-			mockCmdFunc: "TestDestroyBridgesDestroyNgBridgeError",
+			name:            "DestroyNgBridgeError",
+			hostIntStubFunc: StubHostInterfacesTestDestroyBridgesSuccess,
+			mockCmdFunc:     "TestDestroyBridgesDestroyNgBridgeError",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -3311,6 +3320,10 @@ func TestDestroyBridges(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			testDB, mock := cirrinadtest.NewMockDB(t.Name())
 			testCase.mockClosure(testDB, mock)
 
@@ -3589,7 +3602,7 @@ func TestCreate(t *testing.T) {
 		{
 			name:            "Success",
 			mockCmdFunc:     "TestCreateSuccess",
-			hostIntStubFunc: StubHostInterfacesSuccess1,
+			hostIntStubFunc: StubHostInterfacesTestCreateSuccess,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -3635,7 +3648,7 @@ func TestCreate(t *testing.T) {
 		},
 		{
 			name:            "BringUpNewSwitchError",
-			hostIntStubFunc: StubHostInterfacesSuccess1,
+			hostIntStubFunc: StubHostInterfacesTestCreateSuccess,
 			mockCmdFunc:     "TestCreateBringUpNewSwitchError",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
@@ -3683,7 +3696,7 @@ func TestCreate(t *testing.T) {
 		{
 			name:            "ErrorDB",
 			mockCmdFunc:     "TestCreateSuccess",
-			hostIntStubFunc: StubHostInterfacesSuccess1,
+			hostIntStubFunc: StubHostInterfacesTestCreateSuccess,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -3729,7 +3742,7 @@ func TestCreate(t *testing.T) {
 		{
 			name:            "ErrorNoRows",
 			mockCmdFunc:     "TestCreateSuccess",
-			hostIntStubFunc: StubHostInterfacesSuccess1,
+			hostIntStubFunc: StubHostInterfacesTestCreateSuccess,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -3775,7 +3788,7 @@ func TestCreate(t *testing.T) {
 		{
 			name:            "ValidateSwitchError",
 			mockCmdFunc:     "Test_validateSwitchIfInvalidUplink",
-			hostIntStubFunc: StubHostInterfacesSuccess1,
+			hostIntStubFunc: StubHostInterfacesTestCreateSuccess,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -3814,7 +3827,7 @@ func TestCreate(t *testing.T) {
 		{
 			name:            "SwitchAlreadyExists",
 			mockCmdFunc:     "TestCreateSwitchAlreadyExists",
-			hostIntStubFunc: StubHostInterfacesSuccess1,
+			hostIntStubFunc: StubHostInterfacesTestCreateSuccess,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -3862,7 +3875,7 @@ func TestCreate(t *testing.T) {
 		{
 			name:            "SwitchExistsError",
 			mockCmdFunc:     "TestCreateSuccess",
-			hostIntStubFunc: StubHostInterfacesSuccess1,
+			hostIntStubFunc: StubHostInterfacesTestCreateSuccess,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				Instance = &Singleton{ // prevents parallel testing
 					SwitchDB: testDB,
@@ -4047,7 +4060,7 @@ func Test_buildIfBridge(t *testing.T) {
 	}{
 		{
 			name:            "Success",
-			hostIntStubFunc: StubHostInterfacesSuccess1,
+			hostIntStubFunc: StubHostInterfacesTestBuildIfBridgeSuccess,
 			mockCmdFunc:     "Test_buildIfBridgeSuccess",
 			args: args{switchInst: &Switch{
 				Name:        "bridge0",
@@ -4058,7 +4071,7 @@ func Test_buildIfBridge(t *testing.T) {
 		},
 		{
 			name:            "EmptyMember",
-			hostIntStubFunc: StubHostInterfacesSuccess1,
+			hostIntStubFunc: StubHostInterfacesTestBuildIfBridgeSuccess,
 			mockCmdFunc:     "Test_buildIfBridgeSuccess",
 			args: args{switchInst: &Switch{
 				Name:        "bridge0",
@@ -4069,7 +4082,7 @@ func Test_buildIfBridge(t *testing.T) {
 		},
 		{
 			name:            "MemberDoesNotExist",
-			hostIntStubFunc: StubHostInterfacesSuccess1,
+			hostIntStubFunc: StubHostInterfacesTestBuildIfBridgeSuccess,
 			mockCmdFunc:     "Test_buildIfBridgeSuccess",
 			args: args{switchInst: &Switch{
 				Name:        "bridge0",
@@ -4080,7 +4093,7 @@ func Test_buildIfBridge(t *testing.T) {
 		},
 		{
 			name:            "MemberCheckError",
-			hostIntStubFunc: StubHostInterfacesSuccess1,
+			hostIntStubFunc: StubHostInterfacesTestBuildIfBridgeSuccess,
 			mockCmdFunc:     "Test_buildIfBridgeMemberCheckError",
 			args: args{switchInst: &Switch{
 				Name:        "bridge0",
@@ -4092,7 +4105,7 @@ func Test_buildIfBridge(t *testing.T) {
 		},
 		{
 			name:            "MemberAlreadyUsed",
-			hostIntStubFunc: StubHostInterfacesSuccess1,
+			hostIntStubFunc: StubHostInterfacesTestBuildIfBridgeSuccess,
 			mockCmdFunc:     "Test_buildIfBridgeMemberAlreadyUsed",
 			args: args{switchInst: &Switch{
 				Name:        "bridge1",
@@ -4103,7 +4116,7 @@ func Test_buildIfBridge(t *testing.T) {
 		},
 		{
 			name:            "MemberInUse",
-			hostIntStubFunc: StubHostInterfacesSuccess1,
+			hostIntStubFunc: StubHostInterfacesTestBuildIfBridgeSuccess,
 			mockCmdFunc:     "Test_buildIfBridgeMemberCheckError",
 			args: args{switchInst: &Switch{
 				Name:        "bridge0",
@@ -4117,6 +4130,10 @@ func Test_buildIfBridge(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)
@@ -4343,15 +4360,17 @@ func TestSwitch_ConnectNic(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockCmdFunc string
-		fields      fields
-		args        args
-		wantErr     bool
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockCmdFunc     string
+		fields          fields
+		args            args
+		wantErr         bool
 	}{
 		{
-			name:        "BadSwitchType",
-			mockCmdFunc: "TestSwitch_ConnectNicSuccess",
+			name:            "BadSwitchType",
+			hostIntStubFunc: StubHostInterfacesTestSwitchConnectNicSuccess,
+			mockCmdFunc:     "TestSwitch_ConnectNicSuccess",
 			fields: fields{
 				Type: "garbage",
 			},
@@ -4361,8 +4380,9 @@ func TestSwitch_ConnectNic(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "BadNicTypeIfNetgraph",
-			mockCmdFunc: "TestSwitch_ConnectNicSuccess",
+			name:            "BadNicTypeIfNetgraph",
+			hostIntStubFunc: StubHostInterfacesTestSwitchConnectNicSuccess,
+			mockCmdFunc:     "TestSwitch_ConnectNicSuccess",
 			fields: fields{
 				Type: "IF",
 			},
@@ -4374,8 +4394,9 @@ func TestSwitch_ConnectNic(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "BadNicTypeNetgraphTAP",
-			mockCmdFunc: "TestSwitch_ConnectNicSuccess",
+			name:            "BadNicTypeNetgraphTAP",
+			hostIntStubFunc: StubHostInterfacesTestSwitchConnectNicSuccess,
+			mockCmdFunc:     "TestSwitch_ConnectNicSuccess",
 			fields: fields{
 				Type: "NG",
 			},
@@ -4387,8 +4408,9 @@ func TestSwitch_ConnectNic(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "BadNicTypeNetgraphTAP",
-			mockCmdFunc: "TestSwitch_ConnectNicSuccess",
+			name:            "BadNicTypeNetgraphTAP",
+			hostIntStubFunc: StubHostInterfacesTestSwitchConnectNicSuccess,
+			mockCmdFunc:     "TestSwitch_ConnectNicSuccess",
 			fields: fields{
 				Type: "NG",
 			},
@@ -4400,8 +4422,9 @@ func TestSwitch_ConnectNic(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "TapError",
-			mockCmdFunc: "TestSwitch_ConnectNicError",
+			name:            "TapError",
+			hostIntStubFunc: StubHostInterfacesTestSwitchConnectNicSuccess,
+			mockCmdFunc:     "TestSwitch_ConnectNicError",
 			fields: fields{
 				ID:        "aad9ff27-a2b0-4830-ab25-3addc6b02d70",
 				CreatedAt: time.Time{},
@@ -4431,8 +4454,9 @@ func TestSwitch_ConnectNic(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "TapSuccess",
-			mockCmdFunc: "TestSwitch_ConnectNicSuccess",
+			name:            "TapSuccess",
+			hostIntStubFunc: StubHostInterfacesTestSwitchConnectNicSuccess,
+			mockCmdFunc:     "TestSwitch_ConnectNicSuccess",
 			fields: fields{
 				ID:        "aad9ff27-a2b0-4830-ab25-3addc6b02d70",
 				CreatedAt: time.Time{},
@@ -4461,8 +4485,9 @@ func TestSwitch_ConnectNic(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "VMNetError",
-			mockCmdFunc: "TestSwitch_ConnectNicError",
+			name:            "VMNetError",
+			hostIntStubFunc: StubHostInterfacesTestSwitchConnectNicSuccess,
+			mockCmdFunc:     "TestSwitch_ConnectNicError",
 			fields: fields{
 				ID:        "aad9ff27-a2b0-4830-ab25-3addc6b02d70",
 				CreatedAt: time.Time{},
@@ -4491,8 +4516,9 @@ func TestSwitch_ConnectNic(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "VMNetSuccess",
-			mockCmdFunc: "TestSwitch_ConnectNicSuccess",
+			name:            "VMNetSuccess",
+			hostIntStubFunc: StubHostInterfacesTestSwitchConnectNicVMNetSuccess,
+			mockCmdFunc:     "TestSwitch_ConnectNicSuccess",
 			fields: fields{
 				ID:        "aad9ff27-a2b0-4830-ab25-3addc6b02d70",
 				CreatedAt: time.Time{},
@@ -4521,8 +4547,9 @@ func TestSwitch_ConnectNic(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "Netgraph",
-			mockCmdFunc: "TestSwitch_ConnectNicSuccess",
+			name:            "Netgraph",
+			hostIntStubFunc: StubHostInterfacesTestSwitchConnectNicSuccess,
+			mockCmdFunc:     "TestSwitch_ConnectNicSuccess",
 			fields: fields{
 				ID:        "aad9ff27-a2b0-4830-ab25-3addc6b02d70",
 				CreatedAt: time.Time{},
@@ -4546,6 +4573,10 @@ func TestSwitch_ConnectNic(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)
@@ -4588,15 +4619,17 @@ func TestSwitch_DisconnectNic(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockCmdFunc string
-		fields      fields
-		args        args
-		wantErr     bool
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockCmdFunc     string
+		fields          fields
+		args            args
+		wantErr         bool
 	}{
 		{
-			name:        "BadSwitchType",
-			mockCmdFunc: "TestSwitch_ConnectNicSuccess",
+			name:            "BadSwitchType",
+			hostIntStubFunc: StubHostInterfacesTestSwitchDisconnectNicSuccess,
+			mockCmdFunc:     "TestSwitch_ConnectNicSuccess",
 			fields: fields{
 				Type: "garbage",
 			},
@@ -4606,8 +4639,9 @@ func TestSwitch_DisconnectNic(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "BadNicTypeIfNetgraph",
-			mockCmdFunc: "TestSwitch_ConnectNicSuccess",
+			name:            "BadNicTypeIfNetgraph",
+			hostIntStubFunc: StubHostInterfacesTestSwitchDisconnectNicSuccess,
+			mockCmdFunc:     "TestSwitch_ConnectNicSuccess",
 			fields: fields{
 				Type: "IF",
 			},
@@ -4619,8 +4653,9 @@ func TestSwitch_DisconnectNic(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "BadNicTypeNetgraphTAP",
-			mockCmdFunc: "TestSwitch_ConnectNicSuccess",
+			name:            "BadNicTypeNetgraphTAP",
+			hostIntStubFunc: StubHostInterfacesTestSwitchDisconnectNicSuccess,
+			mockCmdFunc:     "TestSwitch_ConnectNicSuccess",
 			fields: fields{
 				Type: "NG",
 			},
@@ -4632,8 +4667,9 @@ func TestSwitch_DisconnectNic(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "BadNicTypeNetgraphTAP",
-			mockCmdFunc: "TestSwitch_ConnectNicSuccess",
+			name:            "BadNicTypeNetgraphTAP",
+			hostIntStubFunc: StubHostInterfacesTestSwitchDisconnectNicSuccess,
+			mockCmdFunc:     "TestSwitch_ConnectNicSuccess",
 			fields: fields{
 				Type: "NG",
 			},
@@ -4645,8 +4681,9 @@ func TestSwitch_DisconnectNic(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "TapError",
-			mockCmdFunc: "TestSwitch_DisconnectNicError",
+			name:            "TapError",
+			hostIntStubFunc: StubHostInterfacesTestSwitchDisconnectNicSuccess,
+			mockCmdFunc:     "TestSwitch_DisconnectNicError",
 			fields: fields{
 				ID:        "e69917a9-1b53-4712-a477-4dec63edac17",
 				CreatedAt: time.Time{},
@@ -4676,8 +4713,9 @@ func TestSwitch_DisconnectNic(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "TapSuccess",
-			mockCmdFunc: "TestSwitch_DisconnectNicSuccess",
+			name:            "TapSuccess",
+			hostIntStubFunc: StubHostInterfacesTestSwitchDisconnectNicSuccess,
+			mockCmdFunc:     "TestSwitch_DisconnectNicSuccess",
 			fields: fields{
 				ID:        "b1b736e0-b9c4-4211-b4a9-5387c0456d45",
 				CreatedAt: time.Time{},
@@ -4707,8 +4745,9 @@ func TestSwitch_DisconnectNic(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "NetGraph",
-			mockCmdFunc: "TestSwitch_DisconnectNicSuccess",
+			name:            "NetGraph",
+			hostIntStubFunc: StubHostInterfacesTestSwitchDisconnectNicSuccess,
+			mockCmdFunc:     "TestSwitch_DisconnectNicSuccess",
 			fields: fields{
 				ID:        "b1b736e0-b9c4-4211-b4a9-5387c0456d45",
 				CreatedAt: time.Time{},
@@ -4741,6 +4780,10 @@ func TestSwitch_DisconnectNic(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)
@@ -4796,6 +4839,32 @@ func StubGetHostIntGroupSuccess1(intName string) ([]string, error) {
 	default:
 		return nil, nil
 	}
+}
+
+func StubBringUpNewSwitchHostInterfacesSuccessIFWithUplink() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+	}, nil
 }
 
 func StubBringUpNewSwitchHostInterfacesSuccess1() ([]net.Interface, error) {
@@ -5200,22 +5269,6 @@ func TestDestroyIfBridgeSuccess1(_ *testing.T) {
 }
 
 func TestDestroyIfBridgeError2(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
-	}
-
-	os.Exit(1)
-}
-
-func TestBridgeIfAddMemberSuccess1(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
-	}
-
-	os.Exit(0)
-}
-
-func TestBridgeIfAddMemberError1(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -6504,4 +6557,297 @@ func Test_setupVMNicRateLimitCreateIfBridgeErr(_ *testing.T) {
 	}
 
 	os.Exit(0)
+}
+
+func StubHostInterfacesTestDeleteSuccess1() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubHostInterfacesTestDestroyIfBridgeSuccess1() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubHostInterfacesTestSetUplinkIfSuccess1() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubHostInterfacesTestSetUplinkNGSuccess1() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubHostInterfacesTestSwitchSetUplinkSuccessIF() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubHostInterfacesTestDestroyBridgesSuccess() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubHostInterfacesTestCreateSuccess() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubHostInterfacesTestBuildIfBridgeSuccess() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubHostInterfacesTestSwitchConnectNicSuccess() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          1500,
+			Name:         "tap0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubHostInterfacesTestSwitchDisconnectNicSuccess() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          1500,
+			Name:         "tap0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubHostInterfacesTestSwitchConnectNicVMNetSuccess() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          1500,
+			Name:         "vmnet0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
 }

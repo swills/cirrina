@@ -189,7 +189,7 @@ func createNgBridge(name string) error {
 	if util.ContainsStr(allIfBridges, name) {
 		slog.Debug("bridge already exists", "bridge", name)
 
-		return errSwitchInvalidBridgeDupe
+		return ErrSwitchExists
 	}
 
 	// actually create the ng bridge
@@ -208,7 +208,7 @@ func actualNgBridgeCreate(netDev string) error {
 		return errSwitchFailDummy
 	}
 
-	err := createIfBridge(dummyIfBridgeName)
+	err := createIfSwitch(dummyIfBridgeName)
 	if err != nil {
 		slog.Error("dummy if_bridge creation error", "err", err)
 
@@ -461,6 +461,12 @@ func ngGetBridgeNextLink(bridge string) (string, error) {
 }
 
 func (s *Switch) setUplinkNG(uplink string) error {
+	netDevs := util.GetHostInterfaces()
+
+	if !util.ContainsStr(netDevs, uplink) {
+		return errSwitchInvalidUplink
+	}
+
 	// it can't be a member of another bridge already
 	alreadyUsed, err := memberUsedByNgSwitch(uplink)
 	if err != nil {

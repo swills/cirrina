@@ -1,4 +1,3 @@
-
 # TODO
 
 * Finish writing tests
@@ -16,7 +15,7 @@
 * In vm.Save(), do not add all disks/isos if there are none
 * Finish cloning -- NICs are done, need to do switches, disks and VMs
 * Do templating
-* Switch to using Netlink
+* Switch to using Netlink once 13.x goes out of support
 * arm64 support: kern.osreldate 1500018 -- need to wait for 1500019 and test for that or higher
 * Fix zvol ownership!
 * Fix cirrinactl over IPv6

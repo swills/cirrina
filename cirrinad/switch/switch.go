@@ -230,7 +230,7 @@ func Create(switchInst *Switch) error {
 	if switchAlreadyExists {
 		slog.Error("switch exists", "switch", switchInst.Name)
 
-		return errSwitchExists
+		return ErrSwitchExists
 	}
 
 	err = switchInst.validate()
@@ -510,12 +510,6 @@ func (s *Switch) UnsetUplink() error {
 }
 
 func (s *Switch) SetUplink(uplink string) error {
-	netDevs := util.GetHostInterfaces()
-
-	if !util.ContainsStr(netDevs, uplink) {
-		return errSwitchInvalidUplink
-	}
-
 	switch s.Type {
 	case "IF":
 		return s.setUplinkIf(uplink)

@@ -405,16 +405,18 @@ func Test_server_RemoveSwitch(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockCmdFunc string
-		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
-		args        args
-		want        *cirrina.ReqBool
-		wantErr     bool
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockCmdFunc     string
+		mockClosure     func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		args            args
+		want            *cirrina.ReqBool
+		wantErr         bool
 	}{
 		{
-			name:        "SuccessIF",
-			mockCmdFunc: "Test_server_RemoveSwitchSuccessIF",
+			name:            "SuccessIF",
+			hostIntStubFunc: StubHostInterfacesTestServerRemoveSwitchSuccessIF,
+			mockCmdFunc:     "Test_server_RemoveSwitchSuccessIF",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				_switch.Instance = &_switch.Singleton{
 					SwitchDB: testDB,
@@ -493,8 +495,9 @@ func Test_server_RemoveSwitch(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "SuccessNG",
-			mockCmdFunc: "Test_server_RemoveSwitchSuccessNG",
+			name:            "SuccessNG",
+			hostIntStubFunc: StubHostInterfacesTestServerRemoveSwitchSuccessIF,
+			mockCmdFunc:     "Test_server_RemoveSwitchSuccessNG",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				_switch.Instance = &_switch.Singleton{
 					SwitchDB: testDB,
@@ -571,8 +574,9 @@ func Test_server_RemoveSwitch(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "ErrorDeleting",
-			mockCmdFunc: "Test_server_RemoveSwitchSuccessIF",
+			name:            "ErrorDeleting",
+			hostIntStubFunc: StubHostInterfacesTestServerRemoveSwitchSuccessIF,
+			mockCmdFunc:     "Test_server_RemoveSwitchSuccessIF",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				_switch.Instance = &_switch.Singleton{
 					SwitchDB: testDB,
@@ -651,8 +655,9 @@ func Test_server_RemoveSwitch(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "SuccessIFErrDeleting",
-			mockCmdFunc: "Test_server_RemoveSwitchSuccessIFErrDeleting",
+			name:            "SuccessIFErrDeleting",
+			hostIntStubFunc: StubHostInterfacesTestServerRemoveSwitchSuccessIF,
+			mockCmdFunc:     "Test_server_RemoveSwitchSuccessIFErrDeleting",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				_switch.Instance = &_switch.Singleton{
 					SwitchDB: testDB,
@@ -731,8 +736,9 @@ func Test_server_RemoveSwitch(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "SuccessNGErrDeleting",
-			mockCmdFunc: "Test_server_RemoveSwitchSuccessNGErrDeleting",
+			name:            "SuccessNGErrDeleting",
+			hostIntStubFunc: StubHostInterfacesTestServerRemoveSwitchSuccessIF,
+			mockCmdFunc:     "Test_server_RemoveSwitchSuccessNGErrDeleting",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				_switch.Instance = &_switch.Singleton{
 					SwitchDB: testDB,
@@ -810,8 +816,9 @@ func Test_server_RemoveSwitch(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "ErrSwitchInUse",
-			mockCmdFunc: "Test_server_RemoveSwitchSuccessIF",
+			name:            "ErrSwitchInUse",
+			hostIntStubFunc: StubHostInterfacesTestServerRemoveSwitchSuccessIF,
+			mockCmdFunc:     "Test_server_RemoveSwitchSuccessIF",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				_switch.Instance = &_switch.Singleton{
 					SwitchDB: testDB,
@@ -897,8 +904,9 @@ func Test_server_RemoveSwitch(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "ErrGetSwitch",
-			mockCmdFunc: "Test_server_RemoveSwitchSuccessIF",
+			name:            "ErrGetSwitch",
+			hostIntStubFunc: StubHostInterfacesTestServerRemoveSwitchSuccessIF,
+			mockCmdFunc:     "Test_server_RemoveSwitchSuccessIF",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				_switch.Instance = &_switch.Singleton{
 					SwitchDB: testDB,
@@ -922,8 +930,9 @@ func Test_server_RemoveSwitch(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "ErrBadUuid",
-			mockCmdFunc: "Test_server_RemoveSwitchSuccessIF",
+			name:            "ErrBadUuid",
+			hostIntStubFunc: StubHostInterfacesTestServerRemoveSwitchSuccessIF,
+			mockCmdFunc:     "Test_server_RemoveSwitchSuccessIF",
 			mockClosure: func(_ *gorm.DB, _ sqlmock.Sqlmock) {
 			},
 			args: args{
@@ -938,6 +947,10 @@ func Test_server_RemoveSwitch(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 
 			util.SetupTestCmd(fakeCommand)
@@ -2676,16 +2689,53 @@ func StubHostInterfacesSuccess1() ([]net.Interface, error) {
 			Flags:        0x35,
 		},
 		{
-			Index:        1,
+			Index:        3,
 			MTU:          1500,
 			Name:         "re5",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        4,
+			MTU:          1500,
+			Name:         "bridge4",
 			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
 			Flags:        0x33,
 		},
 	}, nil
 }
 
+var StubHostInterfacesSuccess2CallCount int
+
 func StubHostInterfacesSuccess2() ([]net.Interface, error) {
+	if StubHostInterfacesSuccess2CallCount == 0 {
+		StubHostInterfacesSuccess2CallCount++
+
+		return []net.Interface{
+			{
+				Index:        1,
+				MTU:          1500,
+				Name:         "re4",
+				HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x28, 0x73, 0x3e},
+				Flags:        0x33,
+			},
+			{
+				Index:        2,
+				MTU:          16384,
+				Name:         "lo0",
+				HardwareAddr: net.HardwareAddr(nil),
+				Flags:        0x35,
+			},
+			{
+				Index:        3,
+				MTU:          1500,
+				Name:         "em8",
+				HardwareAddr: net.HardwareAddr{0xaf, 0xdf, 0xbe, 0x91, 0x7a, 0x71},
+				Flags:        0x33,
+			},
+		}, nil
+	}
+
 	return []net.Interface{
 		{
 			Index:        1,
@@ -2702,9 +2752,16 @@ func StubHostInterfacesSuccess2() ([]net.Interface, error) {
 			Flags:        0x35,
 		},
 		{
-			Index:        1,
+			Index:        3,
 			MTU:          1500,
 			Name:         "em8",
+			HardwareAddr: net.HardwareAddr{0xaf, 0xdf, 0xbe, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        4,
+			MTU:          1500,
+			Name:         "bridge4",
 			HardwareAddr: net.HardwareAddr{0xaf, 0xdf, 0xbe, 0x91, 0x7a, 0x71},
 			Flags:        0x33,
 		},
@@ -2722,4 +2779,23 @@ func StubGetHostIntGroupSuccess1(intName string) ([]string, error) {
 	default:
 		return nil, nil
 	}
+}
+
+func StubHostInterfacesTestServerRemoveSwitchSuccessIF() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
 }

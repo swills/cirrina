@@ -599,63 +599,76 @@ func Test_actualNgBridgeCreate(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockCmdFunc string
-		args        args
-		wantErr     bool
+		name            string
+		mockCmdFunc     string
+		hostIntStubFunc func() ([]net.Interface, error)
+		args            args
+		wantErr         bool
 	}{
 		{
-			name:        "success1",
-			mockCmdFunc: "Test_actualNgBridgeCreateSuccess1",
-			args:        args{netDev: "bnet0"},
-			wantErr:     false,
+			name:            "success1",
+			hostIntStubFunc: StubhostinterfacesactualNgBridgeCreatesuccess1,
+			mockCmdFunc:     "Test_actualNgBridgeCreateSuccess1",
+			args:            args{netDev: "bnet0"},
+			wantErr:         false,
 		},
 		{
-			name:        "error1",
-			mockCmdFunc: "Test_actualNgBridgeCreateError1",
-			args:        args{netDev: "bnet0"},
-			wantErr:     true,
+			name:            "error1",
+			hostIntStubFunc: StubhostinterfacesactualNgBridgeCreatesuccess1,
+			mockCmdFunc:     "Test_actualNgBridgeCreateError1",
+			args:            args{netDev: "bnet0"},
+			wantErr:         true,
 		},
 		{
-			name:        "error2",
-			mockCmdFunc: "Test_actualNgBridgeCreateError2",
-			args:        args{netDev: "bnet0"},
-			wantErr:     true,
+			name:            "error2",
+			hostIntStubFunc: StubhostinterfacesactualNgBridgeCreatesuccess1,
+			mockCmdFunc:     "Test_actualNgBridgeCreateError2",
+			args:            args{netDev: "bnet0"},
+			wantErr:         true,
 		},
 		{
-			name:        "error3",
-			mockCmdFunc: "Test_actualNgBridgeCreateError3",
-			args:        args{netDev: "bnet0"},
-			wantErr:     true,
+			name:            "error3",
+			hostIntStubFunc: StubhostinterfacesactualNgBridgeCreatesuccess1,
+			mockCmdFunc:     "Test_actualNgBridgeCreateError3",
+			args:            args{netDev: "bnet0"},
+			wantErr:         true,
 		},
 		{
-			name:        "error4",
-			mockCmdFunc: "Test_actualNgBridgeCreateError4",
-			args:        args{netDev: "bnet0"},
-			wantErr:     true,
+			name:            "error4",
+			hostIntStubFunc: StubhostinterfacesactualNgBridgeCreatesuccess1,
+			mockCmdFunc:     "Test_actualNgBridgeCreateError4",
+			args:            args{netDev: "bnet0"},
+			wantErr:         true,
 		},
 		{
-			name:        "error5",
-			mockCmdFunc: "Test_actualNgBridgeCreateError5",
-			args:        args{netDev: "bnet0"},
-			wantErr:     true,
+			name:            "error5",
+			hostIntStubFunc: StubhostinterfacesactualNgBridgeCreatesuccess1,
+			mockCmdFunc:     "Test_actualNgBridgeCreateError5",
+			args:            args{netDev: "bnet0"},
+			wantErr:         true,
 		},
 		{
-			name:        "error6",
-			mockCmdFunc: "Test_actualNgBridgeCreateError6",
-			args:        args{netDev: "bnet0"},
-			wantErr:     true,
+			name:            "error6",
+			hostIntStubFunc: StubhostinterfacesactualNgBridgeCreatesuccess1,
+			mockCmdFunc:     "Test_actualNgBridgeCreateError6",
+			args:            args{netDev: "bnet0"},
+			wantErr:         true,
 		},
 		{
-			name:        "error7",
-			mockCmdFunc: "Test_actualNgBridgeCreateError7",
-			args:        args{netDev: "bnet0"},
-			wantErr:     true,
+			hostIntStubFunc: StubhostinterfacesactualNgBridgeCreatesuccess1,
+			name:            "error7",
+			mockCmdFunc:     "Test_actualNgBridgeCreateError7",
+			args:            args{netDev: "bnet0"},
+			wantErr:         true,
 		},
 	}
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)
@@ -1646,4 +1659,44 @@ func Test_bridgeNgRemoveUplinkError2(_ *testing.T) {
 	}
 
 	os.Exit(0)
+}
+
+func StubhostinterfacesactualNgBridgeCreatesuccess1() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "abc0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "def0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        4,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        5,
+			MTU:          1500,
+			Name:         "bridge32767",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+	}, nil
 }

@@ -1,7 +1,9 @@
 package vmswitch
 
 import (
+	"errors"
 	"fmt"
+	"net"
 	"os"
 	"regexp"
 	"strings"
@@ -171,9 +173,9 @@ func Test_createIfBridge(t *testing.T) {
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := createIfBridge(testCase.args.name)
+			err := createIfSwitch(testCase.args.name)
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("createIfBridge() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("createIfSwitch() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}
@@ -228,43 +230,51 @@ func Test_bridgeIfDeleteAllMembers(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockCmdFunc string
-		args        args
-		wantErr     bool
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockCmdFunc     string
+		args            args
+		wantErr         bool
 	}{
 		{
-			name:        "success1",
-			mockCmdFunc: "Test_bridgeIfDeleteAllMembersSuccess1",
-			args:        args{name: "bridge0"},
-			wantErr:     false,
+			name:            "Success",
+			hostIntStubFunc: StubHostInterfacesTestBridgeIfDeleteAllMembersSuccess,
+			mockCmdFunc:     "Test_bridgeIfDeleteAllMembersSuccess1",
+			args:            args{name: "bridge0"},
+			wantErr:         false,
 		},
 		{
-			name:        "error1",
-			mockCmdFunc: "Test_bridgeIfDeleteAllMembersError1",
-			args:        args{name: "bridge0"},
-			wantErr:     true,
+			name:            "error1",
+			hostIntStubFunc: StubHostInterfacesTestBridgeIfDeleteAllMembersSuccess,
+			mockCmdFunc:     "Test_bridgeIfDeleteAllMembersError1",
+			args:            args{name: "bridge0"},
+			wantErr:         true,
 		},
 		{
-			name:        "error2",
-			mockCmdFunc: "Test_bridgeIfDeleteAllMembersError2",
-			args:        args{name: "bridge0"},
-			wantErr:     true,
+			name:            "error2",
+			hostIntStubFunc: StubHostInterfacesTestBridgeIfDeleteAllMembersSuccess,
+			mockCmdFunc:     "Test_bridgeIfDeleteAllMembersError2",
+			args:            args{name: "bridge0"},
+			wantErr:         true,
 		},
 	}
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
 
-			err := bridgeIfDeleteAllMembers(testCase.args.name)
+			err := switchIfDeleteAllMembers(testCase.args.name)
 
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("bridgeIfDeleteAllMembers() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("switchIfDeleteAllMembers() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 		})
 	}
@@ -278,27 +288,55 @@ func Test_bridgeIfDeleteMember(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockCmdFunc string
-		args        args
-		wantErr     bool
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockCmdFunc     string
+		args            args
+		wantErr         bool
 	}{
 		{
-			name:        "success1",
-			mockCmdFunc: "Test_bridgeIfDeleteMemberSuccess1",
-			args:        args{bridgeName: "bridge0", memberName: "em0"},
-			wantErr:     false,
+			name:            "success1",
+			hostIntStubFunc: StubhostinterfacestestBridgeifdeletemember,
+			mockCmdFunc:     "Test_bridgeIfDeleteMemberSuccess1",
+			args:            args{bridgeName: "bridge0", memberName: "em0"},
+			wantErr:         false,
 		},
 		{
-			name:        "error1",
-			mockCmdFunc: "Test_bridgeIfDeleteMemberError1",
-			args:        args{bridgeName: "bridge0", memberName: "em0"},
-			wantErr:     true,
+			name:            "error1",
+			hostIntStubFunc: StubhostinterfacestestBridgeifdeletemember,
+			mockCmdFunc:     "Test_bridgeIfDeleteMemberError1",
+			args:            args{bridgeName: "bridge0", memberName: "em0"},
+			wantErr:         true,
+		},
+		{
+			name:            "InterfaceNotAMember",
+			hostIntStubFunc: StubhostinterfacestestBridgeifdeletemember,
+			mockCmdFunc:     "Test_bridgeIfDeleteMemberSuccess1",
+			args:            args{bridgeName: "bridge0", memberName: "em1"},
+			wantErr:         false,
+		},
+		{
+			name:            "BridgeDoesNotExist",
+			hostIntStubFunc: StubhostinterfacestestBridgeifdeletemember,
+			mockCmdFunc:     "Test_bridgeIfDeleteMemberSuccess1",
+			args:            args{bridgeName: "bridge1", memberName: "em0"},
+			wantErr:         false,
+		},
+		{
+			name:            "ErrorGettingBridgeMembers",
+			hostIntStubFunc: StubhostinterfacestestBridgeifdeletemember,
+			mockCmdFunc:     "Test_bridgeIfDeleteMemberError2",
+			args:            args{bridgeName: "bridge0", memberName: "em0"},
+			wantErr:         true,
 		},
 	}
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)
@@ -314,6 +352,91 @@ func Test_bridgeIfDeleteMember(t *testing.T) {
 }
 
 //nolint:paralleltest
+func TestBridgeIfAddMember(t *testing.T) {
+	type args struct {
+		bridgeName string
+		memberName string
+	}
+
+	tests := []struct {
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockCmdFunc     string
+		args            args
+		wantErr         bool
+	}{
+		{
+			name:            "success1",
+			hostIntStubFunc: StubhostinterfacestestBridgeifaddmembersuccess1,
+			mockCmdFunc:     "TestBridgeIfAddMemberSuccess1",
+			args:            args{bridgeName: "bridge0", memberName: "tap0"},
+			wantErr:         false,
+		},
+		{
+			name:            "ErrorGettingHostInterfaces",
+			hostIntStubFunc: StubhostinterfacestestBridgeifaddmembererror1,
+			mockCmdFunc:     "TestBridgeIfAddMemberError1",
+			args:            args{bridgeName: "bridge0", memberName: "tap0"},
+			wantErr:         true,
+		},
+		{
+			name:            "ErrorSwitchInterfaceDoesNotExist",
+			hostIntStubFunc: StubhostinterfacestestBridgeifaddmembersuccess1,
+			mockCmdFunc:     "TestBridgeIfAddMemberSuccess1",
+			args:            args{bridgeName: "bridge1", memberName: "tap0"},
+			wantErr:         true,
+		},
+		{
+			name:            "ErrorMemberInterfaceDoesNotExist",
+			hostIntStubFunc: StubhostinterfacestestBridgeifaddmembersuccess1,
+			mockCmdFunc:     "TestBridgeIfAddMemberSuccess1",
+			args:            args{bridgeName: "bridge0", memberName: "tap1"},
+			wantErr:         true,
+		},
+		{
+			name:            "ErrorGettingSwitchMembers",
+			hostIntStubFunc: StubhostinterfacestestBridgeifaddmembersuccess1,
+			mockCmdFunc:     "TestBridgeIfAddMemberErrorGettingSwitchMembers",
+			args:            args{bridgeName: "bridge0", memberName: "tap0"},
+			wantErr:         true,
+		},
+		{
+			name:            "ErrorInterfaceIsAlreadyAMember",
+			hostIntStubFunc: StubhostinterfacestestBridgeifaddmembersuccess1,
+			mockCmdFunc:     "TestBridgeIfAddMemberSuccessErrorInterfaceIsAlreadyAMember",
+			args:            args{bridgeName: "bridge0", memberName: "tap0"},
+			wantErr:         false,
+		},
+		{
+			name:            "ErrorRunningIfconfig",
+			hostIntStubFunc: StubhostinterfacestestBridgeifaddmembersuccess1,
+			mockCmdFunc:     "TestBridgeIfAddMemberErrorRunningIfconfig",
+			args:            args{bridgeName: "bridge0", memberName: "tap0"},
+			wantErr:         true,
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
+			// prevents parallel testing
+			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
+			util.SetupTestCmd(fakeCommand)
+
+			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			err := switchIfAddMember(testCase.args.bridgeName, testCase.args.memberName)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("switchIfAddMember() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
+//nolint:paralleltest
 func TestCreateIfBridgeWithMembers(t *testing.T) {
 	type args struct {
 		bridgeName    string
@@ -321,45 +444,55 @@ func TestCreateIfBridgeWithMembers(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockCmdFunc string
-		args        args
-		wantErr     bool
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockCmdFunc     string
+		args            args
+		wantErr         bool
 	}{
 		{
-			name:        "success1",
-			mockCmdFunc: "TestCreateIfBridgeWithMembersSuccess1",
-			args:        args{bridgeName: "bridge0", bridgeMembers: []string{"tap0"}},
-			wantErr:     false,
+			name:            "success1",
+			hostIntStubFunc: StubHostInterfacesTestCreateIfBridgeWithMembersSuccess1,
+			mockCmdFunc:     "TestCreateIfBridgeWithMembersSuccess1",
+			args:            args{bridgeName: "bridge0", bridgeMembers: []string{"tap0"}},
+			wantErr:         false,
 		},
 		{
-			name:        "error1",
-			mockCmdFunc: "TestCreateIfBridgeWithMembersError1",
-			args:        args{bridgeName: "bridge0", bridgeMembers: []string{"tap0"}},
-			wantErr:     true,
+			name:            "error1",
+			hostIntStubFunc: StubHostInterfacesTestCreateIfBridgeWithMembersSuccess1,
+			mockCmdFunc:     "TestCreateIfBridgeWithMembersError1",
+			args:            args{bridgeName: "bridge0", bridgeMembers: []string{"tap0"}},
+			wantErr:         true,
 		},
 		{
-			name:        "error2",
-			mockCmdFunc: "TestCreateIfBridgeWithMembersError2",
-			args:        args{bridgeName: "bridge0", bridgeMembers: []string{"tap0"}},
-			wantErr:     true,
+			name:            "error2",
+			hostIntStubFunc: StubHostInterfacesTestCreateIfBridgeWithMembersSuccess1,
+			mockCmdFunc:     "TestCreateIfBridgeWithMembersError2",
+			args:            args{bridgeName: "bridge0", bridgeMembers: []string{"tap0"}},
+			wantErr:         true,
 		},
 		{
-			name:        "error3",
-			mockCmdFunc: "TestCreateIfBridgeWithMembersError3",
-			args:        args{bridgeName: "bridge0", bridgeMembers: []string{"tap0"}},
-			wantErr:     true,
+			name:            "error3",
+			hostIntStubFunc: StubHostInterfacesTestCreateIfBridgeWithMembersSuccess1,
+			mockCmdFunc:     "TestCreateIfBridgeWithMembersError2",
+			args:            args{bridgeName: "bridge0", bridgeMembers: []string{"tap0"}},
+			wantErr:         true,
 		},
 		{
-			name:        "emptyBridgeName",
-			mockCmdFunc: "TestCreateIfBridgeWithMembersError3",
-			args:        args{bridgeName: "", bridgeMembers: []string{"tap0"}},
-			wantErr:     true,
+			name:            "emptyBridgeName",
+			hostIntStubFunc: StubHostInterfacesTestCreateIfBridgeWithMembersSuccess1,
+			mockCmdFunc:     "TestCreateIfBridgeWithMembersError2",
+			args:            args{bridgeName: "", bridgeMembers: []string{"tap0"}},
+			wantErr:         true,
 		},
 	}
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)
@@ -425,15 +558,17 @@ func Test_setupVMNicRateLimit(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
-		mockCmdFunc string
-		args        args
-		want        string
-		wantErr     bool
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockClosure     func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		mockCmdFunc     string
+		args            args
+		want            string
+		wantErr         bool
 	}{
 		{
-			name: "Success",
+			name:            "Success",
+			hostIntStubFunc: StubHostInterfacesTestSetupVMNicRateLimitSuccess,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -481,7 +616,8 @@ func Test_setupVMNicRateLimit(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "createEpairErr",
+			name:            "createEpairErr",
+			hostIntStubFunc: StubHostInterfacesTestSetupVMNicRateLimitSuccess,
 			mockClosure: func(testDB *gorm.DB, _ sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -510,7 +646,8 @@ func Test_setupVMNicRateLimit(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "saveErr",
+			name:            "saveErr",
+			hostIntStubFunc: StubHostInterfacesTestSetupVMNicRateLimitSuccess,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -548,7 +685,8 @@ func Test_setupVMNicRateLimit(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "setRateLimitError",
+			name:            "setRateLimitError",
+			hostIntStubFunc: StubHostInterfacesTestSetupVMNicRateLimitSuccess,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -586,7 +724,8 @@ func Test_setupVMNicRateLimit(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "createIfBridgeErr",
+			name:            "createIfBridgeErr",
+			hostIntStubFunc: StubHostInterfacesTestSetupVMNicRateLimitSuccess,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -624,7 +763,8 @@ func Test_setupVMNicRateLimit(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "saveErr2",
+			name:            "saveErr2",
+			hostIntStubFunc: StubHostInterfacesTestSetupVMNicRateLimitSuccess,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -675,6 +815,10 @@ func Test_setupVMNicRateLimit(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 			util.SetupTestCmd(fakeCommand)
@@ -1190,11 +1334,64 @@ func Test_bridgeIfDeleteMemberSuccess1(_ *testing.T) {
 		return
 	}
 
+	for _, v := range os.Args {
+		if v == "deletem" {
+			os.Exit(0)
+		}
+	}
+
+	ifconfigBridgeMembersContainsEm0 := `
+bridge0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=0
+        ether 58:9c:fc:10:d6:22
+        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
+        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
+        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
+        member: em0 flags=143<LEARNING,DISCOVER,AUTOEDGE,AUTOPTP>
+                ifmaxaddr 0 port 4 priority 128 path cost 20000
+        groups: bridge cirrinad
+        nd6 options=9<PERFORMNUD,IFDISABLED>
+`
+
+	// getting bridge members
+	_, _ = os.Stdout.Write([]byte(ifconfigBridgeMembersContainsEm0))
+
 	os.Exit(0)
 }
 
 //nolint:paralleltest
 func Test_bridgeIfDeleteMemberError1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	for _, v := range os.Args {
+		if v == "deletem" {
+			os.Exit(1)
+		}
+	}
+
+	ifconfigBridgeMembersContainsEm0 := `
+bridge0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=0
+        ether 58:9c:fc:10:d6:22
+        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
+        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
+        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
+        member: em0 flags=143<LEARNING,DISCOVER,AUTOEDGE,AUTOPTP>
+                ifmaxaddr 0 port 4 priority 128 path cost 20000
+        groups: bridge cirrinad
+        nd6 options=9<PERFORMNUD,IFDISABLED>
+`
+
+	// getting bridge members
+	_, _ = os.Stdout.Write([]byte(ifconfigBridgeMembersContainsEm0))
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func Test_bridgeIfDeleteMemberError2(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -1222,37 +1419,6 @@ func TestCreateIfBridgeWithMembersError1(_ *testing.T) {
 
 //nolint:paralleltest
 func TestCreateIfBridgeWithMembersError2(_ *testing.T) {
-	if !cirrinadtest.IsTestEnv() {
-		return
-	}
-
-	cmdWithArgs := os.Args[3:]
-
-	if cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[1] == "bridge0" {
-		ifconfigOutput := `bridge0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
-        options=0
-        ether 58:9c:fc:10:d6:22
-        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
-        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
-        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
-        member: em0 flags=143<LEARNING,DISCOVER,AUTOEDGE,AUTOPTP>
-                ifmaxaddr 0 port 2 priority 128 path cost 20000
-        groups: bridge cirrinad
-        nd6 options=9<PERFORMNUD,IFDISABLED>
-`
-		fmt.Print(ifconfigOutput) //nolint:forbidigo
-		os.Exit(0)
-	}
-
-	if cmdWithArgs[1] == "/sbin/ifconfig" && cmdWithArgs[3] == "deletem" {
-		os.Exit(1)
-	}
-
-	os.Exit(0)
-}
-
-//nolint:paralleltest
-func TestCreateIfBridgeWithMembersError3(_ *testing.T) {
 	if !cirrinadtest.IsTestEnv() {
 		return
 	}
@@ -1375,4 +1541,278 @@ func Test_unsetVMNicRateLimitSuccessRateLimited_DestroyEpairErr(_ *testing.T) {
 	}
 
 	os.Exit(0)
+}
+
+func StubhostinterfacestestBridgeifdeletemember() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "abc0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "def0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        4,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubhostinterfacestestBridgeifaddmembersuccess1() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "abc0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x28, 0x73, 0x3e},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "def0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        4,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        5,
+			MTU:          1500,
+			Name:         "tap0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubhostinterfacestestBridgeifaddmembererror1() ([]net.Interface, error) {
+	err := errors.New("some bogus error") //nolint:err113
+	err = &net.OpError{Op: "route", Net: "ip+net", Source: nil, Addr: nil, Err: err}
+
+	return []net.Interface{}, err
+}
+
+//nolint:paralleltest
+func TestBridgeIfAddMemberSuccess1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func TestBridgeIfAddMemberError1(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	os.Exit(1)
+}
+
+//nolint:paralleltest
+func TestBridgeIfAddMemberErrorGettingSwitchMembers(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	for _, v := range os.Args {
+		if strings.Contains(v, "bridge0") {
+			os.Exit(1)
+		}
+	}
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func TestBridgeIfAddMemberSuccessErrorInterfaceIsAlreadyAMember(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	for _, v := range os.Args {
+		if v == "deletem" {
+			os.Exit(1)
+		}
+	}
+
+	ifconfigBridgeMembersContainsEm0AndTap0 := `
+bridge0: flags=1008843<UP,BROADCAST,RUNNING,SIMPLEX,MULTICAST,LOWER_UP> metric 0 mtu 1500
+        options=0
+        ether 58:9c:fc:10:d6:22
+        id 00:00:00:00:00:00 priority 32768 hellotime 2 fwddelay 15
+        maxage 20 holdcnt 6 proto rstp maxaddr 2000 timeout 1200
+        root id 00:00:00:00:00:00 priority 32768 ifcost 0 port 0
+        member: em0 flags=143<LEARNING,DISCOVER,AUTOEDGE,AUTOPTP>
+                ifmaxaddr 0 port 4 priority 128 path cost 20000
+        member: tap0 flags=143<LEARNING,DISCOVER,AUTOEDGE,AUTOPTP>
+                ifmaxaddr 0 port 4 priority 128 path cost 20000
+        groups: bridge cirrinad
+        nd6 options=9<PERFORMNUD,IFDISABLED>
+`
+
+	// getting bridge members
+	_, _ = os.Stdout.Write([]byte(ifconfigBridgeMembersContainsEm0AndTap0))
+
+	os.Exit(0)
+}
+
+//nolint:paralleltest
+func TestBridgeIfAddMemberErrorRunningIfconfig(_ *testing.T) {
+	if !cirrinadtest.IsTestEnv() {
+		return
+	}
+
+	for _, v := range os.Args {
+		if strings.Contains(v, "addm") {
+			os.Exit(1)
+		}
+	}
+
+	os.Exit(0)
+}
+
+func StubHostInterfacesTestCreateIfBridgeWithMembersSuccess1() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          1500,
+			Name:         "tap0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubHostInterfacesTestSetupVMNicRateLimitSuccess() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "tap0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          1500,
+			Name:         "bridge32767",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        4,
+			MTU:          1500,
+			Name:         "epair32767a",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubHostInterfacesTestBridgeIfDeleteAllMembersSuccess() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "tap0",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          1500,
+			Name:         "bridge32767",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+		{
+			Index:        4,
+			MTU:          1500,
+			Name:         "epair32767a",
+			HardwareAddr: net.HardwareAddr{0xaa, 0xbb, 0xcc, 0x32, 0x6e, 0x6},
+			Flags:        0x33,
+		},
+	}, nil
 }

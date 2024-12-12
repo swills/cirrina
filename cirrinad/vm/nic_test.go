@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"regexp"
 	"testing"
@@ -1333,15 +1334,17 @@ func TestVM_NetStartup(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockCmdFunc string
-		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
-		fields      fields
-		wantErr     bool
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockCmdFunc     string
+		mockClosure     func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+		fields          fields
+		wantErr         bool
 	}{
 		{
-			name:        "getNicsErr",
-			mockCmdFunc: "TestVM_netStartupSuccess",
+			name:            "getNicsErr",
+			hostIntStubFunc: StubHostInterfacesTestVMNetStartupGetNicsErr,
+			mockCmdFunc:     "TestVM_netStartupSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				testVM := VM{
 					ID:          "42e72023-0a36-4e1b-aef2-b3fd31ba1d4e",
@@ -1385,8 +1388,9 @@ func TestVM_NetStartup(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "noNics",
-			mockCmdFunc: "TestVM_netStartupSuccess",
+			name:            "noNics",
+			mockCmdFunc:     "TestVM_netStartupSuccess",
+			hostIntStubFunc: StubHostInterfacesTestVMNetStartupGetNicsErr,
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -1430,8 +1434,9 @@ func TestVM_NetStartup(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "badType",
-			mockCmdFunc: "TestVM_netStartupSuccess",
+			name:            "badType",
+			hostIntStubFunc: StubHostInterfacesTestVMNetStartupGetNicsErr,
+			mockCmdFunc:     "TestVM_netStartupSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -1495,8 +1500,9 @@ func TestVM_NetStartup(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "noUplink",
-			mockCmdFunc: "TestVM_netStartupSuccess",
+			name:            "noUplink",
+			hostIntStubFunc: StubHostInterfacesTestVMNetStartupGetNicsErr,
+			mockCmdFunc:     "TestVM_netStartupSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -1560,8 +1566,9 @@ func TestVM_NetStartup(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "SwitchNotFound",
-			mockCmdFunc: "TestVM_netStartupSuccess",
+			name:            "SwitchNotFound",
+			hostIntStubFunc: StubHostInterfacesTestVMNetStartupSwitchNotFound,
+			mockCmdFunc:     "TestVM_netStartupSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -1646,104 +1653,9 @@ func TestVM_NetStartup(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "SuccessIfNotRateLimited",
-			mockCmdFunc: "TestVM_netStartupSuccess",
-			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
-				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
-					VMNicDB: testDB,
-				}
-				mock.ExpectQuery(
-					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
-				).
-					WithArgs(821).
-					WillReturnRows(sqlmock.NewRows([]string{
-						"id",
-						"created_at",
-						"updated_at",
-						"deleted_at",
-						"name",
-						"description",
-						"mac",
-						"net_type",
-						"net_dev_type",
-						"switch_id",
-						"net_dev",
-						"rate_limit",
-						"rate_in",
-						"rate_out",
-						"inst_bridge",
-						"inst_epair",
-						"config_id",
-					}).
-						AddRow(
-							"b424ef1b-34df-41eb-9756-aef024d17896",
-							createUpdateTime,
-							createUpdateTime,
-							nil,
-							"aNic",
-							"a description",
-							"00:11:22:33:44:56",
-							"VIRTIONET",
-							"TAP",
-							"43ad7b62-7866-4f5b-8dfe-4f3f0b348d96",
-							"tap0",
-							false,
-							0,
-							0,
-							nil,
-							nil,
-							821,
-						),
-					)
-
-				mock.ExpectQuery(
-					regexp.QuoteMeta(
-						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
-					),
-				).
-					WithArgs("43ad7b62-7866-4f5b-8dfe-4f3f0b348d96").
-					WillReturnRows(
-						sqlmock.NewRows(
-							[]string{
-								"id",
-								"created_at",
-								"updated_at",
-								"deleted_at",
-								"name",
-								"description",
-								"type",
-								"uplink",
-							},
-						).
-							AddRow(
-								"43ad7b62-7866-4f5b-8dfe-4f3f0b348d96",
-								createUpdateTime,
-								createUpdateTime,
-								nil,
-								"bridge0",
-								"some if switch description",
-								"IF",
-								"em9",
-							),
-					)
-			},
-			fields: fields{
-				ID:          "a7fecf30-b54d-44e8-b549-90cbc08471c4",
-				Name:        "fridayVM",
-				Description: "yay friday",
-				Status:      "STOPPED",
-				Config: Config{
-					Model: gorm.Model{
-						ID: 821,
-					},
-					VMID: "a7fecf30-b54d-44e8-b549-90cbc08471c4",
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name:        "SuccessIfConnectError",
-			mockCmdFunc: "TestVM_netStartupSuccessIfConnectError",
+			name:            "SuccessIfNotRateLimited",
+			hostIntStubFunc: StubHostInterfacesTestVMNetStartupSwitchNotFound,
+			mockCmdFunc:     "TestVM_netStartupSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -1838,8 +1750,106 @@ func TestVM_NetStartup(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "SuccessIfRateLimited",
-			mockCmdFunc: "TestVM_netStartupSuccess",
+			name:            "SuccessIfConnectError",
+			hostIntStubFunc: StubHostInterfacesTestVMNetStartupSwitchNotFound,
+			mockCmdFunc:     "TestVM_netStartupSuccessIfConnectError",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
+					VMNicDB: testDB,
+				}
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `vm_nics` WHERE config_id = ? AND `vm_nics`.`deleted_at` IS NULL"),
+				).
+					WithArgs(821).
+					WillReturnRows(sqlmock.NewRows([]string{
+						"id",
+						"created_at",
+						"updated_at",
+						"deleted_at",
+						"name",
+						"description",
+						"mac",
+						"net_type",
+						"net_dev_type",
+						"switch_id",
+						"net_dev",
+						"rate_limit",
+						"rate_in",
+						"rate_out",
+						"inst_bridge",
+						"inst_epair",
+						"config_id",
+					}).
+						AddRow(
+							"b424ef1b-34df-41eb-9756-aef024d17896",
+							createUpdateTime,
+							createUpdateTime,
+							nil,
+							"aNic",
+							"a description",
+							"00:11:22:33:44:56",
+							"VIRTIONET",
+							"TAP",
+							"43ad7b62-7866-4f5b-8dfe-4f3f0b348d96",
+							"tap0",
+							false,
+							0,
+							0,
+							nil,
+							nil,
+							821,
+						),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT * FROM `switches` WHERE id = ? AND `switches`.`deleted_at` IS NULL LIMIT 1",
+					),
+				).
+					WithArgs("43ad7b62-7866-4f5b-8dfe-4f3f0b348d96").
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"uplink",
+							},
+						).
+							AddRow(
+								"43ad7b62-7866-4f5b-8dfe-4f3f0b348d96",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"bridge0",
+								"some if switch description",
+								"IF",
+								"em9",
+							),
+					)
+			},
+			fields: fields{
+				ID:          "a7fecf30-b54d-44e8-b549-90cbc08471c4",
+				Name:        "fridayVM",
+				Description: "yay friday",
+				Status:      "STOPPED",
+				Config: Config{
+					Model: gorm.Model{
+						ID: 821,
+					},
+					VMID: "a7fecf30-b54d-44e8-b549-90cbc08471c4",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:            "SuccessIfRateLimited",
+			hostIntStubFunc: StubHostInterfacesTestVMNetStartupSuccessIfRateLimited,
+			mockCmdFunc:     "TestVM_netStartupSuccess",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
 				vmnic.Instance = &vmnic.Singleton{ // prevents parallel testing
 					VMNicDB: testDB,
@@ -1985,6 +1995,12 @@ func TestVM_NetStartup(t *testing.T) {
 
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
+			StubHostInterfacesTestVMNetStartupSuccessIfRateLimitedCount = 0
+
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
+
 			// prevents parallel testing
 			fakeCommand := cirrinadtest.MakeFakeCommand(testCase.mockCmdFunc)
 
@@ -4038,4 +4054,154 @@ func TestVM_netStartupSuccessIfConnectError(_ *testing.T) {
 	}
 
 	os.Exit(0)
+}
+
+func StubHostInterfacesTestVMNetStartupGetNicsErr() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "bridge32767",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          1500,
+			Name:         "epair32767a",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        4,
+			MTU:          1500,
+			Name:         "tap0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubHostInterfacesTestVMNetStartupSwitchNotFound() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "bridge32767",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          1500,
+			Name:         "epair32767a",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+var StubHostInterfacesTestVMNetStartupSuccessIfRateLimitedCount = 0
+
+func StubHostInterfacesTestVMNetStartupSuccessIfRateLimited() ([]net.Interface, error) {
+	if StubHostInterfacesTestVMNetStartupSuccessIfRateLimitedCount == 0 {
+		StubHostInterfacesTestVMNetStartupSuccessIfRateLimitedCount++
+
+		return []net.Interface{
+			{
+				Index:        0,
+				MTU:          16384,
+				Name:         "lo0",
+				HardwareAddr: net.HardwareAddr(nil),
+				Flags:        0x35,
+			},
+			{
+				Index:        1,
+				MTU:          1500,
+				Name:         "bridge0",
+				HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+				Flags:        0x33,
+			},
+			{
+				Index:        2,
+				MTU:          1500,
+				Name:         "bridge32767",
+				HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+				Flags:        0x33,
+			},
+			{
+				Index:        3,
+				MTU:          1500,
+				Name:         "epair32767a",
+				HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+				Flags:        0x33,
+			},
+		}, nil
+	}
+
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "bridge0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "bridge32767",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        3,
+			MTU:          1500,
+			Name:         "epair32767a",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+		{
+			Index:        4,
+			MTU:          1500,
+			Name:         "tap0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
 }
