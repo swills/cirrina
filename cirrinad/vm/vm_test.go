@@ -3608,6 +3608,7 @@ func Test_checkIsoAttachments(t *testing.T) {
 		{
 			name: "OneISOAttachedVMDoesNotExist",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{VMDB: testDB}
 				iso.Instance = &iso.Singleton{ISODB: testDB}
 
 				// clear out list from other parallel test runs
@@ -3652,6 +3653,14 @@ func Test_checkIsoAttachments(t *testing.T) {
 						sqlmock.NewRows([]string{"vm_id"}).
 							AddRow("1385122d-555d-48e1-9843-97edd4c193c4"),
 					)
+
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"DELETE FROM `vm_isos` WHERE `vm_id` = ?",
+					),
+				).
+					WithArgs("1385122d-555d-48e1-9843-97edd4c193c4").
+					WillReturnResult(sqlmock.NewResult(1, 1))
 			},
 		},
 	}

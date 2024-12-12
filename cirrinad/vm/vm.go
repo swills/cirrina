@@ -713,7 +713,7 @@ func checkDiskAttachments() {
 
 				res := vmDB.Exec("DELETE FROM `vm_disks` WHERE `vm_id` = ?", vmID)
 				if res.Error != nil {
-					slog.Error("error updating VM", "res.Error", res.Error)
+					slog.Error("error removing bad attachment", "res.Error", res.Error)
 				}
 			}
 		}
@@ -742,6 +742,8 @@ func checkNicAttachments() {
 }
 
 func checkIsoAttachments() {
+	vmDB := GetVMDB()
+
 	allISOs := iso.GetAll()
 	for _, aISO := range allISOs {
 		vmIDs := aISO.GetVMIDs()
@@ -749,8 +751,12 @@ func checkIsoAttachments() {
 			// check the VM exists
 			_, err := GetByID(vmID)
 			if err != nil {
-				// TODO - remove the attachment
-				slog.Error("iso attached to non-existent VM", "iso.ID", aISO.ID, "vm.ID", vmID)
+				slog.Error("iso attached to non-existent VM, removing", "iso.ID", aISO.ID, "vm.ID", vmID)
+
+				res := vmDB.Exec("DELETE FROM `vm_isos` WHERE `vm_id` = ?", vmID)
+				if res.Error != nil {
+					slog.Error("error removing bad attachment", "res.Error", res.Error)
+				}
 			}
 		}
 	}
