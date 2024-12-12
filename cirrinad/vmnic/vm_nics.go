@@ -476,7 +476,7 @@ func (vmNic *VMNic) Build() error {
 		}
 
 		stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
-			config.Config.Sys.Sudo, []string{"/sbin/ifconfig", vmNic.NetDev, "create", "group", "cirrinad"},
+			config.Config.Sys.Sudo, []string{"/sbin/ifconfig", vmNic.NetDev, "create", "group", "cirrinad", "descr", vmNic.Name},
 		)
 		if err != nil {
 			slog.Error("failed to create tap",

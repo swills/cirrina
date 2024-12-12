@@ -2522,7 +2522,7 @@ func TestVMNic_Build(t *testing.T) {
 	}{
 		{
 			name:            "BadType",
-			hostIntStubFunc: StubhostinterfacestestBuild,
+			hostIntStubFunc: StubHostInterfacesTestBuild,
 			mockCmdFunc:     "TestVMNic_BuildSuccess",
 			fields: fields{
 				NetType: "garbage",
@@ -2531,7 +2531,7 @@ func TestVMNic_Build(t *testing.T) {
 		},
 		{
 			name:            "SuccessNG",
-			hostIntStubFunc: StubhostinterfacestestBuild,
+			hostIntStubFunc: StubHostInterfacesTestBuild,
 			mockCmdFunc:     "TestVMNic_BuildSuccess",
 			fields: fields{
 				NetDevType: "NETGRAPH",
@@ -2540,7 +2540,7 @@ func TestVMNic_Build(t *testing.T) {
 		},
 		{
 			name:            "TapNoNetDev",
-			hostIntStubFunc: StubhostinterfacestestBuild,
+			hostIntStubFunc: StubHostInterfacesTestBuild,
 			mockCmdFunc:     "TestVMNic_BuildSuccess",
 			fields: fields{
 				NetDev:     "",
@@ -2550,7 +2550,7 @@ func TestVMNic_Build(t *testing.T) {
 		},
 		{
 			name:            "TapError",
-			hostIntStubFunc: StubhostinterfacestestBuild,
+			hostIntStubFunc: StubHostInterfacesTestBuild,
 			mockCmdFunc:     "TestVMNic_BuildError",
 			fields: fields{
 				NetDev:     "tap0",
@@ -2560,7 +2560,7 @@ func TestVMNic_Build(t *testing.T) {
 		},
 		{
 			name:            "VmnetError",
-			hostIntStubFunc: StubhostinterfacestestBuild,
+			hostIntStubFunc: StubHostInterfacesTestBuild,
 			mockCmdFunc:     "TestVMNic_BuildError",
 			fields: fields{
 				NetDev:     "vmnet0",
@@ -2570,7 +2570,7 @@ func TestVMNic_Build(t *testing.T) {
 		},
 		{
 			name:            "TapSuccess",
-			hostIntStubFunc: StubhostinterfacestestBuild,
+			hostIntStubFunc: StubHostInterfacesTestBuild,
 			mockCmdFunc:     "TestVMNic_BuildSuccess",
 			fields: fields{
 				NetDev:     "tap0",
@@ -2580,7 +2580,7 @@ func TestVMNic_Build(t *testing.T) {
 		},
 		{
 			name:            "VmnetSuccess",
-			hostIntStubFunc: StubhostinterfacestestBuild,
+			hostIntStubFunc: StubHostInterfacesTestBuild,
 			mockCmdFunc:     "TestVMNic_BuildSuccess",
 			fields: fields{
 				NetDev:     "vmnet0",
@@ -2590,7 +2590,7 @@ func TestVMNic_Build(t *testing.T) {
 		},
 		{
 			name:            "TapAlreadyExists",
-			hostIntStubFunc: StubhostinterfacestestBuild,
+			hostIntStubFunc: StubHostInterfacesTestBuild,
 			mockCmdFunc:     "TestVMNic_BuildSuccess",
 			fields: fields{
 				NetDev:     "tap1",
@@ -2653,7 +2653,7 @@ func Test_Demolish(t *testing.T) {
 	}{
 		{
 			name:            "TapSuccessNoRateLimit",
-			hostIntStubFunc: StubhostinterfacestestDemolish,
+			hostIntStubFunc: StubHostInterfacesTestDemolish,
 			mockCmdFunc:     "Test_cleanupIfNicSuccess",
 			args: args{
 				vmNic: VMNic{
@@ -2676,7 +2676,7 @@ func Test_Demolish(t *testing.T) {
 		},
 		{
 			name:            "TapSuccessRateLimit",
-			hostIntStubFunc: StubhostinterfacestestDemolish,
+			hostIntStubFunc: StubHostInterfacesTestDemolish,
 			mockCmdFunc:     "Test_cleanupIfNicSuccess",
 			args: args{
 				vmNic: VMNic{
@@ -2699,7 +2699,7 @@ func Test_Demolish(t *testing.T) {
 		},
 		{
 			name:            "Fail1",
-			hostIntStubFunc: StubhostinterfacestestDemolish,
+			hostIntStubFunc: StubHostInterfacesTestDemolish,
 			mockCmdFunc:     "Test_cleanupIfNicFail1",
 			args: args{
 				vmNic: VMNic{
@@ -2723,7 +2723,7 @@ func Test_Demolish(t *testing.T) {
 		},
 		{
 			name:            "FailAll",
-			hostIntStubFunc: StubhostinterfacestestDemolish,
+			hostIntStubFunc: StubHostInterfacesTestDemolish,
 			mockCmdFunc:     "Test_cleanupIfNicFailAll",
 			args: args{
 				vmNic: VMNic{
@@ -2764,7 +2764,7 @@ func Test_Demolish(t *testing.T) {
 		},
 		{
 			name:            "BadType",
-			hostIntStubFunc: StubhostinterfacestestDemolish,
+			hostIntStubFunc: StubHostInterfacesTestDemolish,
 			mockCmdFunc:     "Test_cleanupIfNicSuccess",
 			args: args{
 				vmNic: VMNic{
@@ -2783,7 +2783,7 @@ func Test_Demolish(t *testing.T) {
 		},
 		{
 			name:            "TapSuccessInterfaceDoesNotExist",
-			hostIntStubFunc: StubhostinterfacestestDemolish,
+			hostIntStubFunc: StubHostInterfacesTestDemolish,
 			mockCmdFunc:     "Test_cleanupIfNicSuccess",
 			args: args{
 				vmNic: VMNic{
@@ -2887,7 +2887,13 @@ func TestVMNic_BuildSuccess(_ *testing.T) {
 		return
 	}
 
-	os.Exit(0)
+	cmdWithArgs := os.Args[4:]
+
+	if len(cmdWithArgs) == 7 && cmdWithArgs[0] == "/sbin/ifconfig" && cmdWithArgs[2] == "create" && cmdWithArgs[3] == "group" && cmdWithArgs[4] == "cirrinad" && cmdWithArgs[5] == "descr" { //nolint:lll
+		os.Exit(0)
+	}
+
+	os.Exit(1)
 }
 
 func TestVMNic_BuildError(_ *testing.T) {
@@ -2898,7 +2904,7 @@ func TestVMNic_BuildError(_ *testing.T) {
 	os.Exit(1)
 }
 
-func StubhostinterfacestestDemolish() ([]net.Interface, error) {
+func StubHostInterfacesTestDemolish() ([]net.Interface, error) {
 	return []net.Interface{
 		{
 			Index:        1,
@@ -2931,7 +2937,7 @@ func StubhostinterfacestestDemolish() ([]net.Interface, error) {
 	}, nil
 }
 
-func StubhostinterfacestestBuild() ([]net.Interface, error) {
+func StubHostInterfacesTestBuild() ([]net.Interface, error) {
 	return []net.Interface{
 		{
 			Index:        1,
