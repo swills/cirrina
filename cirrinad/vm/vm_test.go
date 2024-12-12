@@ -3386,6 +3386,7 @@ func Test_checkDiskAttachments(t *testing.T) {
 		{
 			name: "OneDiskOneVMDoesNotExist",
 			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				Instance = &Singleton{VMDB: testDB}
 				disk.Instance = &disk.Singleton{DiskDB: testDB}
 
 				// clear out list from other parallel test runs
@@ -3427,6 +3428,14 @@ func Test_checkDiskAttachments(t *testing.T) {
 						"SELECT vm_id FROM `vm_disks` WHERE disk_id LIKE ?",
 					),
 				).WillReturnRows(sqlmock.NewRows([]string{"vm_id"}).AddRow("c13a8cab-a725-44bf-8a4e-489e6bd147e3"))
+
+				mock.ExpectExec(
+					regexp.QuoteMeta(
+						"DELETE FROM `vm_disks` WHERE `vm_id` = ?",
+					),
+				).
+					WithArgs("c13a8cab-a725-44bf-8a4e-489e6bd147e3").
+					WillReturnResult(sqlmock.NewResult(1, 1))
 			},
 		},
 	}

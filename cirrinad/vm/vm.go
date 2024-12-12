@@ -700,6 +700,8 @@ func CheckAll() {
 }
 
 func checkDiskAttachments() {
+	vmDB := GetVMDB()
+
 	allDisks := disk.GetAllDB()
 	for _, aDisk := range allDisks {
 		vmIDs := aDisk.GetVMIDs()
@@ -707,8 +709,12 @@ func checkDiskAttachments() {
 			// check the VM exists
 			_, err := GetByID(vmID)
 			if err != nil {
-				// TODO - remove the attachment
-				slog.Error("disk attached to non-existent VM", "disk.ID", aDisk.ID, "vm.ID", vmID)
+				slog.Error("disk attached to non-existent VM, removing", "disk.ID", aDisk.ID, "vm.ID", vmID)
+
+				res := vmDB.Exec("DELETE FROM `vm_disks` WHERE `vm_id` = ?", vmID)
+				if res.Error != nil {
+					slog.Error("error updating VM", "res.Error", res.Error)
+				}
 			}
 		}
 	}
