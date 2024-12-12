@@ -3247,6 +3247,217 @@ func Test_checkNicAttachments(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest
+func Test_checkDiskAttachments(t *testing.T) {
+	createUpdateTime := time.Now()
+
+	tests := []struct {
+		name        string
+		mockClosure func(testDB *gorm.DB, mock sqlmock.Sqlmock)
+	}{
+		{
+			name: "NoDisks",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				disk.Instance = &disk.Singleton{DiskDB: testDB}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `disks` WHERE `disks`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"dev_type",
+								"disk_cache",
+								"disk_direct",
+							}),
+					)
+			},
+		},
+		{
+			name: "OneDiskNoVM",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				disk.Instance = &disk.Singleton{DiskDB: testDB}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `disks` WHERE `disks`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"dev_type",
+								"disk_cache",
+								"disk_direct",
+							}).
+							AddRow(
+								"bbdb621e-eddd-4b98-b2fb-26c15cc6e190",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2024121201_hd0",
+								"a virtual hard disk image",
+								"NVME",
+								"FILE",
+								1,
+								0,
+							),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT vm_id FROM `vm_disks` WHERE disk_id LIKE ?",
+					),
+				).WillReturnRows(sqlmock.NewRows([]string{"vm_id"}))
+			},
+		},
+		{
+			name: "OneDiskOneVMExists",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				disk.Instance = &disk.Singleton{DiskDB: testDB}
+
+				testVM := VM{
+					ID:     "c13a8cab-a725-44bf-8a4e-489e6bd147e3",
+					Name:   "test2024121201",
+					Status: "STOPPED",
+					Config: Config{
+						Model: gorm.Model{
+							ID: 1920,
+						},
+						VMID: "c13a8cab-a725-44bf-8a4e-489e6bd147e3",
+						CPU:  2,
+						Mem:  1024,
+					},
+				}
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+				List.VMList[testVM.ID] = &testVM
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `disks` WHERE `disks`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"dev_type",
+								"disk_cache",
+								"disk_direct",
+							}).
+							AddRow(
+								"bbdb621e-eddd-4b98-b2fb-26c15cc6e190",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2024121201_hd0",
+								"a virtual hard disk image",
+								"NVME",
+								"FILE",
+								1,
+								0,
+							),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT vm_id FROM `vm_disks` WHERE disk_id LIKE ?",
+					),
+				).WillReturnRows(sqlmock.NewRows([]string{"vm_id"}).AddRow("c13a8cab-a725-44bf-8a4e-489e6bd147e3"))
+			},
+		},
+		{
+			name: "OneDiskOneVMDoesNotExist",
+			mockClosure: func(testDB *gorm.DB, mock sqlmock.Sqlmock) {
+				disk.Instance = &disk.Singleton{DiskDB: testDB}
+
+				// clear out list from other parallel test runs
+				List.VMList = map[string]*VM{}
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta("SELECT * FROM `disks` WHERE `disks`.`deleted_at` IS NULL"),
+				).
+					WillReturnRows(
+						sqlmock.NewRows(
+							[]string{
+								"id",
+								"created_at",
+								"updated_at",
+								"deleted_at",
+								"name",
+								"description",
+								"type",
+								"dev_type",
+								"disk_cache",
+								"disk_direct",
+							}).
+							AddRow(
+								"bbdb621e-eddd-4b98-b2fb-26c15cc6e190",
+								createUpdateTime,
+								createUpdateTime,
+								nil,
+								"test2024121201_hd0",
+								"a virtual hard disk image",
+								"NVME",
+								"FILE",
+								1,
+								0,
+							),
+					)
+
+				mock.ExpectQuery(
+					regexp.QuoteMeta(
+						"SELECT vm_id FROM `vm_disks` WHERE disk_id LIKE ?",
+					),
+				).WillReturnRows(sqlmock.NewRows([]string{"vm_id"}).AddRow("c13a8cab-a725-44bf-8a4e-489e6bd147e3"))
+			},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			testDB, mock := cirrinadtest.NewMockDB(t.Name())
+			testCase.mockClosure(testDB, mock)
+
+			checkDiskAttachments()
+
+			mock.ExpectClose()
+
+			db, err := testDB.DB()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = db.Close()
+			if err != nil {
+				t.Error(err)
+			}
+
+			err = mock.ExpectationsWereMet()
+			if err != nil {
+				t.Errorf("there were unfulfilled expectations: %s", err)
+			}
+		})
+	}
+}
+
 // test helpers from here down
 
 //nolint:paralleltest

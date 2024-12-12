@@ -694,9 +694,9 @@ func (vm *VM) doAutostart() {
 
 // CheckAll gets all disks/nics/isos and ensure the VM they are attached in the join table exists
 func CheckAll() {
-	checkNicAttachments()
-	checkIsoAttachments()
 	checkDiskAttachments()
+	checkIsoAttachments()
+	checkNicAttachments()
 }
 
 func checkDiskAttachments() {
