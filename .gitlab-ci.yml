@@ -84,6 +84,62 @@ cirrinactl:
       - ./cirrinactl/cirrinactl-linux-arm64-${VER}
     expire_in: 1 week
 
+cirrinaweb:
+  stage: build
+  needs: []
+  tags:
+    - FreeBSD
+  script:
+    - cd cirrinaweb
+    - export GOPROXY=http://10.0.1.152:3000
+    - export CGO_ENABLED=0
+    - export GO_LDFLAGS="-X cirrina/cirrinaweb/cmd.mainVersion=${VER} -s -w -extldflags -static -buildid=${CI_COMMIT_SHA}"
+    - export GOFLAGS="-trimpath"
+    - export GOOS=freebsd
+    - export GOARCH=amd64
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinaweb-${GOOS}-${GOARCH}-${VER} .
+    - export GOARCH=386
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinaweb-${GOOS}-${GOARCH}-${VER} .
+    - export GOARCH=arm64
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinaweb-${GOOS}-${GOARCH}-${VER} .
+    - export GOARCH=riscv64
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinaweb-${GOOS}-${GOARCH}-${VER} .
+    - export GOOS=windows
+    - export GOARCH=amd64
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinaweb-${GOOS}-${GOARCH}-${VER}.exe .
+    - export GOARCH=386
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinaweb-${GOOS}-${GOARCH}-${VER}.exe .
+    - export GOARCH=arm64
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinaweb-${GOOS}-${GOARCH}-${VER}.exe .
+    - export GOOS=darwin
+    - export GOARCH=amd64
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinaweb-${GOOS}-${GOARCH}-${VER} .
+    - export GOARCH=arm64
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinaweb-${GOOS}-${GOARCH}-${VER} .
+    - export GOOS=linux
+    - export GOARCH=amd64
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinaweb-${GOOS}-${GOARCH}-${VER} .
+    - export GOARCH=386
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinaweb-${GOOS}-${GOARCH}-${VER} .
+    - export GOARCH=arm64
+    - go build "${GOFLAGS}" -ldflags="${GO_LDFLAGS}" -o cirrinaweb-${GOOS}-${GOARCH}-${VER} .
+  artifacts:
+    name: cirrinaweb-"$CI_COMMIT_REF_NAME"
+    paths:
+      - ./cirrinaweb/cirrinaweb-freebsd-amd64-${VER}
+      - ./cirrinaweb/cirrinaweb-freebsd-386-${VER}
+      - ./cirrinaweb/cirrinaweb-freebsd-arm64-${VER}
+      - ./cirrinaweb/cirrinaweb-freebsd-riscv64-${VER}
+      - ./cirrinaweb/cirrinaweb-windows-amd64-${VER}.exe
+      - ./cirrinaweb/cirrinaweb-windows-386-${VER}.exe
+      - ./cirrinaweb/cirrinaweb-windows-arm64-${VER}.exe
+      - ./cirrinaweb/cirrinaweb-darwin-amd64-${VER}
+      - ./cirrinaweb/cirrinaweb-darwin-arm64-${VER}
+      - ./cirrinaweb/cirrinaweb-linux-amd64-${VER}
+      - ./cirrinaweb/cirrinaweb-linux-386-${VER}
+      - ./cirrinaweb/cirrinaweb-linux-arm64-${VER}
+    expire_in: 1 week
+
 lint:
   stage: test
   needs: []
