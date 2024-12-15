@@ -33,7 +33,7 @@ NCPU=$(getconf NPROCESSORS_ONLN)
 RESERVED_CPUS=4
 export GOMAXPROCS=$((${NCPU}-${RESERVED_CPUS}))
 
-idprio -t nice gci write --skip-generated --skip-vendor -s standard -s default -s 'prefix(cirrina)' cirrinad cirrinactl
+idprio -t nice gci write --skip-generated --skip-vendor -s standard -s default -s 'prefix(cirrina)' cirrinad cirrinactl cirrinaweb
 idprio -t nice pre-commit run --all-files
 
 idprio -t nice go test -v ./... -coverpkg=./... -coverprofile=coverage.txt -covermode atomic -tags test > /dev/null

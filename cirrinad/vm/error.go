@@ -6,7 +6,7 @@ var (
 	errVMUnknownDiskType   = errors.New("unknown disk type")
 	errVMUnknownNetType    = errors.New("unknown net type")
 	errVMUnknownNetDevType = errors.New("unknown net dev type")
-	errVMNotFound          = errors.New("not found")
+	ErrVMNotFound          = errors.New("not found")
 	errVMDupe              = errors.New("VM already exists")
 	errFailedParsing       = errors.New("failed parsing output")
 )

@@ -1,0 +1,49 @@
+package main
+
+templ headerTemplate(name string) {
+	<header data-testid="headerTemplate">
+		<h1>{ name }</h1>
+	</header>
+}
+
+templ footerTemplate() {
+	<footer data-testid="footerTemplate">
+		<div></div>
+	</footer>
+}
+
+templ navTemplate() {
+	<nav data-testid="navTemplate">
+		<ul>
+			<li><a href="/home">Home</a></li>
+			<li><a href="/vms">VMs</a></li>
+		</ul>
+	</nav>
+}
+
+templ layout(name string) {
+	<html lang="en">
+		<head><title>{ name }</title></head>
+		<body>
+			@headerTemplate(name)
+			@navTemplate()
+			<main>
+				{ children... }
+			</main>
+		</body>
+		@footerTemplate()
+	</html>
+}
+
+templ home() {
+	@layout("Home") {
+		<div data-testid="homeTemplate"></div>
+	}
+}
+
+templ notFoundComponent() {
+	@layout("Not Found") {
+		<div data-testid="homeTemplate"></div>
+  	    <div>404 - Not found</div>
+	}
+}

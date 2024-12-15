@@ -405,7 +405,7 @@ func GetByID(id string) (*VM, error) {
 
 	vmInst, valid := List.VMList[id]
 	if !valid {
-		return nil, errVMNotFound
+		return nil, ErrVMNotFound
 	}
 
 	return vmInst, nil
@@ -420,7 +420,7 @@ func GetByName(name string) (*VM, error) {
 		}
 	}
 
-	return &VM{}, errVMNotFound
+	return &VM{}, ErrVMNotFound
 }
 
 func GetRunningVMs() int {

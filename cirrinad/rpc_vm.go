@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-version"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"cirrina/cirrina"
@@ -540,6 +543,10 @@ func (s *server) GetVMID(_ context.Context, vmNameReq *wrapperspb.StringValue) (
 
 	vmInst, err := vm.GetByName(vmName)
 	if err != nil {
+		if errors.Is(err, vm.ErrVMNotFound) {
+			return &cirrina.VMID{}, fmt.Errorf("error getting VM: %w", status.Error(codes.NotFound, err.Error()))
+		}
+
 		return &cirrina.VMID{}, fmt.Errorf("error getting VM: %w", err)
 	}
 
@@ -554,6 +561,10 @@ func (s *server) GetVMName(_ context.Context, vmID *cirrina.VMID) (*wrapperspb.S
 
 	vmInst, err := vm.GetByID(vmUUID.String())
 	if err != nil {
+		if errors.Is(err, errNotFound) {
+			return wrapperspb.String(""), status.Error(codes.NotFound, err.Error())
+		}
+
 		slog.Error("GetVMConfig error getting vm", "vm", vmID.GetValue(), "err", err)
 
 		return wrapperspb.String(""), fmt.Errorf("error getting VM: %w", err)
