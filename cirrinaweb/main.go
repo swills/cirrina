@@ -1,7 +1,7 @@
 package main
 
 import (
-	_ "embed"
+	"embed"
 	"net"
 	"net/http"
 	"os"
@@ -30,6 +30,9 @@ var metricsEnable bool
 var mdlw middleware.Middleware
 var accessLog *os.File
 var errorLog *os.File
+
+//go:embed assets/*
+var assetFS embed.FS
 
 func healthCheck(writer http.ResponseWriter, _ *http.Request) {
 	writer.WriteHeader(http.StatusNoContent)
@@ -194,6 +197,7 @@ func main() {
 	mux.HandleFunc("GET /", homeHandlerFunc)
 
 	vncFileServer := http.FileServer(http.FS(vncFS))
+	assetFileServer := http.FileServer(http.FS(assetFS))
 
 	if metricsEnable {
 		mdlw = middleware.New(middleware.Config{
@@ -202,13 +206,19 @@ func main() {
 
 		mux.Handle("GET /vms", HTTPLogger(middlewarestd.Handler("/vms", mdlw, NewVMsHandler())))
 		mux.Handle("GET /vm/{nameOrID}", HTTPLogger(middlewarestd.Handler("/vm/:nameOrID", mdlw, NewVMHandler())))
+		mux.Handle("POST /vm/{nameOrID}/start", HTTPLogger(middlewarestd.Handler("/vm/{nameOrID}/start", mdlw, NewVMStartHandler()))) //nolint:lll
+		mux.Handle("POST /vm/{nameOrID}/stop", HTTPLogger(middlewarestd.Handler("/vm/{nameOrID}/stop", mdlw, NewVMStopHandler())))    //nolint:lll
 		mux.Handle("GET /vnc/", HTTPLogger(middlewarestd.Handler("/vnc/", mdlw, NoCache(vncFileServer))))
+		mux.Handle("GET /assets/", HTTPLogger(middlewarestd.Handler("/assets/", mdlw, assetFileServer)))
 
 		setupMetrics(metricsHost, metricsPort)
 	} else {
 		mux.Handle("GET /vms", HTTPLogger(NewVMsHandler()))
 		mux.Handle("GET /vm/{nameOrID}", HTTPLogger(NewVMHandler()))
+		mux.Handle("POST /vm/{nameOrID}/start", HTTPLogger(NewVMStartHandler()))
+		mux.Handle("POST /vm/{nameOrID}/stop", HTTPLogger(NewVMStopHandler()))
 		mux.Handle("GET /vnc/", HTTPLogger(NoCache(vncFileServer)))
+		mux.Handle("GET /assets/", HTTPLogger(assetFileServer))
 	}
 
 	go StartGoWebSockifyHTTP()
