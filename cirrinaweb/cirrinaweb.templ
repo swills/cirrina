@@ -23,8 +23,10 @@ templ navTemplate() {
 
 templ layout(name string) {
 	<html lang="en">
-	    <script src="/assets/htmx.2.0.4.min.js"></script>
-		<head><title>{ name }</title></head>
+		<head>
+            <title>{ name }</title>
+            <script src="/assets/htmx.2.0.4.min.js"></script>
+		</head>
 		<body>
 			@headerTemplate(name)
 			@navTemplate()
