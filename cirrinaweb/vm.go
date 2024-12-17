@@ -16,13 +16,14 @@ import (
 )
 
 type VM struct {
-	ID       string
-	Name     string
-	NameOrID string
-	CPUs     uint32
-	Memory   uint32
-	Running  bool
-	VNCPort  uint64
+	ID          string
+	Name        string
+	NameOrID    string
+	CPUs        uint32
+	Memory      uint32
+	Description string
+	Running     bool
+	VNCPort     uint64
 }
 
 type VMHandler struct {
@@ -85,6 +86,7 @@ func getVM(nameOrID string) (VM, error) {
 	returnVM.NameOrID = nameOrID
 	returnVM.CPUs = vmConfig.CPU
 	returnVM.Memory = vmConfig.Mem
+	returnVM.Description = vmConfig.Description
 
 	var vmState string
 

@@ -3,7 +3,33 @@ package main
 templ headerTemplate(name string) {
 	<header data-testid="headerTemplate">
 		<div id="headerText">{ name }</div>
-		<nav><a href="/home">Home</a> <a href="/vms">VMs</a></nav>
+		<nav>
+            <div class="dropdown">
+                <button class="dropbtn"><a href="/home">Home</a></button>
+            </div>
+            <div class="dropdown">
+                <button class="dropbtn">VMs</button>
+                <div class="dropdown-content">
+                    <span><a href="/vms/new">New</a></span>
+                    <span><a href="/vms/delete">Delete</a></span>
+                    <span><a href="/vms/clearuefi">Clear UEFI</a></span>
+                </div>
+            </div>
+            <div class="dropdown">
+                <button class="dropbtn">Media</button>
+                <div class="dropdown-content">
+                    <span><a href="/media/disks">Hard Disks</a></span>
+                    <span><a href="/media/isos">Optical Discs</a></span>
+                </div>
+            </div>
+            <div class="dropdown">
+                <button class="dropbtn">Networks</button>
+                <div class="dropdown-content">
+                    <span><a href="/net/nics">NICs</a></span>
+                    <span><a href="/net/switches">Switches</a></span>
+                </div>
+            </div>
+		</nav>
 	</header>
 }
 
@@ -18,7 +44,10 @@ templ sidebarTemplate(vms []VM) {
         <div data-testid="vmsTemplate">
             for _, p := range vms {
                 <div data-testid="vmsTemplateVM">
-                    <div data-testid="vmsTemplateVMName"><a href={ templ.URL("/vm/" + p.Name) }>{ p.Name }</a> (<a href={ templ.URL("/vm/" + p.ID)}>id</a>)</div>			</div>
+                    <div data-testid="vmsTemplateVMName">
+                        <a href={ templ.URL("/vm/" + p.Name) }>{ p.Name }</a> (<a href={ templ.URL("/vm/" + p.ID)}>id</a>)
+                    </div>
+                </div>
             }
         </div>
 	</aside>
@@ -73,6 +102,54 @@ templ layout(name string, vms []VM) {
                 aside {
                     overflow-y: scroll;
                     max-height: calc(76vh);
+                }
+
+                .dropbtn {
+                  background-color: #229DEE;
+                  color: white;
+                  padding: 16px;
+                  font-size: 16px;
+                  border: none;
+                  cursor: pointer;
+                }
+
+                .dropbtn a {
+                  color: white;
+                  text-decoration: none;
+                  display: block;
+                }
+
+                .dropdown {
+                  position: relative;
+                  display: inline-block;
+                }
+
+                .dropdown-content {
+                  display: none;
+                  position: absolute;
+                  background-color: #f9f9f9;
+                  min-width: 160px;
+                  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+                  z-index: 1;
+                }
+
+                .dropdown-content a {
+                  color: black;
+                  padding: 12px 16px;
+                  text-decoration: none;
+                  display: block;
+                }
+
+                .dropdown-content a:hover {
+                  background-color: #f1f1f1
+                }
+
+                .dropdown:hover .dropdown-content {
+                  display: block;
+                }
+
+                .dropdown:hover .dropbtn {
+                  background-color: #128DdE;
                 }
             </style>
             <script src="/assets/htmx.2.0.4.min.js"></script>

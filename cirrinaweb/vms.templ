@@ -27,6 +27,7 @@ templ vmTemplate(vm VM) {
 			<div data-testid="vmsTemplateVMID">ID: { vm.ID }</div>
 			<div data-testid="vmsTemplateVMCPUs">CPU Count: { cpusStr }</div>
 			<div data-testid="vmsTemplateVMMem">Memory: { memoryStr } MiB</div>
+			<div data-testid="vmsTemplateVMDescr">Description: { vm.Description }</div>
             if vm.Running {
                 <div>VM is running</div>
                 @stopButton(vm)
