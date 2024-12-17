@@ -19,12 +19,14 @@ templ vms(vms []VM) {
 }
 
 templ vmTemplate(vm VM) {
-    {{ cpusStr := strconv.FormatUint(vm.CPUs, 10) }}
+    {{ cpusStr := strconv.FormatUint(uint64(vm.CPUs), 10) }}
+    {{ memoryStr := strconv.FormatUint(uint64(vm.Memory), 10) }}
     <div data-testid="vmTemplate">
         <div data-testid="vmTemplateVM">
 			<div data-testid="vmsTemplateVMName">Name: { vm.Name }</div>
 			<div data-testid="vmsTemplateVMID">ID: { vm.ID }</div>
-			<div data-testid="vmsTemplateVMCPUs">CPUs: { cpusStr }</div>
+			<div data-testid="vmsTemplateVMCPUs">CPU Count: { cpusStr }</div>
+			<div data-testid="vmsTemplateVMMem">Memory: { memoryStr } MiB</div>
             if vm.Running {
                 <div>VM is running</div>
                 @stopButton(vm)

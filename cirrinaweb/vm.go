@@ -19,7 +19,8 @@ type VM struct {
 	ID       string
 	Name     string
 	NameOrID string
-	CPUs     uint64
+	CPUs     uint32
+	Memory   uint32
 	Running  bool
 	VNCPort  uint64
 }
@@ -82,7 +83,8 @@ func getVM(nameOrID string) (VM, error) {
 	}
 
 	returnVM.NameOrID = nameOrID
-	returnVM.CPUs = uint64(vmConfig.CPU)
+	returnVM.CPUs = vmConfig.CPU
+	returnVM.Memory = vmConfig.Mem
 
 	var vmState string
 
