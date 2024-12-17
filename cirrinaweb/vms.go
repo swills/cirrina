@@ -25,8 +25,6 @@ func NewVMsHandler() VMsHandler {
 func getVMs() ([]VM, error) {
 	var err error
 
-	VMs := make([]VM, 0, 2)
-
 	rpc.ServerName = cirrinaServerName
 	rpc.ServerPort = cirrinaServerPort
 	rpc.ServerTimeout = cirrinaServerTimeout
@@ -41,6 +39,8 @@ func getVMs() ([]VM, error) {
 	if err != nil {
 		return []VM{}, fmt.Errorf("error getting VMs: %w", err)
 	}
+
+	VMs := make([]VM, 0, len(VMIDs))
 
 	for _, VMID := range VMIDs {
 		var vmName string

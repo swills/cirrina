@@ -25,12 +25,14 @@ type VM struct {
 }
 
 type VMHandler struct {
-	GetVM func(string) (VM, error)
+	GetVM  func(string) (VM, error)
+	GetVMs func() ([]VM, error)
 }
 
 func NewVMHandler() VMHandler {
 	return VMHandler{
-		GetVM: getVM,
+		GetVM:  getVM,
+		GetVMs: getVMs,
 	}
 }
 
@@ -127,31 +129,82 @@ func logError(err error, remoteAddr string) {
 }
 
 func serveError(writer http.ResponseWriter, request *http.Request, err error) {
+	vmList, getVMsErr := getVMs()
+	if getVMsErr != nil {
+		t := time.Now()
+
+		_, err = errorLog.WriteString(fmt.Sprintf("[%s] [server:error] [pid %d:tid %d] [client %s] %s\n",
+			t.Format("Mon Jan 02 15:04:05.999999999 2006"),
+			os.Getpid(),
+			0,
+			request.RemoteAddr,
+			err.Error(),
+		))
+		if err != nil {
+			panic(err)
+		}
+
+		http.Error(writer, "failed to retrieve VMs", http.StatusInternalServerError)
+
+		return
+	}
+
 	if e, ok := status.FromError(err); ok {
 		switch e.Code() {
 		case codes.NotFound:
-			templ.Handler(vmNotFoundComponent(), templ.WithStatus(http.StatusNotFound)).ServeHTTP(writer, request)
+			templ.Handler(vmNotFoundComponent(vmList), templ.WithStatus(http.StatusNotFound)).ServeHTTP(writer, request)
 		case codes.OK, codes.Canceled, codes.Unknown, codes.InvalidArgument, codes.DeadlineExceeded, codes.AlreadyExists, codes.PermissionDenied, codes.ResourceExhausted, codes.FailedPrecondition, codes.Aborted, codes.OutOfRange, codes.Unimplemented, codes.Internal, codes.Unavailable, codes.DataLoss, codes.Unauthenticated: //nolint:lll
 			fallthrough
 		default:
-			templ.Handler(vmNotFoundComponent(), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request)
+			templ.Handler(vmNotFoundComponent(vmList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll
 		}
 	} else {
-		templ.Handler(vmNotFoundComponent(), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request)
+		templ.Handler(vmNotFoundComponent(vmList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll
 	}
 }
 
 func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	aVM, err := v.GetVM(request.PathValue("nameOrID"))
 	if err != nil {
-		logError(err, request.RemoteAddr)
+		t := time.Now()
 
-		serveError(writer, request, err)
+		_, err = errorLog.WriteString(fmt.Sprintf("[%s] [server:error] [pid %d:tid %d] [client %s] %s\n",
+			t.Format("Mon Jan 02 15:04:05.999999999 2006"),
+			os.Getpid(),
+			0,
+			request.RemoteAddr,
+			err.Error(),
+		))
+		if err != nil {
+			panic(err)
+		}
+
+		http.Error(writer, "failed to retrieve VMs", http.StatusInternalServerError)
 
 		return
 	}
 
-	templ.Handler(vm(aVM)).ServeHTTP(writer, request)
+	VMs, err := v.GetVMs()
+	if err != nil {
+		t := time.Now()
+
+		_, err = errorLog.WriteString(fmt.Sprintf("[%s] [server:error] [pid %d:tid %d] [client %s] %s\n",
+			t.Format("Mon Jan 02 15:04:05.999999999 2006"),
+			os.Getpid(),
+			0,
+			request.RemoteAddr,
+			err.Error(),
+		))
+		if err != nil {
+			panic(err)
+		}
+
+		http.Error(writer, "failed to retrieve VMs", http.StatusInternalServerError)
+
+		return
+	}
+
+	templ.Handler(vm(VMs, aVM)).ServeHTTP(writer, request)
 }
 
 type VMStartPostHandler struct {

@@ -2,50 +2,102 @@ package main
 
 templ headerTemplate(name string) {
 	<header data-testid="headerTemplate">
-		<h1>{ name }</h1>
+		<div id="headerText">{ name }</div>
+		<nav><a href="/home">Home</a> <a href="/vms">VMs</a></nav>
 	</header>
 }
 
 templ footerTemplate() {
 	<footer data-testid="footerTemplate">
-		<div></div>
+		<div>CirrinaWeb</div>
 	</footer>
 }
 
-templ navTemplate() {
-	<nav data-testid="navTemplate">
-		<ul>
-			<li><a href="/home">Home</a></li>
-			<li><a href="/vms">VMs</a></li>
-		</ul>
-	</nav>
+templ sidebarTemplate(vms []VM) {
+	<aside data-testid="sidebarTemplate">
+        <div data-testid="vmsTemplate">
+            for _, p := range vms {
+                <div data-testid="vmsTemplateVM">
+                    <div data-testid="vmsTemplateVMName"><a href={ templ.URL("/vm/" + p.Name) }>{ p.Name }</a> (<a href={ templ.URL("/vm/" + p.ID)}>id</a>)</div>			</div>
+            }
+        </div>
+	</aside>
 }
 
-templ layout(name string) {
+templ layout(name string, vms []VM) {
 	<html lang="en">
 		<head>
             <title>{ name }</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <style>
+                body {
+                    display: flex;
+                    flex-direction: column;
+                    min-height: 100vh;
+                    margin: 0;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                }
+
+                #wrapper {
+                    display: flex;
+                    flex: 1 1 auto;
+                    gap: 10px;
+                }
+                #wrapper main{
+                    flex: 1 1 80%;
+                }
+                #wrapper aside{
+                    flex-basis: 20%;
+                }
+                @media (max-width: 769px) {
+                    #wrapper{
+                        flex-direction: column;
+                    }
+                    #wrapper main, #wrapper aside{
+                        flex-basis: 100%;
+                    }
+                }
+
+                aside, main, header, footer {
+                    background: #EEEEEE;
+                    border-radius: 5px;
+                    padding: 20px;
+                    font-size: 125%;
+                }
+
+                footer {
+                    font-size: 100%;
+                }
+
+                aside {
+                    overflow-y: scroll;
+                    max-height: calc(76vh);
+                }
+            </style>
             <script src="/assets/htmx.2.0.4.min.js"></script>
 		</head>
 		<body>
 			@headerTemplate(name)
-			@navTemplate()
+			<div id="wrapper">
+			@sidebarTemplate(vms)
 			<main>
 				{ children... }
 			</main>
+			</div>
 		</body>
 		@footerTemplate()
 	</html>
 }
 
-templ home() {
-	@layout("Home") {
+templ home(vms []VM) {
+	@layout("Home", vms) {
 		<div data-testid="homeTemplate"></div>
 	}
 }
 
-templ notFoundComponent() {
-	@layout("Not Found") {
+templ notFoundComponent(vms []VM) {
+	@layout("Not Found", vms) {
 		<div data-testid="homeTemplate"></div>
   	    <div>404 - Not found</div>
 	}

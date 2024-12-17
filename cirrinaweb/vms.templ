@@ -13,7 +13,7 @@ templ vmsTemplate(vms []VM) {
 }
 
 templ vms(vms []VM) {
-	@layout("VMs") {
+	@layout("VMs", vms) {
 		@vmsTemplate(vms)
 	}
 }
@@ -39,14 +39,14 @@ templ vmTemplate(vm VM) {
     </div>
 }
 
-templ vm(vm VM) {
-    @layout("VM - " + vm.Name) {
+templ vm(vms []VM, vm VM) {
+    @layout("VM - " + vm.Name, vms) {
         @vmTemplate(vm)
     }
 }
 
-templ vmNotFoundComponent() {
-	@layout("VM - Not Found") {
+templ vmNotFoundComponent(vms []VM) {
+	@layout("VM - Not Found", vms) {
 		<div data-testid="homeTemplate"></div>
   	    <div>VM Not found</div>
 	}

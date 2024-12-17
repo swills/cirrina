@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"net"
 	"net/http"
 	"os"
@@ -43,22 +44,38 @@ func faviconHandlerFunc(w http.ResponseWriter, _ *http.Request) {
 	_, _ = w.Write(favicon)
 }
 
-func homeHandlerFunc(writer http.ResponseWriter, request *http.Request) {
-	if request.URL.Path == "/" || request.URL.Path == "/home" {
-		templHandler := HTTPLogger(templ.Handler(home()))
+type HomeHandler struct {
+	GetVMs func() ([]VM, error)
+}
 
-		if metricsEnable {
-			middlewarestd.Handler(request.URL.Path, mdlw, templHandler).ServeHTTP(writer, request)
-		} else {
-			templHandler.ServeHTTP(writer, request)
+func NewHomeHandler() HomeHandler {
+	return HomeHandler{
+		GetVMs: getVMs,
+	}
+}
+
+func (h HomeHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	VMs, err := h.GetVMs()
+	if err != nil {
+		t := time.Now()
+
+		_, err = errorLog.WriteString(fmt.Sprintf("[%s] [server:error] [pid %d:tid %d] [client %s] %s\n",
+			t.Format("Mon Jan 02 15:04:05.999999999 2006"),
+			os.Getpid(),
+			0,
+			request.RemoteAddr,
+			err.Error(),
+		))
+		if err != nil {
+			panic(err)
 		}
+
+		http.Error(writer, "failed to retrieve VMs", http.StatusInternalServerError)
 
 		return
 	}
 
-	notFoundHandler := HTTPLogger(templ.Handler(notFoundComponent(), templ.WithStatus(http.StatusNotFound)))
-
-	notFoundHandler.ServeHTTP(writer, request)
+	templ.Handler(home(VMs)).ServeHTTP(writer, request)
 }
 
 func parseEnv() (string, uint64) { //nolint:funlen,cyclop
@@ -194,7 +211,6 @@ func main() {
 
 	mux.HandleFunc("GET /healthz", healthCheck)
 	mux.HandleFunc("GET /favicon.ico", faviconHandlerFunc)
-	mux.HandleFunc("GET /", homeHandlerFunc)
 
 	vncFileServer := http.FileServer(http.FS(vncFS))
 	assetFileServer := http.FileServer(http.FS(assetFS))
@@ -204,6 +220,8 @@ func main() {
 			Recorder: metrics.NewRecorder(metrics.Config{}),
 		})
 
+		mux.Handle("GET /", HTTPLogger(middlewarestd.Handler("/", mdlw, NewHomeHandler())))
+		mux.Handle("GET /home", HTTPLogger(middlewarestd.Handler("/home", mdlw, NewHomeHandler())))
 		mux.Handle("GET /vms", HTTPLogger(middlewarestd.Handler("/vms", mdlw, NewVMsHandler())))
 		mux.Handle("GET /vm/{nameOrID}", HTTPLogger(middlewarestd.Handler("/vm/:nameOrID", mdlw, NewVMHandler())))
 		mux.Handle("POST /vm/{nameOrID}/start", HTTPLogger(middlewarestd.Handler("/vm/{nameOrID}/start", mdlw, NewVMStartHandler()))) //nolint:lll
@@ -213,6 +231,8 @@ func main() {
 
 		setupMetrics(metricsHost, metricsPort)
 	} else {
+		mux.Handle("GET /", HTTPLogger(NewHomeHandler()))
+		mux.Handle("GET /home", HTTPLogger(NewHomeHandler()))
 		mux.Handle("GET /vms", HTTPLogger(NewVMsHandler()))
 		mux.Handle("GET /vm/{nameOrID}", HTTPLogger(NewVMHandler()))
 		mux.Handle("POST /vm/{nameOrID}/start", HTTPLogger(NewVMStartHandler()))
