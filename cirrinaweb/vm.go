@@ -24,18 +24,61 @@ type VM struct {
 	Description string
 	Running     bool
 	VNCPort     uint64
+	Disks       []Disk
 }
 
 type VMHandler struct {
-	GetVM  func(string) (VM, error)
-	GetVMs func() ([]VM, error)
+	GetVM      func(string) (VM, error)
+	GetVMs     func() ([]VM, error)
+	GetVMDisks func(string) ([]Disk, error)
 }
 
 func NewVMHandler() VMHandler {
 	return VMHandler{
-		GetVM:  getVM,
-		GetVMs: getVMs,
+		GetVM:      getVM,
+		GetVMs:     getVMs,
+		GetVMDisks: getVMDisks,
 	}
+}
+
+func getVMDisks(vmID string) ([]Disk, error) {
+	var vmDisks []string
+
+	var err error
+
+	rpc.ServerName = cirrinaServerName
+	rpc.ServerPort = cirrinaServerPort
+	rpc.ServerTimeout = cirrinaServerTimeout
+	rpc.ResetConnTimeout()
+
+	err = rpc.GetConn()
+	if err != nil {
+		return []Disk{}, fmt.Errorf("error getting VM Disks: %w", err)
+	}
+
+	rpc.ResetConnTimeout()
+
+	vmDisks, err = rpc.GetVMDisks(vmID)
+	if err != nil {
+		return []Disk{}, fmt.Errorf("error getting VM Disks: %w", err)
+	}
+
+	returnDisks := make([]Disk, 0, len(vmDisks))
+
+	for _, diskID := range vmDisks {
+		var aDisk rpc.DiskInfo
+
+		rpc.ResetConnTimeout()
+
+		aDisk, err = rpc.GetDiskInfo(diskID)
+		if err != nil {
+			return []Disk{}, fmt.Errorf("error getting VM Disks: %w", err)
+		}
+
+		returnDisks = append(returnDisks, Disk{Name: aDisk.Name, ID: diskID})
+	}
+
+	return returnDisks, nil
 }
 
 func getVM(nameOrID string) (VM, error) {
@@ -100,8 +143,6 @@ func getVM(nameOrID string) (VM, error) {
 	}
 
 	switch vmState {
-	case "STOPPED":
-		returnVM.Running = false
 	case "running", "starting", "stopping":
 		returnVM.Running = true
 		if vncPort != "" && vncPort != "0" {
@@ -168,6 +209,15 @@ func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 	}
 
 	VMs, err := v.GetVMs()
+	if err != nil {
+		logError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	aVM.Disks, err = v.GetVMDisks(aVM.ID)
 	if err != nil {
 		logError(err, request.RemoteAddr)
 

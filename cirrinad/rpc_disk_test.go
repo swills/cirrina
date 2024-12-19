@@ -1634,7 +1634,7 @@ func Test_server_GetDisks(t *testing.T) {
 			res, err = client.GetDisks(ctx, &cirrina.DisksQuery{})
 
 			if (err != nil) != testCase.wantErr {
-				t.Errorf("GetDisks() error = %v, wantErr %v", err, testCase.wantErr)
+				t.Errorf("GetVMDisks() error = %v, wantErr %v", err, testCase.wantErr)
 			}
 
 			for {

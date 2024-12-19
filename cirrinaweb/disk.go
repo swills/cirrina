@@ -62,13 +62,6 @@ func getDisk(nameOrID string) (Disk, error) {
 		returnDisk.Name = nameOrID
 	} else {
 		returnDisk.ID = parsedUUID.String()
-
-		rpc.ResetConnTimeout()
-
-		returnDisk.Name, err = rpc.GetVMName(parsedUUID.String())
-		if err != nil {
-			return Disk{}, fmt.Errorf("error getting Disk: %w", err)
-		}
 	}
 
 	rpc.ResetConnTimeout()

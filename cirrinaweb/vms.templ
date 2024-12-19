@@ -37,6 +37,14 @@ templ vmTemplate(vm VM) {
                 <div>VM is not running</div>
                 @startButton(vm)
             }
+            <div>
+            Disks:
+                <div data-testid="vmsTemplateVMDisk">
+                    for _, d := range vm.Disks {
+                        <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/media/disk/" + d.Name) }>{ d.Name }</a> (<a href={ templ.URL("/media/disk/" + d.ID)}>id</a>)</div>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 }

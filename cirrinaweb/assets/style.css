@@ -43,7 +43,7 @@ footer {
 
 aside {
     overflow-y: scroll;
-    max-height: calc(76vh);
+    max-height: calc(74vh);
 }
 
 .dropbtn {
