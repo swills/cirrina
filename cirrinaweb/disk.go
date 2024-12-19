@@ -71,6 +71,7 @@ func getDisk(nameOrID string) (Disk, error) {
 		return Disk{}, fmt.Errorf("error getting Disk: %w", err)
 	}
 
+	returnDisk.Name = diskInfo.Name
 	returnDisk.Description = diskInfo.Descr
 
 	var diskSizeUsage rpc.DiskSizeUsage
