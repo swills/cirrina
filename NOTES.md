@@ -15,7 +15,6 @@
 * In vm.Save(), do not add all disks/isos if there are none
 * Finish cloning -- NICs are done, need to do switches, disks and VMs
 * Do templating
-* Switch to using Netlink once 13.x goes out of support
 * arm64 support: kern.osreldate 1500018 -- need to wait for 1500019 and test for that or higher
 * Fix zvol ownership!
 * Fix cirrinactl over IPv6
@@ -67,7 +66,6 @@
     * Implement VM rename
     * Switch from polling to streaming for VM status
     * Error checking
-      * Ensure switch uplinks exist
       * Ensure config paths exist
       * Ensure disk paths/pool/volumes exist
 * Booting
@@ -86,13 +84,14 @@
           * [man page](https://man.freebsd.org/cgi/man.cgi?query=ctladm)
     * Networking
         * Support [Open vSwitch](https://www.openvswitch.org/) ([port](https://www.freshports.org/net/openvswitch/))
-        * Switch from `sudo ifconfig ...` to using [netlink](https://man.freebsd.org/cgi/man.cgi?netlink) via [go lib](https://pkg.go.dev/github.com/vishvananda/netlink) once netlink is in all supported FreeBSD versions
+        * Switch from `ifconfig ...` to using [netlink](https://man.freebsd.org/cgi/man.cgi?netlink) via [go lib](https://pkg.go.dev/github.com/vishvananda/netlink) once netlink is in all supported FreeBSD versions
         * Support various network types from VBox
         * Support [vxlan](https://www.bsdcan.org/2016/schedule/attachments/341_VXLAN_BSDCan2016.pdf) [video](https://www.youtube.com/watch?v=_1Ne_TgF3MQ) and [stuff](https://www.bsdcan.org/2016/schedule/events/715.en.html) and vale switches
         * Maybe run a DHCP server on switches of the proper "type"
         * Support [NATing](https://github.com/zed-0xff/ng_sbinat) VMs [via](https://github.com/MonkWho/pfatt/blob/master/bin/pfatt.sh) [netgraph](https://reviews.freebsd.org/D23461)
         * Tunnel/VPN support
         * Make switches not send traffic not destined for the particular VM by default, like VMWare blocking "promiscuous" mode.
+          * Add `private` to `ifconfig` calls, based on config
     * Sound
         * Add sound device list
 * Access/Sharing

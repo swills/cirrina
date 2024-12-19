@@ -228,6 +228,8 @@ func main() {
 		mux.Handle("POST /vm/{nameOrID}/stop", HTTPLogger(middlewarestd.Handler("/vm/{nameOrID}/stop", mdlw, NewVMStopHandler())))    //nolint:lll
 		mux.Handle("GET /vnc/", HTTPLogger(middlewarestd.Handler("/vnc/", mdlw, NoCache(vncFileServer))))
 		mux.Handle("GET /assets/", HTTPLogger(middlewarestd.Handler("/assets/", mdlw, assetFileServer)))
+		mux.Handle("GET /media/disks", HTTPLogger(middlewarestd.Handler("/media/disks", mdlw, NewDisksHandler())))
+		mux.Handle("GET /media/disk/{nameOrID}", HTTPLogger(middlewarestd.Handler("/media/disks/:nameOrID", mdlw, NewDiskHandler()))) //nolint:lll
 
 		setupMetrics(metricsHost, metricsPort)
 	} else {
@@ -239,6 +241,8 @@ func main() {
 		mux.Handle("POST /vm/{nameOrID}/stop", HTTPLogger(NewVMStopHandler()))
 		mux.Handle("GET /vnc/", HTTPLogger(NoCache(vncFileServer)))
 		mux.Handle("GET /assets/", HTTPLogger(assetFileServer))
+		mux.Handle("GET /media/disks", HTTPLogger(NewDisksHandler()))
+		mux.Handle("GET /media/disk/{nameOrID}", HTTPLogger(NewDiskHandler()))
 	}
 
 	go StartGoWebSockifyHTTP()

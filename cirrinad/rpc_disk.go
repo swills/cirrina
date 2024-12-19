@@ -127,11 +127,41 @@ func (s *server) GetDiskInfo(_ context.Context, diskID *cirrina.DiskId) (*cirrin
 		return &cirrina.DiskInfo{}, err
 	}
 
+	diskInfo.DiskDevType, err = mapDiskDevTypeDBStringToType(diskInst.DevType)
+	if err != nil {
+		return &cirrina.DiskInfo{}, err
+	}
+
+	// leave size/usage blank here since it's expensive, time-wise.
+	// clients should call GetDiskSizeUsage instead
+
+	return &diskInfo, nil
+}
+
+func (s *server) GetDiskSizeUsage(_ context.Context, diskID *cirrina.DiskId) (*cirrina.DiskSizeUsage, error) {
+	var err error
+
+	var diskInst *disk.Disk
+
+	var diskInfo cirrina.DiskInfo
+
+	var diskSizeUsage cirrina.DiskSizeUsage
+
+	diskInst, err = validateGetDiskInfoRequest(diskID)
+	if err != nil {
+		return &cirrina.DiskSizeUsage{}, err
+	}
+
+	diskInfo.DiskType, err = mapDiskTypeDBStringToType(diskInst.Type)
+	if err != nil {
+		return &cirrina.DiskSizeUsage{}, err
+	}
+
 	var diskService disk.InfoServicer
 
 	diskInfo.DiskDevType, err = mapDiskDevTypeDBStringToType(diskInst.DevType)
 	if err != nil {
-		return &cirrina.DiskInfo{}, err
+		return &cirrina.DiskSizeUsage{}, err
 	}
 
 	switch diskInfo.GetDiskDevType() {
@@ -139,20 +169,30 @@ func (s *server) GetDiskInfo(_ context.Context, diskID *cirrina.DiskId) (*cirrin
 		diskService = disk.NewFileInfoService(disk.FileInfoFetcherImpl)
 	case cirrina.DiskDevType_ZVOL:
 		if config.Config.Disk.VM.Path.Zpool == "" {
-			return &cirrina.DiskInfo{}, errDiskZPoolNotConfigured
+			return &cirrina.DiskSizeUsage{}, errDiskZPoolNotConfigured
 		}
 
 		diskService = disk.NewZfsVolInfoService(disk.ZfsInfoFetcherImpl)
 	default:
-		return &cirrina.DiskInfo{}, errDiskInvalidDevType
+		return &cirrina.DiskSizeUsage{}, errDiskInvalidDevType
 	}
 
 	err = getDiskInfo(diskService, diskInst, &diskInfo)
 	if err != nil {
-		return &cirrina.DiskInfo{}, err
+		return &cirrina.DiskSizeUsage{}, err
 	}
 
-	return &diskInfo, nil
+	size := diskInfo.GetSize()
+	usage := diskInfo.GetUsage()
+	sizeNum := diskInfo.GetSizeNum()
+	usageNum := diskInfo.GetUsageNum()
+
+	diskSizeUsage.Size = &size
+	diskSizeUsage.Usage = &usage
+	diskSizeUsage.SizeNum = &sizeNum
+	diskSizeUsage.UsageNum = &usageNum
+
+	return &diskSizeUsage, nil
 }
 
 func (s *server) RemoveDisk(_ context.Context, diskID *cirrina.DiskId) (*cirrina.ReqBool, error) {

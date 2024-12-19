@@ -98,6 +98,13 @@ message DiskInfo {
   optional bool direct = 10;
 }
 
+message DiskSizeUsage {
+  optional string size = 1;
+  optional string usage = 2;
+  optional uint64 size_num = 3;
+  optional uint64 usage_num = 4;
+}
+
 message DiskInfoUpdate {
   string id = 1;
   optional string name = 2;
@@ -341,6 +348,7 @@ service VMInfo {
   rpc GetDiskVM(DiskId) returns (VMID);
   rpc UploadDisk(stream DiskImageRequest) returns (ReqBool);
   rpc WipeDisk(DiskId) returns (RequestID);
+  rpc GetDiskSizeUsage(DiskId) returns (DiskSizeUsage);
 
   rpc GetSwitches(SwitchesQuery) returns (stream SwitchId);
   rpc GetSwitchInfo(SwitchId) returns (SwitchInfo);

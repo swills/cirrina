@@ -32,12 +32,13 @@ var myTableStyle = table.Style{
 }
 
 var (
-	cfgFile      string
-	VMName       string
-	VMID         string
-	Humanize     = true
-	ShowUUID     = false
-	CheckReqStat = true
+	cfgFile           string
+	VMName            string
+	VMID              string
+	Humanize          = true
+	ShowUUID          = false
+	CheckReqStat      = true
+	ShowDiskSizeUsage = false
 )
 
 var (

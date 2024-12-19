@@ -132,21 +132,11 @@ func logError(err error, remoteAddr string) {
 	}
 }
 
-func serveError(writer http.ResponseWriter, request *http.Request, err error) {
+func serveErrorVM(writer http.ResponseWriter, request *http.Request, err error) {
+	// get list of VMs for the sidebar
 	vmList, getVMsErr := getVMs()
 	if getVMsErr != nil {
-		t := time.Now()
-
-		_, err = errorLog.WriteString(fmt.Sprintf("[%s] [server:error] [pid %d:tid %d] [client %s] %s\n",
-			t.Format("Mon Jan 02 15:04:05.999999999 2006"),
-			os.Getpid(),
-			0,
-			request.RemoteAddr,
-			err.Error(),
-		))
-		if err != nil {
-			panic(err)
-		}
+		logError(err, request.RemoteAddr)
 
 		http.Error(writer, "failed to retrieve VMs", http.StatusInternalServerError)
 
@@ -170,40 +160,18 @@ func serveError(writer http.ResponseWriter, request *http.Request, err error) {
 func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	aVM, err := v.GetVM(request.PathValue("nameOrID"))
 	if err != nil {
-		t := time.Now()
+		logError(err, request.RemoteAddr)
 
-		_, err = errorLog.WriteString(fmt.Sprintf("[%s] [server:error] [pid %d:tid %d] [client %s] %s\n",
-			t.Format("Mon Jan 02 15:04:05.999999999 2006"),
-			os.Getpid(),
-			0,
-			request.RemoteAddr,
-			err.Error(),
-		))
-		if err != nil {
-			panic(err)
-		}
-
-		http.Error(writer, "failed to retrieve VMs", http.StatusInternalServerError)
+		serveErrorVM(writer, request, err)
 
 		return
 	}
 
 	VMs, err := v.GetVMs()
 	if err != nil {
-		t := time.Now()
+		logError(err, request.RemoteAddr)
 
-		_, err = errorLog.WriteString(fmt.Sprintf("[%s] [server:error] [pid %d:tid %d] [client %s] %s\n",
-			t.Format("Mon Jan 02 15:04:05.999999999 2006"),
-			os.Getpid(),
-			0,
-			request.RemoteAddr,
-			err.Error(),
-		))
-		if err != nil {
-			panic(err)
-		}
-
-		http.Error(writer, "failed to retrieve VMs", http.StatusInternalServerError)
+		serveErrorVM(writer, request, err)
 
 		return
 	}
@@ -247,7 +215,7 @@ func (v VMStartPostHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 	if err != nil {
 		logError(err, request.RemoteAddr)
 
-		serveError(writer, request, err)
+		serveErrorVM(writer, request, err)
 
 		return
 	}
@@ -256,7 +224,7 @@ func (v VMStartPostHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 	if err != nil {
 		logError(err, request.RemoteAddr)
 
-		serveError(writer, request, err)
+		serveErrorVM(writer, request, err)
 
 		return
 	}
@@ -300,7 +268,7 @@ func (v VMStopPostHandler) ServeHTTP(writer http.ResponseWriter, request *http.R
 	if err != nil {
 		logError(err, request.RemoteAddr)
 
-		serveError(writer, request, err)
+		serveErrorVM(writer, request, err)
 
 		return
 	}
@@ -309,7 +277,7 @@ func (v VMStopPostHandler) ServeHTTP(writer http.ResponseWriter, request *http.R
 	if err != nil {
 		logError(err, request.RemoteAddr)
 
-		serveError(writer, request, err)
+		serveErrorVM(writer, request, err)
 
 		return
 	}

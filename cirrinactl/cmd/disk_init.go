@@ -116,4 +116,7 @@ func setupDiskListCmd() {
 	DiskListCmd.Flags().BoolVarP(&ShowUUID,
 		"uuid", "u", ShowUUID, "Show UUIDs",
 	)
+	DiskListCmd.Flags().BoolVarP(&ShowDiskSizeUsage,
+		"size", "s", ShowDiskSizeUsage, "Show disk size/usage (slow)",
+	)
 }

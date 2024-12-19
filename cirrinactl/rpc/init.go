@@ -15,12 +15,15 @@ import (
 type DiskInfo struct {
 	Name        string
 	Descr       string
-	Size        uint64
-	Usage       uint64
 	DiskType    string
 	DiskDevType string
 	Cache       bool
 	Direct      bool
+}
+
+type DiskSizeUsage struct {
+	Size  uint64
+	Usage uint64
 }
 
 type IsoInfo struct {

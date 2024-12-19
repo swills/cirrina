@@ -13,6 +13,9 @@ func init() {
 	VMDisksListCmd.Flags().BoolVarP(&ShowUUID,
 		"uuid", "u", ShowUUID, "Show UUIDs",
 	)
+	VMDisksListCmd.Flags().BoolVarP(&ShowDiskSizeUsage,
+		"size", "s", ShowDiskSizeUsage, "Show disk size/usage (slow)",
+	)
 
 	disableFlagSorting(VMDiskAddCmd)
 	addNameOrIDArgs(VMDiskAddCmd, &VMName, &VMID, "VM")

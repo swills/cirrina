@@ -68,14 +68,21 @@ func GetDiskInfo(diskID string) (DiskInfo, error) {
 
 	info.Name = diskInfo.GetName()
 	info.Descr = diskInfo.GetDescription()
-	info.Size = diskInfo.GetSizeNum()
-	info.Usage = diskInfo.GetUsageNum()
 	info.DiskType = mapDiskTypeTypeToString(diskInfo.GetDiskType())
 	info.DiskDevType = mapDiskDevTypeTypeToString(diskInfo.GetDiskDevType())
 	info.Cache = diskInfo.GetCache()
 	info.Direct = diskInfo.GetDirect()
 
 	return info, nil
+}
+
+func GetDiskSizeUsage(diskID string) (DiskSizeUsage, error) {
+	diskSizeUsage, err := serverClient.GetDiskSizeUsage(defaultServerContext, &cirrina.DiskId{Value: diskID})
+	if err != nil {
+		return DiskSizeUsage{}, fmt.Errorf("unable to get disk info: %w", err)
+	}
+
+	return DiskSizeUsage{Size: diskSizeUsage.GetSizeNum(), Usage: diskSizeUsage.GetUsageNum()}, nil
 }
 
 func GetDisks() ([]string, error) {

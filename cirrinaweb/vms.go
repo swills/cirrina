@@ -3,9 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"sort"
-	"time"
 
 	"github.com/a-h/templ"
 
@@ -65,20 +63,9 @@ func getVMs() ([]VM, error) {
 func (v VMsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	VMs, err := v.GetVMs()
 	if err != nil {
-		t := time.Now()
+		logError(err, request.RemoteAddr)
 
-		_, err = errorLog.WriteString(fmt.Sprintf("[%s] [server:error] [pid %d:tid %d] [client %s] %s\n",
-			t.Format("Mon Jan 02 15:04:05.999999999 2006"),
-			os.Getpid(),
-			0,
-			request.RemoteAddr,
-			err.Error(),
-		))
-		if err != nil {
-			panic(err)
-		}
-
-		http.Error(writer, "failed to retrieve VMs", http.StatusInternalServerError)
+		serveErrorVM(writer, request, err)
 
 		return
 	}

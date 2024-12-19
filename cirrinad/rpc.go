@@ -20,6 +20,9 @@ type server struct {
 	cirrina.UnimplementedVMInfoServer
 }
 
+// ensure we meet the interface
+var _ cirrina.VMInfoServer = &server{}
+
 func rpcServer() {
 	listenAddress := config.Config.Network.Grpc.IP + ":" +
 		strconv.FormatInt(int64(int(config.Config.Network.Grpc.Port)), 10)

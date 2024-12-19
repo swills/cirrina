@@ -79,7 +79,7 @@ func footerTemplate() templ.Component {
 	})
 }
 
-func sidebarTemplate(vms []VM) templ.Component {
+func sidebarTemplateVMs(vms []VM) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -100,7 +100,7 @@ func sidebarTemplate(vms []VM) templ.Component {
 			templ_7745c5c3_Var4 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<aside data-testid=\"sidebarTemplate\"><div data-testid=\"vmsTemplate\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<aside data-testid=\"sidebarTemplateVMs\"><div data-testid=\"vmsTemplate\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -149,7 +149,7 @@ func sidebarTemplate(vms []VM) templ.Component {
 	})
 }
 
-func layout(name string, vms []VM) templ.Component {
+func layoutVMs(name string, vms []VM) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -183,7 +183,7 @@ func layout(name string, vms []VM) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</title><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><style>\n                body {\n                    display: flex;\n                    flex-direction: column;\n                    min-height: 100vh;\n                    margin: 0;\n                    gap: 10px;\n                    flex-wrap: wrap;\n                }\n\n                #wrapper {\n                    display: flex;\n                    flex: 1 1 auto;\n                    gap: 10px;\n                }\n                #wrapper main{\n                    flex: 1 1 80%;\n                }\n                #wrapper aside{\n                    flex-basis: 20%;\n                }\n                @media (max-width: 769px) {\n                    #wrapper{\n                        flex-direction: column;\n                    }\n                    #wrapper main, #wrapper aside{\n                        flex-basis: 100%;\n                    }\n                }\n\n                aside, main, header, footer {\n                    background: #EEEEEE;\n                    border-radius: 5px;\n                    padding: 20px;\n                    font-size: 125%;\n                }\n\n                footer {\n                    font-size: 100%;\n                }\n\n                aside {\n                    overflow-y: scroll;\n                    max-height: calc(76vh);\n                }\n\n                .dropbtn {\n                  background-color: #229DEE;\n                  color: white;\n                  padding: 16px;\n                  font-size: 16px;\n                  border: none;\n                  cursor: pointer;\n                }\n\n                .dropbtn a {\n                  color: white;\n                  text-decoration: none;\n                  display: block;\n                }\n\n                .dropdown {\n                  position: relative;\n                  display: inline-block;\n                }\n\n                .dropdown-content {\n                  display: none;\n                  position: absolute;\n                  background-color: #f9f9f9;\n                  min-width: 160px;\n                  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);\n                  z-index: 1;\n                }\n\n                .dropdown-content a {\n                  color: black;\n                  padding: 12px 16px;\n                  text-decoration: none;\n                  display: block;\n                }\n\n                .dropdown-content a:hover {\n                  background-color: #f1f1f1\n                }\n\n                .dropdown:hover .dropdown-content {\n                  display: block;\n                }\n\n                .dropdown:hover .dropbtn {\n                  background-color: #128DdE;\n                }\n            </style><script src=\"/assets/htmx.2.0.4.min.js\"></script></head><body>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</title><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><link href=\"/assets/style.css\" rel=\"stylesheet\" type=\"text/css\"><script src=\"/assets/htmx.2.0.4.min.js\"></script></head><body>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -195,7 +195,7 @@ func layout(name string, vms []VM) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = sidebarTemplate(vms).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = sidebarTemplateVMs(vms).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -262,7 +262,7 @@ func home(vms []VM) templ.Component {
 			}
 			return templ_7745c5c3_Err
 		})
-		templ_7745c5c3_Err = layout("Home", vms).Render(templ.WithChildren(ctx, templ_7745c5c3_Var11), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layoutVMs("Home", vms).Render(templ.WithChildren(ctx, templ_7745c5c3_Var11), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -309,7 +309,7 @@ func notFoundComponent(vms []VM) templ.Component {
 			}
 			return templ_7745c5c3_Err
 		})
-		templ_7745c5c3_Err = layout("Not Found", vms).Render(templ.WithChildren(ctx, templ_7745c5c3_Var13), templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = layoutVMs("Not Found", vms).Render(templ.WithChildren(ctx, templ_7745c5c3_Var13), templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

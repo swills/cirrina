@@ -75,22 +75,35 @@ var DiskListCmd = &cobra.Command{
 				}
 			}
 
-			var diskSize string
-			var diskUsage string
-			if Humanize {
-				diskSize = humanize.IBytes(diskInfo.Size)
-				diskUsage = humanize.IBytes(diskInfo.Usage)
-			} else {
-				diskSize = strconv.FormatUint(diskInfo.Size, 10)
-				diskUsage = strconv.FormatUint(diskInfo.Usage, 10)
+			var aDiskListInfo diskListInfo
+
+			aDiskListInfo.id = diskID
+			aDiskListInfo.vmName = vmName
+			aDiskListInfo.info = diskInfo
+
+			if ShowDiskSizeUsage {
+				var diskSize string
+
+				var diskUsage string
+
+				diskSizeUsage, err := rpc.GetDiskSizeUsage(diskID)
+				if err != nil {
+					return fmt.Errorf("failed getting disk info: %w", err)
+				}
+
+				if Humanize {
+					diskSize = humanize.IBytes(diskSizeUsage.Size)
+					diskUsage = humanize.IBytes(diskSizeUsage.Usage)
+				} else {
+					diskSize = strconv.FormatUint(diskSizeUsage.Size, 10)
+					diskUsage = strconv.FormatUint(diskSizeUsage.Usage, 10)
+				}
+
+				aDiskListInfo.size = diskSize
+				aDiskListInfo.usage = diskUsage
 			}
-			diskInfos[diskInfo.Name] = diskListInfo{
-				id:     diskID,
-				vmName: vmName,
-				info:   diskInfo,
-				size:   diskSize,
-				usage:  diskUsage,
-			}
+
+			diskInfos[diskInfo.Name] = aDiskListInfo
 			names = append(names, diskInfo.Name)
 		}
 
@@ -99,48 +112,86 @@ var DiskListCmd = &cobra.Command{
 		diskTableWriter.SetOutputMirror(os.Stdout)
 		diskTableWriter.SetStyle(myTableStyle)
 		if ShowUUID {
-			diskTableWriter.AppendHeader(
-				table.Row{"NAME", "UUID", "TYPE", "SIZE", "USAGE", "VM", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
-			)
-			diskTableWriter.SetColumnConfigs([]table.ColumnConfig{
-				{Number: 4, Align: text.AlignRight, AlignHeader: text.AlignRight},
-				{Number: 5, Align: text.AlignRight, AlignHeader: text.AlignRight},
-			})
-		} else {
-			diskTableWriter.AppendHeader(
-				table.Row{"NAME", "TYPE", "SIZE", "USAGE", "VM", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
-			)
-			diskTableWriter.SetColumnConfigs([]table.ColumnConfig{
-				{Number: 3, Align: text.AlignRight, AlignHeader: text.AlignRight},
-				{Number: 4, Align: text.AlignRight, AlignHeader: text.AlignRight},
-			})
-		}
-		for _, diskName := range names {
-			if ShowUUID {
-				diskTableWriter.AppendRow(table.Row{
-					diskName,
-					diskInfos[diskName].id,
-					diskInfos[diskName].info.DiskType,
-					diskInfos[diskName].size,
-					diskInfos[diskName].usage,
-					diskInfos[diskName].vmName,
-					diskInfos[diskName].info.DiskDevType,
-					diskInfos[diskName].info.Cache,
-					diskInfos[diskName].info.Direct,
-					diskInfos[diskName].info.Descr,
+			if ShowDiskSizeUsage {
+				diskTableWriter.AppendHeader(
+					table.Row{"NAME", "UUID", "TYPE", "SIZE", "USAGE", "VM", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
+				)
+				diskTableWriter.SetColumnConfigs([]table.ColumnConfig{
+					{Number: 4, Align: text.AlignRight, AlignHeader: text.AlignRight},
+					{Number: 5, Align: text.AlignRight, AlignHeader: text.AlignRight},
 				})
 			} else {
-				diskTableWriter.AppendRow(table.Row{
-					diskName,
-					diskInfos[diskName].info.DiskType,
-					diskInfos[diskName].size,
-					diskInfos[diskName].usage,
-					diskInfos[diskName].vmName,
-					diskInfos[diskName].info.DiskDevType,
-					diskInfos[diskName].info.Cache,
-					diskInfos[diskName].info.Direct,
-					diskInfos[diskName].info.Descr,
+				diskTableWriter.AppendHeader(
+					table.Row{"NAME", "UUID", "TYPE", "VM", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
+				)
+			}
+		} else {
+			if ShowDiskSizeUsage {
+				diskTableWriter.AppendHeader(
+					table.Row{"NAME", "TYPE", "SIZE", "USAGE", "VM", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
+				)
+				diskTableWriter.SetColumnConfigs([]table.ColumnConfig{
+					{Number: 3, Align: text.AlignRight, AlignHeader: text.AlignRight},
+					{Number: 4, Align: text.AlignRight, AlignHeader: text.AlignRight},
 				})
+			} else {
+				diskTableWriter.AppendHeader(
+					table.Row{"NAME", "TYPE", "VM", "DEV-TYPE", "CACHE", "DIRECT", "DESCRIPTION"},
+				)
+			}
+		}
+
+		for _, diskName := range names {
+			if ShowUUID {
+				if ShowDiskSizeUsage {
+					diskTableWriter.AppendRow(table.Row{
+						diskName,
+						diskInfos[diskName].id,
+						diskInfos[diskName].info.DiskType,
+						diskInfos[diskName].size,
+						diskInfos[diskName].usage,
+						diskInfos[diskName].vmName,
+						diskInfos[diskName].info.DiskDevType,
+						diskInfos[diskName].info.Cache,
+						diskInfos[diskName].info.Direct,
+						diskInfos[diskName].info.Descr,
+					})
+				} else {
+					diskTableWriter.AppendRow(table.Row{
+						diskName,
+						diskInfos[diskName].id,
+						diskInfos[diskName].info.DiskType,
+						diskInfos[diskName].vmName,
+						diskInfos[diskName].info.DiskDevType,
+						diskInfos[diskName].info.Cache,
+						diskInfos[diskName].info.Direct,
+						diskInfos[diskName].info.Descr,
+					})
+				}
+			} else {
+				if ShowDiskSizeUsage {
+					diskTableWriter.AppendRow(table.Row{
+						diskName,
+						diskInfos[diskName].info.DiskType,
+						diskInfos[diskName].size,
+						diskInfos[diskName].usage,
+						diskInfos[diskName].vmName,
+						diskInfos[diskName].info.DiskDevType,
+						diskInfos[diskName].info.Cache,
+						diskInfos[diskName].info.Direct,
+						diskInfos[diskName].info.Descr,
+					})
+				} else {
+					diskTableWriter.AppendRow(table.Row{
+						diskName,
+						diskInfos[diskName].info.DiskType,
+						diskInfos[diskName].vmName,
+						diskInfos[diskName].info.DiskDevType,
+						diskInfos[diskName].info.Cache,
+						diskInfos[diskName].info.Direct,
+						diskInfos[diskName].info.Descr,
+					})
+				}
 			}
 		}
 		diskTableWriter.Render()
