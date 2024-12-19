@@ -50,11 +50,12 @@ templ disk(disks []Disk, disk Disk) {
 templ diskTemplate(disk Disk) {
     <div data-testid="diskTemplate">
         <div data-testid="diskTemplateDisk">
-			<div data-testid="disksTemplateDiskName">Name: { disk.Name }</div>
+			<div data-testid="disksTemplateDiskName">Disk Name: { disk.Name }</div>
 			<div data-testid="disksTemplateDiskID">ID: { disk.ID }</div>
 			<div data-testid="disksTemplateDiskDescr">Description: { disk.Description }</div>
 			<div data-testid="diskTemplateDiskSize">Size: { disk.Size }</div>
 			<div data-testid="diskTemplateDiskUsage">Usage: { disk.Usage }</div>
+			<div data-testid="diskTemplateDiskVM">VM: <a href={ templ.URL("/vm/" + disk.VM.Name) }>{ disk.VM.Name }</a> (<a href={ templ.URL("/vm/" + disk.VM.ID)}>id</a>)</div>
         </div>
     </div>
 }

@@ -147,14 +147,14 @@ func vmTemplate(vm VM) templ.Component {
 		ctx = templ.ClearChildren(ctx)
 		cpusStr := strconv.FormatUint(uint64(vm.CPUs), 10)
 		memoryStr := strconv.FormatUint(uint64(vm.Memory), 10)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div data-testid=\"vmTemplate\"><div data-testid=\"vmTemplateVM\"><div data-testid=\"vmsTemplateVMName\">Name: ")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div data-testid=\"vmTemplate\"><div data-testid=\"vmTemplateVM\"><div data-testid=\"vmsTemplateVMName\">VM Name: ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(vm.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `vms.templ`, Line: 25, Col: 55}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `vms.templ`, Line: 25, Col: 58}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {

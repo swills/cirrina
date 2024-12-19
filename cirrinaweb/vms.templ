@@ -22,7 +22,7 @@ templ vmTemplate(vm VM) {
     {{ memoryStr := strconv.FormatUint(uint64(vm.Memory), 10) }}
     <div data-testid="vmTemplate">
         <div data-testid="vmTemplateVM">
-			<div data-testid="vmsTemplateVMName">Name: { vm.Name }</div>
+			<div data-testid="vmsTemplateVMName">VM Name: { vm.Name }</div>
 			<div data-testid="vmsTemplateVMID">ID: { vm.ID }</div>
 			<div data-testid="vmsTemplateVMCPUs">CPU Count: { cpusStr }</div>
 			<div data-testid="vmsTemplateVMMem">Memory: { memoryStr } MiB</div>

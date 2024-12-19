@@ -19,6 +19,7 @@ type Disk struct {
 	Description string
 	Size        string
 	Usage       string
+	VM          VM
 }
 
 type DiskHandler struct {
@@ -76,6 +77,8 @@ func getDisk(nameOrID string) (Disk, error) {
 
 	var diskSizeUsage rpc.DiskSizeUsage
 
+	rpc.ResetConnTimeout()
+
 	diskSizeUsage, err = rpc.GetDiskSizeUsage(returnDisk.ID)
 	if err != nil {
 		return Disk{}, fmt.Errorf("error getting Disk: %w", err)
@@ -83,6 +86,24 @@ func getDisk(nameOrID string) (Disk, error) {
 
 	returnDisk.Size = humanize.IBytes(diskSizeUsage.Size)
 	returnDisk.Usage = humanize.IBytes(diskSizeUsage.Usage)
+
+	var vmID string
+
+	rpc.ResetConnTimeout()
+
+	vmID, err = rpc.DiskGetVMID(returnDisk.ID)
+	if err != nil {
+		return Disk{}, fmt.Errorf("error getting Disk: %w", err)
+	}
+
+	if vmID != "" {
+		rpc.ResetConnTimeout()
+
+		returnDisk.VM, err = getVM(vmID)
+		if err != nil {
+			return Disk{}, fmt.Errorf("error getting Disk: %w", err)
+		}
+	}
 
 	return returnDisk, nil
 }
