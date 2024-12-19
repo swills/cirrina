@@ -8,6 +8,21 @@ variables:
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${CI_PROJECT_NAME}"
   VER: ${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHORT_SHA}
 
+gen-check:
+  stage: build
+  needs: []
+  tags:
+    - FreeBSD
+  script:
+    - export GOFLAGS="-trimpath"
+    - git clone -b swillsv2 https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/swills/go-supervisor.git go-supervisor
+    - cd cirrinad
+    - export GOPROXY=http://10.0.1.152:3000
+    - export GOOS=freebsd
+    - export GOARCH=amd64
+    - go generate ./...
+    - DIFF_WC=`git diff | wc -l | xargs` ; if [ ${DIFF_WC} -ne 0 ]; then echo 'generated code differs from committed code' ; exit 1 ; fi
+
 cirrinad:
   stage: build
   needs: []
