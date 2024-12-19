@@ -1,3 +1,5 @@
+//go:generate go run go.uber.org/mock/mockgen -destination=zfs_mocks.go -package=disk . ZfsVolInfoFetcher
+
 package main
 
 import (

@@ -1,4 +1,4 @@
-//go:generate mockgen -destination=file_mocks.go -package=disk . FileInfoFetcher,LocalFileSystem
+//go:generate go run go.uber.org/mock/mockgen -destination=file_mocks.go -package=disk . FileInfoFetcher,LocalFileSystem
 
 package disk
 
