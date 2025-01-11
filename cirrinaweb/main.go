@@ -114,6 +114,10 @@ func main() {
 		mux.Handle("GET /vm/{nameOrID}", HTTPLogger(middlewarestd.Handler("/vm/:nameOrID", mdlw, handlers.NewVMHandler())))
 		mux.Handle("POST /vm/{nameOrID}/start", HTTPLogger(middlewarestd.Handler("/vm/{nameOrID}/start", mdlw, handlers.NewVMStartHandler()))) //nolint:lll
 		mux.Handle("POST /vm/{nameOrID}/stop", HTTPLogger(middlewarestd.Handler("/vm/{nameOrID}/stop", mdlw, handlers.NewVMStopHandler())))    //nolint:lll
+		mux.Handle(
+			"GET /vmdata/{nameOrID}",
+			HTTPLogger(middlewarestd.Handler("/vm/:nameOrID", mdlw, handlers.NewVMDataHandler())),
+		)
 		mux.Handle("GET /vnc/", HTTPLogger(middlewarestd.Handler("/vnc/", mdlw, NoCache(vncFileServer))))
 		mux.Handle("GET /assets/", HTTPLogger(middlewarestd.Handler("/assets/", mdlw, assetFileServer)))
 		mux.Handle("GET /media/disks", HTTPLogger(middlewarestd.Handler("/media/disks", mdlw, handlers.NewDisksHandler())))
@@ -127,6 +131,7 @@ func main() {
 		mux.Handle("GET /vm/{nameOrID}", HTTPLogger(handlers.NewVMHandler()))
 		mux.Handle("POST /vm/{nameOrID}/start", HTTPLogger(handlers.NewVMStartHandler()))
 		mux.Handle("POST /vm/{nameOrID}/stop", HTTPLogger(handlers.NewVMStopHandler()))
+		mux.Handle("GET /vmdata/{nameOrID}", HTTPLogger(handlers.NewVMDataHandler()))
 		mux.Handle("GET /vnc/", HTTPLogger(NoCache(vncFileServer)))
 		mux.Handle("GET /assets/", HTTPLogger(assetFileServer))
 		mux.Handle("GET /media/disks", HTTPLogger(handlers.NewDisksHandler()))

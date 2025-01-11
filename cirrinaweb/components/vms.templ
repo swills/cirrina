@@ -13,7 +13,7 @@ templ vmsTemplate(vms []VM) {
 }
 
 templ Vms(vms []VM) {
-	@layoutVMs("VMs", vms) {
+	@layoutVMs("VMs", vms, "") {
 	}
 }
 
@@ -31,7 +31,7 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint64) {
                 <div>VM is running</div>
                 @StopButton(vm)
                 if vm.VNCPort > 0 {
-                    <div>VNC port is { fmt.Sprintf("%d", vm.VNCPort) }. <a href={ templ.URL("/vnc/vnc.html?autoconnect=true&reconnect=true&host=" + listenHost + "&port=" + strconv.FormatUint(websockifyPort, 10) + "&path=" + vm.NameOrID + "&resize=scale&reconnect=true") }>Open VNC</a> </div>
+                    <div>VNC port is { fmt.Sprintf("%d", vm.VNCPort) }. <a target="_blank" href={ templ.URL("/vnc/vnc.html?autoconnect=true&reconnect=true&host=" + listenHost + "&port=" + strconv.FormatUint(websockifyPort, 10) + "&path=" + vm.NameOrID + "&resize=scale&reconnect=true") }>Open VNC</a> </div>
                 }
             } else {
                 <div>VM is not running</div>

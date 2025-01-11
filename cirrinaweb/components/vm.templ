@@ -13,15 +13,15 @@ type VM struct {
 }
 
 templ Vm(vms []VM, vm VM, listenHost string, websockifyPort uint64) {
-    @layoutVMs("VM - " + vm.Name, vms) {
+    @layoutVMs("VM - " + vm.Name, vms, "/vmdata/" + vm.Name) {
         @vmTemplate(vm, listenHost, websockifyPort)
     }
 }
 
 templ VmNotFoundComponent(vms []VM) {
-	@layoutVMs("VM - Not Found", vms) {
+	@layoutVMs("VM - Not Found", vms, "") {
 		<div data-testid="homeTemplate"></div>
-  	    <div>VM Not found</div>
+        <div>VM Not found</div>
 	}
 }
 
@@ -31,4 +31,8 @@ templ StartButton(vm VM) {
 
 templ StopButton(vm VM) {
     <button hx-post={ "/vm/" + vm.NameOrID + "/stop" } hx-swap="outerHTML">Stop</button>
+}
+
+templ VmDataOnly(vms []VM, vm VM, listenHost string, websockifyPort uint64) {
+    @vmTemplate(vm, listenHost, websockifyPort)
 }

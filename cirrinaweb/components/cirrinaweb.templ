@@ -33,12 +33,6 @@ templ headerTemplate(name string) {
 	</header>
 }
 
-templ footerTemplate() {
-	<footer data-testid="footerTemplate">
-		<div>CirrinaWeb</div>
-	</footer>
-}
-
 templ sidebarTemplateVMs(vms []VM) {
 	<aside data-testid="sidebarTemplateVMs">
         <div data-testid="vmsTemplate">
@@ -53,7 +47,7 @@ templ sidebarTemplateVMs(vms []VM) {
 	</aside>
 }
 
-templ layoutVMs(name string, vms []VM) {
+templ layoutVMs(name string, vms []VM, refreshPath string) {
 	<html lang="en">
 		<head>
             <title>{ name }</title>
@@ -64,25 +58,28 @@ templ layoutVMs(name string, vms []VM) {
 		<body>
 			@headerTemplate(name)
 			<div id="wrapper">
-    			@sidebarTemplateVMs(vms)
-			<main>
-				{ children... }
-			</main>
+            @sidebarTemplateVMs(vms)
+            <main
+                if refreshPath !="" {
+                hx-get={refreshPath} hx-trigger="every 2s"
+                }
+            >
+                { children... }
+            </main>
 			</div>
 		</body>
-		@footerTemplate()
 	</html>
 }
 
 templ Home(vms []VM) {
-	@layoutVMs("Home", vms) {
+	@layoutVMs("Home", vms, "") {
 		<div data-testid="homeTemplate"></div>
 	}
 }
 
 templ notFoundComponent(vms []VM) {
-	@layoutVMs("Not Found", vms) {
+	@layoutVMs("Not Found", vms, "") {
 		<div data-testid="homeTemplate"></div>
-  	    <div>404 - Not found</div>
+        <div>404 - Not found</div>
 	}
 }

@@ -261,3 +261,51 @@ func GetVM(nameOrID string) (components.VM, error) {
 
 	return returnVM, nil
 }
+
+type VMDataHandler struct {
+	GetVM      func(string) (components.VM, error)
+	GetVMs     func() ([]components.VM, error)
+	GetVMDisks func(string) ([]components.Disk, error)
+}
+
+func NewVMDataHandler() VMDataHandler {
+	return VMDataHandler{
+		GetVM:      GetVM,
+		GetVMs:     GetVMs,
+		GetVMDisks: GetVMDisks,
+	}
+}
+
+func (v VMDataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	aVM, err := v.GetVM(request.PathValue("nameOrID"))
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	VMs, err := v.GetVMs()
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	aVM.Disks, err = v.GetVMDisks(aVM.ID)
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	listenHost := util.GetListenHost()
+	websockifyPort := util.GetWebsockifyPort()
+
+	templ.Handler(components.VmDataOnly(VMs, aVM, listenHost, websockifyPort)).ServeHTTP(writer, request)
+}

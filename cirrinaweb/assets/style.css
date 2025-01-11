@@ -30,20 +30,24 @@ body {
     }
 }
 
-aside, main, header, footer {
+aside, main, header {
     background: #EEEEEE;
     border-radius: 5px;
     padding: 20px;
-    font-size: 125%;
+    font-size: 100%;
 }
 
-footer {
-    font-size: 100%;
+header {
+    max-height: calc(20vh);
 }
 
 aside {
     overflow-y: scroll;
-    max-height: calc(74vh);
+    max-height: calc(80vh);
+}
+
+main {
+    max-height: calc(80vh);
 }
 
 .dropbtn {
