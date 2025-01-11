@@ -1,0 +1,33 @@
+package components
+
+type ISO struct {
+    ID          string
+    Name        string
+    NameOrID    string
+    Description string
+	Size        string
+}
+
+templ ISOLayout(isos []ISO, iso ISO) {
+    @layoutISOs("ISO - " + iso.Name, isos) {
+        @isoTemplate(iso)
+    }
+}
+
+templ isoTemplate(iso ISO) {
+    <div data-testid="isoTemplate">
+        <div data-testid="isoTemplateISO">
+			<div data-testid="isosTemplateISOName">ISO Name: { iso.Name }</div>
+			<div data-testid="isosTemplateISOID">ID: { iso.ID }</div>
+			<div data-testid="isosTemplateISODescr">Description: { iso.Description }</div>
+			<div data-testid="isoTemplateISOSize">Size: { iso.Size }</div>
+        </div>
+    </div>
+}
+
+templ ISONotFoundComponent(isos []ISO) {
+	@layoutISOs("ISO - Not Found", isos) {
+		<div data-testid="homeTemplate"></div>
+		<div>ISO Not found</div>
+	}
+}

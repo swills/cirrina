@@ -10,6 +10,7 @@ type VM struct {
    Running     bool
    VNCPort     uint64
    Disks       []Disk
+   ISOs        []ISO
 }
 
 templ Vm(vms []VM, vm VM, listenHost string, websockifyPort uint64) {

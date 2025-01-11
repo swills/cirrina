@@ -112,16 +112,33 @@ func main() {
 		mux.Handle("GET /home", HTTPLogger(middlewarestd.Handler("/home", mdlw, handlers.NewHomeHandler())))
 		mux.Handle("GET /vms", HTTPLogger(middlewarestd.Handler("/vms", mdlw, handlers.NewVMsHandler())))
 		mux.Handle("GET /vm/{nameOrID}", HTTPLogger(middlewarestd.Handler("/vm/:nameOrID", mdlw, handlers.NewVMHandler())))
-		mux.Handle("POST /vm/{nameOrID}/start", HTTPLogger(middlewarestd.Handler("/vm/{nameOrID}/start", mdlw, handlers.NewVMStartHandler()))) //nolint:lll
-		mux.Handle("POST /vm/{nameOrID}/stop", HTTPLogger(middlewarestd.Handler("/vm/{nameOrID}/stop", mdlw, handlers.NewVMStopHandler())))    //nolint:lll
+		mux.Handle(
+			"POST /vm/{nameOrID}/start",
+			HTTPLogger(middlewarestd.Handler("/vm/{nameOrID}/start", mdlw, handlers.NewVMStartHandler())),
+		)
+		mux.Handle(
+			"POST /vm/{nameOrID}/stop",
+			HTTPLogger(middlewarestd.Handler("/vm/{nameOrID}/stop", mdlw, handlers.NewVMStopHandler())),
+		)
 		mux.Handle(
 			"GET /vmdata/{nameOrID}",
 			HTTPLogger(middlewarestd.Handler("/vm/:nameOrID", mdlw, handlers.NewVMDataHandler())),
 		)
 		mux.Handle("GET /vnc/", HTTPLogger(middlewarestd.Handler("/vnc/", mdlw, NoCache(vncFileServer))))
-		mux.Handle("GET /assets/", HTTPLogger(middlewarestd.Handler("/assets/", mdlw, assetFileServer)))
+
 		mux.Handle("GET /media/disks", HTTPLogger(middlewarestd.Handler("/media/disks", mdlw, handlers.NewDisksHandler())))
-		mux.Handle("GET /media/disk/{nameOrID}", HTTPLogger(middlewarestd.Handler("/media/disks/:nameOrID", mdlw, handlers.NewDiskHandler()))) //nolint:lll
+		mux.Handle(
+			"GET /media/disk/{nameOrID}",
+			HTTPLogger(middlewarestd.Handler("/media/disks/:nameOrID", mdlw, handlers.NewDiskHandler())),
+		)
+
+		mux.Handle("GET /media/isos", HTTPLogger(middlewarestd.Handler("/media/isos", mdlw, handlers.NewISOsHandler())))
+		mux.Handle(
+			"GET /media/iso/{nameOrID}",
+			HTTPLogger(middlewarestd.Handler("/media/isos/:nameOrID", mdlw, handlers.NewISOHandler())),
+		)
+
+		mux.Handle("GET /assets/", HTTPLogger(middlewarestd.Handler("/assets/", mdlw, assetFileServer)))
 
 		setupMetrics(metricsHost, metricsPort)
 	} else {

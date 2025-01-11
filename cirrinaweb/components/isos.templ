@@ -1,0 +1,39 @@
+package components
+templ ISOs(isos []ISO) {
+	@layoutISOs("ISOs", isos) {
+	}
+}
+
+templ sidebarTemplateISOs(isos []ISO) {
+	<aside data-testid="sidebarTemplateISOs">
+        <div data-testid="isoTemplate">
+            for _, p := range isos {
+                <div data-testid="isosTemplateISO">
+                    <div data-testid="isosTemplateISOName">
+                        <a href={ templ.URL("/media/iso/" + p.Name) }>{ p.Name }</a> (<a href={ templ.URL("/media/iso/" + p.ID)}>id</a>)
+                    </div>
+                </div>
+            }
+        </div>
+	</aside>
+}
+
+templ layoutISOs(name string, isos []ISO) {
+	<html lang="en">
+		<head>
+            <title>{ name }</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <link href="/assets/style.css" rel="stylesheet" type="text/css" />
+            <script src="/assets/htmx.2.0.4.min.js"></script>
+		</head>
+		<body>
+			@headerTemplate(name)
+			<div id="wrapper">
+    			@sidebarTemplateISOs(isos)
+			<main>
+				{ children... }
+			</main>
+			</div>
+		</body>
+	</html>
+}

@@ -44,6 +44,12 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint64) {
                         <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/media/disk/" + d.Name) }>{ d.Name }</a> (<a href={ templ.URL("/media/disk/" + d.ID)}>id</a>)</div>
                     }
                 </div>
+            ISOs:
+                <div data-testid="vmsTemplateVMISO">
+                    for _, i := range vm.ISOs {
+                        <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/media/iso/" + i.Name) }>{ i.Name }</a> (<a href={ templ.URL("/media/iso/" + i.ID)}>id</a>)</div>
+                    }
+                </div>
             </div>
         </div>
     </div>
