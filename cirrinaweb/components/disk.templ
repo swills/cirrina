@@ -1,0 +1,38 @@
+package components
+
+type Disk struct {
+	Name        string
+	ID          string
+	Description string
+	Size        string
+	Usage       string
+	VM          VM
+}
+
+templ DiskLayout(disks []Disk, disk Disk) {
+    @layoutDisks("Disk - " + disk.Name, disks) {
+        @diskTemplate(disk)
+    }
+}
+
+templ diskTemplate(disk Disk) {
+    <div data-testid="diskTemplate">
+        <div data-testid="diskTemplateDisk">
+			<div data-testid="disksTemplateDiskName">Disk Name: { disk.Name }</div>
+			<div data-testid="disksTemplateDiskID">ID: { disk.ID }</div>
+			<div data-testid="disksTemplateDiskDescr">Description: { disk.Description }</div>
+			<div data-testid="diskTemplateDiskSize">Size: { disk.Size }</div>
+			<div data-testid="diskTemplateDiskUsage">Usage: { disk.Usage }</div>
+			if disk.VM.ID != "" {
+			<div data-testid="diskTemplateDiskVM">VM: <a href={ templ.URL("/vm/" + disk.VM.Name) }>{ disk.VM.Name }</a> (<a href={ templ.URL("/vm/" + disk.VM.ID)}>id</a>)</div>
+			}
+        </div>
+    </div>
+}
+
+templ DiskNotFoundComponent(disks []Disk) {
+	@layoutDisks("Disk - Not Found", disks) {
+		<div data-testid="homeTemplate"></div>
+		<div>Disk Not found</div>
+	}
+}

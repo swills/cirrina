@@ -1,4 +1,4 @@
-package main
+package components
 
 import "strconv"
 import "fmt"
@@ -12,12 +12,12 @@ templ vmsTemplate(vms []VM) {
 	</div>
 }
 
-templ vms(vms []VM) {
+templ Vms(vms []VM) {
 	@layoutVMs("VMs", vms) {
 	}
 }
 
-templ vmTemplate(vm VM) {
+templ vmTemplate(vm VM, listenHost string, websockifyPort uint64) {
     {{ cpusStr := strconv.FormatUint(uint64(vm.CPUs), 10) }}
     {{ memoryStr := strconv.FormatUint(uint64(vm.Memory), 10) }}
     <div data-testid="vmTemplate">
@@ -29,13 +29,13 @@ templ vmTemplate(vm VM) {
 			<div data-testid="vmsTemplateVMDescr">Description: { vm.Description }</div>
             if vm.Running {
                 <div>VM is running</div>
-                @stopButton(vm)
+                @StopButton(vm)
                 if vm.VNCPort > 0 {
-                    <div>VNC port is { fmt.Sprintf("%d", vm.VNCPort) }. <a href={ templ.URL("/vnc/vnc.html?autoconnect=true&reconnect=true&host=" + listenHost + "&port=" + strconv.FormatUint(uint64(websockifyPort), 10) + "&path=" + vm.NameOrID + "&resize=scale&reconnect=true") }>Open VNC</a> </div>
+                    <div>VNC port is { fmt.Sprintf("%d", vm.VNCPort) }. <a href={ templ.URL("/vnc/vnc.html?autoconnect=true&reconnect=true&host=" + listenHost + "&port=" + strconv.FormatUint(websockifyPort, 10) + "&path=" + vm.NameOrID + "&resize=scale&reconnect=true") }>Open VNC</a> </div>
                 }
             } else {
                 <div>VM is not running</div>
-                @startButton(vm)
+                @StartButton(vm)
             }
             <div>
             Disks:
@@ -49,23 +49,3 @@ templ vmTemplate(vm VM) {
     </div>
 }
 
-templ vm(vms []VM, vm VM) {
-    @layoutVMs("VM - " + vm.Name, vms) {
-        @vmTemplate(vm)
-    }
-}
-
-templ vmNotFoundComponent(vms []VM) {
-	@layoutVMs("VM - Not Found", vms) {
-		<div data-testid="homeTemplate"></div>
-  	    <div>VM Not found</div>
-	}
-}
-
-templ startButton(vm VM) {
-    <button hx-post={ "/vm/" + vm.NameOrID + "/start" } hx-swap="outerHTML">Start</button>
-}
-
-templ stopButton(vm VM) {
-    <button hx-post={ "/vm/" + vm.NameOrID + "/stop" } hx-swap="outerHTML">Stop</button>
-}

@@ -1,6 +1,6 @@
-package main
+package components
 
-templ disks(disks []Disk) {
+templ Disks(disks []Disk) {
 	@layoutDisks("Disks", disks) {
 	}
 }
@@ -18,7 +18,6 @@ templ sidebarTemplateDisks(disks []Disk) {
         </div>
 	</aside>
 }
-
 
 templ layoutDisks(name string, disks []Disk) {
 	<html lang="en">
@@ -39,32 +38,4 @@ templ layoutDisks(name string, disks []Disk) {
 		</body>
 		@footerTemplate()
 	</html>
-}
-
-templ disk(disks []Disk, disk Disk) {
-    @layoutDisks("Disk - " + disk.Name, disks) {
-        @diskTemplate(disk)
-    }
-}
-
-templ diskTemplate(disk Disk) {
-    <div data-testid="diskTemplate">
-        <div data-testid="diskTemplateDisk">
-			<div data-testid="disksTemplateDiskName">Disk Name: { disk.Name }</div>
-			<div data-testid="disksTemplateDiskID">ID: { disk.ID }</div>
-			<div data-testid="disksTemplateDiskDescr">Description: { disk.Description }</div>
-			<div data-testid="diskTemplateDiskSize">Size: { disk.Size }</div>
-			<div data-testid="diskTemplateDiskUsage">Usage: { disk.Usage }</div>
-			if disk.VM.ID != "" {
-			<div data-testid="diskTemplateDiskVM">VM: <a href={ templ.URL("/vm/" + disk.VM.Name) }>{ disk.VM.Name }</a> (<a href={ templ.URL("/vm/" + disk.VM.ID)}>id</a>)</div>
-			}
-        </div>
-    </div>
-}
-
-templ diskNotFoundComponent(disks []Disk) {
-	@layoutDisks("Disk - Not Found", disks) {
-		<div data-testid="homeTemplate"></div>
-  	    <div>Disk Not found</div>
-	}
 }

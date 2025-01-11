@@ -1,4 +1,4 @@
-package main
+package components
 
 templ headerTemplate(name string) {
 	<header data-testid="headerTemplate">
@@ -74,7 +74,7 @@ templ layoutVMs(name string, vms []VM) {
 	</html>
 }
 
-templ home(vms []VM) {
+templ Home(vms []VM) {
 	@layoutVMs("Home", vms) {
 		<div data-testid="homeTemplate"></div>
 	}

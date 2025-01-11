@@ -1,0 +1,34 @@
+package components
+
+type VM struct {
+   ID          string
+   Name        string
+   NameOrID    string
+   CPUs        uint32
+   Memory      uint32
+   Description string
+   Running     bool
+   VNCPort     uint64
+   Disks       []Disk
+}
+
+templ Vm(vms []VM, vm VM, listenHost string, websockifyPort uint64) {
+    @layoutVMs("VM - " + vm.Name, vms) {
+        @vmTemplate(vm, listenHost, websockifyPort)
+    }
+}
+
+templ VmNotFoundComponent(vms []VM) {
+	@layoutVMs("VM - Not Found", vms) {
+		<div data-testid="homeTemplate"></div>
+  	    <div>VM Not found</div>
+	}
+}
+
+templ StartButton(vm VM) {
+    <button hx-post={ "/vm/" + vm.NameOrID + "/start" } hx-swap="outerHTML">Start</button>
+}
+
+templ StopButton(vm VM) {
+    <button hx-post={ "/vm/" + vm.NameOrID + "/stop" } hx-swap="outerHTML">Stop</button>
+}

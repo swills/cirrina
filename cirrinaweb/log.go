@@ -5,6 +5,8 @@ import (
 	"net"
 	"net/http"
 	"time"
+
+	"cirrina/cirrinaweb/util"
 )
 
 var _ http.ResponseWriter = &loggingResponseWriter{}
@@ -48,6 +50,8 @@ func HTTPLogger(handler http.Handler) http.Handler {
 		host, _, _ := net.SplitHostPort(request.RemoteAddr)
 
 		handler.ServeHTTP(&interceptWriter, request)
+
+		accessLog := util.GetAccessLog()
 
 		_, err := accessLog.WriteString(fmt.Sprintf("%s - - [%s] \"%s %s %s\" %d %d %s\n",
 			host,

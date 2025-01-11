@@ -12,6 +12,9 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus"
+
+	"cirrina/cirrinaweb/handlers"
+	"cirrina/cirrinaweb/util"
 )
 
 //go:embed vnc/*
@@ -79,7 +82,7 @@ func StartGoWebSockifyHTTP() {
 		ReadTimeout:       5 * time.Second,
 		WriteTimeout:      5 * time.Second,
 		IdleTimeout:       60 * time.Second,
-		Addr:              net.JoinHostPort(listenHost, strconv.Itoa(int(websockifyPort))),
+		Addr:              net.JoinHostPort(util.GetListenHost(), strconv.Itoa(int(util.GetWebsockifyPort()))),
 		Handler:           router,
 	}
 
@@ -107,7 +110,7 @@ func webSocketHandler(writer http.ResponseWriter, request *http.Request) {
 
 	vmNameOrID := strings.TrimLeft(request.URL.Path, "/")
 
-	aVM, err := getVM(vmNameOrID)
+	aVM, err := handlers.GetVM(vmNameOrID)
 	if err != nil {
 		return
 	}
@@ -116,7 +119,7 @@ func webSocketHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	host, port, err := net.SplitHostPort(net.JoinHostPort(cirrinaServerName, strconv.FormatUint(aVM.VNCPort, 10)))
+	host, port, err := net.SplitHostPort(net.JoinHostPort(util.GetServerName(), strconv.FormatUint(aVM.VNCPort, 10)))
 	if err != nil {
 		return
 	}
