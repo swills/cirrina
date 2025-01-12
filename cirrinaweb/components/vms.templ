@@ -1,8 +1,5 @@
 package components
 
-import "strconv"
-import "fmt"
-
 templ vmsTemplate(vms []VM) {
 	<div data-testid="vmsTemplate">
 		for _, p := range vms {
@@ -15,43 +12,5 @@ templ vmsTemplate(vms []VM) {
 templ Vms(vms []VM) {
 	@layoutVMs("VMs", vms, "") {
 	}
-}
-
-templ vmTemplate(vm VM, listenHost string, websockifyPort uint64) {
-    {{ cpusStr := strconv.FormatUint(uint64(vm.CPUs), 10) }}
-    {{ memoryStr := strconv.FormatUint(uint64(vm.Memory), 10) }}
-    <div data-testid="vmTemplate">
-        <div data-testid="vmTemplateVM">
-			<div data-testid="vmsTemplateVMName">VM Name: { vm.Name }</div>
-			<div data-testid="vmsTemplateVMID">ID: { vm.ID }</div>
-			<div data-testid="vmsTemplateVMCPUs">CPU Count: { cpusStr }</div>
-			<div data-testid="vmsTemplateVMMem">Memory: { memoryStr } MiB</div>
-			<div data-testid="vmsTemplateVMDescr">Description: { vm.Description }</div>
-            if vm.Running {
-                <div>VM is running</div>
-                @StopButton(vm)
-                if vm.VNCPort > 0 {
-                    <div>VNC port is { fmt.Sprintf("%d", vm.VNCPort) }. <a target="_blank" href={ templ.URL("/vnc/vnc.html?autoconnect=true&reconnect=true&host=" + listenHost + "&port=" + strconv.FormatUint(websockifyPort, 10) + "&path=" + vm.NameOrID + "&resize=scale&reconnect=true") }>Open VNC</a> </div>
-                }
-            } else {
-                <div>VM is not running</div>
-                @StartButton(vm)
-            }
-            <div>
-            Disks:
-                <div data-testid="vmsTemplateVMDisk">
-                    for _, d := range vm.Disks {
-                        <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/media/disk/" + d.Name) }>{ d.Name }</a> (<a href={ templ.URL("/media/disk/" + d.ID)}>id</a>)</div>
-                    }
-                </div>
-            ISOs:
-                <div data-testid="vmsTemplateVMISO">
-                    for _, i := range vm.ISOs {
-                        <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/media/iso/" + i.Name) }>{ i.Name }</a> (<a href={ templ.URL("/media/iso/" + i.ID)}>id</a>)</div>
-                    }
-                </div>
-            </div>
-        </div>
-    </div>
 }
 

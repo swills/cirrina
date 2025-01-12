@@ -20,6 +20,7 @@ type VMHandler struct {
 	GetVMs     func() ([]components.VM, error)
 	GetVMDisks func(string) ([]components.Disk, error)
 	GetVMISOs  func(string) ([]components.ISO, error)
+	GetVMNICs  func(string) ([]components.NIC, error)
 }
 
 func NewVMHandler() VMHandler {
@@ -28,6 +29,7 @@ func NewVMHandler() VMHandler {
 		GetVMs:     GetVMs,
 		GetVMDisks: GetVMDisks,
 		GetVMISOs:  GetVMISOs,
+		GetVMNICs:  GetVMNICs,
 	}
 }
 
@@ -60,6 +62,15 @@ func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 	}
 
 	aVM.ISOs, err = v.GetVMISOs(aVM.ID)
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	aVM.NICs, err = v.GetVMNICs(aVM.ID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -236,6 +247,41 @@ func GetVMISOs(vmID string) ([]components.ISO, error) {
 	return returnISOs, nil
 }
 
+func GetVMNICs(vmID string) ([]components.NIC, error) {
+	var vmNICs []string
+
+	var err error
+
+	err = util.InitRPCConn()
+	if err != nil {
+		return []components.NIC{}, fmt.Errorf("error getting VM NICs: %w", err)
+	}
+
+	rpc.ResetConnTimeout()
+
+	vmNICs, err = rpc.GetVMNics(vmID)
+	if err != nil {
+		return []components.NIC{}, fmt.Errorf("error getting VM NICs: %w", err)
+	}
+
+	returnNICs := make([]components.NIC, 0, len(vmNICs))
+
+	for _, NICID := range vmNICs {
+		var aNIC rpc.NicInfo
+
+		rpc.ResetConnTimeout()
+
+		aNIC, err = rpc.GetVMNicInfo(NICID)
+		if err != nil {
+			return []components.NIC{}, fmt.Errorf("error getting VM NICs: %w", err)
+		}
+
+		returnNICs = append(returnNICs, components.NIC{Name: aNIC.Name, ID: NICID})
+	}
+
+	return returnNICs, nil
+}
+
 func GetVM(nameOrID string) (components.VM, error) {
 	var returnVM components.VM
 
@@ -313,6 +359,7 @@ type VMDataHandler struct {
 	GetVMs     func() ([]components.VM, error)
 	GetVMDisks func(string) ([]components.Disk, error)
 	GetVMISOs  func(string) ([]components.ISO, error)
+	GetVMNICs  func(string) ([]components.NIC, error)
 }
 
 func NewVMDataHandler() VMDataHandler {
@@ -321,6 +368,7 @@ func NewVMDataHandler() VMDataHandler {
 		GetVMs:     GetVMs,
 		GetVMDisks: GetVMDisks,
 		GetVMISOs:  GetVMISOs,
+		GetVMNICs:  GetVMNICs,
 	}
 }
 
@@ -353,6 +401,15 @@ func (v VMDataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	}
 
 	aVM.ISOs, err = v.GetVMISOs(aVM.ID)
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	aVM.NICs, err = v.GetVMNICs(aVM.ID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 

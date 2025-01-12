@@ -1,13 +1,5 @@
 package components
 
-type ISO struct {
-    ID          string
-    Name        string
-    NameOrID    string
-    Description string
-	Size        string
-}
-
 templ ISOLayout(isos []ISO, iso ISO) {
     @layoutISOs("ISO - " + iso.Name, isos) {
         @isoTemplate(iso)

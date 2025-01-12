@@ -1,14 +1,5 @@
 package components
 
-type Disk struct {
-	Name        string
-	ID          string
-	Description string
-	Size        string
-	Usage       string
-	VM          VM
-}
-
 templ DiskLayout(disks []Disk, disk Disk) {
     @layoutDisks("Disk - " + disk.Name, disks) {
         @diskTemplate(disk)

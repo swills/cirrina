@@ -138,6 +138,12 @@ func main() {
 			HTTPLogger(middlewarestd.Handler("/media/isos/:nameOrID", mdlw, handlers.NewISOHandler())),
 		)
 
+		mux.Handle("GET /net/nics", HTTPLogger(middlewarestd.Handler("/media/isos", mdlw, handlers.NewNICsHandler())))
+		mux.Handle(
+			"GET /net/nic/{nameOrID}",
+			HTTPLogger(middlewarestd.Handler("/media/isos/:nameOrID", mdlw, handlers.NewNICHandler())),
+		)
+
 		mux.Handle("GET /assets/", HTTPLogger(middlewarestd.Handler("/assets/", mdlw, assetFileServer)))
 
 		setupMetrics(metricsHost, metricsPort)
@@ -153,6 +159,10 @@ func main() {
 		mux.Handle("GET /assets/", HTTPLogger(assetFileServer))
 		mux.Handle("GET /media/disks", HTTPLogger(handlers.NewDisksHandler()))
 		mux.Handle("GET /media/disk/{nameOrID}", HTTPLogger(handlers.NewDiskHandler()))
+		mux.Handle("GET /media/isos", HTTPLogger(handlers.NewISOsHandler()))
+		mux.Handle("GET /media/iso/{nameOrID}", HTTPLogger(handlers.NewISOHandler()))
+		mux.Handle("GET /net/nics", HTTPLogger(handlers.NewNICsHandler()))
+		mux.Handle("GET /net/nic/{nameOrID}", HTTPLogger(handlers.NewNICHandler()))
 	}
 
 	go StartGoWebSockifyHTTP()

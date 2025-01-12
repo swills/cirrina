@@ -1,0 +1,30 @@
+package components
+
+templ NICLayout(nics []NIC, nic NIC) {
+    @layoutNICs("NIC - " + nic.Name, nics) {
+        @nicTemplate(nic)
+    }
+}
+
+templ nicTemplate(nic NIC) {
+    <div data-testid="nicTemplate">
+        <div data-testid="nicTemplateNIC">
+			<div data-testid="nicsTemplateNICName">NIC Name: { nic.Name }</div>
+			<div data-testid="nicsTemplateNICID">ID: { nic.ID }</div>
+			<div data-testid="nicsTemplateNICDescr">Description: { nic.Description }</div>
+			if nic.VM.Name != "" {
+			<div data-testid="nicsTemplateNICVM">VM: <a href={ templ.URL("/vm/" + nic.VM.Name) }>{ nic.VM.Name }</a> (<a href={ templ.URL("/vm/" + nic.VM.ID)}>id</a>)</div>
+			}
+			if nic.Uplink != "" {
+			<div data-testid="nicsTemplateNICUplink">Uplink: { nic.Uplink }</div>
+			}
+        </div>
+    </div>
+}
+
+templ NICNotFoundComponent(nics []NIC) {
+	@layoutNICs("NIC - Not Found", nics) {
+		<div data-testid="homeTemplate"></div>
+		<div>NIC Not found</div>
+	}
+}

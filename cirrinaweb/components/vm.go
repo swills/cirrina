@@ -7,6 +7,20 @@ import (
 	"cirrina/cirrinaweb/util"
 )
 
+type VM struct {
+	ID          string
+	Name        string
+	NameOrID    string
+	CPUs        uint32
+	Memory      uint32
+	Description string
+	Running     bool
+	VNCPort     uint64
+	Disks       []Disk
+	ISOs        []ISO
+	NICs        []NIC
+}
+
 func (v VM) Start() error {
 	err := util.InitRPCConn()
 	if err != nil {

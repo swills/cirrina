@@ -1,17 +1,17 @@
 package components
 
-templ ISOs(isos []ISO) {
-	@layoutISOs("ISOs", isos) {
+templ NICs(nics []NIC) {
+	@layoutNICs("NICs", nics) {
 	}
 }
 
-templ sidebarTemplateISOs(isos []ISO) {
-	<aside data-testid="sidebarTemplateISOs">
-        <div data-testid="isoTemplate">
-            for _, p := range isos {
-                <div data-testid="isosTemplateISO">
-                    <div data-testid="isosTemplateISOName">
-                        <a href={ templ.URL("/media/iso/" + p.Name) }>{ p.Name }</a> (<a href={ templ.URL("/media/iso/" + p.ID)}>id</a>)
+templ sidebarTemplateNICs(nics []NIC) {
+	<aside data-testid="sidebarTemplateNICs">
+        <div data-testid="nicTemplate">
+            for _, p := range nics {
+                <div data-testid="nicsTemplateNIC">
+                    <div data-testid="nicsTemplateNICName">
+                        <a href={ templ.URL("/net/nic/" + p.Name) }>{ p.Name }</a> (<a href={ templ.URL("/net/nic/" + p.ID)}>id</a>)
                     </div>
                 </div>
             }
@@ -19,7 +19,7 @@ templ sidebarTemplateISOs(isos []ISO) {
 	</aside>
 }
 
-templ layoutISOs(name string, isos []ISO) {
+templ layoutNICs(name string, nics []NIC) {
 	<html lang="en">
 		<head>
             <title>{ name }</title>
@@ -30,7 +30,7 @@ templ layoutISOs(name string, isos []ISO) {
 		<body>
 			@headerTemplate(name)
 			<div id="wrapper">
-    			@sidebarTemplateISOs(isos)
+    			@sidebarTemplateNICs(nics)
 			<main>
 				{ children... }
 			</main>
