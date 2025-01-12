@@ -1,0 +1,28 @@
+package components
+
+templ SwitchLayout(switches []Switch, vmswitch Switch) {
+    @layoutSwitches("Switch - " + vmswitch.Name, switches) {
+        @switchTemplate(vmswitch)
+    }
+}
+
+templ switchTemplate(vmswitch Switch) {
+    <div data-testid="switchTemplate">
+        <div data-testid="switchTemplateSwitch">
+			<div data-testid="switchesTemplateSwitchName">Switch Name: { vmswitch.Name }</div>
+			<div data-testid="switchesTemplateSwitchID">ID: { vmswitch.ID }</div>
+			<div data-testid="switchesTemplateSwitchDescr">Description: { vmswitch.Description }</div>
+			<div data-testid="switchesTemplateSwitchType">Type: { vmswitch.Type } </div>
+			if vmswitch.Uplink != "" {
+			<div data-testid="switchTemplateSwitchUplink">Uplink: { vmswitch.Uplink }</div>
+			}
+        </div>
+    </div>
+}
+
+templ SwitchNotFoundComponent(switches []Switch) {
+	@layoutSwitches("Switch - Not Found", switches) {
+		<div data-testid="homeTemplate"></div>
+		<div>Switch Not found</div>
+	}
+}

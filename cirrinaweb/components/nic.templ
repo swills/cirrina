@@ -15,8 +15,8 @@ templ nicTemplate(nic NIC) {
 			if nic.VM.Name != "" {
 			<div data-testid="nicsTemplateNICVM">VM: <a href={ templ.URL("/vm/" + nic.VM.Name) }>{ nic.VM.Name }</a> (<a href={ templ.URL("/vm/" + nic.VM.ID)}>id</a>)</div>
 			}
-			if nic.Uplink != "" {
-			<div data-testid="nicsTemplateNICUplink">Uplink: { nic.Uplink }</div>
+			if nic.Uplink.Name != "" {
+			<div data-testid="nicsTemplateNICUplink">Uplink: <a href={ templ.URL("/net/switch/" + nic.Uplink.Name) }>{ nic.Uplink.Name }</a> (<a href={ templ.URL("/net/switch/" + nic.Uplink.ID)}>id</a>)</div>
 			}
         </div>
     </div>

@@ -1,10 +1,10 @@
 package components
 
-type NIC struct {
+type Switch struct {
 	ID          string
 	Name        string
 	NameOrID    string
 	Description string
-	VM          VM
-	Uplink      Switch
+	Uplink      string
+	Type        string
 }

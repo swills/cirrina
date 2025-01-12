@@ -59,7 +59,13 @@ func GetNIC(nameOrID string) (components.NIC, error) {
 
 	returnNIC.Name = nicInfo.Name
 	returnNIC.Description = nicInfo.Descr
-	returnNIC.Uplink = nicInfo.Uplink
+
+	rpc.ResetConnTimeout()
+
+	returnNIC.Uplink, err = GetSwitch(nicInfo.Uplink)
+	if err != nil {
+		return components.NIC{}, fmt.Errorf("error getting NIC: %w", err)
+	}
 
 	if nicInfo.VMName != "" {
 		rpc.ResetConnTimeout()
