@@ -112,6 +112,8 @@ func DeleteDisk(nameOrID string) error {
 		diskID = parsedUUID.String()
 	}
 
+	rpc.ResetConnTimeout()
+
 	err = rpc.RmDisk(diskID)
 	if err != nil {
 		return fmt.Errorf("failed removing disk: %w", err)

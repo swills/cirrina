@@ -101,6 +101,8 @@ func DeleteISO(nameOrID string) error {
 		isoID = parsedUUID.String()
 	}
 
+	rpc.ResetConnTimeout()
+
 	err = rpc.RmIso(isoID)
 	if err != nil {
 		return fmt.Errorf("failed removing ISO: %w", err)

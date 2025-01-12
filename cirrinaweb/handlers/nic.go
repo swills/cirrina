@@ -58,13 +58,16 @@ func GetNIC(nameOrID string) (components.NIC, error) {
 	}
 
 	returnNIC.Name = nicInfo.Name
+	returnNIC.NameOrID = nicInfo.Name
 	returnNIC.Description = nicInfo.Descr
 
 	rpc.ResetConnTimeout()
 
-	returnNIC.Uplink, err = GetSwitch(nicInfo.Uplink)
-	if err != nil {
-		return components.NIC{}, fmt.Errorf("error getting NIC: %w", err)
+	if nicInfo.Uplink != "" {
+		returnNIC.Uplink, err = GetSwitch(nicInfo.Uplink)
+		if err != nil {
+			return components.NIC{}, fmt.Errorf("error getting NIC: %w", err)
+		}
 	}
 
 	if nicInfo.VMName != "" {
@@ -79,8 +82,52 @@ func GetNIC(nameOrID string) (components.NIC, error) {
 	return returnNIC, nil
 }
 
+func DeleteNic(nameOrID string) error {
+	var err error
+
+	var nicID string
+
+	parsedUUID, err := uuid.Parse(nameOrID)
+	if err != nil {
+		rpc.ResetConnTimeout()
+
+		nicID, err = rpc.NicNameToID(nameOrID)
+		if err != nil {
+			return fmt.Errorf("error getting NIC: %w", err)
+		}
+	} else {
+		nicID = parsedUUID.String()
+	}
+
+	rpc.ResetConnTimeout()
+
+	err = rpc.RmNic(nicID)
+	if err != nil {
+		return fmt.Errorf("failed removing NIC: %w", err)
+	}
+
+	return nil
+}
+
 func (d NICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	aNIC, err := d.GetNIC(request.PathValue("nameOrID"))
+	nameOrID := request.PathValue("nameOrID")
+
+	if request.Method == http.MethodDelete {
+		err := DeleteNic(nameOrID)
+		if err != nil {
+			writer.Header().Set("HX-Redirect", "/net/nic/"+nameOrID)
+			writer.WriteHeader(http.StatusInternalServerError)
+
+			return
+		}
+
+		writer.Header().Set("HX-Redirect", "/net/nics")
+		writer.WriteHeader(http.StatusOK)
+
+		return
+	}
+
+	aNIC, err := d.GetNIC(nameOrID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 

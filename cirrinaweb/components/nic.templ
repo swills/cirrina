@@ -14,6 +14,10 @@ templ nicTemplate(nic NIC) {
 			<div data-testid="nicsTemplateNICDescr">Description: { nic.Description }</div>
 			if nic.VM.Name != "" {
 			<div data-testid="nicsTemplateNICVM">VM: <a href={ templ.URL("/vm/" + nic.VM.Name) }>{ nic.VM.Name }</a> (<a href={ templ.URL("/vm/" + nic.VM.ID)}>id</a>)</div>
+			} else {
+                if nic.NameOrID != "" {
+                    @DeleteNICButton(nic)
+                }
 			}
 			if nic.Uplink.Name != "" {
 			<div data-testid="nicsTemplateNICUplink">Uplink: <a href={ templ.URL("/net/switch/" + nic.Uplink.Name) }>{ nic.Uplink.Name }</a> (<a href={ templ.URL("/net/switch/" + nic.Uplink.ID)}>id</a>)</div>
@@ -27,4 +31,8 @@ templ NICNotFoundComponent(nics []NIC) {
 		<div data-testid="homeTemplate"></div>
 		<div>NIC Not found</div>
 	}
+}
+
+templ DeleteNICButton(nic NIC) {
+    <button hx-delete={ "/net/nic/" + nic.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to delete nic " + nic.NameOrID + "?"}>Delete</button>
 }
