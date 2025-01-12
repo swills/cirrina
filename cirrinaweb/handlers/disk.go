@@ -58,6 +58,7 @@ func GetDisk(nameOrID string) (components.Disk, error) {
 		return components.Disk{}, fmt.Errorf("error getting Disk: %w", err)
 	}
 
+	returnDisk.NameOrID = nameOrID
 	returnDisk.Name = diskInfo.Name
 	returnDisk.Description = diskInfo.Descr
 
@@ -94,8 +95,49 @@ func GetDisk(nameOrID string) (components.Disk, error) {
 	return returnDisk, nil
 }
 
+func DeleteDisk(nameOrID string) error {
+	var err error
+
+	var diskID string
+
+	parsedUUID, err := uuid.Parse(nameOrID)
+	if err != nil {
+		rpc.ResetConnTimeout()
+
+		diskID, err = rpc.DiskNameToID(nameOrID)
+		if err != nil {
+			return fmt.Errorf("error getting Disk: %w", err)
+		}
+	} else {
+		diskID = parsedUUID.String()
+	}
+
+	err = rpc.RmDisk(diskID)
+	if err != nil {
+		return fmt.Errorf("failed removing disk: %w", err)
+	}
+
+	return nil
+}
+
 func (d DiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	aDisk, err := d.GetDisk(request.PathValue("nameOrID"))
+	nameOrID := request.PathValue("nameOrID")
+	if request.Method == http.MethodDelete {
+		err := DeleteDisk(nameOrID)
+		if err != nil {
+			writer.Header().Set("HX-Redirect", "/media/disk/"+nameOrID)
+			writer.WriteHeader(http.StatusInternalServerError)
+
+			return
+		}
+
+		writer.Header().Set("HX-Redirect", "/media/disks")
+		writer.WriteHeader(http.StatusOK)
+
+		return
+	}
+
+	aDisk, err := d.GetDisk(nameOrID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 

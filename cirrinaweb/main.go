@@ -86,6 +86,7 @@ func setupMetrics(host string, port uint64) {
 	}()
 }
 
+//nolint:funlen
 func main() {
 	var err error
 
@@ -100,8 +101,8 @@ func main() {
 	mux.HandleFunc("GET /healthz", healthCheck)
 	mux.HandleFunc("GET /favicon.ico", handlers.FaviconHandlerFunc)
 
-	vncFileServer := http.FileServer(http.FS(vncFS))
-	assetFileServer := http.FileServer(http.FS(assetFS))
+	vncFileServer := http.FileServerFS(vncFS)
+	assetFileServer := http.FileServerFS(assetFS)
 
 	if metricsEnable {
 		mdlw = middleware.New(middleware.Config{
@@ -129,6 +130,10 @@ func main() {
 		mux.Handle("GET /media/disks", HTTPLogger(middlewarestd.Handler("/media/disks", mdlw, handlers.NewDisksHandler())))
 		mux.Handle(
 			"GET /media/disk/{nameOrID}",
+			HTTPLogger(middlewarestd.Handler("/media/disks/:nameOrID", mdlw, handlers.NewDiskHandler())),
+		)
+		mux.Handle(
+			"DELETE /media/disk/{nameOrID}",
 			HTTPLogger(middlewarestd.Handler("/media/disks/:nameOrID", mdlw, handlers.NewDiskHandler())),
 		)
 

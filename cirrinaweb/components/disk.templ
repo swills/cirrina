@@ -16,6 +16,10 @@ templ diskTemplate(disk Disk) {
 			<div data-testid="diskTemplateDiskUsage">Usage: { disk.Usage }</div>
 			if disk.VM.ID != "" {
 			<div data-testid="diskTemplateDiskVM">VM: <a href={ templ.URL("/vm/" + disk.VM.Name) }>{ disk.VM.Name }</a> (<a href={ templ.URL("/vm/" + disk.VM.ID)}>id</a>)</div>
+			} else {
+                if disk.NameOrID != "" {
+                    @DeleteDiskButton(disk)
+                }
 			}
         </div>
     </div>
@@ -26,4 +30,8 @@ templ DiskNotFoundComponent(disks []Disk) {
 		<div data-testid="homeTemplate"></div>
 		<div>Disk Not found</div>
 	}
+}
+
+templ DeleteDiskButton(disk Disk) {
+    <button hx-delete={ "/media/disk/" + disk.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to delete disk " + disk.NameOrID + "?"}>Delete</button>
 }
