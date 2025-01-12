@@ -314,3 +314,44 @@ func (s *server) RemoveISO(_ context.Context, isoID *cirrina.ISOID) (*cirrina.Re
 
 	return &res, nil
 }
+
+func (s *server) GetISOVMs(isoID *cirrina.ISOID, stream cirrina.VMInfo_GetISOVMsServer) error {
+	isoUUID, err := uuid.Parse(isoID.GetValue())
+	if err != nil {
+		return fmt.Errorf("error parsing ID: %w", err)
+	}
+
+	var isoInst *iso.ISO
+
+	isoInst, err = iso.GetByID(isoUUID.String())
+	if err != nil {
+		slog.Error("GetISOVMs error getting ISO", "iso", isoUUID.String(), "err", err)
+
+		return fmt.Errorf("error getting ISO: %w", err)
+	}
+
+	if isoInst.Name == "" {
+		slog.Debug("iso not found")
+
+		return errNotFound
+	}
+
+	vmIDs := isoInst.GetVMIDs()
+	for _, vmID := range vmIDs {
+		_, err = vm.GetByID(vmID)
+		if err != nil {
+			slog.Error("iso attached to non-existent VM, ignoring", "iso.ID", isoInst.ID, "err", err)
+
+			continue
+		}
+
+		err = stream.Send(&cirrina.VMID{Value: vmID})
+		if err != nil {
+			slog.Error("error sending GetISOVMs response", "err", err)
+
+			return fmt.Errorf("error sending GetISOVMs response: %w", err)
+		}
+	}
+
+	return nil
+}

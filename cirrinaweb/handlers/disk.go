@@ -58,7 +58,7 @@ func GetDisk(nameOrID string) (components.Disk, error) {
 		return components.Disk{}, fmt.Errorf("error getting Disk: %w", err)
 	}
 
-	returnDisk.NameOrID = nameOrID
+	returnDisk.NameOrID = diskInfo.Name
 	returnDisk.Name = diskInfo.Name
 	returnDisk.Description = diskInfo.Descr
 
@@ -106,7 +106,7 @@ func DeleteDisk(nameOrID string) error {
 
 		diskID, err = rpc.DiskNameToID(nameOrID)
 		if err != nil {
-			return fmt.Errorf("error getting Disk: %w", err)
+			return fmt.Errorf("error getting disk: %w", err)
 		}
 	} else {
 		diskID = parsedUUID.String()

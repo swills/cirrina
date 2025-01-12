@@ -205,7 +205,9 @@ func (i *ISO) InUse() bool {
 	}
 
 	defer func() {
-		_ = rows.Close()
+		if rows != nil {
+			_ = rows.Close()
+		}
 	}()
 
 	count := 0
@@ -251,7 +253,9 @@ func (i *ISO) GetVMIDs() []string {
 	rows, rowErr := res.Rows()
 
 	defer func() {
-		_ = rows.Close()
+		if rows != nil {
+			_ = rows.Close()
+		}
 	}()
 
 	if rowErr != nil {

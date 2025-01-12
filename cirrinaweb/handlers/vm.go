@@ -322,7 +322,7 @@ func GetVM(nameOrID string) (components.VM, error) {
 		return components.VM{}, fmt.Errorf("error getting VM: %w", err)
 	}
 
-	returnVM.NameOrID = nameOrID
+	returnVM.NameOrID = vmConfig.Name
 	returnVM.CPUs = vmConfig.CPU
 	returnVM.Memory = vmConfig.Mem
 	returnVM.Description = vmConfig.Description

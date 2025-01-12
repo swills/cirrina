@@ -13,6 +13,15 @@ templ isoTemplate(iso ISO) {
 			<div data-testid="isosTemplateISOID">ID: { iso.ID }</div>
 			<div data-testid="isosTemplateISODescr">Description: { iso.Description }</div>
 			<div data-testid="isoTemplateISOSize">Size: { iso.Size }</div>
+			if len(iso.VMs) > 0 {
+                    for _, i := range iso.VMs {
+                        <div data-testid="isosTemplateISOVM"><a href={ templ.URL("/vm/" + i.Name) }>{ i.Name }</a> (<a href={ templ.URL("/vm/" + i.ID)}>id</a>)</div>
+                    }
+			} else {
+                if iso.NameOrID != "" {
+                    @DeleteISOButton(iso)
+                }
+			}
         </div>
     </div>
 }
@@ -22,4 +31,8 @@ templ ISONotFoundComponent(isos []ISO) {
 		<div data-testid="homeTemplate"></div>
 		<div>ISO Not found</div>
 	}
+}
+
+templ DeleteISOButton(iso ISO) {
+    <button hx-delete={ "/media/iso/" + iso.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to delete iso " + iso.NameOrID + "?"}>Delete</button>
 }

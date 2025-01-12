@@ -6,4 +6,5 @@ type ISO struct {
 	NameOrID    string
 	Description string
 	Size        string
+	VMs         []VM
 }

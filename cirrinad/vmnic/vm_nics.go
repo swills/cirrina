@@ -426,7 +426,9 @@ func (vmNic *VMNic) GetVMIDs() []string {
 	rows, rowErr := res.Rows()
 
 	defer func() {
-		_ = rows.Close()
+		if rows != nil {
+			_ = rows.Close()
+		}
 	}()
 
 	if rowErr != nil {

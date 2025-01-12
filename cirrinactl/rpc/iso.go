@@ -41,8 +41,10 @@ func GetIsoIDs() ([]string, error) {
 		return []string{}, fmt.Errorf("unable to get isos: %w", err)
 	}
 
+	var isoID *cirrina.ISOID
+
 	for {
-		VMID, err := res.Recv()
+		isoID, err = res.Recv()
 		if errors.Is(err, io.EOF) {
 			break
 		}
@@ -51,7 +53,7 @@ func GetIsoIDs() ([]string, error) {
 			return []string{}, fmt.Errorf("unable to get isos: %w", err)
 		}
 
-		IsoIDs = append(IsoIDs, VMID.GetValue())
+		IsoIDs = append(IsoIDs, isoID.GetValue())
 	}
 
 	return IsoIDs, nil
@@ -303,4 +305,38 @@ func IsoUpload(isoID string, isoChecksum string,
 	go isoUploadFile(isoID, isoSize, isoChecksum, isoFile, uploadStatChan)
 
 	return uploadStatChan, nil
+}
+
+func ISOGetVMIDs(isoID string) ([]string, error) {
+	var err error
+
+	if isoID == "" {
+		return []string{}, errIsoEmptyID
+	}
+
+	var vmIDs []string
+
+	var res cirrina.VMInfo_GetISOVMsClient
+
+	res, err = serverClient.GetISOVMs(defaultServerContext, &cirrina.ISOID{Value: isoID})
+	if err != nil {
+		return []string{}, fmt.Errorf("unable to get ISOs: %w", err)
+	}
+
+	var vmID *cirrina.VMID
+
+	for {
+		vmID, err = res.Recv()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+
+		if err != nil {
+			return []string{}, fmt.Errorf("unable to get isos: %w", err)
+		}
+
+		vmIDs = append(vmIDs, vmID.GetValue())
+	}
+
+	return vmIDs, nil
 }

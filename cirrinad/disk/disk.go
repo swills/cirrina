@@ -289,7 +289,9 @@ func (d *Disk) InUse() bool {
 	}
 
 	defer func() {
-		_ = rows.Close()
+		if rows != nil {
+			_ = rows.Close()
+		}
 	}()
 
 	err := rows.Err()
@@ -398,7 +400,9 @@ func (d *Disk) GetVMIDs() []string {
 	rows, rowErr := res.Rows()
 
 	defer func() {
-		_ = rows.Close()
+		if rows != nil {
+			_ = rows.Close()
+		}
 	}()
 
 	if rowErr != nil {

@@ -103,6 +103,10 @@ func GetDisks() ([]string, error) {
 			break
 		}
 
+		if err != nil {
+			return []string{}, fmt.Errorf("unable to get disks: %w", err)
+		}
+
 		disks = append(disks, VMDisk.GetValue())
 	}
 

@@ -134,13 +134,17 @@ func main() {
 		)
 		mux.Handle(
 			"DELETE /media/disk/{nameOrID}",
-			HTTPLogger(middlewarestd.Handler("/media/disks/:nameOrID", mdlw, handlers.NewDiskHandler())),
+			HTTPLogger(middlewarestd.Handler("/media/disk/:nameOrID", mdlw, handlers.NewDiskHandler())),
 		)
 
 		mux.Handle("GET /media/isos", HTTPLogger(middlewarestd.Handler("/media/isos", mdlw, handlers.NewISOsHandler())))
 		mux.Handle(
 			"GET /media/iso/{nameOrID}",
 			HTTPLogger(middlewarestd.Handler("/media/isos/:nameOrID", mdlw, handlers.NewISOHandler())),
+		)
+		mux.Handle(
+			"DELETE /media/iso/{nameOrID}",
+			HTTPLogger(middlewarestd.Handler("/media/iso/:nameOrID", mdlw, handlers.NewISOHandler())),
 		)
 
 		mux.Handle("GET /net/nics", HTTPLogger(middlewarestd.Handler("/media/isos", mdlw, handlers.NewNICsHandler())))
@@ -169,9 +173,11 @@ func main() {
 		mux.Handle("GET /vnc/", HTTPLogger(NoCache(vncFileServer)))
 		mux.Handle("GET /assets/", HTTPLogger(assetFileServer))
 		mux.Handle("GET /media/disks", HTTPLogger(handlers.NewDisksHandler()))
+		mux.Handle("DELETE /media/disk/{nameOrID}", HTTPLogger(handlers.NewDiskHandler()))
 		mux.Handle("GET /media/disk/{nameOrID}", HTTPLogger(handlers.NewDiskHandler()))
 		mux.Handle("GET /media/isos", HTTPLogger(handlers.NewISOsHandler()))
 		mux.Handle("GET /media/iso/{nameOrID}", HTTPLogger(handlers.NewISOHandler()))
+		mux.Handle("DELETE /media/iso/{nameOrID}", HTTPLogger(handlers.NewISOHandler()))
 		mux.Handle("GET /net/nics", HTTPLogger(handlers.NewNICsHandler()))
 		mux.Handle("GET /net/nic/{nameOrID}", HTTPLogger(handlers.NewNICHandler()))
 		mux.Handle("GET /net/switches", HTTPLogger(handlers.NewSwitchesHandler()))

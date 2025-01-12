@@ -42,6 +42,7 @@ const (
 	VMInfo_RemoveISO_FullMethodName          = "/cirrina.VMInfo/RemoveISO"
 	VMInfo_SetVMISOs_FullMethodName          = "/cirrina.VMInfo/SetVMISOs"
 	VMInfo_GetVMISOs_FullMethodName          = "/cirrina.VMInfo/GetVMISOs"
+	VMInfo_GetISOVMs_FullMethodName          = "/cirrina.VMInfo/GetISOVMs"
 	VMInfo_UploadIso_FullMethodName          = "/cirrina.VMInfo/UploadIso"
 	VMInfo_GetDisks_FullMethodName           = "/cirrina.VMInfo/GetDisks"
 	VMInfo_GetDiskInfo_FullMethodName        = "/cirrina.VMInfo/GetDiskInfo"
@@ -101,6 +102,7 @@ type VMInfoClient interface {
 	RemoveISO(ctx context.Context, in *ISOID, opts ...grpc.CallOption) (*ReqBool, error)
 	SetVMISOs(ctx context.Context, in *SetISOReq, opts ...grpc.CallOption) (*ReqBool, error)
 	GetVMISOs(ctx context.Context, in *VMID, opts ...grpc.CallOption) (grpc.ServerStreamingClient[ISOID], error)
+	GetISOVMs(ctx context.Context, in *ISOID, opts ...grpc.CallOption) (grpc.ServerStreamingClient[VMID], error)
 	UploadIso(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ISOImageRequest, ReqBool], error)
 	GetDisks(ctx context.Context, in *DisksQuery, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DiskId], error)
 	GetDiskInfo(ctx context.Context, in *DiskId, opts ...grpc.CallOption) (*DiskInfo, error)
@@ -399,9 +401,28 @@ func (c *vMInfoClient) GetVMISOs(ctx context.Context, in *VMID, opts ...grpc.Cal
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type VMInfo_GetVMISOsClient = grpc.ServerStreamingClient[ISOID]
 
+func (c *vMInfoClient) GetISOVMs(ctx context.Context, in *ISOID, opts ...grpc.CallOption) (grpc.ServerStreamingClient[VMID], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[5], VMInfo_GetISOVMs_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[ISOID, VMID]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type VMInfo_GetISOVMsClient = grpc.ServerStreamingClient[VMID]
+
 func (c *vMInfoClient) UploadIso(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[ISOImageRequest, ReqBool], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[5], VMInfo_UploadIso_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[6], VMInfo_UploadIso_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -414,7 +435,7 @@ type VMInfo_UploadIsoClient = grpc.ClientStreamingClient[ISOImageRequest, ReqBoo
 
 func (c *vMInfoClient) GetDisks(ctx context.Context, in *DisksQuery, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DiskId], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[6], VMInfo_GetDisks_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[7], VMInfo_GetDisks_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -483,7 +504,7 @@ func (c *vMInfoClient) SetVMDisks(ctx context.Context, in *SetDiskReq, opts ...g
 
 func (c *vMInfoClient) GetVMDisks(ctx context.Context, in *VMID, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DiskId], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[7], VMInfo_GetVMDisks_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[8], VMInfo_GetVMDisks_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -512,7 +533,7 @@ func (c *vMInfoClient) GetDiskVM(ctx context.Context, in *DiskId, opts ...grpc.C
 
 func (c *vMInfoClient) UploadDisk(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[DiskImageRequest, ReqBool], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[8], VMInfo_UploadDisk_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[9], VMInfo_UploadDisk_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -545,7 +566,7 @@ func (c *vMInfoClient) GetDiskSizeUsage(ctx context.Context, in *DiskId, opts ..
 
 func (c *vMInfoClient) GetSwitches(ctx context.Context, in *SwitchesQuery, opts ...grpc.CallOption) (grpc.ServerStreamingClient[SwitchId], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[9], VMInfo_GetSwitches_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[10], VMInfo_GetSwitches_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -614,7 +635,7 @@ func (c *vMInfoClient) SetSwitchUplink(ctx context.Context, in *SwitchUplinkReq,
 
 func (c *vMInfoClient) GetVMNicsAll(ctx context.Context, in *VmNicsQuery, opts ...grpc.CallOption) (grpc.ServerStreamingClient[VmNicId], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[10], VMInfo_GetVMNicsAll_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[11], VMInfo_GetVMNicsAll_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -713,7 +734,7 @@ func (c *vMInfoClient) SetVMNics(ctx context.Context, in *SetNicReq, opts ...grp
 
 func (c *vMInfoClient) GetVMNics(ctx context.Context, in *VMID, opts ...grpc.CallOption) (grpc.ServerStreamingClient[VmNicId], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[11], VMInfo_GetVMNics_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[12], VMInfo_GetVMNics_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -732,7 +753,7 @@ type VMInfo_GetVMNicsClient = grpc.ServerStreamingClient[VmNicId]
 
 func (c *vMInfoClient) Com1Interactive(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ComDataRequest, ComDataResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[12], VMInfo_Com1Interactive_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[13], VMInfo_Com1Interactive_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -745,7 +766,7 @@ type VMInfo_Com1InteractiveClient = grpc.BidiStreamingClient[ComDataRequest, Com
 
 func (c *vMInfoClient) Com2Interactive(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ComDataRequest, ComDataResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[13], VMInfo_Com2Interactive_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[14], VMInfo_Com2Interactive_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -758,7 +779,7 @@ type VMInfo_Com2InteractiveClient = grpc.BidiStreamingClient[ComDataRequest, Com
 
 func (c *vMInfoClient) Com3Interactive(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ComDataRequest, ComDataResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[14], VMInfo_Com3Interactive_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[15], VMInfo_Com3Interactive_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -771,7 +792,7 @@ type VMInfo_Com3InteractiveClient = grpc.BidiStreamingClient[ComDataRequest, Com
 
 func (c *vMInfoClient) Com4Interactive(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[ComDataRequest, ComDataResponse], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[15], VMInfo_Com4Interactive_FullMethodName, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &VMInfo_ServiceDesc.Streams[16], VMInfo_Com4Interactive_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -807,6 +828,7 @@ type VMInfoServer interface {
 	RemoveISO(context.Context, *ISOID) (*ReqBool, error)
 	SetVMISOs(context.Context, *SetISOReq) (*ReqBool, error)
 	GetVMISOs(*VMID, grpc.ServerStreamingServer[ISOID]) error
+	GetISOVMs(*ISOID, grpc.ServerStreamingServer[VMID]) error
 	UploadIso(grpc.ClientStreamingServer[ISOImageRequest, ReqBool]) error
 	GetDisks(*DisksQuery, grpc.ServerStreamingServer[DiskId]) error
 	GetDiskInfo(context.Context, *DiskId) (*DiskInfo, error)
@@ -912,6 +934,9 @@ func (UnimplementedVMInfoServer) SetVMISOs(context.Context, *SetISOReq) (*ReqBoo
 }
 func (UnimplementedVMInfoServer) GetVMISOs(*VMID, grpc.ServerStreamingServer[ISOID]) error {
 	return status.Errorf(codes.Unimplemented, "method GetVMISOs not implemented")
+}
+func (UnimplementedVMInfoServer) GetISOVMs(*ISOID, grpc.ServerStreamingServer[VMID]) error {
+	return status.Errorf(codes.Unimplemented, "method GetISOVMs not implemented")
 }
 func (UnimplementedVMInfoServer) UploadIso(grpc.ClientStreamingServer[ISOImageRequest, ReqBool]) error {
 	return status.Errorf(codes.Unimplemented, "method UploadIso not implemented")
@@ -1372,6 +1397,17 @@ func _VMInfo_GetVMISOs_Handler(srv interface{}, stream grpc.ServerStream) error 
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type VMInfo_GetVMISOsServer = grpc.ServerStreamingServer[ISOID]
+
+func _VMInfo_GetISOVMs_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(ISOID)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(VMInfoServer).GetISOVMs(m, &grpc.GenericServerStream[ISOID, VMID]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type VMInfo_GetISOVMsServer = grpc.ServerStreamingServer[VMID]
 
 func _VMInfo_UploadIso_Handler(srv interface{}, stream grpc.ServerStream) error {
 	return srv.(VMInfoServer).UploadIso(&grpc.GenericServerStream[ISOImageRequest, ReqBool]{ServerStream: stream})
@@ -2028,6 +2064,11 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "GetVMISOs",
 			Handler:       _VMInfo_GetVMISOs_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "GetISOVMs",
+			Handler:       _VMInfo_GetISOVMs_Handler,
 			ServerStreams: true,
 		},
 		{

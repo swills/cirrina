@@ -264,7 +264,9 @@ func getIsosForVM(vmID string, vmDB *gorm.DB) ([]*iso.ISO, error) {
 	}
 
 	defer func() {
-		_ = rows.Close()
+		if rows != nil {
+			_ = rows.Close()
+		}
 	}()
 
 	for rows.Next() {
@@ -327,7 +329,9 @@ func getDisksForVM(vmID string, vmDB *gorm.DB) ([]*disk.Disk, error) {
 	}
 
 	defer func() {
-		_ = rows.Close()
+		if rows != nil {
+			_ = rows.Close()
+		}
 	}()
 
 	for rows.Next() {
