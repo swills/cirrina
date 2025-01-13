@@ -147,19 +147,21 @@ func main() {
 			HTTPLogger(middlewarestd.Handler("/media/iso/:nameOrID", mdlw, handlers.NewISOHandler())),
 		)
 
-		mux.Handle("GET /net/nics", HTTPLogger(middlewarestd.Handler("/media/isos", mdlw, handlers.NewNICsHandler())))
+		mux.Handle("GET /net/nics", HTTPLogger(middlewarestd.Handler("/net/nics", mdlw, handlers.NewNICsHandler())))
 		mux.Handle(
 			"GET /net/nic/{nameOrID}",
-			HTTPLogger(middlewarestd.Handler("/media/isos/:nameOrID", mdlw, handlers.NewNICHandler())),
+			HTTPLogger(middlewarestd.Handler("/net/nic/:nameOrID", mdlw, handlers.NewNICHandler())),
 		)
 		mux.Handle("DELETE /net/nic/{nameOrID}",
-			HTTPLogger(middlewarestd.Handler("/media/isos/:nameOrID", mdlw, handlers.NewNICHandler())),
+			HTTPLogger(middlewarestd.Handler("/net/nic/:nameOrID", mdlw, handlers.NewNICHandler())),
 		)
 
-		mux.Handle("GET /net/switches", HTTPLogger(middlewarestd.Handler("/media/isos", mdlw, handlers.NewSwitchesHandler())))
+		mux.Handle(
+			"GET /net/switches",
+			HTTPLogger(middlewarestd.Handler("/net/switches", mdlw, handlers.NewSwitchesHandler())))
 		mux.Handle(
 			"GET /net/switch/{nameOrID}",
-			HTTPLogger(middlewarestd.Handler("/media/isos/:nameOrID", mdlw, handlers.NewSwitchHandler())),
+			HTTPLogger(middlewarestd.Handler("/net/switch/:nameOrID", mdlw, handlers.NewSwitchHandler())),
 		)
 
 		mux.Handle("GET /assets/", HTTPLogger(middlewarestd.Handler("/assets/", mdlw, assetFileServer)))
