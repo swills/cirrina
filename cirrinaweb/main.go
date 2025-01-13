@@ -163,6 +163,10 @@ func main() {
 			"GET /net/switch/{nameOrID}",
 			HTTPLogger(middlewarestd.Handler("/net/switch/:nameOrID", mdlw, handlers.NewSwitchHandler())),
 		)
+		mux.Handle(
+			"DELETE /net/switch/{nameOrID}",
+			HTTPLogger(middlewarestd.Handler("/net/switch/:nameOrID", mdlw, handlers.NewSwitchHandler())),
+		)
 
 		mux.Handle("GET /assets/", HTTPLogger(middlewarestd.Handler("/assets/", mdlw, assetFileServer)))
 
@@ -188,6 +192,7 @@ func main() {
 		mux.Handle("DELETE /net/nic/{nameOrID}", HTTPLogger(handlers.NewNICHandler()))
 		mux.Handle("GET /net/switches", HTTPLogger(handlers.NewSwitchesHandler()))
 		mux.Handle("GET /net/switch/{nameOrID}", HTTPLogger(handlers.NewSwitchHandler()))
+		mux.Handle("DELETE /net/switch/{nameOrID}", HTTPLogger(handlers.NewSwitchHandler()))
 	}
 
 	go StartGoWebSockifyHTTP()

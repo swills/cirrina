@@ -58,6 +58,7 @@ func GetSwitch(nameOrID string) (components.Switch, error) {
 	}
 
 	returnSwitch.Name = switchInfo.Name
+	returnSwitch.NameOrID = switchInfo.Name
 	returnSwitch.Description = switchInfo.Descr
 	returnSwitch.Type = switchInfo.SwitchType
 	returnSwitch.Uplink = switchInfo.Uplink
@@ -65,8 +66,51 @@ func GetSwitch(nameOrID string) (components.Switch, error) {
 	return returnSwitch, nil
 }
 
+func DeleteSwitch(nameOrID string) error {
+	var err error
+
+	var switchID string
+
+	parsedUUID, err := uuid.Parse(nameOrID)
+	if err != nil {
+		rpc.ResetConnTimeout()
+
+		switchID, err = rpc.SwitchNameToID(nameOrID)
+		if err != nil {
+			return fmt.Errorf("error getting switch: %w", err)
+		}
+	} else {
+		switchID = parsedUUID.String()
+	}
+
+	rpc.ResetConnTimeout()
+
+	err = rpc.DeleteSwitch(switchID)
+	if err != nil {
+		return fmt.Errorf("failed removing switch: %w", err)
+	}
+
+	return nil
+}
+
 func (d SwitchHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	aSwitch, err := d.GetSwitch(request.PathValue("nameOrID"))
+	nameOrID := request.PathValue("nameOrID")
+	if request.Method == http.MethodDelete {
+		err := DeleteSwitch(nameOrID)
+		if err != nil {
+			writer.Header().Set("HX-Redirect", "/net/switch/"+nameOrID+"?err="+err.Error())
+			writer.WriteHeader(http.StatusInternalServerError)
+
+			return
+		}
+
+		writer.Header().Set("HX-Redirect", "/net/switches")
+		writer.WriteHeader(http.StatusOK)
+
+		return
+	}
+
+	aSwitch, err := d.GetSwitch(nameOrID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -84,5 +128,9 @@ func (d SwitchHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	templ.Handler(components.SwitchLayout(Switches, aSwitch)).ServeHTTP(writer, request)
+	q := request.URL.Query()
+
+	errString := q.Get("err")
+
+	templ.Handler(components.SwitchLayout(Switches, aSwitch, errString)).ServeHTTP(writer, request)
 }
