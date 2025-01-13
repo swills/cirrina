@@ -87,7 +87,7 @@ func DeleteSwitch(nameOrID string) error {
 
 	err = rpc.DeleteSwitch(switchID)
 	if err != nil {
-		return fmt.Errorf("failed removing switch: %w", err)
+		return fmt.Errorf("%w", err)
 	}
 
 	return nil
@@ -98,7 +98,9 @@ func (d SwitchHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	if request.Method == http.MethodDelete {
 		err := DeleteSwitch(nameOrID)
 		if err != nil {
-			writer.Header().Set("HX-Redirect", "/net/switch/"+nameOrID+"?err="+err.Error())
+			errMessage := util.GetErrDesc(err)
+
+			writer.Header().Set("HX-Redirect", "/net/switch/"+nameOrID+"?err="+errMessage)
 			writer.WriteHeader(http.StatusInternalServerError)
 
 			return

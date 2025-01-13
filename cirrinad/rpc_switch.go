@@ -93,7 +93,7 @@ func (s *server) RemoveSwitch(_ context.Context, switchID *cirrina.SwitchId) (*c
 
 	err = switchInst.Delete()
 	if err != nil {
-		return &res, fmt.Errorf("error deleting bridge: %w", err)
+		return &res, fmt.Errorf("%w", err)
 	}
 
 	res.Success = true
