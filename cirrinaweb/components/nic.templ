@@ -12,6 +12,12 @@ templ nicTemplate(nic NIC) {
 			<div data-testid="nicsTemplateNICName">NIC Name: { nic.Name }</div>
 			<div data-testid="nicsTemplateNICID">ID: { nic.ID }</div>
 			<div data-testid="nicsTemplateNICDescr">Description: { nic.Description }</div>
+            <div data-testid="nicsTemplateNICType">Type: { nic.Type }</div>
+            <div data-testid="nicsTemplateNICDevType">Dev Type: { nic.DevType }</div>
+            if nic.RateLimited {
+            <div data-testid="nicsTemplateNICRateIn">Rate In: { nic.RateIn } </div>
+            <div data-testid="nicsTemplateNICRateOut">Rate Out: { nic.RateOut } </div>
+            }
 			if nic.VM.Name != "" {
 			<div data-testid="nicsTemplateNICVM">VM: <a href={ templ.URL("/vm/" + nic.VM.Name) }>{ nic.VM.Name }</a> (<a href={ templ.URL("/vm/" + nic.VM.ID)}>id</a>)</div>
 			} else {

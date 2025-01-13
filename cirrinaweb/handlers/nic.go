@@ -3,8 +3,10 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/a-h/templ"
+	"github.com/dustin/go-humanize"
 	"github.com/google/uuid"
 
 	"cirrina/cirrinactl/rpc"
@@ -60,6 +62,13 @@ func GetNIC(nameOrID string) (components.NIC, error) {
 	returnNIC.Name = nicInfo.Name
 	returnNIC.NameOrID = nicInfo.Name
 	returnNIC.Description = nicInfo.Descr
+	returnNIC.Type = nicInfo.NetType
+	returnNIC.DevType = nicInfo.NetDevType
+	returnNIC.RateLimited = nicInfo.RateLimited
+	returnNIC.RateIn = humanize.Bytes(nicInfo.RateIn)
+	returnNIC.RateIn = strings.Replace(returnNIC.RateIn, "B", "b", 1) + "ps"
+	returnNIC.RateOut = humanize.Bytes(nicInfo.RateOut)
+	returnNIC.RateOut = strings.Replace(returnNIC.RateOut, "B", "b", 1) + "ps"
 
 	rpc.ResetConnTimeout()
 
