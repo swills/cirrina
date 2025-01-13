@@ -8,4 +8,8 @@ type Disk struct {
 	Size        string
 	Usage       string
 	VM          VM
+	Type        string
+	DevType     string
+	Cache       bool
+	Direct      bool
 }

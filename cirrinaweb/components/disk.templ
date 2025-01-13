@@ -14,6 +14,18 @@ templ diskTemplate(disk Disk) {
 			<div data-testid="disksTemplateDiskDescr">Description: { disk.Description }</div>
 			<div data-testid="diskTemplateDiskSize">Size: { disk.Size }</div>
 			<div data-testid="diskTemplateDiskUsage">Usage: { disk.Usage }</div>
+			<div data-testid="diskTemplateDiskType">Type: { disk.Type }</div>
+			<div data-testid="diskTemplateDiskDevType">Dev Type: { disk.DevType }</div>
+			if disk.Cache {
+			<div data-testid="diskTemplateDiskCache">Cache: true</div>
+			} else {
+			<div data-testid="diskTemplateDiskCache">Cache: false</div>
+			}
+			if disk.Direct {
+			<div data-testid="diskTemplateDiskDirect">Direct: true</div>
+			} else {
+            <div data-testid="diskTemplateDiskDirect">Direct: false</div>
+            }
 			if disk.VM.ID != "" {
 			<div data-testid="diskTemplateDiskVM">VM: <a href={ templ.URL("/vm/" + disk.VM.Name) }>{ disk.VM.Name }</a> (<a href={ templ.URL("/vm/" + disk.VM.ID)}>id</a>)</div>
 			} else {

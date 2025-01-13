@@ -61,6 +61,10 @@ func GetDisk(nameOrID string) (components.Disk, error) {
 	returnDisk.NameOrID = diskInfo.Name
 	returnDisk.Name = diskInfo.Name
 	returnDisk.Description = diskInfo.Descr
+	returnDisk.Type = diskInfo.DiskType
+	returnDisk.DevType = diskInfo.DiskDevType
+	returnDisk.Cache = diskInfo.Cache
+	returnDisk.Direct = diskInfo.Direct
 
 	var diskSizeUsage rpc.DiskSizeUsage
 
