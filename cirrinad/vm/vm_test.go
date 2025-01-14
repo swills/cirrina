@@ -1363,8 +1363,6 @@ func Test_validateVM(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -1416,7 +1414,6 @@ func TestVM_Running(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testVM := &VM{
 				Status: testCase.fields.Status,
@@ -1479,7 +1476,6 @@ func Test_Exists(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			testCase.mockClosure()
 

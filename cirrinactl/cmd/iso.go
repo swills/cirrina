@@ -14,6 +14,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/jedib0t/go-pretty/v6/progress"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
 
 	"cirrina/cirrinactl/rpc"
@@ -116,73 +117,15 @@ var IsoCreateCmd = &cobra.Command{
 	},
 }
 
-func checksumWIthProgress(isoProgressWriter progress.Writer, isoSize int64) (string, error) {
-	var err error
-
-	checksumTracker := progress.Tracker{
-		Message: "Calculating checksum",
-		Total:   isoSize,
-		Units:   progress.UnitsBytes,
-	}
-	isoProgressWriter.AppendTracker(&checksumTracker)
-	checksumTracker.Start()
-
-	var isoHashFile *os.File
-
-	isoHashFile, err = os.Open(IsoFilePath)
-	if err != nil {
-		checksumTracker.MarkAsErrored()
-
-		return "", fmt.Errorf("error opening file: %w", err)
-	}
-
-	hasher := sha512.New()
-
-	var complete bool
-
-	var nBytes int64
-
-	var checksumTotal int64
-
-	for !complete {
-		nBytes, err = io.CopyN(hasher, isoHashFile, 1024*1024)
-		checksumTotal += nBytes
-		checksumTracker.SetValue(checksumTotal)
-
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				complete = true
-			} else {
-				checksumTracker.MarkAsErrored()
-
-				return "", fmt.Errorf("error checksuming file: %w", err)
-			}
-		}
-	}
-
-	isoChecksum := hex.EncodeToString(hasher.Sum(nil))
-
-	err = isoHashFile.Close()
-	if err != nil {
-		checksumTracker.MarkAsErrored()
-
-		return "", fmt.Errorf("error closing file: %w", err)
-	}
-
-	checksumTracker.MarkAsDone()
-
-	return isoChecksum, nil
-}
-
-func trackIsoUpload(isoProgressWriter progress.Writer, isoSize int64, isoFile *os.File) {
-	isoChecksum, err := checksumWIthProgress(isoProgressWriter, isoSize)
+func trackIsoUpload(isoProgressWriter progress.Writer, isoSize uint64, isoFile *os.File) {
+	isoChecksum, err := checksumWithProgress(isoProgressWriter, isoSize)
 	if err != nil {
 		return
 	}
 
 	uploadTracker := progress.Tracker{
 		Message: "Uploading",
-		Total:   isoSize,
+		Total:   cast.ToInt64(isoSize),
 		Units:   progress.UnitsBytes,
 	}
 	isoProgressWriter.AppendTracker(&uploadTracker)
@@ -190,7 +133,7 @@ func trackIsoUpload(isoProgressWriter progress.Writer, isoSize int64, isoFile *o
 
 	var upload <-chan rpc.UploadStat
 
-	upload, err = rpc.IsoUpload(IsoID, isoChecksum, uint64(isoSize), isoFile)
+	upload, err = rpc.IsoUpload(IsoID, isoChecksum, cast.ToUint64(isoSize), isoFile)
 	if err != nil {
 		uploadTracker.MarkAsErrored()
 
@@ -204,7 +147,7 @@ func trackIsoUpload(isoProgressWriter progress.Writer, isoSize int64, isoFile *o
 		}
 
 		if uploadStatEvent.UploadedChunk {
-			newTotal := uploadTracker.Value() + int64(uploadStatEvent.UploadedBytes)
+			newTotal := cast.ToUint64(uploadTracker.Value()) + uploadStatEvent.UploadedBytes
 			if newTotal > isoSize {
 				panic("uploaded more bytes than size of file")
 			}
@@ -213,7 +156,7 @@ func trackIsoUpload(isoProgressWriter progress.Writer, isoSize int64, isoFile *o
 				newTotal--
 			}
 
-			uploadTracker.SetValue(newTotal)
+			uploadTracker.SetValue(cast.ToInt64(newTotal))
 		}
 
 		if uploadStatEvent.Complete {
@@ -255,7 +198,7 @@ func uploadIsoWithStatus() error {
 	isoProgressWriter.SetMessageLength(20)
 
 	go isoProgressWriter.Render()
-	go trackIsoUpload(isoProgressWriter, isoSize, isoFile)
+	go trackIsoUpload(isoProgressWriter, cast.ToUint64(isoSize), isoFile)
 
 	// wait for upload to start
 	for !isoProgressWriter.IsRenderInProgress() {
@@ -325,7 +268,7 @@ func uploadIsoWithoutStatus() error {
 
 	var upload <-chan rpc.UploadStat
 
-	upload, err = rpc.IsoUpload(IsoID, isoChecksum, uint64(isoSize), isoFile)
+	upload, err = rpc.IsoUpload(IsoID, isoChecksum, cast.ToUint64(isoSize), isoFile)
 	if err != nil {
 		return fmt.Errorf("error uploading iso: %w", err)
 	}

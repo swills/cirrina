@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/spf13/cast"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -113,7 +114,7 @@ type VMConfig struct {
 
 type UploadStat struct {
 	UploadedChunk bool
-	UploadedBytes int
+	UploadedBytes uint64
 	Complete      bool
 	Err           error
 }
@@ -140,7 +141,7 @@ func GetConn() error {
 	var err error
 
 	serverAddr := ServerName + ":" + strconv.FormatInt(int64(ServerPort), 10)
-	serverTimeoutDur := time.Second * time.Duration(ServerTimeout)
+	serverTimeoutDur := time.Second * time.Duration(cast.ToInt64(ServerTimeout))
 
 	if serverConn != nil {
 		// already set, assume it's set to the right thing!
@@ -161,7 +162,7 @@ func GetConn() error {
 
 func ResetConnTimeout() {
 	defaultServerContext, defaultCancelFunc = context.WithTimeout(
-		context.Background(), time.Second*time.Duration(ServerTimeout),
+		context.Background(), time.Second*time.Duration(cast.ToInt64(ServerTimeout)),
 	)
 }
 

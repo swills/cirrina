@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/spf13/cast"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -76,12 +77,12 @@ func GetVMDB() *gorm.DB {
 	return Instance.VMDB
 }
 
-func (vm *VM) SetRunning(pid int) {
+func (vm *VM) SetRunning(pid uint32) {
 	vmdb := GetVMDB()
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
 	vm.Status = RUNNING
-	vm.BhyvePid = uint32(pid)
+	vm.BhyvePid = pid
 
 	res := vmdb.Select([]string{
 		"status",
@@ -179,19 +180,19 @@ func (vm *VM) SetStopping() {
 	}
 }
 
-func (vm *VM) SetVNCPort(port int) {
+func (vm *VM) SetVNCPort(port uint16) {
 	slog.Debug("SetVNCPort", "port", port)
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
-	vm.VNCPort = int32(port)
+	vm.VNCPort = cast.ToInt32(port)
 	_ = vm.Save()
 }
 
-func (vm *VM) SetDebugPort(port int) {
+func (vm *VM) SetDebugPort(port uint16) {
 	slog.Debug("SetDebugPort", "port", port)
 	defer vm.mu.Unlock()
 	vm.mu.Lock()
-	vm.DebugPort = int32(port)
+	vm.DebugPort = cast.ToInt32(port)
 	_ = vm.Save()
 }
 

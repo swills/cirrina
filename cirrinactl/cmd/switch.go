@@ -7,6 +7,8 @@ import (
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
+	epb "google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/grpc/status"
 
 	"cirrina/cirrinactl/rpc"
 )
@@ -129,7 +131,27 @@ var SwitchDeleteCmd = &cobra.Command{
 
 		err = rpc.DeleteSwitch(SwitchID)
 		if err != nil {
-			return fmt.Errorf("error removing switch: %w", err)
+			s := status.Convert(err)
+			for _, d := range s.Details() {
+				switch info := d.(type) {
+				case *epb.PreconditionFailure:
+					var gotDesc bool
+					for _, v := range info.GetViolations() {
+						gotDesc = true
+						fmt.Printf("%s\n", v.GetDescription())
+					}
+
+					if !gotDesc {
+						fmt.Printf("error: %s", info)
+					}
+
+					return ErrServerError
+				default:
+					fmt.Printf("Unexpected type: %s", info)
+
+					return ErrServerError
+				}
+			}
 		}
 		fmt.Printf("Switch deleted\n")
 

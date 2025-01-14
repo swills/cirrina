@@ -2,12 +2,14 @@ package util
 
 import (
 	"strconv"
+
+	"github.com/spf13/cast"
 )
 
 var (
 	listenHost            = "localhost"
-	listenPort     uint64 = 8888
-	websockifyPort uint64 = 7900
+	listenPort     uint16 = 8888
+	websockifyPort uint16 = 7900
 )
 
 func SetListenHost(lh string) {
@@ -16,16 +18,16 @@ func SetListenHost(lh string) {
 	}
 }
 
-func SetListenPort(lp string) {
+func SetListenPort(listenPortString string) {
 	var err error
 
-	if lp != "" {
-		listenPort, err = strconv.ParseUint(lp, 10, 16)
-		if err != nil || listenPort > 65536 {
-			listenPort = 8888
+	var listenPort64 uint64
+
+	if listenPortString != "" {
+		listenPort64, err = strconv.ParseUint(listenPortString, 10, 16)
+		if err == nil {
+			listenPort = cast.ToUint16(listenPort64)
 		}
-	} else {
-		listenPort = 8888
 	}
 }
 
@@ -37,7 +39,7 @@ func SetWebsockifyPort(websockifyPortString string) {
 
 		cirrinaWebsockifyPortTemp, err = strconv.ParseUint(websockifyPortString, 10, 16)
 		if err == nil {
-			websockifyPort = cirrinaWebsockifyPortTemp
+			websockifyPort = cast.ToUint16(cirrinaWebsockifyPortTemp)
 		}
 	}
 }
@@ -46,10 +48,10 @@ func GetListenHost() string {
 	return listenHost
 }
 
-func GetListenPort() uint64 {
+func GetListenPort() uint16 {
 	return listenPort
 }
 
-func GetWebsockifyPort() uint64 {
+func GetWebsockifyPort() uint16 {
 	return websockifyPort
 }

@@ -36,8 +36,6 @@ func TestNewZfsVolService(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -89,8 +87,6 @@ func TestZfsVolService_GetSize(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -155,8 +151,6 @@ func TestZfsVolService_GetUsage(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -287,7 +281,6 @@ func TestZfsVolService_SetSize(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
@@ -468,7 +461,6 @@ func TestZfsVolService_GetAll(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 

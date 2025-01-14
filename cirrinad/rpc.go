@@ -8,6 +8,7 @@ import (
 
 	grpcprom "github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/spf13/cast"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
@@ -25,7 +26,7 @@ var _ cirrina.VMInfoServer = &server{}
 
 func rpcServer() {
 	listenAddress := config.Config.Network.Grpc.IP + ":" +
-		strconv.FormatInt(int64(int(config.Config.Network.Grpc.Port)), 10)
+		strconv.FormatUint(cast.ToUint64(config.Config.Network.Grpc.Port), 10)
 	lis, err := net.Listen("tcp", listenAddress)
 
 	if err != nil {

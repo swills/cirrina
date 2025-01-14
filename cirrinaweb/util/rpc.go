@@ -1,11 +1,8 @@
 package util
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
-
-	"google.golang.org/grpc/status"
 
 	"cirrina/cirrinactl/rpc"
 )
@@ -60,26 +57,4 @@ func InitRPC(serverNameI string, serverPortI string, serverTimeoutI string) {
 
 func GetServerName() string {
 	return serverName
-}
-
-func GetErrDesc(err error) string {
-	var errMessage string
-
-	var lastErr error
-
-	currentErr := err
-	for currentErr != nil {
-		lastErr = currentErr
-		currentErr = errors.Unwrap(currentErr)
-	}
-
-	s, ok := status.FromError(lastErr)
-
-	if ok {
-		errMessage = s.Message()
-	} else {
-		errMessage = err.Error()
-	}
-
-	return errMessage
 }

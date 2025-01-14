@@ -1651,19 +1651,19 @@ func Test_parseNetstatJSONOutput(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    []int
+		want    []uint16
 		wantErr bool
 	}{
 		{
 			name:    "generic1",
 			args:    args{netstatOutput: []byte(netstatOutOK1)},
-			want:    []int{22},
+			want:    []uint16{22},
 			wantErr: false,
 		},
 		{
 			name:    "generic2",
 			args:    args{netstatOutput: []byte(netstatOutOK2)},
-			want:    []int{22},
+			want:    []uint16{22},
 			wantErr: false,
 		},
 		{
@@ -1687,13 +1687,13 @@ func Test_parseNetstatJSONOutput(t *testing.T) {
 		{
 			name:    "invalid4",
 			args:    args{netstatOutput: []byte(netstatOutBad1)},
-			want:    []int{22},
+			want:    []uint16{22},
 			wantErr: false,
 		},
 		{
 			name:    "invalid5",
 			args:    args{netstatOutput: []byte(netstatOutBad2)},
-			want:    []int{22},
+			want:    []uint16{22},
 			wantErr: false,
 		},
 		{
@@ -2089,42 +2089,6 @@ func TestOSReadDir(t *testing.T) {
 	}
 }
 
-func TestIsValidTCPPort(t *testing.T) {
-	type args struct {
-		tcpPort uint
-	}
-
-	tests := []struct {
-		name string
-		args args
-		want bool
-	}{
-		{
-			name: "valid1",
-			args: args{tcpPort: 123},
-			want: true,
-		},
-		{
-			name: "invalid1",
-			args: args{tcpPort: 65536},
-			want: false,
-		},
-	}
-
-	t.Parallel()
-
-	for _, testCase := range tests {
-		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
-			got := IsValidTCPPort(testCase.args.tcpPort)
-			if got != testCase.want {
-				t.Errorf("IsValidTCPPort() = %v, want %v", got, testCase.want)
-			}
-		})
-	}
-}
-
 func TestIsValidIP(t *testing.T) {
 	type args struct {
 		ipAddress string
@@ -2465,35 +2429,35 @@ func TestGetHostInterfaces(t *testing.T) {
 
 func TestGetFreeTCPPort(t *testing.T) {
 	type args struct {
-		firstVncPort int
-		usedVncPorts []int
+		firstVncPort uint16
+		usedVncPorts []uint16
 	}
 
 	tests := []struct {
 		name        string
 		mockCmdFunc string
 		args        args
-		want        int
+		want        uint16
 		wantErr     bool
 	}{
 		{
 			name:        "success1",
 			mockCmdFunc: "TestGetFreeTCPPortSuccess1",
-			args:        args{firstVncPort: 7900, usedVncPorts: []int{7901, 7902}},
+			args:        args{firstVncPort: 7900, usedVncPorts: []uint16{7901, 7902}},
 			want:        7903,
 			wantErr:     false,
 		},
 		{
 			name:        "Fail1",
 			mockCmdFunc: "TestGetFreeTCPPortFail1",
-			args:        args{firstVncPort: 7900, usedVncPorts: []int{7901, 7902}},
+			args:        args{firstVncPort: 7900, usedVncPorts: []uint16{7901, 7902}},
 			want:        0,
 			wantErr:     true,
 		},
 		{
 			name:        "Fail2",
 			mockCmdFunc: "TestGetFreeTCPPortFail2",
-			args:        args{firstVncPort: 7900, usedVncPorts: []int{7901, 7902}},
+			args:        args{firstVncPort: 7900, usedVncPorts: []uint16{7901, 7902}},
 			want:        0,
 			wantErr:     true,
 		},

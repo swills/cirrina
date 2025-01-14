@@ -69,8 +69,6 @@ func TestVM_getKeyboardArg(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -113,8 +111,6 @@ func TestVM_getACPIArg(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -157,7 +153,6 @@ func TestVM_getDPOArg(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -200,8 +195,6 @@ func TestVM_getEOPArg(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -244,8 +237,6 @@ func TestVM_getHLTArg(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -288,8 +279,6 @@ func TestVM_getUTCArg(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -332,8 +321,6 @@ func TestVM_getMSRArg(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -502,8 +489,6 @@ func TestVM_getMemArg(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -545,8 +530,6 @@ func TestVM_getLPCArg(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -599,8 +582,6 @@ func TestVM_getROMArg(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -647,8 +628,6 @@ func TestVM_getWireArg(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -690,8 +669,6 @@ func TestVM_getExtraArg(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -812,8 +789,6 @@ func TestVM_getCDArg(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -881,8 +856,6 @@ func TestVM_getHostBridgeArg(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -1003,8 +976,6 @@ func Test_getCom(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -1086,8 +1057,6 @@ func TestVM_getTabletArg(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -1150,8 +1119,6 @@ func Test_addPriorityArgs(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -1211,8 +1178,6 @@ func Test_addProtectArgs(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -1266,8 +1231,6 @@ func Test_getNetTypeArg(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -1676,8 +1639,6 @@ func Test_addComArgs(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -3013,7 +2974,7 @@ func TestVM_getVideoArg(t *testing.T) {
 	tests := []struct {
 		name            string
 		mockVMClosure   func(testDB *gorm.DB, mock sqlmock.Sqlmock)
-		mockGetPortFunc func(int, []int) (int, error)
+		mockGetPortFunc func(uint16, []uint16) (uint16, error)
 		fields          fields
 		args            args
 		wantArgs        []string
@@ -3073,7 +3034,7 @@ func TestVM_getVideoArg(t *testing.T) {
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
 			},
-			mockGetPortFunc: func(_ int, _ []int) (int, error) {
+			mockGetPortFunc: func(_ uint16, _ []uint16) (uint16, error) {
 				return 7901, nil
 			},
 			fields: fields{
@@ -3194,7 +3155,7 @@ func TestVM_getVideoArg(t *testing.T) {
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
 			},
-			mockGetPortFunc: func(_ int, _ []int) (int, error) {
+			mockGetPortFunc: func(_ uint16, _ []uint16) (uint16, error) {
 				return 7901, nil
 			},
 			fields: fields{
@@ -3315,7 +3276,7 @@ func TestVM_getVideoArg(t *testing.T) {
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
 			},
-			mockGetPortFunc: func(_ int, _ []int) (int, error) {
+			mockGetPortFunc: func(_ uint16, _ []uint16) (uint16, error) {
 				return 7901, nil
 			},
 			fields: fields{
@@ -3437,7 +3398,7 @@ func TestVM_getVideoArg(t *testing.T) {
 					WillReturnResult(sqlmock.NewResult(1, 1))
 				mock.ExpectCommit()
 			},
-			mockGetPortFunc: func(_ int, _ []int) (int, error) {
+			mockGetPortFunc: func(_ uint16, _ []uint16) (uint16, error) {
 				return 7901, nil
 			},
 			fields: fields{
@@ -3512,7 +3473,7 @@ func TestVM_getVideoArg(t *testing.T) {
 					VMDB: testDB,
 				}
 			},
-			mockGetPortFunc: func(_ int, _ []int) (int, error) {
+			mockGetPortFunc: func(_ uint16, _ []uint16) (uint16, error) {
 				return 7901, nil
 			},
 			fields: fields{
@@ -3586,7 +3547,7 @@ func TestVM_getVideoArg(t *testing.T) {
 					VMDB: testDB,
 				}
 			},
-			mockGetPortFunc: func(_ int, _ []int) (int, error) {
+			mockGetPortFunc: func(_ uint16, _ []uint16) (uint16, error) {
 				return 0, errors.New("some random error") //nolint:goerr113
 			},
 			fields: fields{

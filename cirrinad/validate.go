@@ -411,8 +411,8 @@ func validateNetworkConf() {
 		os.Exit(1)
 	}
 
-	if !util.IsValidTCPPort(config.Config.Network.Grpc.Port) {
-		slog.Error("Invalid listen port in config, please reconfigure")
+	if config.Config.Network.Grpc.Timeout <= 0 {
+		slog.Error("Invalid gRPC timeout, must be greater than 0")
 		os.Exit(1)
 	}
 
@@ -431,21 +431,11 @@ func validateVncConfig() {
 		slog.Error("Invalid VNC IP in config, please reconfigure")
 		os.Exit(1)
 	}
-
-	if !util.IsValidTCPPort(config.Config.Vnc.Port) {
-		slog.Error("Invalid VNC port in config, please reconfigure")
-		os.Exit(1)
-	}
 }
 
 func validateDebugConfig() {
 	if !util.IsValidIP(config.Config.Debug.IP) {
 		slog.Error("Invalid debug IP in config, please reconfigure")
-		os.Exit(1)
-	}
-
-	if !util.IsValidTCPPort(config.Config.Debug.Port) {
-		slog.Error("Invalid debug port in config, please reconfigure")
 		os.Exit(1)
 	}
 }

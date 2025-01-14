@@ -37,8 +37,6 @@ func TestNewFileInfoService(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -95,8 +93,6 @@ func TestFileInfoService_GetSize(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -166,8 +162,6 @@ func TestFileInfoService_GetUsage(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
@@ -219,8 +213,6 @@ func TestFileInfoService_SetSize(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 			ctrl := gomock.NewController(t)
@@ -279,8 +271,6 @@ func TestFileInfoService_Exists(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -338,8 +328,6 @@ func TestFileInfoService_Create(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -391,8 +379,6 @@ func TestFileInfoService_GetAll(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -735,8 +721,6 @@ func TestFileInfoCmds_CheckExists(t *testing.T) {
 	}
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			fileInfoCmds := FileInfoCmds{}
 

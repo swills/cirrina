@@ -2,10 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
+	epb "google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"cirrina/cirrina"
 	_switch "cirrina/cirrinad/switch"
@@ -93,6 +97,24 @@ func (s *server) RemoveSwitch(_ context.Context, switchID *cirrina.SwitchId) (*c
 
 	err = switchInst.Delete()
 	if err != nil {
+		if errors.Is(err, _switch.ErrSwitchInUse) {
+			errStatus := status.New(codes.FailedPrecondition, "switch in use")
+			errDetails, err2 := errStatus.WithDetails(
+				&epb.PreconditionFailure{
+					Violations: []*epb.PreconditionFailure_Violation{{
+						Subject:     fmt.Sprintf("name: %s, id:%s", switchInst.Name, switchInst.ID),
+						Description: "Switch is in use as uplink by existing VM NIC(s)",
+					}},
+				},
+			)
+
+			if err2 != nil {
+				return &res, errStatus.Err()
+			}
+
+			return &res, errDetails.Err()
+		}
+
 		return &res, fmt.Errorf("%w", err)
 	}
 

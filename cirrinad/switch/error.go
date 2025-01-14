@@ -9,7 +9,7 @@ var (
 	errSwitchNotFound              = errors.New("switch not found")
 	errSwitchInvalidID             = errors.New("switch id invalid")
 	ErrSwitchExists                = errors.New("switch exists")
-	errSwitchInUse                 = errors.New("switch in use")
+	ErrSwitchInUse                 = errors.New("switch in use")
 	ErrSwitchInvalidType           = errors.New("unknown switch type")
 	errSwitchUplinkInUse           = errors.New("uplink already used")
 	errSwitchUplinkWrongType       = errors.New("uplink switch has wrong type")

@@ -48,8 +48,6 @@ func Test_mapSwitchTypeTypeToDBString(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -107,8 +105,6 @@ func Test_mapSwitchTypeDBStringToType(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -161,8 +157,6 @@ func Test_mapDiskDevTypeTypeToDBString(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -215,8 +209,6 @@ func Test_mapDiskDevTypeDBStringToType(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -275,8 +267,6 @@ func Test_mapDiskTypeTypeToDBString(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -334,8 +324,6 @@ func Test_mapDiskTypeDBStringToType(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 

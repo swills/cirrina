@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-version"
+	"github.com/spf13/cast"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -523,7 +524,7 @@ func updateVMBasics(vmConfig *cirrina.VMConfig, vmInst *vm.VM) error {
 		vmInst.Description = vmConfig.GetDescription()
 	}
 
-	if vmConfig.Cpu != nil && util.NumCpusValid(uint16(vmConfig.GetCpu())) {
+	if vmConfig.Cpu != nil && util.NumCpusValid(cast.ToUint16(vmConfig.GetCpu())) {
 		vmInst.Config.CPU = vmConfig.GetCpu()
 	}
 
@@ -775,7 +776,7 @@ func (s *server) AddVM(_ context.Context, vmConfig *cirrina.VMConfig) (*cirrina.
 		vmConfig.Description = &defaultVMDescription
 	}
 
-	if vmConfig.Cpu == nil || !util.NumCpusValid(uint16(vmConfig.GetCpu())) {
+	if vmConfig.Cpu == nil || !util.NumCpusValid(cast.ToUint16(vmConfig.GetCpu())) {
 		vmConfig.Cpu = &defaultVMCpuCount
 	}
 

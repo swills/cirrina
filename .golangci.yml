@@ -43,7 +43,7 @@ linters:
     - durationcheck
     - errchkjson
     - exhaustive
-    - exportloopref
+    - copyloopvar
     - gocheckcompilerdirectives
     - gochecksumtype
     - ginkgolinter
@@ -202,3 +202,6 @@ linters-settings:
   funlen:
     lines: 100
     statements: 55
+  wrapcheck:
+    ignorePackageGlobs:
+      - google.golang.org/grpc/internal/status

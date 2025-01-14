@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/spf13/cast"
+
 	"cirrina/cirrina"
 )
 
@@ -226,7 +228,7 @@ func isoUploadFileBytes(isoFile *os.File,
 		uploadStatChan <- UploadStat{
 			UploadedChunk: true,
 			Complete:      false,
-			UploadedBytes: nBytesRead,
+			UploadedBytes: cast.ToUint64(nBytesRead),
 			Err:           nil,
 		}
 	}

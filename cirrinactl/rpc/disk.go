@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/spf13/cast"
+
 	"cirrina/cirrina"
 )
 
@@ -386,7 +388,7 @@ func diskUploadFileBytes(diskFile *os.File, stream cirrina.VMInfo_UploadDiskClie
 		uploadStatChan <- UploadStat{
 			UploadedChunk: true,
 			Complete:      false,
-			UploadedBytes: nBytesRead,
+			UploadedBytes: cast.ToUint64(nBytesRead),
 			Err:           nil,
 		}
 	}
@@ -403,7 +405,7 @@ func diskUploadFileSetupRequest(diskID string, diskSize uint64, diskChecksum str
 		Data: &cirrina.DiskImageRequest_Diskuploadinfo{
 			Diskuploadinfo: &cirrina.DiskUploadInfo{
 				Diskid:    &cirrina.DiskId{Value: diskID},
-				Size:      diskSize,
+				Size:      cast.ToUint64(diskSize),
 				Sha512Sum: diskChecksum,
 			},
 		},

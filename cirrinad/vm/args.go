@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/spf13/cast"
+
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/disk"
 	_switch "cirrina/cirrinad/switch"
@@ -77,10 +79,10 @@ func (vm *VM) getCPUArg() []string {
 		return []string{}
 	}
 
-	if vm.Config.CPU > math.MaxUint16 || !util.NumCpusValid(uint16(vm.Config.CPU)) {
+	if vm.Config.CPU > math.MaxUint16 || !util.NumCpusValid(cast.ToUint16(vm.Config.CPU)) {
 		vmCpus = hostCpus
 	} else {
-		vmCpus = uint16(vm.Config.CPU)
+		vmCpus = cast.ToUint16(vm.Config.CPU)
 	}
 
 	return []string{"-c", strconv.FormatInt(int64(vmCpus), 10)}
@@ -263,7 +265,7 @@ func (vm *VM) getDebugArg() []string {
 	firstDebugPort := config.Config.Debug.Port
 	debugListenIP := config.Config.Debug.IP
 
-	var debugListenPortInt int
+	var debugListenPortUint16 uint16
 
 	var debugListenPort string
 
@@ -278,30 +280,30 @@ func (vm *VM) getDebugArg() []string {
 	if vm.Config.DebugPort == "AUTO" {
 		usedDebugPorts := getUsedDebugPorts()
 
-		debugListenPortInt, err = GetFreeTCPPortFunc(int(firstDebugPort), usedDebugPorts)
+		debugListenPortUint16, err = GetFreeTCPPortFunc(firstDebugPort, usedDebugPorts)
 		if err != nil {
 			slog.Error("error getting free tcp port", "err", err)
 
 			return []string{}
 		}
 
-		debugListenPort = strconv.FormatInt(int64(debugListenPortInt), 10)
+		debugListenPort = strconv.FormatInt(int64(debugListenPortUint16), 10)
 	} else {
-		var debugListenPortInt64 int64
+		var debugListenPortUint64 uint64
 
 		debugListenPort = vm.Config.DebugPort
 
-		debugListenPortInt64, err = strconv.ParseInt(debugListenPort, 10, 64)
+		debugListenPortUint64, err = strconv.ParseUint(debugListenPort, 10, 16)
 		if err != nil {
 			slog.Error("error parsing debug listen port", "err", err)
 
 			return []string{}
 		}
 
-		debugListenPortInt = int(debugListenPortInt64)
+		debugListenPortUint16 = cast.ToUint16(debugListenPortUint64)
 	}
 
-	vm.SetDebugPort(debugListenPortInt)
+	vm.SetDebugPort(debugListenPortUint16)
 
 	if vm.Config.DebugWait {
 		debugWaitStr = "w"
@@ -398,7 +400,7 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 	firstVncPort := config.Config.Vnc.Port
 	vncListenIP := config.Config.Vnc.IP
 
-	var vncListenPortInt int
+	var vncListenPortUint16 uint16
 
 	var vncListenPort string
 
@@ -407,26 +409,26 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 	if vm.Config.VNCPort == "AUTO" {
 		usedVncPorts := getUsedVncPorts()
 
-		vncListenPortInt, err = GetFreeTCPPortFunc(int(firstVncPort), usedVncPorts)
+		vncListenPortUint16, err = GetFreeTCPPortFunc(firstVncPort, usedVncPorts)
 		if err != nil {
 			return []string{}, slot
 		}
 
-		vncListenPort = strconv.FormatInt(int64(vncListenPortInt), 10)
+		vncListenPort = strconv.FormatInt(int64(vncListenPortUint16), 10)
 	} else {
 		var vncListenPortInt64 int64
 
 		vncListenPort = vm.Config.VNCPort
 
-		vncListenPortInt64, err = strconv.ParseInt(vncListenPort, 10, 64)
+		vncListenPortInt64, err = strconv.ParseInt(vncListenPort, 10, 16)
 		if err != nil {
 			return []string{}, slot
 		}
 
-		vncListenPortInt = int(vncListenPortInt64)
+		vncListenPortUint16 = cast.ToUint16(vncListenPortInt64)
 	}
 
-	vm.SetVNCPort(vncListenPortInt)
+	vm.SetVNCPort(vncListenPortUint16)
 
 	fbufArg := []string{
 		"-s",

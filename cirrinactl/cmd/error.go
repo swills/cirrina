@@ -36,3 +36,5 @@ var (
 var errReqFailed = errors.New("failed")
 
 var errHostNotAvailable = errors.New("host not available")
+
+var ErrServerError = errors.New("server reported error")

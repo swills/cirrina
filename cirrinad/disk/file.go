@@ -12,6 +12,8 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/spf13/cast"
+
 	"cirrina/cirrinad/config"
 	"cirrina/cirrinad/util"
 )
@@ -144,13 +146,20 @@ func (f FileInfoCmds) FetchFileSize(name string) (uint64, error) {
 	//   return 0, errors.New("failed to stat")
 	// }
 
-	return uint64(diskFileStat.Size()), nil
+	var sizeUint uint64
+
+	sizeUint, err = cast.ToUint64E(diskFileStat.Size())
+	if err != nil {
+		return 0, fmt.Errorf("unable to get file size: %w", err)
+	}
+
+	return sizeUint, nil
 }
 
 func (f FileInfoCmds) FetchFileUsage(name string) (uint64, error) {
 	var stat syscall.Stat_t
 
-	var blockSize int64 = 512
+	var blockSize uint64 = 512
 
 	err := myStat(name, &stat)
 	if err != nil {
@@ -159,7 +168,14 @@ func (f FileInfoCmds) FetchFileUsage(name string) (uint64, error) {
 		return 0, fmt.Errorf("error stating disk file: %w", err)
 	}
 
-	return uint64(stat.Blocks * blockSize), nil
+	var blocksUint uint64
+
+	blocksUint, err = cast.ToUint64E(stat.Blocks)
+	if err != nil {
+		return 0, fmt.Errorf("unable to get file size: %w", err)
+	}
+
+	return blocksUint * blockSize, nil
 }
 
 func (f FileInfoCmds) ApplyFileSize(name string, newSize uint64) error {

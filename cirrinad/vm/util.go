@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/spf13/cast"
 	"github.com/tarm/serial"
 
 	"cirrina/cirrinad/config"
@@ -223,10 +224,10 @@ func findProcName(pid uint32) string {
 	return procName
 }
 
-func getUsedVncPorts() []int {
+func getUsedVncPorts() []uint16 {
 	defer List.Mu.RUnlock()
 
-	ret := make([]int, 0, len(List.VMList))
+	ret := make([]uint16, 0, len(List.VMList))
 
 	List.Mu.RLock()
 
@@ -241,16 +242,16 @@ func getUsedVncPorts() []int {
 			continue
 		}
 
-		ret = append(ret, int(vmInst.VNCPort))
+		ret = append(ret, cast.ToUint16(vmInst.VNCPort))
 	}
 
 	return ret
 }
 
-func getUsedDebugPorts() []int {
+func getUsedDebugPorts() []uint16 {
 	defer List.Mu.RUnlock()
 
-	ret := make([]int, 0, len(List.VMList))
+	ret := make([]uint16, 0, len(List.VMList))
 
 	List.Mu.RLock()
 	for _, vmInst := range List.VMList {
@@ -258,7 +259,7 @@ func getUsedDebugPorts() []int {
 			continue
 		}
 
-		ret = append(ret, int(vmInst.DebugPort))
+		ret = append(ret, cast.ToUint16(vmInst.DebugPort))
 	}
 
 	return ret
@@ -366,7 +367,7 @@ func startSerialPort(comDev string, comSpeed uint) (*serial.Port, error) {
 
 	serialConfig := &serial.Config{
 		Name:        comReadDev,
-		Baud:        int(comSpeed),
+		Baud:        cast.ToInt(comSpeed),
 		ReadTimeout: 500 * time.Millisecond,
 	}
 

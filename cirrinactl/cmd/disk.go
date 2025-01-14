@@ -15,6 +15,7 @@ import (
 	"github.com/jedib0t/go-pretty/v6/progress"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/jedib0t/go-pretty/v6/text"
+	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
 
 	"cirrina/cirrinactl/rpc"
@@ -352,7 +353,7 @@ var DiskWipeCmd = &cobra.Command{
 	},
 }
 
-func trackDiskUpload(diskProgressWriter progress.Writer, diskSize int64, diskFile *os.File) {
+func trackDiskUpload(diskProgressWriter progress.Writer, diskSize uint64, diskFile *os.File) {
 	var err error
 
 	diskChecksum, err := checksumWithProgress(diskProgressWriter, diskSize)
@@ -362,7 +363,7 @@ func trackDiskUpload(diskProgressWriter progress.Writer, diskSize int64, diskFil
 
 	uploadTracker := progress.Tracker{
 		Message: "Uploading",
-		Total:   diskSize,
+		Total:   cast.ToInt64(diskSize),
 		Units:   progress.UnitsBytes,
 	}
 	diskProgressWriter.AppendTracker(&uploadTracker)
@@ -370,7 +371,7 @@ func trackDiskUpload(diskProgressWriter progress.Writer, diskSize int64, diskFil
 
 	var upload <-chan rpc.UploadStat
 
-	upload, err = rpc.DiskUpload(DiskID, diskChecksum, uint64(diskSize), diskFile)
+	upload, err = rpc.DiskUpload(DiskID, diskChecksum, diskSize, diskFile)
 	if err != nil {
 		uploadTracker.MarkAsErrored()
 
@@ -384,7 +385,7 @@ func trackDiskUpload(diskProgressWriter progress.Writer, diskSize int64, diskFil
 		}
 
 		if uploadStatEvent.UploadedChunk {
-			newTotal := uploadTracker.Value() + int64(uploadStatEvent.UploadedBytes)
+			newTotal := cast.ToUint64(uploadTracker.Value()) + uploadStatEvent.UploadedBytes
 			if newTotal > diskSize {
 				fmt.Printf("uploaded more bytes than size of file")
 				uploadTracker.MarkAsErrored()
@@ -396,7 +397,7 @@ func trackDiskUpload(diskProgressWriter progress.Writer, diskSize int64, diskFil
 				newTotal--
 			}
 
-			uploadTracker.SetValue(newTotal)
+			uploadTracker.SetValue(cast.ToInt64(newTotal))
 		}
 
 		if uploadStatEvent.Complete {
@@ -405,12 +406,12 @@ func trackDiskUpload(diskProgressWriter progress.Writer, diskSize int64, diskFil
 	}
 }
 
-func checksumWithProgress(diskProgressWriter progress.Writer, diskSize int64) (string, error) {
+func checksumWithProgress(diskProgressWriter progress.Writer, diskSize uint64) (string, error) {
 	var err error
 
 	checksumTracker := progress.Tracker{
 		Message: "Calculating checksum",
-		Total:   diskSize,
+		Total:   cast.ToInt64(diskSize),
 		Units:   progress.UnitsBytes,
 	}
 	diskProgressWriter.AppendTracker(&checksumTracker)
@@ -492,7 +493,7 @@ func uploadDiskWithStatus() error {
 	diskUploadProgressWriter.SetMessageLength(20)
 
 	go diskUploadProgressWriter.Render()
-	go trackDiskUpload(diskUploadProgressWriter, diskSize, diskFile)
+	go trackDiskUpload(diskUploadProgressWriter, cast.ToUint64(diskSize), diskFile)
 
 	// wait for upload to start
 	for !diskUploadProgressWriter.IsRenderInProgress() {
@@ -574,7 +575,7 @@ func uploadDiskWithoutStatus() error {
 
 	var upload <-chan rpc.UploadStat
 
-	upload, err = rpc.DiskUpload(DiskID, diskChecksum, uint64(diskSize), diskFile)
+	upload, err = rpc.DiskUpload(DiskID, diskChecksum, cast.ToUint64(diskSize), diskFile)
 	if err != nil {
 		return fmt.Errorf("failed uploading disk: %w", err)
 	}

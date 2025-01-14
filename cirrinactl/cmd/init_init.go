@@ -3,6 +3,7 @@
 package cmd
 
 import (
+	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -36,14 +37,14 @@ func init() {
 		panic(err)
 	}
 
-	rootCmd.PersistentFlags().Uint16P("port", "P", uint16(defaultPort), "port")
+	rootCmd.PersistentFlags().Uint16P("port", "P", cast.ToUint16(defaultPort), "port")
 
 	err = viper.BindPFlag("port", rootCmd.PersistentFlags().Lookup("port"))
 	if err != nil {
 		panic(err)
 	}
 
-	rootCmd.PersistentFlags().Uint64P("timeout", "T", uint64(defaultTimeout), "timeout in seconds")
+	rootCmd.PersistentFlags().Uint64P("timeout", "T", cast.ToUint64(defaultTimeout), "timeout in seconds")
 
 	err = viper.BindPFlag("timeout", rootCmd.PersistentFlags().Lookup("timeout"))
 	if err != nil {

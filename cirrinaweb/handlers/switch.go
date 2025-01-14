@@ -6,6 +6,8 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/google/uuid"
+	epb "google.golang.org/genproto/googleapis/rpc/errdetails"
+	"google.golang.org/grpc/status"
 
 	"cirrina/cirrinactl/rpc"
 	"cirrina/cirrinaweb/components"
@@ -98,7 +100,25 @@ func (d SwitchHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	if request.Method == http.MethodDelete {
 		err := DeleteSwitch(nameOrID)
 		if err != nil {
-			errMessage := util.GetErrDesc(err)
+			var errMessage string
+
+			s := status.Convert(err)
+			for _, d := range s.Details() {
+				switch info := d.(type) {
+				case *epb.PreconditionFailure:
+					var gotDesc bool
+					for _, v := range info.GetViolations() {
+						gotDesc = true
+						errMessage = v.GetDescription()
+					}
+
+					if !gotDesc {
+						errMessage = info.String()
+					}
+				default:
+					errMessage = fmt.Sprintf("Unexpected type: %s", info)
+				}
+			}
 
 			writer.Header().Set("HX-Redirect", "/net/switch/"+nameOrID+"?err="+errMessage)
 			writer.WriteHeader(http.StatusInternalServerError)

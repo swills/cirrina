@@ -12,6 +12,7 @@ import (
 	metrics "github.com/slok/go-http-metrics/metrics/prometheus"
 	"github.com/slok/go-http-metrics/middleware"
 	middlewarestd "github.com/slok/go-http-metrics/middleware/std"
+	"github.com/spf13/cast"
 
 	"cirrina/cirrinaweb/handlers"
 	"cirrina/cirrinaweb/util"
@@ -29,7 +30,7 @@ func healthCheck(writer http.ResponseWriter, _ *http.Request) {
 	writer.WriteHeader(http.StatusNoContent)
 }
 
-func parseEnv() (string, uint64) {
+func parseEnv() (string, uint16) {
 	var err error
 
 	util.InitRPC(
@@ -52,13 +53,15 @@ func parseEnv() (string, uint64) {
 		metricsHost = "localhost"
 	}
 
-	var metricsPort uint64 = 9090
+	var metricsPort uint16 = 9090
 
 	metricsPortStr := os.Getenv("CIRRINAWEB_METRICS_PORT")
 	if metricsPortStr != "" {
-		metricsPort, err = strconv.ParseUint(metricsPortStr, 10, 64)
-		if err != nil || metricsPort > 65536 {
-			metricsPort = 9090
+		var metricsPort64 uint64
+
+		metricsPort64, err = strconv.ParseUint(metricsPortStr, 10, 16)
+		if err == nil {
+			metricsPort = cast.ToUint16(metricsPort64)
 		}
 	}
 
@@ -70,12 +73,12 @@ func parseEnv() (string, uint64) {
 	return metricsHost, metricsPort
 }
 
-func setupMetrics(host string, port uint64) {
+func setupMetrics(host string, port uint16) {
 	go func() {
 		srv := &http.Server{
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 10 * time.Second,
-			Addr:         net.JoinHostPort(host, strconv.FormatUint(port, 10)),
+			Addr:         net.JoinHostPort(host, strconv.FormatUint(uint64(port), 10)),
 			Handler:      promhttp.Handler(),
 		}
 
@@ -92,7 +95,7 @@ func main() {
 
 	var metricsHost string
 
-	var metricsPort uint64
+	var metricsPort uint16
 
 	metricsHost, metricsPort = parseEnv()
 
@@ -200,7 +203,7 @@ func main() {
 	srv := &http.Server{
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
-		Addr:         net.JoinHostPort(util.GetListenHost(), strconv.FormatUint(util.GetListenPort(), 10)),
+		Addr:         net.JoinHostPort(util.GetListenHost(), strconv.FormatUint(uint64(util.GetListenPort()), 10)),
 		Handler:      mux,
 	}
 

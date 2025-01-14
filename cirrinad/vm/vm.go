@@ -13,6 +13,7 @@ import (
 
 	"github.com/kontera-technologies/go-supervisor/v2"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/spf13/cast"
 	"github.com/tarm/serial"
 	"gorm.io/gorm"
 
@@ -35,7 +36,7 @@ const (
 type Config struct {
 	gorm.Model
 	VMID             string
-	CPU              uint32 `gorm:"default:1;check:cpu>=1"`
+	CPU              uint32 `gorm:"default:1;check:cpu>=1"` // should be uint16 but changing requires db migration
 	Mem              uint32 `gorm:"default:128;check:mem>=128"`
 	MaxWait          uint32 `gorm:"default:120;check:max_wait>=0"`
 	Restart          bool   `gorm:"default:True;check:restart IN (0,1)"`
@@ -99,8 +100,8 @@ type VM struct {
 	Description string
 	Status      StatusType `gorm:"type:status_type"`
 	BhyvePid    uint32     `gorm:"check:bhyve_pid>=0"`
-	VNCPort     int32
-	DebugPort   int32
+	VNCPort     int32      // should be uint16 but changing requires db migration
+	DebugPort   int32      // should be uint16 but changing requires db migration
 	proc        *supervisor.Process
 	mu          sync.RWMutex
 	log         slog.Logger
@@ -158,7 +159,7 @@ func vmDaemon(events chan supervisor.Event, thisVM *VM) {
 			case "ProcessStart":
 				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
 
-				vmPid := findChildProcName(uint32(thisVM.proc.Pid()), "bhyve")
+				vmPid := findChildProcName(cast.ToUint32(thisVM.proc.Pid()), "bhyve")
 				if vmPid == 0 {
 					slog.Error("failed to find vm PID, shutting down")
 					// better than panicking or ignoring, I guess, but probably will fail in some weird way
@@ -169,7 +170,7 @@ func vmDaemon(events chan supervisor.Event, thisVM *VM) {
 					return
 				}
 
-				thisVM.SetRunning(int(vmPid))
+				thisVM.SetRunning(vmPid)
 				slog.Debug("vmDaemon ProcessStart",
 					"bhyvePid", thisVM.BhyvePid,
 					"sudoPid", thisVM.proc.Pid(),

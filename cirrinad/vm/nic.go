@@ -19,9 +19,6 @@ func (vm *VM) netStart() error {
 	}
 
 	for _, vmNic := range vmNicsList {
-		// silence gosec
-		vmNic := vmNic
-
 		err = vmNic.Build()
 		if err != nil {
 			slog.Error("error creating nic", "err", err)

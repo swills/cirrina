@@ -102,7 +102,6 @@ func Test_parsePsJSONOutput(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -416,8 +415,6 @@ func TestGetByName(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			testCase.mockClosure()
 
@@ -715,8 +712,6 @@ func TestGetRunningVMs(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
-
 		t.Run(testCase.name, func(t *testing.T) {
 			testCase.mockClosure()
 
@@ -736,7 +731,7 @@ func Test_getUsedVncPorts(t *testing.T) {
 	tests := []struct {
 		name        string
 		mockClosure func()
-		want        []int
+		want        []uint16
 	}{
 		{
 			name: "NoneUsed",
@@ -748,7 +743,7 @@ func Test_getUsedVncPorts(t *testing.T) {
 				List.VMList = map[string]*VM{}
 				List.VMList[testVM.ID] = &testVM
 			},
-			want: []int{},
+			want: []uint16{},
 		},
 		{
 			name: "OneUsed",
@@ -761,7 +756,7 @@ func Test_getUsedVncPorts(t *testing.T) {
 				List.VMList = map[string]*VM{}
 				List.VMList[testVM.ID] = &testVM
 			},
-			want: []int{5900},
+			want: []uint16{5900},
 		},
 	}
 
@@ -784,7 +779,7 @@ func Test_getUsedDebugPorts(t *testing.T) {
 	tests := []struct {
 		name        string
 		mockClosure func()
-		want        []int
+		want        []uint16
 	}{
 		{
 			name: "NoneUsed",
@@ -796,7 +791,7 @@ func Test_getUsedDebugPorts(t *testing.T) {
 				List.VMList = map[string]*VM{}
 				List.VMList[testVM.ID] = &testVM
 			},
-			want: []int{},
+			want: []uint16{},
 		},
 		{
 			name: "OneUsed",
@@ -809,7 +804,7 @@ func Test_getUsedDebugPorts(t *testing.T) {
 				List.VMList = map[string]*VM{}
 				List.VMList[testVM.ID] = &testVM
 			},
-			want: []int{3434},
+			want: []uint16{3434},
 		},
 	}
 

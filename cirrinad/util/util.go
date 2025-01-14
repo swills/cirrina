@@ -22,6 +22,7 @@ import (
 	"unicode"
 
 	"github.com/hashicorp/go-version"
+	"github.com/spf13/cast"
 	exec "golang.org/x/sys/execabs"
 	"golang.org/x/sys/unix"
 
@@ -35,8 +36,8 @@ var GetIntGroupsFunc = GetIntGroups
 var NetInterfacesFunc = net.Interfaces
 var osOpenFunc = os.Open
 
-func parseNetstatSocket(socket map[string]interface{}) (int, error) {
-	var portInt int64
+func parseNetstatSocket(socket map[string]interface{}) (uint16, error) {
+	var portInt uint64
 
 	var err error
 
@@ -69,15 +70,15 @@ func parseNetstatSocket(socket map[string]interface{}) (int, error) {
 		return 0, errPortNotParsable
 	}
 
-	portInt, err = strconv.ParseInt(p, 10, 32)
+	portInt, err = strconv.ParseUint(p, 10, 16)
 	if err != nil {
 		return 0, errInvalidPort
 	}
 
-	return int(portInt), nil
+	return cast.ToUint16(portInt), nil
 }
 
-func parseNetstatJSONOutput(netstatOutput []byte) ([]int, error) {
+func parseNetstatJSONOutput(netstatOutput []byte) ([]uint16, error) {
 	var result map[string]interface{}
 
 	err := json.Unmarshal(netstatOutput, &result)
@@ -95,7 +96,7 @@ func parseNetstatJSONOutput(netstatOutput []byte) ([]int, error) {
 		return nil, errSocketNotFound
 	}
 
-	var localPortList []int
+	var localPortList []uint16
 
 	for _, value := range sockets {
 		socket, valid := value.(map[string]interface{})
@@ -108,7 +109,7 @@ func parseNetstatJSONOutput(netstatOutput []byte) ([]int, error) {
 			continue
 		}
 
-		if !ContainsInt(localPortList, portInt) {
+		if !ContainsUint16(localPortList, portInt) {
 			localPortList = append(localPortList, portInt)
 		}
 	}
@@ -276,6 +277,16 @@ func ContainsInt(elems []int, v int) bool {
 	return false
 }
 
+func ContainsUint16(elems []uint16, v uint16) bool {
+	for _, s := range elems {
+		if v == s {
+			return true
+		}
+	}
+
+	return false
+}
+
 // RunCmd execute a system command and return stdout, stderr, return code and any internal errors
 // encountered running the command
 func RunCmd(cmdName string, cmdArgs []string) ([]byte, []byte, int, error) {
@@ -346,7 +357,7 @@ func RunCmd(cmdName string, cmdArgs []string) ([]byte, []byte, int, error) {
 	return outResult, errResult, returnCode, nil
 }
 
-func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (int, error) {
+func GetFreeTCPPort(firstVncPort uint16, usedVncPorts []uint16) (uint16, error) {
 	var err error
 	// get and parse netstat output
 	stdOutBytes, stdErrBytes, rc, err := RunCmd("/usr/bin/netstat", []string{"-an", "--libxo", "json"})
@@ -366,8 +377,9 @@ func GetFreeTCPPort(firstVncPort int, usedVncPorts []int) (int, error) {
 	})
 
 	vncPort := firstVncPort
-	for ; vncPort <= 65535; vncPort++ {
-		if !ContainsInt(uniqueLocalListenPorts, vncPort) && !ContainsInt(usedVncPorts, vncPort) {
+
+	for ; ; vncPort++ {
+		if !ContainsUint16(uniqueLocalListenPorts, vncPort) && !ContainsUint16(usedVncPorts, vncPort) {
 			break
 		}
 	}
@@ -618,11 +630,6 @@ func IsValidIP(ipAddress string) bool {
 	return parsedIP != nil
 }
 
-// IsValidTCPPort check if a number is a valid TCP port
-func IsValidTCPPort(tcpPort uint) bool {
-	return tcpPort <= 65535
-}
-
 func ModeIsSuid(mode fs.FileMode) bool {
 	return mode&fs.ModeSetuid != 0
 }
@@ -649,21 +656,21 @@ func GetMyUIDGID() (uint32, uint32, error) {
 		return 0, 0, errUserNotFound
 	}
 
-	var myUID int64
+	var myUID uint64
 
-	myUID, err = strconv.ParseInt(myUser.Uid, 10, 32)
-	if err != nil || myUID < 0 {
+	myUID, err = strconv.ParseUint(myUser.Uid, 10, 32)
+	if err != nil {
 		return 0, 0, fmt.Errorf("error parsing UID: %w", err)
 	}
 
-	var myGID int64
+	var myGID uint64
 
-	myGID, err = strconv.ParseInt(myUser.Gid, 10, 32)
-	if err != nil || myGID < 0 {
+	myGID, err = strconv.ParseUint(myUser.Gid, 10, 32)
+	if err != nil {
 		return 0, 0, fmt.Errorf("error parsing GID: %w", err)
 	}
 
-	return uint32(myUID), uint32(myGID), nil
+	return cast.ToUint32(myUID), cast.ToUint32(myGID), nil
 }
 
 func ValidateDBConfig() {

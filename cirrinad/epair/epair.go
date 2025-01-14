@@ -233,7 +233,7 @@ func NgConnectPipeWithRateLimit(name string, rate uint64) error {
 		stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
 			config.Config.Sys.Sudo,
 			[]string{"/usr/sbin/ngctl", "msg", name + "_pipe:", "setcfg",
-				"{", "upstream={", "bandwidth=" + strconv.FormatInt(int64(rate), 10), "fifo=1", "}", "}",
+				"{", "upstream={", "bandwidth=" + strconv.FormatUint(rate, 10), "fifo=1", "}", "}",
 			},
 		)
 		if err != nil {

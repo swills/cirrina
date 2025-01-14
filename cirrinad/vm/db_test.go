@@ -1834,7 +1834,7 @@ func TestVM_SetDebugPort(t *testing.T) {
 	}
 
 	type args struct {
-		port int
+		port uint16
 	}
 
 	tests := []struct {
@@ -2040,7 +2040,7 @@ func TestVM_SetVNCPort(t *testing.T) {
 	}
 
 	type args struct {
-		port int
+		port uint16
 	}
 
 	tests := []struct {
@@ -2273,7 +2273,6 @@ func TestVM_BeforeCreate(t *testing.T) {
 	t.Parallel()
 
 	for _, testCase := range tests {
-		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -2336,7 +2335,7 @@ func TestVM_SetRunning(t *testing.T) {
 	}
 
 	type args struct {
-		pid int
+		pid uint32
 	}
 
 	tests := []struct {

@@ -12,6 +12,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/spf13/cast"
 
 	"cirrina/cirrinaweb/handlers"
 	"cirrina/cirrinaweb/util"
@@ -82,7 +83,7 @@ func StartGoWebSockifyHTTP() {
 		ReadTimeout:       5 * time.Second,
 		WriteTimeout:      5 * time.Second,
 		IdleTimeout:       60 * time.Second,
-		Addr:              net.JoinHostPort(util.GetListenHost(), strconv.Itoa(int(util.GetWebsockifyPort()))),
+		Addr:              net.JoinHostPort(util.GetListenHost(), strconv.Itoa(cast.ToInt(util.GetWebsockifyPort()))),
 		Handler:           router,
 	}
 

@@ -11,7 +11,7 @@ import templruntime "github.com/a-h/templ/runtime"
 import "strconv"
 import "fmt"
 
-func Vm(vms []VM, vm VM, listenHost string, websockifyPort uint64) templ.Component {
+func Vm(vms []VM, vm VM, listenHost string, websockifyPort uint16) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -58,7 +58,7 @@ func Vm(vms []VM, vm VM, listenHost string, websockifyPort uint64) templ.Compone
 	})
 }
 
-func vmTemplate(vm VM, listenHost string, websockifyPort uint64) templ.Component {
+func vmTemplate(vm VM, listenHost string, websockifyPort uint16) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -181,7 +181,7 @@ func vmTemplate(vm VM, listenHost string, websockifyPort uint64) templ.Component
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				var templ_7745c5c3_Var10 templ.SafeURL = templ.URL("/vnc/vnc.html?autoconnect=true&reconnect=true&host=" + listenHost + "&port=" + strconv.FormatUint(websockifyPort, 10) + "&path=" + vm.NameOrID + "&resize=scale&reconnect=true")
+				var templ_7745c5c3_Var10 templ.SafeURL = templ.URL("/vnc/vnc.html?autoconnect=true&reconnect=true&host=" + listenHost + "&port=" + strconv.FormatUint(uint64(websockifyPort), 10) + "&path=" + vm.NameOrID + "&resize=scale&reconnect=true")
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(string(templ_7745c5c3_Var10)))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
@@ -463,7 +463,7 @@ func StopButton(vm VM) templ.Component {
 	})
 }
 
-func VmDataOnly(vms []VM, vm VM, listenHost string, websockifyPort uint64) templ.Component {
+func VmDataOnly(vms []VM, vm VM, listenHost string, websockifyPort uint16) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {

@@ -297,7 +297,7 @@ func (s *Switch) Delete() error {
 	switchDB := getSwitchDB()
 
 	if s.inUse() {
-		return errSwitchInUse
+		return ErrSwitchInUse
 	}
 
 	res := switchDB.Limit(1).Unscoped().Delete(&s)

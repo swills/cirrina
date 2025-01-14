@@ -29,8 +29,8 @@ type Info struct {
 		Grpc struct {
 			// TODO separate settings for IPv4 and IPv6 IP
 			IP      string
-			Port    uint
-			Timeout uint64 `default:"60"` // in seconds
+			Port    uint16
+			Timeout int64 `default:"60"` // in seconds
 		}
 		Mac struct {
 			Oui string
@@ -45,17 +45,17 @@ type Info struct {
 	Vnc struct {
 		// TODO separate settings for IPv4 and IPv6 IP
 		IP   string `default:"0.0.0.0"`
-		Port uint   `default:"5900"`
+		Port uint16 `default:"5900"`
 	}
 	Debug struct {
 		// TODO separate settings for IPv4 and IPv6 IP
 		IP   string `default:"0.0.0.0"`
-		Port uint   `default:"2828"`
+		Port uint16 `default:"2828"`
 	}
 	Metrics struct {
 		Enabled bool   `default:"false"`
 		Host    string `default:""`
-		Port    uint   `default:"2223"`
+		Port    uint16 `default:"2223"`
 	}
 }
 
