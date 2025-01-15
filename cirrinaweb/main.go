@@ -116,6 +116,7 @@ func main() {
 		mux.Handle("GET /home", HTTPLogger(middlewarestd.Handler("/home", mdlw, handlers.NewHomeHandler())))
 		mux.Handle("GET /vms", HTTPLogger(middlewarestd.Handler("/vms", mdlw, handlers.NewVMsHandler())))
 		mux.Handle("GET /vm/{nameOrID}", HTTPLogger(middlewarestd.Handler("/vm/:nameOrID", mdlw, handlers.NewVMHandler())))
+		mux.Handle("DELETE /vm/{nameOrID}", HTTPLogger(middlewarestd.Handler("/vm/:nameOrID", mdlw, handlers.NewVMHandler())))
 		mux.Handle(
 			"POST /vm/{nameOrID}/start",
 			HTTPLogger(middlewarestd.Handler("/vm/{nameOrID}/start", mdlw, handlers.NewVMStartHandler())),
@@ -179,6 +180,7 @@ func main() {
 		mux.Handle("GET /home", HTTPLogger(handlers.NewHomeHandler()))
 		mux.Handle("GET /vms", HTTPLogger(handlers.NewVMsHandler()))
 		mux.Handle("GET /vm/{nameOrID}", HTTPLogger(handlers.NewVMHandler()))
+		mux.Handle("DELETE /vm/{nameOrID}", HTTPLogger(handlers.NewVMHandler()))
 		mux.Handle("POST /vm/{nameOrID}/start", HTTPLogger(handlers.NewVMStartHandler()))
 		mux.Handle("POST /vm/{nameOrID}/stop", HTTPLogger(handlers.NewVMStopHandler()))
 		mux.Handle("GET /vmdata/{nameOrID}", HTTPLogger(handlers.NewVMDataHandler()))

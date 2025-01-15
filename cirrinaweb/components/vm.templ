@@ -28,6 +28,7 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
             } else {
                 <div>VM is not running</div>
                 @StartButton(vm)
+                @DeleteVMButton(vm)
             }
             <div>
             Disks:
@@ -72,4 +73,8 @@ templ StopButton(vm VM) {
 
 templ VmDataOnly(vms []VM, vm VM, listenHost string, websockifyPort uint16) {
     @vmTemplate(vm, listenHost, websockifyPort)
+}
+
+templ DeleteVMButton(aVM VM) {
+    <button hx-delete={ "/vm/" + aVM.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to delete vm " + aVM.NameOrID + "?"}>Delete</button>
 }

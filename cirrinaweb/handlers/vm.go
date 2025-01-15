@@ -33,8 +33,51 @@ func NewVMHandler() VMHandler {
 	}
 }
 
+func DeleteVM(nameOrID string) error {
+	var err error
+
+	var VMID string
+
+	parsedUUID, err := uuid.Parse(nameOrID)
+	if err != nil {
+		rpc.ResetConnTimeout()
+
+		VMID, err = rpc.VMNameToID(nameOrID)
+		if err != nil {
+			return fmt.Errorf("error getting VM: %w", err)
+		}
+	} else {
+		VMID = parsedUUID.String()
+	}
+
+	rpc.ResetConnTimeout()
+
+	_, err = rpc.DeleteVM(VMID)
+	if err != nil {
+		return fmt.Errorf("failed removing VM: %w", err)
+	}
+
+	return nil
+}
+
 func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	aVM, err := v.GetVM(request.PathValue("nameOrID"))
+	nameOrID := request.PathValue("nameOrID")
+	if request.Method == http.MethodDelete {
+		err := DeleteVM(nameOrID)
+		if err != nil {
+			writer.Header().Set("HX-Redirect", "/vm/"+nameOrID)
+			writer.WriteHeader(http.StatusInternalServerError)
+
+			return
+		}
+
+		writer.Header().Set("HX-Redirect", "/vms")
+		writer.WriteHeader(http.StatusOK)
+
+		return
+	}
+
+	aVM, err := v.GetVM(nameOrID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
