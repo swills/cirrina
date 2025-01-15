@@ -133,6 +133,10 @@ func main() {
 			"DELETE /vm/{vmNameOrID}/iso/{isoNameOrID}",
 			HTTPLogger(middlewarestd.Handler("/vm/{vmNameOrID}/iso/{isoNameOrID}", mdlw, handlers.NewVMISOHandler())),
 		)
+		mux.Handle(
+			"DELETE /vm/{vmNameOrID}/nic/{nicNameOrID}",
+			HTTPLogger(middlewarestd.Handler("/vm/{vmNameOrID}/nic/{isoNameOrID}", mdlw, handlers.NewVMNICHandler())),
+		)
 
 		mux.Handle(
 			"GET /vmdata/{nameOrID}",
@@ -194,6 +198,7 @@ func main() {
 		mux.Handle("POST /vm/{nameOrID}/stop", HTTPLogger(handlers.NewVMStopHandler()))
 		mux.Handle("DELETE /vm/{vmNameOrID}/disk/{diskNameOrID}", HTTPLogger(handlers.NewVMDiskHandler()))
 		mux.Handle("DELETE /vm/{vmNameOrID}/iso/{isoNameOrID}", HTTPLogger(handlers.NewVMISOHandler()))
+		mux.Handle("DELETE /vm/{vmNameOrID}/nic/{isoNameOrID}", HTTPLogger(handlers.NewVMNICHandler()))
 		mux.Handle("GET /vmdata/{nameOrID}", HTTPLogger(handlers.NewVMDataHandler()))
 		mux.Handle("GET /vnc/", HTTPLogger(NoCache(vncFileServer)))
 		mux.Handle("GET /assets/", HTTPLogger(assetFileServer))

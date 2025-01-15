@@ -53,6 +53,9 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
                 <div data-testid="vmsTemplateVMNIC">
                     for _, n := range vm.NICs {
                         <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/net/nic/" + n.Name) }>{ n.Name }</a> (<a href={ templ.URL("/net/nic/" + n.ID)}>id</a>)</div>
+                        if vm.NameOrID != "" && n.NameOrID != "" {
+                            @DisconnectNICButton(vm, n)
+                        }
                     }
                 </div>
             </div>
@@ -90,5 +93,9 @@ templ DisconnectDiskButton(aVM VM, aDisk Disk) {
 }
 
 templ DisconnectISOButton(aVM VM, aISO ISO) {
-    <button hx-delete={ "/vm/" + aVM.NameOrID + "/iso/" + aISO.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to disconnect iso " + aISO.NameOrID + " from VM " + aVM.NameOrID + "?"}>Disconnect</button>
+    <button hx-delete={ "/vm/" + aVM.NameOrID + "/iso/" + aISO.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to disconnect ISO " + aISO.NameOrID + " from VM " + aVM.NameOrID + "?"}>Disconnect</button>
+}
+
+templ DisconnectNICButton(aVM VM, aNIC NIC) {
+    <button hx-delete={ "/vm/" + aVM.NameOrID + "/nic/" + aNIC.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to disconnect NIC " + aNIC.NameOrID + " from VM " + aVM.NameOrID + "?"}>Disconnect</button>
 }

@@ -319,7 +319,7 @@ func GetVMNICs(vmID string) ([]components.NIC, error) {
 			return []components.NIC{}, fmt.Errorf("error getting VM NICs: %w", err)
 		}
 
-		returnNICs = append(returnNICs, components.NIC{Name: aNIC.Name, ID: NICID})
+		returnNICs = append(returnNICs, components.NIC{Name: aNIC.Name, ID: NICID, NameOrID: aNIC.Name})
 	}
 
 	return returnNICs, nil
@@ -594,6 +594,8 @@ func RemoveVMISO(aVM components.VM, aISO components.ISO) error {
 
 	var res bool
 
+	rpc.ResetConnTimeout()
+
 	res, err = rpc.VMSetIsos(aVM.ID, newIsoIDs)
 	if err != nil {
 		return fmt.Errorf("failed setting VM ISOs: %w", err)
@@ -637,6 +639,96 @@ func (v VMISOHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 	switch request.Method {
 	case http.MethodDelete:
 		err = RemoveVMISO(aVM, aISO)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+		}
+
+		writer.Header().Set("HX-Redirect", "/vm/"+vmNameOrID)
+		writer.WriteHeader(http.StatusOK)
+
+		return
+	default:
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+}
+
+type VMNICHandler struct{}
+
+func NewVMNICHandler() VMNICHandler {
+	return VMNICHandler{}
+}
+
+func RemoveVMNIC(aVM components.VM, aNIC components.NIC) error {
+	var nicIDs []string
+
+	var err error
+
+	rpc.ResetConnTimeout()
+
+	nicIDs, err = rpc.GetVMNics(aVM.ID)
+	if err != nil {
+		return fmt.Errorf("error getting NICs: %w", err)
+	}
+
+	var newNICIDs []string
+
+	for _, id := range nicIDs {
+		if id != aNIC.ID {
+			newNICIDs = append(newNICIDs, id)
+		}
+	}
+
+	var res bool
+
+	rpc.ResetConnTimeout()
+
+	res, err = rpc.VMSetNics(aVM.ID, newNICIDs)
+	if err != nil {
+		return fmt.Errorf("failed setting VM NICs: %w", err)
+	}
+
+	if !res {
+		return ErrRemoveNIC
+	}
+
+	return nil
+}
+
+func (v VMNICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	vmNameOrID := request.PathValue("vmNameOrID")
+	nicNameOrID := request.PathValue("nicNameOrID")
+
+	var err error
+
+	var aVM components.VM
+
+	var aNIC components.NIC
+
+	aVM, err = GetVM(vmNameOrID)
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	aNIC, err = GetNIC(nicNameOrID)
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	switch request.Method {
+	case http.MethodDelete:
+		err = RemoveVMNIC(aVM, aNIC)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 		}
