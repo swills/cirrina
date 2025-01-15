@@ -284,7 +284,7 @@ func GetVMISOs(vmID string) ([]components.ISO, error) {
 			return []components.ISO{}, fmt.Errorf("error getting VM ISOs: %w", err)
 		}
 
-		returnISOs = append(returnISOs, components.ISO{Name: aISO.Name, ID: isoID})
+		returnISOs = append(returnISOs, components.ISO{Name: aISO.Name, ID: isoID, NameOrID: aISO.Name})
 	}
 
 	return returnISOs, nil
@@ -483,7 +483,7 @@ func RemoveVMDisk(aVM components.VM, aDisk components.Disk) error {
 
 	diskIDs, err = rpc.GetVMDisks(aVM.ID)
 	if err != nil {
-		return fmt.Errorf("error getting disk: %w", err)
+		return fmt.Errorf("error getting disks: %w", err)
 	}
 
 	var newDiskIDs []string
@@ -541,6 +541,102 @@ func (v VMDiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	switch request.Method {
 	case http.MethodDelete:
 		err = RemoveVMDisk(aVM, aDisk)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+		}
+
+		writer.Header().Set("HX-Redirect", "/vm/"+vmNameOrID)
+		writer.WriteHeader(http.StatusOK)
+
+		return
+	default:
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+}
+
+type VMISOHandler struct{}
+
+func NewVMISOHandler() VMISOHandler {
+	return VMISOHandler{}
+}
+
+func RemoveVMISO(aVM components.VM, aISO components.ISO) error {
+	var isoIDs []string
+
+	var err error
+
+	rpc.ResetConnTimeout()
+
+	isoIDs, err = rpc.GetVMIsos(aVM.ID)
+	if err != nil {
+		return fmt.Errorf("error getting isos: %w", err)
+	}
+
+	var newIsoIDs []string
+
+	var deleted bool
+
+	for _, id := range isoIDs {
+		if !deleted && id == aISO.ID {
+			deleted = true
+		} else {
+			newIsoIDs = append(newIsoIDs, id)
+		}
+	}
+
+	if !deleted {
+		return ErrRemoveISO
+	}
+
+	var res bool
+
+	res, err = rpc.VMSetIsos(aVM.ID, newIsoIDs)
+	if err != nil {
+		return fmt.Errorf("failed setting VM ISOs: %w", err)
+	}
+
+	if !res {
+		return ErrRemoveISO
+	}
+
+	return nil
+}
+
+func (v VMISOHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	vmNameOrID := request.PathValue("vmNameOrID")
+	isoNameOrID := request.PathValue("isoNameOrID")
+
+	var err error
+
+	var aVM components.VM
+
+	var aISO components.ISO
+
+	aVM, err = GetVM(vmNameOrID)
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	aISO, err = GetISO(isoNameOrID)
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	switch request.Method {
+	case http.MethodDelete:
+		err = RemoveVMISO(aVM, aISO)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 		}
