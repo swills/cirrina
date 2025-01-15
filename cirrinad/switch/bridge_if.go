@@ -313,7 +313,7 @@ func (s *Switch) setUplinkIf(uplink string) error {
 			"same type, skipping adding", "member", uplink,
 		)
 
-		return errSwitchUplinkInUse
+		return ErrSwitchUplinkInUse
 	}
 
 	slog.Debug("setting IF bridge uplink", "id", s.ID)
@@ -344,7 +344,7 @@ func (s *Switch) validateIfSwitch() error {
 		}
 
 		if alreadyUsed {
-			return errSwitchUplinkInUse
+			return ErrSwitchUplinkInUse
 		}
 	}
 

@@ -205,3 +205,4 @@ linters-settings:
   wrapcheck:
     ignorePackageGlobs:
       - google.golang.org/grpc/internal/status
+      - google.golang.org/grpc/status

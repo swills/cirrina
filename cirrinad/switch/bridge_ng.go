@@ -461,12 +461,6 @@ func ngGetBridgeNextLink(bridge string) (string, error) {
 }
 
 func (s *Switch) setUplinkNG(uplink string) error {
-	netDevs := util.GetHostInterfaces()
-
-	if !util.ContainsStr(netDevs, uplink) {
-		return errSwitchInvalidUplink
-	}
-
 	// it can't be a member of another bridge already
 	alreadyUsed, err := memberUsedByNgSwitch(uplink)
 	if err != nil {
@@ -480,7 +474,7 @@ func (s *Switch) setUplinkNG(uplink string) error {
 			"same type, skipping adding", "member", uplink,
 		)
 
-		return errSwitchUplinkInUse
+		return ErrSwitchUplinkInUse
 	}
 
 	slog.Debug("setting NG bridge uplink", "id", s.ID)
@@ -511,7 +505,7 @@ func (s *Switch) validateNgSwitch() error {
 		}
 
 		if alreadyUsed {
-			return errSwitchUplinkInUse
+			return ErrSwitchUplinkInUse
 		}
 	}
 

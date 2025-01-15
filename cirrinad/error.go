@@ -24,7 +24,6 @@ var (
 
 var (
 	errSwitchNotFound      = errors.New("switch not found")
-	errSwitchInvalidType   = errors.New("invalid switch type")
 	errSwitchInvalidUplink = errors.New("uplink not specified")
 	errSwitchUplinkInUse   = errors.New("uplink already in use")
 	errSwitchInternalDB    = errors.New("internal switch database error")

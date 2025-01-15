@@ -125,6 +125,8 @@ func Test_server_GetNetInterfaces(t *testing.T) {
 
 			util.GetIntGroupsFunc = testCase.getIntGroupStubFunc
 
+			t.Cleanup(func() { util.GetIntGroupsFunc = util.GetIntGroups })
+
 			lis := bufconn.Listen(1024 * 1024)
 			s := grpc.NewServer()
 			reflection.Register(s)

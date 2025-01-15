@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"cirrina/cirrina"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vmnic"
 )
@@ -41,6 +42,12 @@ func (s *Switch) switchTypeValid() bool {
 }
 
 func (s *Switch) switchCheckUplink() error {
+	netDevs := util.GetHostInterfaces()
+
+	if !util.ContainsStr(netDevs, s.Uplink) {
+		return ErrSwitchInvalidUplink
+	}
+
 	switch s.Type {
 	case "IF":
 		if s.Uplink != "" {
@@ -50,7 +57,7 @@ func (s *Switch) switchCheckUplink() error {
 			}
 
 			if alreadyUsed {
-				return errSwitchUplinkInUse
+				return ErrSwitchUplinkInUse
 			}
 		}
 	case "NG":
@@ -61,7 +68,7 @@ func (s *Switch) switchCheckUplink() error {
 			}
 
 			if alreadyUsed {
-				return errSwitchUplinkInUse
+				return ErrSwitchUplinkInUse
 			}
 		}
 	default:
@@ -74,7 +81,6 @@ func (s *Switch) switchCheckUplink() error {
 }
 
 func (s *Switch) validate() error {
-	// switchNameValid also checks type, no need to check here
 	if !s.switchNameValid() {
 		return ErrSwitchInvalidName
 	}
@@ -90,8 +96,8 @@ func (s *Switch) validate() error {
 		return s.validateIfSwitch()
 	case "NG":
 		return s.validateNgSwitch()
-	default: // unreachable
-		return ErrSwitchInvalidType // unreachable
+	default:
+		return ErrSwitchInvalidType
 	}
 }
 
@@ -682,4 +688,29 @@ func (s *Switch) DisconnectNic(vmNic *vmnic.VMNic) error {
 	}
 
 	return nil
+}
+
+func MapSwitchTypeTypeToDBString(switchType cirrina.SwitchType) (string, error) {
+	switch switchType {
+	case cirrina.SwitchType_IF:
+		return "IF", nil
+	case cirrina.SwitchType_NG:
+		return "NG", nil
+	default:
+		return "", ErrSwitchInvalidType
+	}
+}
+
+func MapSwitchTypeDBStringToType(switchType string) (*cirrina.SwitchType, error) {
+	SwitchTypeIf := cirrina.SwitchType_IF
+	SwitchTypeNg := cirrina.SwitchType_NG
+
+	switch switchType {
+	case "IF":
+		return &SwitchTypeIf, nil
+	case "NG":
+		return &SwitchTypeNg, nil
+	default:
+		return nil, ErrSwitchInvalidType
+	}
 }

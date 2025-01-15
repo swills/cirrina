@@ -13,6 +13,7 @@ import (
 	"github.com/go-test/deep"
 	"gorm.io/gorm"
 
+	"cirrina/cirrina"
 	"cirrina/cirrinad/cirrinadtest"
 	"cirrina/cirrinad/util"
 	"cirrina/cirrinad/vmnic"
@@ -1944,14 +1945,18 @@ func Test_switchCheckUplink(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockCmdFunc string
-		args        args
-		wantErr     bool
+		name                string
+		mockCmdFunc         string
+		hostIntStubFunc     func() ([]net.Interface, error)
+		getIntGroupStubFunc func(string) ([]string, error)
+		args                args
+		wantErr             bool
 	}{
 		{
-			name:        "SuccessIF1",
-			mockCmdFunc: "Test_switchCheckUplinkSuccessIF1",
+			name:                "SuccessIF1",
+			mockCmdFunc:         "Test_switchCheckUplinkSuccessIF1",
+			hostIntStubFunc:     StubHostInterfacesTestSwitchCheckUplinkSuccessIF1,
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess,
 			args: args{switchInst: &Switch{
 				Name:        "bridge0",
 				Description: "test if switch",
@@ -1961,8 +1966,10 @@ func Test_switchCheckUplink(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "SuccessNG1",
-			mockCmdFunc: "Test_switchCheckUplinkSuccessNG1",
+			name:                "SuccessNG1",
+			hostIntStubFunc:     StubHostInterfacesTestSwitchCheckUplinkSuccessIF1,
+			mockCmdFunc:         "Test_switchCheckUplinkSuccessNG1",
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess,
 			args: args{switchInst: &Switch{
 				Name:        "bnet0",
 				Description: "test ng switch",
@@ -1972,8 +1979,10 @@ func Test_switchCheckUplink(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "ErrorIF1",
-			mockCmdFunc: "Test_switchCheckUplinkErrorIF1",
+			name:                "ErrorIF1",
+			hostIntStubFunc:     StubHostInterfacesTestSwitchCheckUplinkSuccessIF1,
+			mockCmdFunc:         "Test_switchCheckUplinkErrorIF1",
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess,
 			args: args{switchInst: &Switch{
 				Name:        "bridge0",
 				Description: "test if switch",
@@ -1983,8 +1992,10 @@ func Test_switchCheckUplink(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "InUseIF1",
-			mockCmdFunc: "Test_switchCheckUplinkInUseIF1",
+			name:                "InUseIF1",
+			hostIntStubFunc:     StubHostInterfacesTestSwitchCheckUplinkSuccessIF1,
+			mockCmdFunc:         "Test_switchCheckUplinkInUseIF1",
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess,
 			args: args{switchInst: &Switch{
 				Name:        "bridge0",
 				Description: "test if switch",
@@ -1994,8 +2005,10 @@ func Test_switchCheckUplink(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "ErrorNG1",
-			mockCmdFunc: "Test_switchCheckUplinkErrorNG1",
+			name:                "ErrorNG1",
+			hostIntStubFunc:     StubHostInterfacesTestSwitchCheckUplinkSuccessIF1,
+			mockCmdFunc:         "Test_switchCheckUplinkErrorNG1",
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess,
 			args: args{switchInst: &Switch{
 				Name:        "bnet0",
 				Description: "test ng switch",
@@ -2005,8 +2018,10 @@ func Test_switchCheckUplink(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "InUseNG1",
-			mockCmdFunc: "Test_switchCheckUplinkInUseNG1",
+			name:                "InUseNG1",
+			hostIntStubFunc:     StubHostInterfacesTestSwitchCheckUplinkSuccessIF1,
+			mockCmdFunc:         "Test_switchCheckUplinkInUseNG1",
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess,
 			args: args{switchInst: &Switch{
 				Name:        "bnet0",
 				Description: "test if switch",
@@ -2016,7 +2031,10 @@ func Test_switchCheckUplink(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "BadType",
+			name:                "BadType",
+			hostIntStubFunc:     StubHostInterfacesTestSwitchCheckUplinkSuccessIF1,
+			mockCmdFunc:         "Test_switchCheckUplinkSuccessIF1",
+			getIntGroupStubFunc: StubGetHostIntGroupSuccess,
 			args: args{switchInst: &Switch{
 				Type: "garbage",
 			}},
@@ -2031,6 +2049,14 @@ func Test_switchCheckUplink(t *testing.T) {
 			util.SetupTestCmd(fakeCommand)
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			util.GetIntGroupsFunc = testCase.getIntGroupStubFunc
+
+			t.Cleanup(func() { util.GetIntGroupsFunc = util.GetIntGroups })
+
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
 
 			err := testCase.args.switchInst.switchCheckUplink()
 			if (err != nil) != testCase.wantErr {
@@ -2977,14 +3003,16 @@ func Test_validateSwitch(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		mockCmdFunc string
-		args        args
-		wantErr     bool
+		name            string
+		hostIntStubFunc func() ([]net.Interface, error)
+		mockCmdFunc     string
+		args            args
+		wantErr         bool
 	}{
 		{
-			name:        "SuccessIF",
-			mockCmdFunc: "Test_validateSwitchIFSuccess",
+			name:            "SuccessIF",
+			mockCmdFunc:     "Test_validateSwitchIFSuccess",
+			hostIntStubFunc: StubHostInterfacesTestValidateSwitchSuccess,
 			args: args{
 				switchInst: &Switch{
 					ID:          "b5502a49-8d54-43db-8ee7-51de31a813a2",
@@ -2997,8 +3025,9 @@ func Test_validateSwitch(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "SuccessNG",
-			mockCmdFunc: "Test_validateSwitchNGSuccess",
+			name:            "SuccessNG",
+			hostIntStubFunc: StubHostInterfacesTestValidateSwitchSuccess,
+			mockCmdFunc:     "Test_validateSwitchNGSuccess",
 			args: args{
 				switchInst: &Switch{
 					ID:          "b5502a49-8d54-43db-8ee7-51de31a813a2",
@@ -3011,8 +3040,9 @@ func Test_validateSwitch(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:        "InvalidName",
-			mockCmdFunc: "Test_validateSwitchIFSuccess",
+			name:            "InvalidName",
+			hostIntStubFunc: StubHostInterfacesTestValidateSwitchSuccess,
+			mockCmdFunc:     "Test_validateSwitchIFSuccess",
 			args: args{
 				switchInst: &Switch{
 					ID:          "b5502a49-8d54-43db-8ee7-51de31a813a2",
@@ -3025,8 +3055,9 @@ func Test_validateSwitch(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "InvalidUplink",
-			mockCmdFunc: "Test_validateSwitchIfInvalidUplink",
+			name:            "InvalidUplink",
+			hostIntStubFunc: StubHostInterfacesTestValidateSwitchSuccess,
+			mockCmdFunc:     "Test_validateSwitchIfInvalidUplink",
 			args: args{
 				switchInst: &Switch{
 					ID:          "b5502a49-8d54-43db-8ee7-51de31a813a2",
@@ -3039,8 +3070,9 @@ func Test_validateSwitch(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:        "InvalidType",
-			mockCmdFunc: "Test_validateSwitchIfInvalidUplink", // unused
+			name:            "InvalidType",
+			hostIntStubFunc: StubHostInterfacesTestValidateSwitchSuccess,
+			mockCmdFunc:     "Test_validateSwitchIfInvalidUplink", // unused
 			args: args{
 				switchInst: &Switch{
 					Type: "garbage",
@@ -3057,6 +3089,10 @@ func Test_validateSwitch(t *testing.T) {
 			util.SetupTestCmd(fakeCommand)
 
 			t.Cleanup(func() { util.TearDownTestCmd() })
+
+			util.NetInterfacesFunc = testCase.hostIntStubFunc
+
+			t.Cleanup(func() { util.NetInterfacesFunc = net.Interfaces })
 
 			err := testCase.args.switchInst.validate()
 			if (err != nil) != testCase.wantErr {
@@ -4804,6 +4840,121 @@ func TestSwitch_DisconnectNic(t *testing.T) {
 			err := testSwitch.DisconnectNic(testCase.args.vmNic)
 			if (err != nil) != testCase.wantErr {
 				t.Errorf("DisconnectNic() error = %v, wantErr %v", err, testCase.wantErr)
+			}
+		})
+	}
+}
+
+func Test_mapSwitchTypeTypeToDBString(t *testing.T) {
+	type args struct {
+		switchType cirrina.SwitchType
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "junk",
+			args: args{
+				switchType: cirrina.SwitchType(-1),
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "IF",
+			args: args{
+				switchType: cirrina.SwitchType_IF,
+			},
+			want:    "IF",
+			wantErr: false,
+		},
+		{
+			name: "NG",
+			args: args{
+				switchType: cirrina.SwitchType_NG,
+			},
+			want:    "NG",
+			wantErr: false,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := MapSwitchTypeTypeToDBString(testCase.args.switchType)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("MapSwitchTypeTypeToDBString() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			if got != testCase.want {
+				t.Errorf("MapSwitchTypeTypeToDBString() got = %v, want %v", got, testCase.want)
+			}
+		})
+	}
+}
+
+func Test_mapSwitchTypeDBStringToType(t *testing.T) {
+	type args struct {
+		switchType string
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    *cirrina.SwitchType
+		wantErr bool
+	}{
+		{
+			name: "junk",
+			args: args{
+				switchType: "junk",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "IF",
+			args: args{
+				switchType: "IF",
+			},
+			want:    func() *cirrina.SwitchType { n := cirrina.SwitchType_IF; return &n }(), //nolint:nlreturn
+			wantErr: false,
+		},
+		{
+			name: "NG",
+			args: args{
+				switchType: "NG",
+			},
+			want:    func() *cirrina.SwitchType { n := cirrina.SwitchType_NG; return &n }(), //nolint:nlreturn
+			wantErr: false,
+		},
+	}
+
+	t.Parallel()
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := MapSwitchTypeDBStringToType(testCase.args.switchType)
+			if (err != nil) != testCase.wantErr {
+				t.Errorf("MapSwitchTypeDBStringToType() error = %v, wantErr %v", err, testCase.wantErr)
+
+				return
+			}
+
+			diff := deep.Equal(got, testCase.want)
+			if diff != nil {
+				t.Errorf("compare failed: %v", diff)
 			}
 		})
 	}
@@ -6847,6 +6998,53 @@ func StubHostInterfacesTestSwitchConnectNicVMNetSuccess() ([]net.Interface, erro
 			MTU:          1500,
 			Name:         "vmnet0",
 			HardwareAddr: net.HardwareAddr{0xff, 0xdd, 0xcc, 0x91, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubGetHostIntGroupSuccess(intName string) ([]string, error) {
+	switch intName {
+	case "lo0":
+		return []string{"lo"}, nil
+	default:
+		return []string{}, nil
+	}
+}
+
+func StubHostInterfacesTestSwitchCheckUplinkSuccessIF1() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        0,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        1,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xff, 0xab, 0x1c, 0x41, 0x7a, 0x71},
+			Flags:        0x33,
+		},
+	}, nil
+}
+
+func StubHostInterfacesTestValidateSwitchSuccess() ([]net.Interface, error) {
+	return []net.Interface{
+		{
+			Index:        1,
+			MTU:          16384,
+			Name:         "lo0",
+			HardwareAddr: net.HardwareAddr(nil),
+			Flags:        0x35,
+		},
+		{
+			Index:        2,
+			MTU:          1500,
+			Name:         "em0",
+			HardwareAddr: net.HardwareAddr{0xaf, 0xdf, 0xbe, 0x91, 0x7a, 0x71},
 			Flags:        0x33,
 		},
 	}, nil

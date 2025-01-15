@@ -16,9 +16,9 @@ import (
 )
 
 func (s *server) AddSwitch(_ context.Context, switchInfo *cirrina.SwitchInfo) (*cirrina.SwitchId, error) {
-	switchType, err := mapSwitchTypeTypeToDBString(switchInfo.GetSwitchType())
+	switchType, err := _switch.MapSwitchTypeTypeToDBString(switchInfo.GetSwitchType())
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.InvalidArgument, "switch type invalid")
 	}
 
 	switchInst := &_switch.Switch{
@@ -30,7 +30,18 @@ func (s *server) AddSwitch(_ context.Context, switchInfo *cirrina.SwitchInfo) (*
 
 	err = _switch.Create(switchInst)
 	if err != nil {
-		return nil, fmt.Errorf("error creating switch: %w", err)
+		switch {
+		case errors.Is(err, _switch.ErrSwitchExists):
+			return nil, status.Error(codes.AlreadyExists, "switch by that name already exists")
+		case errors.Is(err, _switch.ErrSwitchInvalidName):
+			return nil, status.Error(codes.InvalidArgument, "switch name invalid")
+		case errors.Is(err, _switch.ErrSwitchInvalidUplink):
+			return nil, status.Error(codes.FailedPrecondition, "switch uplink does not exist")
+		case errors.Is(err, _switch.ErrSwitchUplinkInUse):
+			return nil, status.Error(codes.FailedPrecondition, "switch uplink in use by another switch")
+		default:
+			return nil, status.Errorf(codes.Internal, "internal error creating switch: %s", err)
+		}
 	}
 
 	return &cirrina.SwitchId{Value: switchInst.ID}, nil
@@ -73,9 +84,9 @@ func (s *server) GetSwitchInfo(_ context.Context, switchID *cirrina.SwitchId) (*
 	switchInfo.Description = &vmSwitch.Description
 	switchInfo.Uplink = &vmSwitch.Uplink
 
-	switchInfo.SwitchType, err = mapSwitchTypeDBStringToType(vmSwitch.Type)
+	switchInfo.SwitchType, err = _switch.MapSwitchTypeDBStringToType(vmSwitch.Type)
 	if err != nil {
-		return &cirrina.SwitchInfo{}, err
+		return &cirrina.SwitchInfo{}, fmt.Errorf("internal error: %w", err)
 	}
 
 	return &switchInfo, nil
@@ -223,14 +234,21 @@ func (s *server) SetSwitchUplink(_ context.Context, switchUplinkReq *cirrina.Swi
 
 func (s *server) SetSwitchInfo(_ context.Context, switchInfoUpdate *cirrina.SwitchInfoUpdate) (*cirrina.ReqBool, error) { //nolint:lll
 	var res cirrina.ReqBool
+
+	var err error
+
+	var switchUUID uuid.UUID
+
+	var switchInst *_switch.Switch
+
 	res.Success = false
 
-	switchUUID, err := uuid.Parse(switchInfoUpdate.GetId())
+	switchUUID, err = uuid.Parse(switchInfoUpdate.GetId())
 	if err != nil {
 		return &res, errInvalidID
 	}
 
-	switchInst, err := _switch.GetByID(switchUUID.String())
+	switchInst, err = _switch.GetByID(switchUUID.String())
 	if err != nil {
 		return &res, fmt.Errorf("error getting switch ID: %w", err)
 	}
@@ -249,7 +267,7 @@ func (s *server) SetSwitchInfo(_ context.Context, switchInfoUpdate *cirrina.Swit
 	return &res, nil
 }
 
-// uplinkInUse check if the uplink is in use by a switch other than this one
+// uplinkInUse checks if the uplink is in use by a switch other than this one
 func uplinkInUse(vmSwitch *_switch.Switch, uplinkName string) bool {
 	switchList := _switch.GetAll()
 	for _, sw := range switchList {
