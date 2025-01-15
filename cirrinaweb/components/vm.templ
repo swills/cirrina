@@ -35,6 +35,9 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
                 <div data-testid="vmsTemplateVMDisk">
                     for _, d := range vm.Disks {
                         <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/media/disk/" + d.Name) }>{ d.Name }</a> (<a href={ templ.URL("/media/disk/" + d.ID)}>id</a>)</div>
+                        if vm.NameOrID != "" && d.NameOrID != "" {
+                            @DisconnectDiskButton(vm, d)
+                        }
                     }
                 </div>
             ISOs:
@@ -77,4 +80,8 @@ templ VmDataOnly(vms []VM, vm VM, listenHost string, websockifyPort uint16) {
 
 templ DeleteVMButton(aVM VM) {
     <button hx-delete={ "/vm/" + aVM.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to delete vm " + aVM.NameOrID + "?"}>Delete</button>
+}
+
+templ DisconnectDiskButton(aVM VM, aDisk Disk) {
+    <button hx-delete={ "/vm/" + aVM.NameOrID + "/disk/" + aDisk.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to remove disk " + aDisk.NameOrID + " from VM " + aVM.NameOrID + "?"}>Disconnect</button>
 }

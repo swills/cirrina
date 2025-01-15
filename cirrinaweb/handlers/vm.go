@@ -249,7 +249,7 @@ func GetVMDisks(vmID string) ([]components.Disk, error) {
 			return []components.Disk{}, fmt.Errorf("error getting VM Disks: %w", err)
 		}
 
-		returnDisks = append(returnDisks, components.Disk{Name: aDisk.Name, ID: diskID})
+		returnDisks = append(returnDisks, components.Disk{Name: aDisk.Name, ID: diskID, NameOrID: aDisk.Name})
 	}
 
 	return returnDisks, nil
@@ -465,4 +465,95 @@ func (v VMDataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	websockifyPort := util.GetWebsockifyPort()
 
 	templ.Handler(components.VmDataOnly(VMs, aVM, listenHost, websockifyPort)).ServeHTTP(writer, request)
+}
+
+type VMDiskHandler struct {
+}
+
+func NewVMDiskHandler() VMDiskHandler {
+	return VMDiskHandler{}
+}
+
+func RemoveVMDisk(aVM components.VM, aDisk components.Disk) error {
+	var diskIDs []string
+
+	var err error
+
+	rpc.ResetConnTimeout()
+
+	diskIDs, err = rpc.GetVMDisks(aVM.ID)
+	if err != nil {
+		return fmt.Errorf("error getting disk: %w", err)
+	}
+
+	var newDiskIDs []string
+
+	for _, id := range diskIDs {
+		if id != aDisk.ID {
+			newDiskIDs = append(newDiskIDs, id)
+		}
+	}
+
+	var res bool
+
+	rpc.ResetConnTimeout()
+
+	res, err = rpc.VMSetDisks(aVM.ID, newDiskIDs)
+	if err != nil {
+		return ErrRemoveDisk
+	}
+
+	if !res {
+		return ErrRemoveDisk
+	}
+
+	return nil
+}
+
+func (v VMDiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	vmNameOrID := request.PathValue("vmNameOrID")
+	diskNameOrID := request.PathValue("diskNameOrID")
+
+	var err error
+
+	var aVM components.VM
+
+	var aDisk components.Disk
+
+	aVM, err = GetVM(vmNameOrID)
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	aDisk, err = GetDisk(diskNameOrID)
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	switch request.Method {
+	case http.MethodDelete:
+		err = RemoveVMDisk(aVM, aDisk)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+		}
+
+		writer.Header().Set("HX-Redirect", "/vm/"+vmNameOrID)
+		writer.WriteHeader(http.StatusOK)
+
+		return
+	default:
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
 }
