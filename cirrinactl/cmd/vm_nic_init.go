@@ -16,15 +16,17 @@ func init() {
 
 	disableFlagSorting(VMNicsAddCmd)
 	addNameOrIDArgs(VMNicsAddCmd, &VMName, &VMID, "VM")
-	VMNicsAddCmd.Flags().StringVarP(&NicName, "nic-name", "N", NicName, "Name of Nic")
-	VMNicsAddCmd.Flags().StringVarP(&NicID, "nic-id", "I", NicID, "ID of Nic")
+	VMNicsAddCmd.Flags().StringVarP(&NicName, "nic-name", "N", NicName,
+		"Name of NIC (may be specified multiple times to add multiple NICs)")
+	VMNicsAddCmd.Flags().StringVarP(&NicID, "nic-id", "I", NicID,
+		"ID of Nic (may be specified multiple times to add multiple NICs)")
 	VMNicsAddCmd.MarkFlagsOneRequired("nic-name", "nic-id")
 	VMNicsAddCmd.MarkFlagsMutuallyExclusive("nic-name", "nic-id")
 
 	disableFlagSorting(VMNicsDisconnectCmd)
 	addNameOrIDArgs(VMNicsDisconnectCmd, &VMName, &VMID, "VM")
-	VMNicsDisconnectCmd.Flags().StringVarP(&NicName, "nic-name", "N", NicName, "Name of Nic")
-	VMNicsDisconnectCmd.Flags().StringVarP(&NicID, "nic-id", "I", NicID, "ID of Nic")
+	VMNicsDisconnectCmd.Flags().StringVarP(&NicName, "nic-name", "N", NicName, "Name of NIC")
+	VMNicsDisconnectCmd.Flags().StringVarP(&NicID, "nic-id", "I", NicID, "ID of NIC")
 	VMNicsDisconnectCmd.MarkFlagsOneRequired("nic-name", "nic-id")
 	VMNicsDisconnectCmd.MarkFlagsMutuallyExclusive("nic-name", "nic-id")
 
