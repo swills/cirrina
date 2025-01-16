@@ -122,76 +122,18 @@ func NicNameToID(name string) (string, error) {
 		return "", errNicEmptyName
 	}
 
-	var nicIDs []string
-
-	nicIDs, err = GetVMNicsAll()
+	nicID, err = GetVMNicID(name)
 	if err != nil {
 		return "", err
-	}
-
-	found := false
-
-	for _, aNicID := range nicIDs {
-		res, err := GetVMNicInfo(aNicID)
-		if err != nil {
-			return "", err
-		}
-
-		if res.Name == name {
-			if found {
-				return "", errNicDuplicate
-			}
-
-			found = true
-			nicID = aNicID
-		}
-	}
-
-	if !found {
-		return "", errNicNotFound
 	}
 
 	return nicID, nil
 }
 
-// func NicIdToName(s string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
-// 	res, err := c.GetVMNicInfo(defaultServerContext, &cirrina.VmNicId{Value: s})
-// 	print("")
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	return *res.Name, nil
-// }
-
-// func GetVmNicOne(idPtr *string, c cirrina.VMInfoClient, ctx context.Context) (string, error) {
-// 	var rv string
-// 	res, err := c.GetVMNics(defaultServerContext, &cirrina.VMID{Value: *idPtr})
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	found := false
-// 	for {
-// 		VMNicId, err := res.Recv()
-// 		if err == io.EOF {
-// 			break
-// 		}
-// 		if err != nil {
-// 			return "", err
-// 		}
-// 		if found {
-// 			return "", errors.New("duplicate nic")
-// 		} else {
-// 			found = true
-// 			rv = VMNicId.Value
-// 		}
-// 	}
-// 	return rv, nil
-// }
-
 func GetVMNicsAll() ([]string, error) {
 	var err error
 
-	var allNics []string
+	var ids []string
 
 	var res cirrina.VMInfo_GetVMNicsAllClient
 
@@ -212,10 +154,10 @@ func GetVMNicsAll() ([]string, error) {
 			return []string{}, fmt.Errorf("unable to get nics: %w", err)
 		}
 
-		allNics = append(allNics, VMNicID.GetValue())
+		ids = append(ids, VMNicID.GetValue())
 	}
 
-	return allNics, nil
+	return ids, nil
 }
 
 func CloneNic(nicID string, newName string) (string, error) {

@@ -163,11 +163,11 @@ func GetVMConfig(vmID string) (VMConfig, error) {
 func GetVMIds() ([]string, error) {
 	var err error
 
-	var res cirrina.VMInfo_GetVMsClient
-	res, err = serverClient.GetVMs(defaultServerContext, &cirrina.VMsQuery{})
-
 	var ids []string
 
+	var res cirrina.VMInfo_GetVMsClient
+
+	res, err = serverClient.GetVMs(defaultServerContext, &cirrina.VMsQuery{})
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get VM IDs: %w", err)
 	}
@@ -181,7 +181,7 @@ func GetVMIds() ([]string, error) {
 		}
 
 		if err != nil {
-			return []string{}, fmt.Errorf("unable to get aVMID IDs: %w", err)
+			return []string{}, fmt.Errorf("unable to get VM IDs: %w", err)
 		}
 
 		ids = append(ids, aVMID.GetValue())

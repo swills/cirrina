@@ -212,6 +212,7 @@ var NicSetSwitchCmd = &cobra.Command{
 	SilenceUsage: true,
 	Args: func(cmd *cobra.Command, _ []string) error {
 		NicSwitchIDChanged = cmd.Flags().Changed("switch-id")
+		NicSwitchNameChanged = cmd.Flags().Changed("switch-name")
 
 		return nil
 	},
@@ -227,7 +228,7 @@ var NicSetSwitchCmd = &cobra.Command{
 			}
 		}
 
-		if NicSwitchID == "" && !NicSwitchIDChanged && SwitchName != "" {
+		if NicSwitchID == "" && !NicSwitchIDChanged && NicSwitchName != "" {
 			NicSwitchID, err = rpc.SwitchNameToID(NicSwitchName)
 			if err != nil {
 				return fmt.Errorf("error getting switch id: %w", err)

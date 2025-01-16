@@ -2,10 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"cirrina/cirrina"
 	"cirrina/cirrinad/requests"
@@ -533,4 +537,43 @@ func vmNicParseRateLimitIf(vmNicInst *vmnic.VMNic, rateLimit bool, rateIn uint64
 		vmNicInst.RateIn = 0
 		vmNicInst.RateOut = 0
 	}
+}
+
+func (s *server) GetVMNicID(_ context.Context, nicNameReq *wrapperspb.StringValue) (*cirrina.VmNicId, error) {
+	nicName := nicNameReq.GetValue()
+
+	if nicName == "" {
+		return &cirrina.VmNicId{}, errInvalidName
+	}
+
+	nicInst, err := vmnic.GetByName(nicName)
+	if err != nil {
+		if errors.Is(err, vm.ErrVMNotFound) {
+			return &cirrina.VmNicId{}, fmt.Errorf("error getting VM: %w", status.Error(codes.NotFound, err.Error()))
+		}
+
+		return &cirrina.VmNicId{}, fmt.Errorf("error getting VM: %w", err)
+	}
+
+	return &cirrina.VmNicId{Value: nicInst.ID}, nil
+}
+
+func (s *server) GetVMNicName(_ context.Context, vmNicID *cirrina.VmNicId) (*wrapperspb.StringValue, error) {
+	nicUUID, err := uuid.Parse(vmNicID.GetValue())
+	if err != nil {
+		return wrapperspb.String(""), fmt.Errorf("error parsing ID: %w", err)
+	}
+
+	vmNic, err := vmnic.GetByID(nicUUID.String())
+	if err != nil {
+		if errors.Is(err, errNotFound) {
+			return wrapperspb.String(""), status.Error(codes.NotFound, err.Error())
+		}
+
+		slog.Error("GetVMNicName error getting NIC", "nic.ID", vmNicID.GetValue(), "err", err)
+
+		return wrapperspb.String(""), fmt.Errorf("error getting NIC: %w", err)
+	}
+
+	return wrapperspb.String(vmNic.Name), nil
 }

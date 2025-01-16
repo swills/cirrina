@@ -359,6 +359,8 @@ service VMInfo {
   rpc SetSwitchUplink(SwitchUplinkReq) returns (ReqBool);
 
   rpc GetVMNicsAll(VmNicsQuery) returns (stream VmNicId);
+  rpc GetVMNicName(VmNicId) returns (google.protobuf.StringValue);
+  rpc GetVMNicID(google.protobuf.StringValue) returns (VmNicId);
   rpc GetVMNicInfo(VmNicId) returns (VmNicInfo);
   rpc AddVMNic(VmNicInfo) returns (VmNicId);
   rpc UpdateVMNic(VmNicInfoUpdate) returns (ReqBool);

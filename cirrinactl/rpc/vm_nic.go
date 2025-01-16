@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 
+	"google.golang.org/protobuf/types/known/wrapperspb"
+
 	"cirrina/cirrina"
 )
 
@@ -54,4 +56,38 @@ func VMSetNics(id string, nicIDs []string) (bool, error) {
 	}
 
 	return res.GetSuccess(), nil
+}
+
+func GetVMNicName(nicID string) (string, error) {
+	var err error
+
+	if nicID == "" {
+		return "", errNicEmptyID
+	}
+
+	var res *wrapperspb.StringValue
+
+	res, err = serverClient.GetVMNicName(defaultServerContext, &cirrina.VmNicId{Value: nicID})
+	if err != nil {
+		return "", fmt.Errorf("unable to get VM name: %w", err)
+	}
+
+	return res.GetValue(), nil
+}
+
+func GetVMNicID(name string) (string, error) {
+	var err error
+
+	if name == "" {
+		return "", errNicEmptyName
+	}
+
+	var res *cirrina.VmNicId
+
+	res, err = serverClient.GetVMNicID(defaultServerContext, wrapperspb.String(name))
+	if err != nil {
+		return "", fmt.Errorf("unable to get NIC ID: %w", err)
+	}
+
+	return res.GetValue(), nil
 }

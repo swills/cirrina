@@ -40,16 +40,16 @@ func GetNICs() ([]components.NIC, error) {
 	NICs := make([]components.NIC, 0, len(NICIDs))
 
 	for _, NICID := range NICIDs {
-		var nicInfo rpc.NicInfo
+		var nicName string
 
 		rpc.ResetConnTimeout()
 
-		nicInfo, err = rpc.GetVMNicInfo(NICID)
+		nicName, err = rpc.GetVMNicName(NICID)
 		if err != nil {
 			return []components.NIC{}, fmt.Errorf("error getting NICs: %w", err)
 		}
 
-		NICs = append(NICs, components.NIC{Name: nicInfo.Name, ID: NICID, Description: nicInfo.Descr})
+		NICs = append(NICs, components.NIC{Name: nicName, ID: NICID, NameOrID: nicName})
 	}
 
 	sort.Slice(NICs, func(i, j int) bool {

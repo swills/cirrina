@@ -62,6 +62,8 @@ const (
 	VMInfo_RemoveSwitch_FullMethodName       = "/cirrina.VMInfo/RemoveSwitch"
 	VMInfo_SetSwitchUplink_FullMethodName    = "/cirrina.VMInfo/SetSwitchUplink"
 	VMInfo_GetVMNicsAll_FullMethodName       = "/cirrina.VMInfo/GetVMNicsAll"
+	VMInfo_GetVMNicName_FullMethodName       = "/cirrina.VMInfo/GetVMNicName"
+	VMInfo_GetVMNicID_FullMethodName         = "/cirrina.VMInfo/GetVMNicID"
 	VMInfo_GetVMNicInfo_FullMethodName       = "/cirrina.VMInfo/GetVMNicInfo"
 	VMInfo_AddVMNic_FullMethodName           = "/cirrina.VMInfo/AddVMNic"
 	VMInfo_UpdateVMNic_FullMethodName        = "/cirrina.VMInfo/UpdateVMNic"
@@ -122,6 +124,8 @@ type VMInfoClient interface {
 	RemoveSwitch(ctx context.Context, in *SwitchId, opts ...grpc.CallOption) (*ReqBool, error)
 	SetSwitchUplink(ctx context.Context, in *SwitchUplinkReq, opts ...grpc.CallOption) (*ReqBool, error)
 	GetVMNicsAll(ctx context.Context, in *VmNicsQuery, opts ...grpc.CallOption) (grpc.ServerStreamingClient[VmNicId], error)
+	GetVMNicName(ctx context.Context, in *VmNicId, opts ...grpc.CallOption) (*wrapperspb.StringValue, error)
+	GetVMNicID(ctx context.Context, in *wrapperspb.StringValue, opts ...grpc.CallOption) (*VmNicId, error)
 	GetVMNicInfo(ctx context.Context, in *VmNicId, opts ...grpc.CallOption) (*VmNicInfo, error)
 	AddVMNic(ctx context.Context, in *VmNicInfo, opts ...grpc.CallOption) (*VmNicId, error)
 	UpdateVMNic(ctx context.Context, in *VmNicInfoUpdate, opts ...grpc.CallOption) (*ReqBool, error)
@@ -652,6 +656,26 @@ func (c *vMInfoClient) GetVMNicsAll(ctx context.Context, in *VmNicsQuery, opts .
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type VMInfo_GetVMNicsAllClient = grpc.ServerStreamingClient[VmNicId]
 
+func (c *vMInfoClient) GetVMNicName(ctx context.Context, in *VmNicId, opts ...grpc.CallOption) (*wrapperspb.StringValue, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(wrapperspb.StringValue)
+	err := c.cc.Invoke(ctx, VMInfo_GetVMNicName_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *vMInfoClient) GetVMNicID(ctx context.Context, in *wrapperspb.StringValue, opts ...grpc.CallOption) (*VmNicId, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(VmNicId)
+	err := c.cc.Invoke(ctx, VMInfo_GetVMNicID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *vMInfoClient) GetVMNicInfo(ctx context.Context, in *VmNicId, opts ...grpc.CallOption) (*VmNicInfo, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(VmNicInfo)
@@ -848,6 +872,8 @@ type VMInfoServer interface {
 	RemoveSwitch(context.Context, *SwitchId) (*ReqBool, error)
 	SetSwitchUplink(context.Context, *SwitchUplinkReq) (*ReqBool, error)
 	GetVMNicsAll(*VmNicsQuery, grpc.ServerStreamingServer[VmNicId]) error
+	GetVMNicName(context.Context, *VmNicId) (*wrapperspb.StringValue, error)
+	GetVMNicID(context.Context, *wrapperspb.StringValue) (*VmNicId, error)
 	GetVMNicInfo(context.Context, *VmNicId) (*VmNicInfo, error)
 	AddVMNic(context.Context, *VmNicInfo) (*VmNicId, error)
 	UpdateVMNic(context.Context, *VmNicInfoUpdate) (*ReqBool, error)
@@ -994,6 +1020,12 @@ func (UnimplementedVMInfoServer) SetSwitchUplink(context.Context, *SwitchUplinkR
 }
 func (UnimplementedVMInfoServer) GetVMNicsAll(*VmNicsQuery, grpc.ServerStreamingServer[VmNicId]) error {
 	return status.Errorf(codes.Unimplemented, "method GetVMNicsAll not implemented")
+}
+func (UnimplementedVMInfoServer) GetVMNicName(context.Context, *VmNicId) (*wrapperspb.StringValue, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetVMNicName not implemented")
+}
+func (UnimplementedVMInfoServer) GetVMNicID(context.Context, *wrapperspb.StringValue) (*VmNicId, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetVMNicID not implemented")
 }
 func (UnimplementedVMInfoServer) GetVMNicInfo(context.Context, *VmNicId) (*VmNicInfo, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVMNicInfo not implemented")
@@ -1701,6 +1733,42 @@ func _VMInfo_GetVMNicsAll_Handler(srv interface{}, stream grpc.ServerStream) err
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type VMInfo_GetVMNicsAllServer = grpc.ServerStreamingServer[VmNicId]
 
+func _VMInfo_GetVMNicName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(VmNicId)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).GetVMNicName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_GetVMNicName_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).GetVMNicName(ctx, req.(*VmNicId))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _VMInfo_GetVMNicID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(wrapperspb.StringValue)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(VMInfoServer).GetVMNicID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: VMInfo_GetVMNicID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(VMInfoServer).GetVMNicID(ctx, req.(*wrapperspb.StringValue))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _VMInfo_GetVMNicInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(VmNicId)
 	if err := dec(in); err != nil {
@@ -2006,6 +2074,14 @@ var VMInfo_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetSwitchUplink",
 			Handler:    _VMInfo_SetSwitchUplink_Handler,
+		},
+		{
+			MethodName: "GetVMNicName",
+			Handler:    _VMInfo_GetVMNicName_Handler,
+		},
+		{
+			MethodName: "GetVMNicID",
+			Handler:    _VMInfo_GetVMNicID_Handler,
 		},
 		{
 			MethodName: "GetVMNicInfo",

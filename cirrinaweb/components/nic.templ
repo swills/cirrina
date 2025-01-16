@@ -27,6 +27,7 @@ templ nicTemplate(nic NIC) {
 			}
 			if nic.Uplink.Name != "" {
 			<div data-testid="nicsTemplateNICUplink">Uplink: <a href={ templ.URL("/net/switch/" + nic.Uplink.Name) }>{ nic.Uplink.Name }</a> (<a href={ templ.URL("/net/switch/" + nic.Uplink.ID)}>id</a>)</div>
+			@DisconnectSwitchButton(nic)
 			}
         </div>
     </div>
@@ -41,4 +42,9 @@ templ NICNotFoundComponent(nics []NIC) {
 
 templ DeleteNICButton(nic NIC) {
     <button hx-delete={ "/net/nic/" + nic.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to delete nic " + nic.NameOrID + "?"}>Delete</button>
+}
+
+
+templ DisconnectSwitchButton(aNIC NIC) {
+    <button hx-delete={ "/net/nic/" + aNIC.NameOrID + "/uplink" } hx-target="body" hx-confirm={ "Are you sure you wish to disconnect NIC " + aNIC.NameOrID + "?"}>Disconnect</button>
 }

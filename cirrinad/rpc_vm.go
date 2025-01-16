@@ -566,7 +566,7 @@ func (s *server) GetVMName(_ context.Context, vmID *cirrina.VMID) (*wrapperspb.S
 			return wrapperspb.String(""), status.Error(codes.NotFound, err.Error())
 		}
 
-		slog.Error("GetVMConfig error getting vm", "vm", vmID.GetValue(), "err", err)
+		slog.Error("GetVMName error getting VM", "vm", vmID.GetValue(), "err", err)
 
 		return wrapperspb.String(""), fmt.Errorf("error getting VM: %w", err)
 	}

@@ -70,9 +70,9 @@ func GetNIC(nameOrID string) (components.NIC, error) {
 	returnNIC.RateOut = humanize.Bytes(nicInfo.RateOut)
 	returnNIC.RateOut = strings.Replace(returnNIC.RateOut, "B", "b", 1) + "ps"
 
-	rpc.ResetConnTimeout()
-
 	if nicInfo.Uplink != "" {
+		rpc.ResetConnTimeout()
+
 		returnNIC.Uplink, err = GetSwitch(nicInfo.Uplink)
 		if err != nil {
 			return components.NIC{}, fmt.Errorf("error getting NIC: %w", err)
@@ -155,4 +155,56 @@ func (d NICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 	}
 
 	templ.Handler(components.NICLayout(NICs, aNIC)).ServeHTTP(writer, request)
+}
+
+func DisconnectNICUplink(aNIC components.NIC) error {
+	var err error
+
+	rpc.ResetConnTimeout()
+
+	err = rpc.SetVMNicSwitch(aNIC.ID, "")
+	if err != nil {
+		return fmt.Errorf("error setting nic uplink: %w", err)
+	}
+
+	return nil
+}
+
+type NICUplinkHandler struct{}
+
+func NewNICUplinkHandler() NICUplinkHandler {
+	return NICUplinkHandler{}
+}
+
+func (n NICUplinkHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	nameOrID := request.PathValue("nameOrID")
+
+	aNIC, err := GetNIC(nameOrID)
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorNIC(writer, request, err)
+
+		return
+	}
+
+	switch request.Method {
+	case http.MethodDelete:
+		err = DisconnectNICUplink(aNIC)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+		}
+
+		writer.Header().Set("HX-Redirect", "/net/nic/"+nameOrID)
+		writer.WriteHeader(http.StatusOK)
+
+		return
+
+	default:
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorNIC(writer, request, err)
+
+		return
+	}
 }

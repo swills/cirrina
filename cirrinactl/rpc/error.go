@@ -29,8 +29,6 @@ var (
 var (
 	errNicEmptyID        = errors.New("nic id not specified")
 	errNicEmptyName      = errors.New("nic name not specified")
-	errNicNotFound       = errors.New("nic not found")
-	errNicDuplicate      = errors.New("duplicate nic found")
 	errNicInvalidType    = errors.New("invalid nic type must be either VIRTIONET or E1000")
 	errNicInvalidDevType = errors.New("invalid nic dev type must be one of TAP, VMNET or NETGRAPH")
 )
