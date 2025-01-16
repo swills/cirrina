@@ -745,3 +745,157 @@ func (v VMNICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 		return
 	}
 }
+
+type VMDiskAddHandler struct{}
+
+func NewVMDiskAddHandler() VMDiskAddHandler {
+	return VMDiskAddHandler{}
+}
+
+func VMAddDisk(aVM components.VM, diskName string) error {
+	var err error
+
+	var newDisk components.Disk
+
+	var newDisks []components.Disk
+
+	newDisk, err = GetDisk(diskName)
+	if err != nil {
+		return err
+	}
+
+	newDisks, err = GetVMDisks(aVM.ID)
+	if err != nil {
+		return err
+	}
+
+	newDisks = append(newDisks, newDisk)
+
+	newDiskIDs := make([]string, 0, len(newDisks))
+
+	for _, n := range newDisks {
+		newDiskIDs = append(newDiskIDs, n.ID)
+	}
+
+	rpc.ResetConnTimeout()
+
+	_, err = rpc.VMSetDisks(aVM.ID, newDiskIDs)
+	if err != nil {
+		return fmt.Errorf("error adding disk to VM: %w", err)
+	}
+
+	return nil
+}
+
+func GetDisksUnattached() ([]components.Disk, error) {
+	var err error
+
+	var disks []components.Disk
+
+	var allDisks []components.Disk
+
+	allDisks, err = GetDisks()
+	if err != nil {
+		return []components.Disk{}, fmt.Errorf("error getting disks: %w", err)
+	}
+
+	// only list disks not already attached to a VM
+	for _, aDisk := range allDisks {
+		var vmid string
+
+		rpc.ResetConnTimeout()
+
+		vmid, err = rpc.DiskGetVMID(aDisk.ID)
+		if err != nil {
+			return []components.Disk{}, fmt.Errorf("error getting disks: %w", err)
+		}
+
+		if vmid == "" {
+			disks = append(disks, aDisk)
+		}
+	}
+
+	return disks, nil
+}
+
+func (v VMDiskAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	var err error
+
+	nameOrID := request.PathValue("nameOrID")
+
+	var aVM components.VM
+
+	aVM, err = GetVM(nameOrID)
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	switch request.Method {
+	case http.MethodGet:
+		var disks []components.Disk
+
+		var VMs []components.VM
+
+		VMs, err = GetVMs()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		disks, err = GetDisksUnattached()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		templ.Handler(components.VmDiskAdd(nameOrID, VMs, aVM, disks)).ServeHTTP(writer, request)
+	case http.MethodPost:
+		err = request.ParseForm()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		disksAdded := request.PostForm["disks"]
+
+		var diskName string
+
+		if len(disksAdded) == 0 {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		diskName = disksAdded[0]
+
+		err = VMAddDisk(aVM, diskName)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		http.Redirect(writer, request, "/vm/"+nameOrID, http.StatusSeeOther)
+	default:
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+}

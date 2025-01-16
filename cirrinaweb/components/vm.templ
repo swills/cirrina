@@ -9,6 +9,12 @@ templ Vm(vms []VM, vm VM, listenHost string, websockifyPort uint16) {
     }
 }
 
+templ VmDiskAdd(vmName string, vms []VM, vm VM, disks []Disk) {
+    @layoutVMs("VM - " + vm.Name, vms, "") {
+        @vmDiskAddTemplate(vmName, disks)
+    }
+}
+
 templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
     {{ cpusStr := strconv.FormatUint(uint64(vm.CPUs), 10) }}
     {{ memoryStr := strconv.FormatUint(uint64(vm.Memory), 10) }}
@@ -32,6 +38,7 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
             }
             <div>
             Disks:
+                @DiskAddButton(vm)
                 <div data-testid="vmsTemplateVMDisk">
                     for _, d := range vm.Disks {
                         <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/media/disk/" + d.Name) }>{ d.Name }</a> (<a href={ templ.URL("/media/disk/" + d.ID)}>id</a>)</div>
@@ -63,7 +70,20 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
     </div>
 }
 
+templ vmDiskAddTemplate(vmName string, disks []Disk) {
+    <div data-testid="vmDiskAddTemplate">
+    <label for="disk-select">Choose a disk:</label>
+    <form action={ templ.URL("/vm/" + vmName + "/disk/add") } method="post">
 
+        <select name="disks" id="disk-select" size="10">
+            for _, d := range disks {
+              <option value={ d.Name }>{d.Name}</option>
+            }
+        </select>
+        <input type="submit" value="submit" />
+    </form>
+    </div>
+}
 
 templ VmNotFoundComponent(vms []VM) {
 	@layoutVMs("VM - Not Found", vms, "") {
@@ -98,4 +118,8 @@ templ DisconnectISOButton(aVM VM, aISO ISO) {
 
 templ DisconnectNICButton(aVM VM, aNIC NIC) {
     <button hx-delete={ "/vm/" + aVM.NameOrID + "/nic/" + aNIC.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to disconnect NIC " + aNIC.NameOrID + " from VM " + aVM.NameOrID + "?"}>Disconnect</button>
+}
+
+templ DiskAddButton(aVM VM) {
+    <button hx-get={ "/vm/" + aVM.NameOrID + "/disk/add" } hx-target="body">Add</button>
 }

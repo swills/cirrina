@@ -10,14 +10,20 @@ var accessLog *os.File
 var errorLog *os.File
 
 func LogError(err error, remoteAddr string) {
-	t := time.Now()
+	tNow := time.Now()
+
+	var errMessage = "Unknown Error"
+
+	if err != nil {
+		errMessage = err.Error()
+	}
 
 	_, err = errorLog.WriteString(fmt.Sprintf("[%s] [server:error] [pid %d:tid %d] [client %s] %s\n",
-		t.Format("Mon Jan 02 15:04:05.999999999 2006"),
+		tNow.Format("Mon Jan 02 15:04:05.999999999 2006"),
 		os.Getpid(),
 		0,
 		remoteAddr,
-		err.Error(),
+		errMessage,
 	))
 	if err != nil {
 		panic(err)
