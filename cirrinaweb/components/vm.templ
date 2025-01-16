@@ -38,11 +38,13 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
             }
             <div>
             Disks:
+            if !vm.Running {
                 @DiskAddButton(vm)
+            }
                 <div data-testid="vmsTemplateVMDisk">
                     for _, d := range vm.Disks {
                         <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/media/disk/" + d.Name) }>{ d.Name }</a> (<a href={ templ.URL("/media/disk/" + d.ID)}>id</a>)</div>
-                        if vm.NameOrID != "" && d.NameOrID != "" {
+                        if vm.NameOrID != "" && d.NameOrID != "" && !vm.Running {
                             @DisconnectDiskButton(vm, d)
                         }
                     }
@@ -51,7 +53,7 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
                 <div data-testid="vmsTemplateVMISO">
                     for _, i := range vm.ISOs {
                         <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/media/iso/" + i.Name) }>{ i.Name }</a> (<a href={ templ.URL("/media/iso/" + i.ID)}>id</a>)</div>
-                        if vm.NameOrID != "" && i.NameOrID != "" {
+                        if vm.NameOrID != "" && i.NameOrID != "" && !vm.Running {
                             @DisconnectISOButton(vm, i)
                         }
                     }
@@ -60,7 +62,7 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
                 <div data-testid="vmsTemplateVMNIC">
                     for _, n := range vm.NICs {
                         <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/net/nic/" + n.Name) }>{ n.Name }</a> (<a href={ templ.URL("/net/nic/" + n.ID)}>id</a>)</div>
-                        if vm.NameOrID != "" && n.NameOrID != "" {
+                        if vm.NameOrID != "" && n.NameOrID != "" && !vm.Running {
                             @DisconnectNICButton(vm, n)
                         }
                     }
