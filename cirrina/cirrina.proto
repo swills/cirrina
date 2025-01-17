@@ -366,8 +366,6 @@ service VMInfo {
   rpc UpdateVMNic(VmNicInfoUpdate) returns (ReqBool);
   rpc RemoveVMNic(VmNicId) returns (ReqBool);
   rpc SetVMNicSwitch(SetVmNicSwitchReq) returns (ReqBool);
-
-  // actually unneeded since VmNicInfo returned by GetVMNicInfo includes vmid, but the GUI still uses it
   rpc GetVMNicVM(VmNicId) returns (VMID);
   rpc CloneVMNic(VmNicCloneReq) returns (RequestID);
 

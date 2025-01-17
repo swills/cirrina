@@ -1078,14 +1078,16 @@ func GetNICsUnattached() ([]components.NIC, error) {
 
 	// only list nics not already attached to a VM
 	for _, aNIC := range allNICs {
+		var vmID string
+
 		rpc.ResetConnTimeout()
 
-		nicInfo, err := rpc.GetVMNicInfo(aNIC.ID)
+		vmID, err := rpc.GetVMNicVM(aNIC.ID)
 		if err != nil {
 			return []components.NIC{}, fmt.Errorf("error getting nics: %w", err)
 		}
 
-		if nicInfo.VMName == "" {
+		if vmID == "" {
 			nics = append(nics, aNIC)
 		}
 	}

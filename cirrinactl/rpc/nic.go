@@ -70,6 +70,23 @@ func RmNic(idPtr string) error {
 	return nil
 }
 
+func GetVMNicVM(nicID string) (string, error) {
+	var err error
+
+	if nicID == "" {
+		return "", errDiskEmptyName
+	}
+
+	var vmID *cirrina.VMID
+
+	vmID, err = serverClient.GetVMNicVM(defaultServerContext, &cirrina.VmNicId{Value: nicID})
+	if err != nil {
+		return "", fmt.Errorf("unable to get disk VM: %w", err)
+	}
+
+	return vmID.GetValue(), nil
+}
+
 func GetVMNicInfo(nicID string) (NicInfo, error) {
 	var err error
 
