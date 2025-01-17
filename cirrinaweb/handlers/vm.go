@@ -899,3 +899,278 @@ func (v VMDiskAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		return
 	}
 }
+
+type VMISOAddHandler struct{}
+
+func NewVMISOAddHandler() VMISOAddHandler {
+	return VMISOAddHandler{}
+}
+
+func VMAddISO(aVM components.VM, isoName string) error {
+	var err error
+
+	var newISO components.ISO
+
+	var newISOs []components.ISO
+
+	newISO, err = GetISO(isoName)
+	if err != nil {
+		return err
+	}
+
+	newISOs, err = GetVMISOs(aVM.ID)
+	if err != nil {
+		return err
+	}
+
+	newISOs = append(newISOs, newISO)
+
+	newISOIDs := make([]string, 0, len(newISOs))
+
+	for _, n := range newISOs {
+		newISOIDs = append(newISOIDs, n.ID)
+	}
+
+	rpc.ResetConnTimeout()
+
+	_, err = rpc.VMSetIsos(aVM.ID, newISOIDs)
+	if err != nil {
+		return fmt.Errorf("error adding disk to VM: %w", err)
+	}
+
+	return nil
+}
+
+func (v VMISOAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	var err error
+
+	nameOrID := request.PathValue("nameOrID")
+
+	var aVM components.VM
+
+	aVM, err = GetVM(nameOrID)
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	switch request.Method {
+	case http.MethodGet:
+		var ISOs []components.ISO
+
+		var VMs []components.VM
+
+		VMs, err = GetVMs()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		ISOs, err = GetISOs()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		templ.Handler(components.VmISOAdd(nameOrID, VMs, aVM, ISOs)).ServeHTTP(writer, request)
+	case http.MethodPost:
+		err = request.ParseForm()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		isosAdded := request.PostForm["isos"]
+
+		var isoName string
+
+		if len(isosAdded) == 0 {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		isoName = isosAdded[0]
+
+		err = VMAddISO(aVM, isoName)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		http.Redirect(writer, request, "/vm/"+nameOrID, http.StatusSeeOther)
+	default:
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+}
+
+type VMNICAddHandler struct{}
+
+func NewVMNICAddHandler() VMNICAddHandler {
+	return VMNICAddHandler{}
+}
+
+func VMAddNIC(aVM components.VM, nicName string) error {
+	var err error
+
+	var newNIC components.NIC
+
+	var newNICs []components.NIC
+
+	newNIC, err = GetNIC(nicName)
+	if err != nil {
+		return err
+	}
+
+	newNICs, err = GetVMNICs(aVM.ID)
+	if err != nil {
+		return err
+	}
+
+	newNICs = append(newNICs, newNIC)
+
+	newNICIDs := make([]string, 0, len(newNICs))
+
+	for _, n := range newNICs {
+		newNICIDs = append(newNICIDs, n.ID)
+	}
+
+	rpc.ResetConnTimeout()
+
+	_, err = rpc.VMSetNics(aVM.ID, newNICIDs)
+	if err != nil {
+		return fmt.Errorf("error adding nic to VM: %w", err)
+	}
+
+	return nil
+}
+
+func GetNICsUnattached() ([]components.NIC, error) {
+	var err error
+
+	var nics []components.NIC
+
+	var allNICs []components.NIC
+
+	allNICs, err = GetNICs()
+	if err != nil {
+		return []components.NIC{}, fmt.Errorf("error getting nics: %w", err)
+	}
+
+	// only list nics not already attached to a VM
+	for _, aNIC := range allNICs {
+		rpc.ResetConnTimeout()
+
+		nicInfo, err := rpc.GetVMNicInfo(aNIC.ID)
+		if err != nil {
+			return []components.NIC{}, fmt.Errorf("error getting nics: %w", err)
+		}
+
+		if nicInfo.VMName == "" {
+			nics = append(nics, aNIC)
+		}
+	}
+
+	return nics, nil
+}
+
+func (v VMNICAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	var err error
+
+	nameOrID := request.PathValue("nameOrID")
+
+	var aVM components.VM
+
+	aVM, err = GetVM(nameOrID)
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	switch request.Method {
+	case http.MethodGet:
+		var nics []components.NIC
+
+		var VMs []components.VM
+
+		VMs, err = GetVMs()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		nics, err = GetNICsUnattached()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		templ.Handler(components.VmNICAdd(nameOrID, VMs, aVM, nics)).ServeHTTP(writer, request)
+	case http.MethodPost:
+		err = request.ParseForm()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		nicsAdded := request.PostForm["nics"]
+
+		var nicName string
+
+		if len(nicsAdded) == 0 {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		nicName = nicsAdded[0]
+
+		err = VMAddNIC(aVM, nicName)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		http.Redirect(writer, request, "/vm/"+nameOrID, http.StatusSeeOther)
+	default:
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+}

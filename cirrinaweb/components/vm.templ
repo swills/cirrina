@@ -15,6 +15,19 @@ templ VmDiskAdd(vmName string, vms []VM, vm VM, disks []Disk) {
     }
 }
 
+templ VmISOAdd(vmName string, vms []VM, vm VM, isos []ISO) {
+    @layoutVMs("VM - " + vm.Name, vms, "") {
+        @vmISOAddTemplate(vmName, isos)
+    }
+}
+
+
+templ VmNICAdd(vmName string, vms []VM, vm VM, nics []NIC) {
+    @layoutVMs("VM - " + vm.Name, vms, "") {
+        @vmNICAddTemplate(vmName, nics)
+    }
+}
+
 templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
     {{ cpusStr := strconv.FormatUint(uint64(vm.CPUs), 10) }}
     {{ memoryStr := strconv.FormatUint(uint64(vm.Memory), 10) }}
@@ -50,6 +63,9 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
                     }
                 </div>
             ISOs:
+            if !vm.Running {
+                @ISOAddButton(vm)
+            }
                 <div data-testid="vmsTemplateVMISO">
                     for _, i := range vm.ISOs {
                         <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/media/iso/" + i.Name) }>{ i.Name }</a> (<a href={ templ.URL("/media/iso/" + i.ID)}>id</a>)</div>
@@ -59,6 +75,9 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
                     }
                 </div>
             NICs:
+            if !vm.Running {
+                @NICAddButton(vm)
+            }
                 <div data-testid="vmsTemplateVMNIC">
                     for _, n := range vm.NICs {
                         <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/net/nic/" + n.Name) }>{ n.Name }</a> (<a href={ templ.URL("/net/nic/" + n.ID)}>id</a>)</div>
@@ -80,6 +99,36 @@ templ vmDiskAddTemplate(vmName string, disks []Disk) {
         <select name="disks" id="disk-select" size="10">
             for _, d := range disks {
               <option value={ d.Name }>{d.Name}</option>
+            }
+        </select>
+        <input type="submit" value="submit" />
+    </form>
+    </div>
+}
+
+templ vmISOAddTemplate(vmName string, isos []ISO) {
+    <div data-testid="vmISOAddTemplate">
+    <label for="iso-select">Choose a iso:</label>
+    <form action={ templ.URL("/vm/" + vmName + "/iso/add") } method="post">
+
+        <select name="isos" id="iso-select" size="10">
+            for _, i := range isos {
+              <option value={ i.Name }>{i.Name}</option>
+            }
+        </select>
+        <input type="submit" value="submit" />
+    </form>
+    </div>
+}
+
+templ vmNICAddTemplate(vmName string, nics []NIC) {
+    <div data-testid="vmNICAddTemplate">
+    <label for="nic-select">Choose a nic:</label>
+    <form action={ templ.URL("/vm/" + vmName + "/nic/add") } method="post">
+
+        <select name="nics" id="nic-select" size="10">
+            for _, n := range nics {
+              <option value={ n.Name }>{n.Name}</option>
             }
         </select>
         <input type="submit" value="submit" />
@@ -124,4 +173,12 @@ templ DisconnectNICButton(aVM VM, aNIC NIC) {
 
 templ DiskAddButton(aVM VM) {
     <button hx-get={ "/vm/" + aVM.NameOrID + "/disk/add" } hx-target="body">Add</button>
+}
+
+templ ISOAddButton(aVM VM) {
+    <button hx-get={ "/vm/" + aVM.NameOrID + "/iso/add" } hx-target="body">Add</button>
+}
+
+templ NICAddButton(aVM VM) {
+    <button hx-get={ "/vm/" + aVM.NameOrID + "/nic/add" } hx-target="body">Add</button>
 }

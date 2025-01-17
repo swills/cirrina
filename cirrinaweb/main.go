@@ -124,6 +124,22 @@ func main() {
 			"POST /vm/{nameOrID}/disk/add",
 			HTTPLogger(middlewarestd.Handler("/vm/:nameOrID/disk/add", mdlw, handlers.NewVMDiskAddHandler())),
 		)
+		mux.Handle(
+			"GET /vm/{nameOrID}/iso/add",
+			HTTPLogger(middlewarestd.Handler("/vm/:nameOrID/disk/add", mdlw, handlers.NewVMISOAddHandler())),
+		)
+		mux.Handle(
+			"POST /vm/{nameOrID}/iso/add",
+			HTTPLogger(middlewarestd.Handler("/vm/:nameOrID/disk/add", mdlw, handlers.NewVMISOAddHandler())),
+		)
+		mux.Handle(
+			"GET /vm/{nameOrID}/nic/add",
+			HTTPLogger(middlewarestd.Handler("/vm/:nameOrID/disk/add", mdlw, handlers.NewVMNICAddHandler())),
+		)
+		mux.Handle(
+			"POST /vm/{nameOrID}/nic/add",
+			HTTPLogger(middlewarestd.Handler("/vm/:nameOrID/disk/add", mdlw, handlers.NewVMNICAddHandler())),
+		)
 		mux.Handle("DELETE /vm/{nameOrID}", HTTPLogger(middlewarestd.Handler("/vm/:nameOrID", mdlw, handlers.NewVMHandler())))
 		mux.Handle(
 			"POST /vm/{nameOrID}/start",
@@ -207,6 +223,10 @@ func main() {
 		mux.Handle("GET /vm/{nameOrID}", HTTPLogger(handlers.NewVMHandler()))
 		mux.Handle("GET /vm/{nameOrID}/disk/add", HTTPLogger(handlers.NewVMDiskAddHandler()))
 		mux.Handle("POST /vm/{nameOrID}/disk/add", HTTPLogger(handlers.NewVMDiskAddHandler()))
+		mux.Handle("GET /vm/{nameOrID}/iso/add", HTTPLogger(handlers.NewVMISOAddHandler()))
+		mux.Handle("POST /vm/{nameOrID}/iso/add", HTTPLogger(handlers.NewVMISOAddHandler()))
+		mux.Handle("GET /vm/{nameOrID}/nic/add", HTTPLogger(handlers.NewVMNICAddHandler()))
+		mux.Handle("POST /vm/{nameOrID}/nic/add", HTTPLogger(handlers.NewVMNICAddHandler()))
 		mux.Handle("DELETE /vm/{nameOrID}", HTTPLogger(handlers.NewVMHandler()))
 		mux.Handle("POST /vm/{nameOrID}/start", HTTPLogger(handlers.NewVMStartHandler()))
 		mux.Handle("POST /vm/{nameOrID}/stop", HTTPLogger(handlers.NewVMStopHandler()))
