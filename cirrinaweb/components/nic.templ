@@ -6,6 +6,12 @@ templ NICLayout(nics []NIC, nic NIC) {
     }
 }
 
+templ NICSwitchAdd(nicName string, nics []NIC, switches []Switch) {
+    @layoutNICs("NIC - " + nicName, nics) {
+        @nicSwitchTemplate(nicName, switches)
+    }
+}
+
 templ nicTemplate(nic NIC) {
     <div data-testid="nicTemplate">
         <div data-testid="nicTemplateNIC">
@@ -27,9 +33,26 @@ templ nicTemplate(nic NIC) {
 			}
 			if nic.Uplink.Name != "" {
 			<div data-testid="nicsTemplateNICUplink">Uplink: <a href={ templ.URL("/net/switch/" + nic.Uplink.Name) }>{ nic.Uplink.Name }</a> (<a href={ templ.URL("/net/switch/" + nic.Uplink.ID)}>id</a>)</div>
-			@DisconnectSwitchButton(nic)
+    			@DisconnectSwitchButton(nic)
+			} else {
+    			@ConnectSwitchButton(nic)
 			}
         </div>
+    </div>
+}
+
+templ nicSwitchTemplate(nicName string, switches []Switch) {
+    <div data-testid="nicSwitchAddTemplate">
+    <label for="switch-select">Choose a switch:</label>
+    <form action={ templ.URL("/net/nic/" + nicName + "/uplink") } method="post">
+
+        <select name="switches" id="switch-select" size="5">
+            for _, s := range switches {
+              <option value={ s.Name }>{s.Name}</option>
+            }
+        </select>
+        <input type="submit" value="submit" />
+    </form>
     </div>
 }
 
@@ -47,4 +70,8 @@ templ DeleteNICButton(nic NIC) {
 
 templ DisconnectSwitchButton(aNIC NIC) {
     <button hx-delete={ "/net/nic/" + aNIC.NameOrID + "/uplink" } hx-target="body" hx-confirm={ "Are you sure you wish to disconnect NIC " + aNIC.NameOrID + "?"}>Disconnect</button>
+}
+
+templ ConnectSwitchButton(aNIC NIC) {
+    <button hx-get={ "/net/nic/" + aNIC.NameOrID + "/uplink" } hx-target="body">Connect</button>
 }

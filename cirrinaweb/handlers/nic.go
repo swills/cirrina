@@ -176,6 +176,26 @@ func NewNICUplinkHandler() NICUplinkHandler {
 	return NICUplinkHandler{}
 }
 
+func NICAddUplink(nic components.NIC, switchName string) error {
+	var err error
+
+	switchID, err := rpc.SwitchNameToID(switchName)
+	if err != nil {
+		return fmt.Errorf("error getting switch id: %w", err)
+	}
+
+	if switchID == "" {
+		return ErrEmptySwitch
+	}
+
+	err = rpc.SetVMNicSwitch(nic.ID, switchID)
+	if err != nil {
+		return fmt.Errorf("error setting nic uplink: %w", err)
+	}
+
+	return nil
+}
+
 func (n NICUplinkHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	nameOrID := request.PathValue("nameOrID")
 
@@ -199,6 +219,64 @@ func (n NICUplinkHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 		writer.WriteHeader(http.StatusOK)
 
 		return
+	case http.MethodGet:
+		var NICs []components.NIC
+
+		NICs, err = GetNICs()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			http.Error(writer, "failed to retrieve NICs", http.StatusInternalServerError)
+
+			return
+		}
+
+		rpc.ResetConnTimeout()
+
+		var switches []components.Switch
+
+		switches, err = GetSwitches()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		templ.Handler(components.NICSwitchAdd(nameOrID, NICs, switches)).ServeHTTP(writer, request)
+	case http.MethodPost:
+		err = request.ParseForm()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		switchAdded := request.PostForm["switches"]
+
+		var switchName string
+
+		if len(switchAdded) == 0 {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		switchName = switchAdded[0]
+
+		err = NICAddUplink(aNIC, switchName)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		http.Redirect(writer, request, "/net/nic/"+nameOrID, http.StatusSeeOther)
 
 	default:
 		util.LogError(err, request.RemoteAddr)
