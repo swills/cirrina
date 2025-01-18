@@ -119,10 +119,13 @@ func DeleteNic(nameOrID string) error {
 }
 
 func (d NICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	nameOrID := request.PathValue("nameOrID")
+	var err error
 
-	if request.Method == http.MethodDelete {
-		err := DeleteNic(nameOrID)
+	switch request.Method {
+	case http.MethodDelete:
+		nameOrID := request.PathValue("nameOrID")
+
+		err = DeleteNic(nameOrID)
 		if err != nil {
 			writer.Header().Set("HX-Redirect", "/net/nic/"+nameOrID)
 			writer.WriteHeader(http.StatusInternalServerError)
@@ -134,27 +137,66 @@ func (d NICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 		writer.WriteHeader(http.StatusOK)
 
 		return
+	case http.MethodGet:
+		nameOrID := request.PathValue("nameOrID")
+
+		var NICs []components.NIC
+
+		NICs, err = d.GetNICs()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			http.Error(writer, "failed to retrieve NICs", http.StatusInternalServerError)
+
+			return
+		}
+
+		if nameOrID != "" {
+			var aNIC components.NIC
+
+			aNIC, err = d.GetNIC(nameOrID)
+			if err != nil {
+				util.LogError(err, request.RemoteAddr)
+
+				serveErrorNIC(writer, request, err)
+
+				return
+			}
+
+			templ.Handler(components.NICLayout(NICs, aNIC)).ServeHTTP(writer, request)
+
+			return
+		}
+
+		templ.Handler(components.NewNICLayout(NICs)).ServeHTTP(writer, request)
+	case http.MethodPost:
+		err = request.ParseForm()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		nicName := request.PostForm["name"]
+		nicMac := request.PostForm["mac"]
+		nicType := request.PostForm["type"]
+		nicDevType := request.PostForm["devtype"]
+
+		_, err = rpc.AddNic(
+			nicName[0], "", nicMac[0], nicType[0], nicDevType[0],
+			false, 0, 0, "",
+		)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		http.Redirect(writer, request, "/net/nic/"+nicName[0], http.StatusSeeOther)
 	}
-
-	aNIC, err := d.GetNIC(nameOrID)
-	if err != nil {
-		util.LogError(err, request.RemoteAddr)
-
-		serveErrorNIC(writer, request, err)
-
-		return
-	}
-
-	NICs, err := d.GetNICs()
-	if err != nil {
-		util.LogError(err, request.RemoteAddr)
-
-		http.Error(writer, "failed to retrieve NICs", http.StatusInternalServerError)
-
-		return
-	}
-
-	templ.Handler(components.NICLayout(NICs, aNIC)).ServeHTTP(writer, request)
 }
 
 func DisconnectNICUplink(aNIC components.NIC) error {
