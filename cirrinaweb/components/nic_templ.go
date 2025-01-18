@@ -399,7 +399,7 @@ func newNicTemplate() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><label for=\"name\">Name:</label> <input type=\"text\" id=\"name\" name=\"name\"><br><label for=\"name\">Type:</label> <select name=\"type\" id=\"type-select\"><option value=\"virtionet\">VirtIO-NET</option> <option value=\"e1000\">E1000</option></select><br><label for=\"mac\">MAC:</label> <input type=\"text\" id=\"mac\" name=\"mac\" value=\"AUTO\"><br><label for=\"name\">Dev Type:</label> <select name=\"devtype\" id=\"dev-type-select\"><option value=\"tap\">TAP</option> <option value=\"vmnet\">VMNet</option> <option value=\"ng\">NetGraph</option></select> <input type=\"submit\" value=\"submit\"></form></div>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><label for=\"name\">Name:</label> <input type=\"text\" id=\"name\" name=\"name\"><br><label for=\"name\">Type:</label> <select name=\"type\" id=\"type-select\"><option value=\"virtionet\">VirtIO-NET</option> <option value=\"e1000\">E1000</option></select><br><label for=\"mac\">MAC:</label> <input type=\"text\" id=\"mac\" name=\"mac\" value=\"AUTO\"><br><label for=\"name\">Dev Type:</label> <select name=\"devtype\" id=\"dev-type-select\"><option value=\"tap\">TAP</option> <option value=\"vmnet\">VMNet</option> <option value=\"netgraph\">NetGraph</option></select> <input type=\"submit\" value=\"submit\"></form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
