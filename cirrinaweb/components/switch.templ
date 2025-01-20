@@ -7,8 +7,10 @@ templ SwitchLayout(switches []Switch, vmswitch Switch, errString string) {
 }
 
 templ switchTemplate(vmswitch Switch, errString string) {
-    <div data-testid="switchTemplate">
-        <div data-testid="switchTemplateSwitch">
+    <div class="h4 mt-3 mt-md-0">/ <a href="/home">Cirrina</a> / <a href="/net/switch">Switch</a> / { vmswitch.NameOrID }</div>
+
+    <div data-testid="switchTemplate" class="row m-0 mt-3 mt-md-0">
+        <div data-testid="switchTemplateSwitch" class="col-12 col-md border p-3">
 			<div data-testid="switchesTemplateSwitchName">Switch Name: { vmswitch.Name }</div>
 			<div data-testid="switchesTemplateSwitchID">ID: { vmswitch.ID }</div>
 			<div data-testid="switchesTemplateSwitchDescr">Description: { vmswitch.Description }</div>
@@ -35,5 +37,5 @@ templ SwitchNotFoundComponent(switches []Switch) {
 
 
 templ DeleteSwitchButton(aSwitch Switch) {
-    <button hx-delete={ "/net/switch/" + aSwitch.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to delete switch " + aSwitch.NameOrID + "?"}>Delete</button>
+    <button class="btn btn-outline-danger btn-sm me-1" hx-delete={ "/net/switch/" + aSwitch.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to delete switch " + aSwitch.NameOrID + "?"}>Delete</button>
 }

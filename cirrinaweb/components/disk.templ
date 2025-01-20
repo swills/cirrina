@@ -7,8 +7,10 @@ templ DiskLayout(disks []Disk, disk Disk) {
 }
 
 templ diskTemplate(disk Disk) {
-    <div data-testid="diskTemplate">
-        <div data-testid="diskTemplateDisk">
+    <div class="h4 mt-3 mt-md-0">/ <a href="/home">Cirrina</a> / <a href="/media/disk">Disk</a> / { disk.NameOrID }</div>
+
+    <div data-testid="diskTemplate" class="row m-0 mt-3 mt-md-0">
+        <div data-testid="diskTemplateDisk" class="col-12 col-md border p-3">
 			<div data-testid="disksTemplateDiskName">Disk Name: { disk.Name }</div>
 			<div data-testid="disksTemplateDiskID">ID: { disk.ID }</div>
 			<div data-testid="disksTemplateDiskDescr">Description: { disk.Description }</div>
@@ -45,5 +47,5 @@ templ DiskNotFoundComponent(disks []Disk) {
 }
 
 templ DeleteDiskButton(disk Disk) {
-    <button hx-delete={ "/media/disk/" + disk.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to delete disk " + disk.NameOrID + "?"}>Delete</button>
+    <button class="btn btn-outline-danger btn-sm me-1" hx-delete={ "/media/disk/" + disk.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to delete disk " + disk.NameOrID + "?"}>Delete</button>
 }

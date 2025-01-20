@@ -19,8 +19,10 @@ templ NICSwitchAdd(nicName string, nics []NIC, switches []Switch) {
 }
 
 templ nicTemplate(nic NIC) {
-    <div data-testid="nicTemplate">
-        <div data-testid="nicTemplateNIC">
+    <div class="h4 mt-3 mt-md-0">/ <a href="/home">Cirrina</a> / <a href="/net/nic">NIC</a> / { nic.NameOrID }</div>
+
+    <div data-testid="nicTemplate" class="row m-0 mt-3 mt-md-0">
+        <div data-testid="nicTemplateNIC" class="col-12 col-md border p-3">
 			<div data-testid="nicsTemplateNICName">NIC Name: { nic.Name }</div>
 			<div data-testid="nicsTemplateNICID">ID: { nic.ID }</div>
 			<div data-testid="nicsTemplateNICDescr">Description: { nic.Description }</div>
@@ -30,18 +32,19 @@ templ nicTemplate(nic NIC) {
             <div data-testid="nicsTemplateNICRateIn">Rate In: { nic.RateIn } </div>
             <div data-testid="nicsTemplateNICRateOut">Rate Out: { nic.RateOut } </div>
             }
+			if nic.Uplink.Name != "" {
+			<div data-testid="nicsTemplateNICUplink">Uplink: <a href={ templ.URL("/net/switch/" + nic.Uplink.Name) }>{ nic.Uplink.Name }</a> (<a href={ templ.URL("/net/switch/" + nic.Uplink.ID)}>id</a>)
+    			@DisconnectSwitchButton(nic)
+			</div>
+			} else {
+    			@ConnectSwitchButton(nic)
+			}
 			if nic.VM.Name != "" {
 			<div data-testid="nicsTemplateNICVM">VM: <a href={ templ.URL("/vm/" + nic.VM.Name) }>{ nic.VM.Name }</a> (<a href={ templ.URL("/vm/" + nic.VM.ID)}>id</a>)</div>
 			} else {
                 if nic.NameOrID != "" {
                     @DeleteNICButton(nic)
                 }
-			}
-			if nic.Uplink.Name != "" {
-			<div data-testid="nicsTemplateNICUplink">Uplink: <a href={ templ.URL("/net/switch/" + nic.Uplink.Name) }>{ nic.Uplink.Name }</a> (<a href={ templ.URL("/net/switch/" + nic.Uplink.ID)}>id</a>)</div>
-    			@DisconnectSwitchButton(nic)
-			} else {
-    			@ConnectSwitchButton(nic)
 			}
         </div>
     </div>
@@ -96,14 +99,14 @@ templ NICNotFoundComponent(nics []NIC) {
 }
 
 templ DeleteNICButton(nic NIC) {
-    <button hx-delete={ "/net/nic/" + nic.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to delete nic " + nic.NameOrID + "?"}>Delete</button>
+    <button class="btn btn-outline-danger btn-sm me-1" hx-delete={ "/net/nic/" + nic.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to delete nic " + nic.NameOrID + "?"}>Delete</button>
 }
 
 
 templ DisconnectSwitchButton(aNIC NIC) {
-    <button hx-delete={ "/net/nic/" + aNIC.NameOrID + "/uplink" } hx-target="body" hx-confirm={ "Are you sure you wish to disconnect NIC " + aNIC.NameOrID + "?"}>Disconnect</button>
+    <button class="btn btn-outline-danger btn-sm me-1" hx-delete={ "/net/nic/" + aNIC.NameOrID + "/uplink" } hx-target="body" hx-confirm={ "Are you sure you wish to disconnect NIC " + aNIC.NameOrID + "?"}>Disconnect</button>
 }
 
 templ ConnectSwitchButton(aNIC NIC) {
-    <button hx-get={ "/net/nic/" + aNIC.NameOrID + "/uplink" } hx-target="body">Connect</button>
+    <button class="btn btn-primary btn-sm" hx-get={ "/net/nic/" + aNIC.NameOrID + "/uplink" } hx-target="body">Connect</button>
 }

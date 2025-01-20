@@ -1,50 +1,64 @@
 package components
 
-templ headerTemplate(name string) {
-	<header data-testid="headerTemplate">
-		<div id="headerText">{ name }</div>
-		<nav>
-            <div class="dropdown">
-                <button class="dropbtn"><a href="/home">Home</a></button>
+templ headerTemplate() {
+    <header>
+      <nav class="navbar navbar-expand-md navbar-scroll fixed-top border-bottom shadow">
+        <div class="container-fluid">
+          <div class="navbar-brand">Cirrina <span class="text-danger">&Delta;</span></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav me-auto mb-2 mb-md-0">
+              <li class="nav-item">
+                <a class="nav-link" href="/home">Home</a>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle active" href="#" data-bs-toggle="dropdown">VMs</a>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="/vms/new">New</a></li>
+                  <li><a class="dropdown-item" href="/vms/clearuefi">Clear UEFI</a></li>
+                </ul>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Media</a>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="/media/disks">Hard Disks</a></li>
+                  <li><a class="dropdown-item" href="/media/isos">Optical Discs</a></li>
+                </ul>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Networks</a>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="/net/nic">NICs</a></li>
+                  <li><a class="dropdown-item" href="/net/switches">Switches</a></li>
+                </ul>
+              </li>
+            </ul>
+            <div class="d-flex">
+              <span class="btn-group mode-switch">
+                <button class="btn btn-dark p-1 mode" id="dark">&#9711;</button>
+                <button class="btn btn-dark p-1 mode" id="light">&#11044;</button>
+                <button class="btn btn-dark p-1 mode" id="system">&#10754;</button>
+              </span>
             </div>
-            <div class="dropdown">
-                <button class="dropbtn">VMs</button>
-                <div class="dropdown-content">
-                    <span><a href="/vms/new">New</a></span>
-                    <span><a href="/vms/delete">Delete</a></span>
-                    <span><a href="/vms/clearuefi">Clear UEFI</a></span>
-                </div>
-            </div>
-            <div class="dropdown">
-                <button class="dropbtn">Media</button>
-                <div class="dropdown-content">
-                    <span><a href="/media/disks">Hard Disks</a></span>
-                    <span><a href="/media/isos">Optical Discs</a></span>
-                </div>
-            </div>
-            <div class="dropdown">
-                <button class="dropbtn">Networks</button>
-                <div class="dropdown-content">
-                    <span><a href="/net/nic">NICs</a></span>
-                    <span><a href="/net/switches">Switches</a></span>
-                </div>
-            </div>
-		</nav>
-	</header>
+          </div>
+        </div>
+      </nav>
+    </header>
 }
 
 templ sidebarTemplateVMs(vms []VM) {
-	<aside data-testid="sidebarTemplateVMs">
-        <div data-testid="vmsTemplate">
+    <div class="col-12 col-md-auto p-0" id="main_left_col">
+        <div class="h4">VMs</div>
+            <div class="border m-0 p-3 text-nowrap" id="main_left">
+            <ol class="list-unstyled">
             for _, p := range vms {
-                <div data-testid="vmsTemplateVM">
-                    <div data-testid="vmsTemplateVMName">
-                        <a href={ templ.URL("/vm/" + p.Name) }>{ p.Name }</a> (<a href={ templ.URL("/vm/" + p.ID)}>id</a>)
-                    </div>
-                </div>
+                <li class="p"><a href={ templ.URL("/vm/" + p.Name) }>{ p.Name }</a> (<a href={ templ.URL("/vm/" + p.ID)}>id</a>)</li>
             }
+            </ol>
         </div>
-	</aside>
+    </div>
 }
 
 templ layoutVMs(name string, vms []VM, refreshPath string) {
@@ -52,23 +66,29 @@ templ layoutVMs(name string, vms []VM, refreshPath string) {
 	<html lang="en">
 		<head>
             <title>{ name }</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+            <link rel="stylesheet" href="/assets/bootstrap.5.3.3.min.css">
             <link href="/assets/style.css" rel="stylesheet" type="text/css" />
             <script src="/assets/htmx.2.0.4.min.js"></script>
 		</head>
 		<body>
-			@headerTemplate(name)
-			<div id="wrapper">
-            @sidebarTemplateVMs(vms)
-            <main
-                if refreshPath !="" {
-                hx-get={refreshPath} hx-trigger="every 2s"
-                }
-            >
-                { children... }
-            </main>
+			@headerTemplate()
+            <div class="container-fluid pt-4 mt-5 mb-3" id="main">
+                <div class="row m-0">
+                @sidebarTemplateVMs(vms)
+                <main class="col m-0 px-0 px-md-3"
+                    if refreshPath !="" {
+                    hx-get={refreshPath} hx-trigger="every 2s"
+                    }
+                >
+                    { children... }
+                </main>
 			</div>
-		</body>
+        </div>
+@mainLeftHeight()
+@themejs()
+    		</body>
 	</html>
 }
 
@@ -83,4 +103,49 @@ templ notFoundComponent(vms []VM) {
 		<div data-testid="homeTemplate"></div>
         <div>404 - Not found</div>
 	}
+}
+
+templ mainLeftHeight() {
+    <script type="text/javascript">
+// set height of left vms column
+function main_left_height() {
+  if(window.innerWidth <= 767.98) {
+    var vms_height = 300;
+  } else {
+    var vms_height = window.innerHeight - document.getElementById('main_left').getBoundingClientRect().top - parseFloat(window.getComputedStyle(document.getElementById('main')).marginBottom);
+  };
+  document.getElementById('main_left').style.maxHeight = vms_height + 'px';
+};
+main_left_height();
+window.onresize = function() {
+  main_left_height();
+};
+    </script>
+}
+
+templ themejs() {
+    <script type="text/javascript">
+// toggle dark/light/auto theme and use local storage to remember preference
+function setTheme(mode = 'auto') {
+  const userMode = localStorage.getItem('bs-theme');
+  const sysMode = window.matchMedia('(prefers-color-scheme: light)').matches;
+  const useSystem = mode === 'system' || (!userMode && mode === 'auto');
+  const modeChosen = useSystem ? (sysMode ? 'light' : 'dark') : mode === 'dark' || mode === 'light' ? mode : userMode;
+  const elements = document.querySelectorAll('.mode');
+  elements.forEach(element => {
+    element.classList.remove('text-warning');
+  });
+  if(useSystem) {
+    localStorage.removeItem('bs-theme');
+    document.getElementById('system').classList.add('text-warning');
+  } else {
+    localStorage.setItem('bs-theme', modeChosen);
+    document.getElementById(modeChosen).classList.add('text-warning');
+  };
+  document.documentElement.setAttribute('data-bs-theme', useSystem ? (sysMode ? 'light' : 'dark') : modeChosen);
+};
+setTheme();
+document.querySelectorAll('.mode-switch .btn').forEach(e => e.addEventListener('click', () => setTheme(e.id)));
+window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => setTheme());
+    </script>
 }

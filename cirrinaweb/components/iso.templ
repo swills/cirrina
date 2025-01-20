@@ -7,8 +7,10 @@ templ ISOLayout(isos []ISO, iso ISO) {
 }
 
 templ isoTemplate(iso ISO) {
-    <div data-testid="isoTemplate">
-        <div data-testid="isoTemplateISO">
+    <div class="h4 mt-3 mt-md-0">/ <a href="/home">Cirrina</a> / <a href="/media/iso">ISO</a> / { iso.NameOrID }</div>
+
+    <div data-testid="isoTemplate" class="row m-0 mt-3 mt-md-0">
+        <div data-testid="isoTemplateISO" class="col-12 col-md border p-3">
 			<div data-testid="isosTemplateISOName">ISO Name: { iso.Name }</div>
 			<div data-testid="isosTemplateISOID">ID: { iso.ID }</div>
 			<div data-testid="isosTemplateISODescr">Description: { iso.Description }</div>
@@ -34,5 +36,5 @@ templ ISONotFoundComponent(isos []ISO) {
 }
 
 templ DeleteISOButton(iso ISO) {
-    <button hx-delete={ "/media/iso/" + iso.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to delete iso " + iso.NameOrID + "?"}>Delete</button>
+    <button class="btn btn-outline-danger btn-sm me-1" hx-delete={ "/media/iso/" + iso.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to delete iso " + iso.NameOrID + "?"}>Delete</button>
 }

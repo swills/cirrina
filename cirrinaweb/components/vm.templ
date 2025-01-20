@@ -28,16 +28,84 @@ templ VmNICAdd(vmName string, vms []VM, vm VM, nics []NIC) {
     }
 }
 
+templ VMDisksComp(vm VM) {
+            <div class="row m-0 mt-3">
+                <div class="col-12 col-md border p-3">
+                    Disks:
+                    if !vm.Running {
+                        @DiskAddButton(vm)
+                    }
+                    <div data-testid="vmsTemplateVMDisk">
+                        for _, d := range vm.Disks {
+                            <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/media/disk/" + d.Name) }>{ d.Name }</a> (<a href={ templ.URL("/media/disk/" + d.ID)}>id</a>)
+                            if vm.NameOrID != "" && d.NameOrID != "" && !vm.Running {
+                                @DisconnectDiskButton(vm, d)
+                            }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+}
+
+templ VMISOsComp(vm VM) {
+            <div class="row m-0 mt-3">
+                <div class="col-12 col-md border p-3">
+                    ISOs:
+                    if !vm.Running {
+                        @ISOAddButton(vm)
+                    }
+                    <div data-testid="vmsTemplateVMISO">
+                        for _, i := range vm.ISOs {
+                            <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/media/iso/" + i.Name) }>{ i.Name }</a> (<a href={ templ.URL("/media/iso/" + i.ID)}>id</a>)
+                            if vm.NameOrID != "" && i.NameOrID != "" && !vm.Running {
+                                @DisconnectISOButton(vm, i)
+                            }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+}
+
+templ VMNICsComp(vm VM) {
+            <div class="row m-0 mt-3">
+                <div class="col-12 col-md border p-3">
+                    NICs:
+                    if !vm.Running {
+                        @NICAddButton(vm)
+                    }
+                        <div data-testid="vmsTemplateVMNIC">
+                            for _, n := range vm.NICs {
+                                <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/net/nic/" + n.Name) }>{ n.Name }</a> (<a href={ templ.URL("/net/nic/" + n.ID)}>id</a>)
+                                if vm.NameOrID != "" && n.NameOrID != "" && !vm.Running {
+                                    @DisconnectNICButton(vm, n)
+                                }
+                                </div>
+                            }
+                        </div>
+                </div>
+            </div>
+}
+
 templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
     {{ cpusStr := strconv.FormatUint(uint64(vm.CPUs), 10) }}
     {{ memoryStr := strconv.FormatUint(uint64(vm.Memory), 10) }}
-    <div data-testid="vmTemplate">
-        <div data-testid="vmTemplateVM">
+
+    <div class="h4 mt-3 mt-md-0">/ <a href="/home">Cirrina</a> / <a href="/vm">VM</a> / { vm.NameOrID }</div>
+
+    <div data-testid="vmTemplate" class="row m-0 mt-3 mt-md-0">
+        <div data-testid="vmTemplateVM" class="col-12 col-md border p-3">
 			<div data-testid="vmsTemplateVMName">VM Name: { vm.Name }</div>
 			<div data-testid="vmsTemplateVMID">ID: { vm.ID }</div>
 			<div data-testid="vmsTemplateVMCPUs">CPU Count: { cpusStr }</div>
 			<div data-testid="vmsTemplateVMMem">Memory: { memoryStr } MiB</div>
 			<div data-testid="vmsTemplateVMDescr">Description: { vm.Description }</div>
+        </div>
+    </div>
+
+    <div data-testid="vmTemplate" class="row m-0 mt-3">
+        <div data-testid="vmTemplateVM" class="col-12 col-md border p-3">
             if vm.Running {
                 <div>VM is running</div>
                 @StopButton(vm)
@@ -49,46 +117,12 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
                 @StartButton(vm)
                 @DeleteVMButton(vm)
             }
-            <div>
-            Disks:
-            if !vm.Running {
-                @DiskAddButton(vm)
-            }
-                <div data-testid="vmsTemplateVMDisk">
-                    for _, d := range vm.Disks {
-                        <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/media/disk/" + d.Name) }>{ d.Name }</a> (<a href={ templ.URL("/media/disk/" + d.ID)}>id</a>)</div>
-                        if vm.NameOrID != "" && d.NameOrID != "" && !vm.Running {
-                            @DisconnectDiskButton(vm, d)
-                        }
-                    }
-                </div>
-            ISOs:
-            if !vm.Running {
-                @ISOAddButton(vm)
-            }
-                <div data-testid="vmsTemplateVMISO">
-                    for _, i := range vm.ISOs {
-                        <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/media/iso/" + i.Name) }>{ i.Name }</a> (<a href={ templ.URL("/media/iso/" + i.ID)}>id</a>)</div>
-                        if vm.NameOrID != "" && i.NameOrID != "" && !vm.Running {
-                            @DisconnectISOButton(vm, i)
-                        }
-                    }
-                </div>
-            NICs:
-            if !vm.Running {
-                @NICAddButton(vm)
-            }
-                <div data-testid="vmsTemplateVMNIC">
-                    for _, n := range vm.NICs {
-                        <div data-testid="vmsTemplateDiskName"><a href={ templ.URL("/net/nic/" + n.Name) }>{ n.Name }</a> (<a href={ templ.URL("/net/nic/" + n.ID)}>id</a>)</div>
-                        if vm.NameOrID != "" && n.NameOrID != "" && !vm.Running {
-                            @DisconnectNICButton(vm, n)
-                        }
-                    }
-                </div>
-            </div>
         </div>
     </div>
+
+    @VMDisksComp(vm)
+    @VMISOsComp(vm)
+    @VMNICsComp(vm)
 }
 
 templ vmDiskAddTemplate(vmName string, disks []Disk) {
@@ -144,11 +178,11 @@ templ VmNotFoundComponent(vms []VM) {
 }
 
 templ StartButton(vm VM) {
-    <button hx-post={ "/vm/" + vm.NameOrID + "/start" } hx-swap="outerHTML">Start</button>
+    <button class="btn btn-primary" hx-post={ "/vm/" + vm.NameOrID + "/start" } hx-swap="outerHTML">Start</button>
 }
 
 templ StopButton(vm VM) {
-    <button hx-post={ "/vm/" + vm.NameOrID + "/stop" } hx-swap="outerHTML">Stop</button>
+    <button class="btn btn-primary" hx-post={ "/vm/" + vm.NameOrID + "/stop" } hx-swap="outerHTML">Stop</button>
 }
 
 templ VmDataOnly(vms []VM, vm VM, listenHost string, websockifyPort uint16) {
@@ -156,29 +190,29 @@ templ VmDataOnly(vms []VM, vm VM, listenHost string, websockifyPort uint16) {
 }
 
 templ DeleteVMButton(aVM VM) {
-    <button hx-delete={ "/vm/" + aVM.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to delete vm " + aVM.NameOrID + "?"}>Delete</button>
+    <button class="btn btn-outline-danger btn-sm me-1" hx-delete={ "/vm/" + aVM.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to delete vm " + aVM.NameOrID + "?"}>Delete</button>
 }
 
 templ DisconnectDiskButton(aVM VM, aDisk Disk) {
-    <button hx-delete={ "/vm/" + aVM.NameOrID + "/disk/" + aDisk.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to disconnect disk " + aDisk.NameOrID + " from VM " + aVM.NameOrID + "?"}>Disconnect</button>
+    <button class="btn btn-outline-danger btn-sm me-1" hx-delete={ "/vm/" + aVM.NameOrID + "/disk/" + aDisk.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to disconnect disk " + aDisk.NameOrID + " from VM " + aVM.NameOrID + "?"}>Disconnect</button>
 }
 
 templ DisconnectISOButton(aVM VM, aISO ISO) {
-    <button hx-delete={ "/vm/" + aVM.NameOrID + "/iso/" + aISO.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to disconnect ISO " + aISO.NameOrID + " from VM " + aVM.NameOrID + "?"}>Disconnect</button>
+    <button class="btn btn-outline-danger btn-sm me-1" hx-delete={ "/vm/" + aVM.NameOrID + "/iso/" + aISO.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to disconnect ISO " + aISO.NameOrID + " from VM " + aVM.NameOrID + "?"}>Disconnect</button>
 }
 
 templ DisconnectNICButton(aVM VM, aNIC NIC) {
-    <button hx-delete={ "/vm/" + aVM.NameOrID + "/nic/" + aNIC.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to disconnect NIC " + aNIC.NameOrID + " from VM " + aVM.NameOrID + "?"}>Disconnect</button>
+    <button class="btn btn-outline-danger btn-sm me-1" hx-delete={ "/vm/" + aVM.NameOrID + "/nic/" + aNIC.NameOrID } hx-target="body" hx-confirm={ "Are you sure you wish to disconnect NIC " + aNIC.NameOrID + " from VM " + aVM.NameOrID + "?"}>Disconnect</button>
 }
 
 templ DiskAddButton(aVM VM) {
-    <button hx-get={ "/vm/" + aVM.NameOrID + "/disk/add" } hx-target="body">Add</button>
+    <a class="btn btn-primary btn-sm me-1" href={ templ.URL("/vm/" + aVM.NameOrID + "/disk/add") }>Add</a>
 }
 
 templ ISOAddButton(aVM VM) {
-    <button hx-get={ "/vm/" + aVM.NameOrID + "/iso/add" } hx-target="body">Add</button>
+    <a class="btn btn-primary btn-sm me-1" href={ templ.URL("/vm/" + aVM.NameOrID + "/iso/add") }>Add</a>
 }
 
 templ NICAddButton(aVM VM) {
-    <button hx-get={ "/vm/" + aVM.NameOrID + "/nic/add" } hx-target="body">Add</button>
+    <a class="btn btn-primary btn-sm me-1" href={ templ.URL("/vm/" + aVM.NameOrID + "/nic/add") }>Add</a>
 }

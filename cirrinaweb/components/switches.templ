@@ -6,17 +6,16 @@ templ Switches(switches []Switch) {
 }
 
 templ sidebarTemplateSwitches(switches []Switch) {
-	<aside data-testid="sidebarTemplateSwitches">
-        <div data-testid="switchTemplate">
-            for _, p := range switches {
-                <div data-testid="switchesTemplateSwitch">
-                    <div data-testid="switchesTemplateSwitchName">
-                        <a href={ templ.URL("/net/switch/" + p.Name) }>{ p.Name }</a> (<a href={ templ.URL("/net/switch/" + p.ID)}>id</a>)
-                    </div>
-                </div>
+    <div class="col-12 col-md-auto p-0" id="main_left_col">
+        <div class="h4">Switches</div>
+            <div class="border m-0 p-3 text-nowrap" id="main_left">
+            <ol class="list-unstyled">
+            for _, s := range switches {
+                <li class="p"><a href={ templ.URL("/net/switch/" + s.Name) }>{ s.Name }</a> (<a href={ templ.URL("/net/switch/" + s.ID)}>id</a>)</li>
             }
+            </ol>
         </div>
-	</aside>
+    </div>
 }
 
 templ layoutSwitches(name string, switches []Switch) {
@@ -24,18 +23,24 @@ templ layoutSwitches(name string, switches []Switch) {
 	<html lang="en">
 		<head>
             <title>{ name }</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+            <link rel="stylesheet" href="/assets/bootstrap.5.3.3.min.css">
             <link href="/assets/style.css" rel="stylesheet" type="text/css" />
             <script src="/assets/htmx.2.0.4.min.js"></script>
 		</head>
 		<body>
-			@headerTemplate(name)
-			<div id="wrapper">
+			@headerTemplate()
+            <div class="container-fluid pt-4 mt-5 mb-3" id="main">
+                <div class="row m-0">
     			@sidebarTemplateSwitches(switches)
-			<main>
+                <main class="col m-0 px-0 px-md-3">
 				{ children... }
-			</main>
+                </main>
 			</div>
-		</body>
+        </div>
+@mainLeftHeight()
+@themejs()
+        </body>
 	</html>
 }
