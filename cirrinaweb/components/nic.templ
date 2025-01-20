@@ -51,28 +51,32 @@ templ nicTemplate(nic NIC) {
 }
 
 templ newNicTemplate() {
-    <div data-testid="newNicTemplate">
-     <form action={ templ.URL("/net/nic")} method="post">
-        <label for="name">Name:</label>
-        <input type="text" id="name" name="name">
-        <br>
-        <label for="name">Type:</label>
-        <select name="type" id="type-select">
-          <option value="virtionet">VirtIO-NET</option>
-          <option value="e1000">E1000</option>
-        </select>
-        <br>
-        <label for="mac">MAC:</label>
-        <input type="text" id="mac" name="mac" value="AUTO">
-        <br>
-        <label for="name">Dev Type:</label>
-        <select name="devtype" id="dev-type-select">
-          <option value="tap">TAP</option>
-          <option value="vmnet">VMNet</option>
-          <option value="netgraph">NetGraph</option>
-        </select>
-        <input type="submit" value="submit" />
-     </form>
+    <div class="h4 mt-3 mt-md-0">/ <a href="/home">Cirrina</a> / <a href="/net/nic">NIC</a> / New</div>
+
+    <div data-testid="newNicTemplate" class="row m-0 mt-3 mt-md-0">
+      <div data-testid="newNicForm"  class="col-12 col-md border p-3">
+        <form action={ templ.URL("/net/nic")} method="post">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name">
+            <br>
+            <label for="name">Type:</label>
+            <select name="type" id="type-select">
+              <option value="virtionet">VirtIO-NET</option>
+              <option value="e1000">E1000</option>
+            </select>
+            <br>
+            <label for="mac">MAC:</label>
+            <input type="text" id="mac" name="mac" value="AUTO">
+            <br>
+            <label for="name">Dev Type:</label>
+            <select name="devtype" id="dev-type-select">
+              <option value="tap">TAP</option>
+              <option value="vmnet">VMNet</option>
+              <option value="netgraph">NetGraph</option>
+            </select>
+            <input type="submit" value="submit" class="btn btn-primary btn-sm" />
+        </form>
+      </div>
     </div>
 }
 

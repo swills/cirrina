@@ -1,5 +1,42 @@
 package components
 
+templ NewSwitchLayout(switches []Switch, uplinks []string) {
+    @layoutSwitches("Switch - create", switches) {
+        @newSwitchTemplate(uplinks)
+    }
+}
+
+templ newSwitchTemplate(uplinks []string) {
+    <div class="h4 mt-3 mt-md-0">/ <a href="/home">Cirrina</a> / <a href="/net/switch">Switch</a> / New</div>
+
+    <div data-testid="newNicTemplate" class="row m-0 mt-3 mt-md-0">
+      <div data-testid="newNicForm"  class="col-12 col-md border p-3">
+        <form action={ templ.URL("/net/switch")} method="post">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name">
+            <br>
+            <label for="name">Type:</label>
+            <select name="type" id="type-select">
+              <option value="bridge">Bridge</option>
+              <option value="netgraph">NetGraph</option>
+            </select>
+            <br>
+            <label for="name">Uplink:</label>
+            <select name="uplink" id="uplink-select">
+                for _, u := range uplinks {
+                  <option value={ u }>{u}</option>
+                }
+            </select>
+            <br>
+            <label for="mac">Description:</label>
+            <input type="text" id="desc" name="desc">
+            <br>
+            <input type="submit" value="submit" class="btn btn-primary btn-sm" />
+        </form>
+      </div>
+    </div>
+}
+
 templ SwitchLayout(switches []Switch, vmswitch Switch, errString string) {
     @layoutSwitches("Switch - " + vmswitch.Name, switches) {
         @switchTemplate(vmswitch, errString)

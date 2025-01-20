@@ -183,6 +183,8 @@ func (d NICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 		nicType := request.PostForm["type"]
 		nicDevType := request.PostForm["devtype"]
 
+		rpc.ResetConnTimeout()
+
 		_, err = rpc.AddNic(
 			nicName[0], "", nicMac[0], nicType[0], nicDevType[0],
 			false, 0, 0, "",

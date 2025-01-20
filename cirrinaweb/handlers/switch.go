@@ -95,10 +95,15 @@ func DeleteSwitch(nameOrID string) error {
 	return nil
 }
 
+//nolint:gocognit,funlen
 func (d SwitchHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	nameOrID := request.PathValue("nameOrID")
-	if request.Method == http.MethodDelete {
-		err := DeleteSwitch(nameOrID)
+	var err error
+
+	switch request.Method {
+	case http.MethodDelete:
+		nameOrID := request.PathValue("nameOrID")
+
+		err = DeleteSwitch(nameOrID)
 		if err != nil {
 			var errMessage string
 
@@ -130,29 +135,80 @@ func (d SwitchHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		writer.WriteHeader(http.StatusOK)
 
 		return
+	case http.MethodGet:
+		nameOrID := request.PathValue("nameOrID")
+
+		var Switches []components.Switch
+
+		Switches, err = d.GetSwitches()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			http.Error(writer, "failed to retrieve Switches", http.StatusInternalServerError)
+
+			return
+		}
+
+		if nameOrID != "" {
+			var aSwitch components.Switch
+
+			aSwitch, err = d.GetSwitch(nameOrID)
+			if err != nil {
+				util.LogError(err, request.RemoteAddr)
+
+				serveErrorSwitch(writer, request, err)
+
+				return
+			}
+
+			q := request.URL.Query()
+
+			errString := q.Get("err")
+
+			templ.Handler(components.SwitchLayout(Switches, aSwitch, errString)).ServeHTTP(writer, request)
+
+			return
+		}
+
+		rpc.ResetConnTimeout()
+
+		var uplinks []string
+
+		uplinks, err = rpc.GetHostNics()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorSwitch(writer, request, err)
+
+			return
+		}
+
+		templ.Handler(components.NewSwitchLayout(Switches, uplinks)).ServeHTTP(writer, request)
+	case http.MethodPost:
+		err = request.ParseForm()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+			serveErrorSwitch(writer, request, err)
+
+			return
+		}
+
+		switchName := request.PostForm["name"]
+		switchDesc := request.PostForm["desc"]
+		switchType := request.PostForm["type"]
+		switchUplink := request.PostForm["uplink"]
+
+		rpc.ResetConnTimeout()
+
+		_, err = rpc.AddSwitch(switchName[0], &switchDesc[0], &switchType[0], &switchUplink[0])
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorSwitch(writer, request, err)
+
+			return
+		}
+
+		http.Redirect(writer, request, "/net/switch/"+switchName[0], http.StatusSeeOther)
 	}
-
-	aSwitch, err := d.GetSwitch(nameOrID)
-	if err != nil {
-		util.LogError(err, request.RemoteAddr)
-
-		serveErrorSwitch(writer, request, err)
-
-		return
-	}
-
-	Switches, err := d.GetSwitches()
-	if err != nil {
-		util.LogError(err, request.RemoteAddr)
-
-		http.Error(writer, "failed to retrieve Switches", http.StatusInternalServerError)
-
-		return
-	}
-
-	q := request.URL.Query()
-
-	errString := q.Get("err")
-
-	templ.Handler(components.SwitchLayout(Switches, aSwitch, errString)).ServeHTTP(writer, request)
 }

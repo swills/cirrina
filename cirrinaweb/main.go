@@ -215,6 +215,14 @@ func main() {
 			"GET /net/switches",
 			HTTPLogger(middlewarestd.Handler("/net/switches", mdlw, handlers.NewSwitchesHandler())))
 		mux.Handle(
+			"GET /net/switch",
+			HTTPLogger(middlewarestd.Handler("/net/switch", mdlw, handlers.NewSwitchHandler())),
+		)
+		mux.Handle(
+			"POST /net/switch",
+			HTTPLogger(middlewarestd.Handler("/net/switch", mdlw, handlers.NewSwitchHandler())),
+		)
+		mux.Handle(
 			"GET /net/switch/{nameOrID}",
 			HTTPLogger(middlewarestd.Handler("/net/switch/:nameOrID", mdlw, handlers.NewSwitchHandler())),
 		)
@@ -261,6 +269,8 @@ func main() {
 		mux.Handle("GET /net/nic/{nameOrID}/uplink", HTTPLogger(handlers.NewNICUplinkHandler()))
 		mux.Handle("POST /net/nic/{nameOrID}/uplink", HTTPLogger(handlers.NewNICUplinkHandler()))
 		mux.Handle("GET /net/switches", HTTPLogger(handlers.NewSwitchesHandler()))
+		mux.Handle("GET /net/switch", HTTPLogger(handlers.NewSwitchHandler()))
+		mux.Handle("POST /net/switch", HTTPLogger(handlers.NewSwitchHandler()))
 		mux.Handle("GET /net/switch/{nameOrID}", HTTPLogger(handlers.NewSwitchHandler()))
 		mux.Handle("DELETE /net/switch/{nameOrID}", HTTPLogger(handlers.NewSwitchHandler()))
 	}
