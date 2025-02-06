@@ -7,7 +7,7 @@ templ NewSwitchLayout(switches []Switch, uplinks []string) {
 }
 
 templ newSwitchTemplate(uplinks []string) {
-    <div class="h4 mt-3 mt-md-0">/ <a href="/home">Cirrina</a> / <a href="/net/switch">Switch</a> / New</div>
+    <div class="h4 mt-3 mt-md-0">/ <a class="text-decoration-none" href="/home">Cirrina</a> / <a class="text-decoration-none" href="/net/switch">Switch</a> / New</div>
 
     <div data-testid="newNicTemplate" class="row m-0 mt-3 mt-md-0">
       <div data-testid="newNicForm"  class="col-12 col-md border p-3">
@@ -16,13 +16,13 @@ templ newSwitchTemplate(uplinks []string) {
             <input type="text" id="name" name="name">
             <br>
             <label for="name">Type:</label>
-            <select name="type" id="type-select">
+            <select class="form-select form-select-sm" name="type" id="type-select">
               <option value="bridge">Bridge</option>
               <option value="netgraph">NetGraph</option>
             </select>
             <br>
             <label for="name">Uplink:</label>
-            <select name="uplink" id="uplink-select">
+            <select class="form-select form-select-sm" name="uplink" id="uplink-select">
                 for _, u := range uplinks {
                   <option value={ u }>{u}</option>
                 }
@@ -44,7 +44,7 @@ templ SwitchLayout(switches []Switch, vmswitch Switch, errString string) {
 }
 
 templ switchTemplate(vmswitch Switch, errString string) {
-    <div class="h4 mt-3 mt-md-0">/ <a href="/home">Cirrina</a> / <a href="/net/switch">Switch</a> / { vmswitch.NameOrID }</div>
+    <div class="h4 mt-3 mt-md-0">/ <a class="text-decoration-none" href="/home">Cirrina</a> / <a class="text-decoration-none" href="/net/switch">Switch</a> / { vmswitch.NameOrID }</div>
 
     <div data-testid="switchTemplate" class="row m-0 mt-3 mt-md-0">
         <div data-testid="switchTemplateSwitch" class="col-12 col-md border p-3">

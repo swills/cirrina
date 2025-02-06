@@ -7,7 +7,7 @@ templ DiskLayout(disks []Disk, disk Disk) {
 }
 
 templ diskTemplate(disk Disk) {
-    <div class="h4 mt-3 mt-md-0">/ <a href="/home">Cirrina</a> / <a href="/media/disk">Disk</a> / { disk.NameOrID }</div>
+    <div class="h4 mt-3 mt-md-0">/ <a class="text-decoration-none" href="/home">Cirrina</a> / <a class="text-decoration-none" href="/media/disk">Disk</a> / { disk.NameOrID }</div>
 
     <div data-testid="diskTemplate" class="row m-0 mt-3 mt-md-0">
         <div data-testid="diskTemplateDisk" class="col-12 col-md border p-3">
@@ -29,7 +29,7 @@ templ diskTemplate(disk Disk) {
             <div data-testid="diskTemplateDiskDirect">Direct: false</div>
             }
 			if disk.VM.ID != "" {
-			<div data-testid="diskTemplateDiskVM">VM: <a href={ templ.URL("/vm/" + disk.VM.Name) }>{ disk.VM.Name }</a> (<a href={ templ.URL("/vm/" + disk.VM.ID)}>id</a>)</div>
+			<div data-testid="diskTemplateDiskVM">VM: <a class="text-decoration-none" href={ templ.URL("/vm/" + disk.VM.Name) }>{ disk.VM.Name }</a> (<a class="text-decoration-none" href={ templ.URL("/vm/" + disk.VM.ID)}>id</a>)</div>
 			} else {
                 if disk.NameOrID != "" {
                     @DeleteDiskButton(disk)

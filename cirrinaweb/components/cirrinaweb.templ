@@ -2,7 +2,7 @@ package components
 
 templ headerTemplate() {
     <header>
-      <nav class="navbar navbar-expand-md navbar-scroll fixed-top border-bottom shadow">
+      <nav class="navbar navbar-expand navbar-scroll bg-body fixed-top border-bottom shadow-sm">
         <div class="container-fluid">
           <div class="navbar-brand">Cirrina <span class="text-danger">&Delta;</span></div>
           <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
@@ -14,7 +14,7 @@ templ headerTemplate() {
                 <a class="nav-link" href="/home">Home</a>
               </li>
               <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle active" href="#" data-bs-toggle="dropdown">VMs</a>
+                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">VMs</a>
                 <ul class="dropdown-menu">
                   <li><a class="dropdown-item" href="/vms/new">New</a></li>
                   <li><a class="dropdown-item" href="/vms/clearuefi">Clear UEFI</a></li>
@@ -36,11 +36,11 @@ templ headerTemplate() {
               </li>
             </ul>
             <div class="d-flex">
-              <span class="btn-group mode-switch">
-                <button class="btn btn-dark p-1 mode" id="dark">&#9711;</button>
-                <button class="btn btn-dark p-1 mode" id="light">&#11044;</button>
-                <button class="btn btn-dark p-1 mode" id="system">&#10754;</button>
-              </span>
+              <div class="btn-group btn-group-sm mode-switch">
+                <button class="btn border rounded-circle p-0 mode" id="light">L</button>
+                <button class="btn border rounded-circle p-0 mode" id="system">A</button>
+                <button class="btn border rounded-circle p-0 mode" id="dark">D</button>
+              </div>
             </div>
           </div>
         </div>
@@ -54,7 +54,7 @@ templ sidebarTemplateVMs(vms []VM) {
             <div class="border m-0 p-3 text-nowrap" id="main_left">
             <ol class="list-unstyled">
             for _, p := range vms {
-                <li class="p"><a href={ templ.URL("/vm/" + p.Name) }>{ p.Name }</a> (<a href={ templ.URL("/vm/" + p.ID)}>id</a>)</li>
+                <li class="p"><a class="text-decoration-none" href={ templ.URL("/vm/" + p.Name) }>{ p.Name }</a> (<a class="text-decoration-none" href={ templ.URL("/vm/" + p.ID)}>id</a>)</li>
             }
             </ol>
         </div>
@@ -63,7 +63,7 @@ templ sidebarTemplateVMs(vms []VM) {
 
 templ layoutVMs(name string, vms []VM, refreshPath string) {
     <!DOCTYPE HTML>
-	<html lang="en">
+      <html lang="en" data-bs-theme="auto">
 		<head>
             <title>{ name }</title>
             <meta charset="utf-8">

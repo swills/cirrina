@@ -7,7 +7,7 @@ templ ISOLayout(isos []ISO, iso ISO) {
 }
 
 templ isoTemplate(iso ISO) {
-    <div class="h4 mt-3 mt-md-0">/ <a href="/home">Cirrina</a> / <a href="/media/iso">ISO</a> / { iso.NameOrID }</div>
+    <div class="h4 mt-3 mt-md-0">/ <a class="text-decoration-none" href="/home">Cirrina</a> / <a class="text-decoration-none" href="/media/iso">ISO</a> / { iso.NameOrID }</div>
 
     <div data-testid="isoTemplate" class="row m-0 mt-3 mt-md-0">
         <div data-testid="isoTemplateISO" class="col-12 col-md border p-3">
@@ -17,7 +17,7 @@ templ isoTemplate(iso ISO) {
 			<div data-testid="isoTemplateISOSize">Size: { iso.Size }</div>
 			if len(iso.VMs) > 0 {
                     for _, i := range iso.VMs {
-                        <div data-testid="isosTemplateISOVM"><a href={ templ.URL("/vm/" + i.Name) }>{ i.Name }</a> (<a href={ templ.URL("/vm/" + i.ID)}>id</a>)</div>
+                        <div data-testid="isosTemplateISOVM"><a class="text-decoration-none" href={ templ.URL("/vm/" + i.Name) }>{ i.Name }</a> (<a class="text-decoration-none" href={ templ.URL("/vm/" + i.ID)}>id</a>)</div>
                     }
 			} else {
                 if iso.NameOrID != "" {

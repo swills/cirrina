@@ -11,7 +11,7 @@ templ sidebarTemplateSwitches(switches []Switch) {
             <div class="border m-0 p-3 text-nowrap" id="main_left">
             <ol class="list-unstyled">
             for _, s := range switches {
-                <li class="p"><a href={ templ.URL("/net/switch/" + s.Name) }>{ s.Name }</a> (<a href={ templ.URL("/net/switch/" + s.ID)}>id</a>)</li>
+                <li class="p"><a class="text-decoration-none" href={ templ.URL("/net/switch/" + s.Name) }>{ s.Name }</a> (<a class="text-decoration-none" href={ templ.URL("/net/switch/" + s.ID)}>id</a>)</li>
             }
             </ol>
         </div>

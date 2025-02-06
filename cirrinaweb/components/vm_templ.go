@@ -235,7 +235,7 @@ func VMDisksComp(vm VM) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		for _, d := range vm.Disks {
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div data-testid=\"vmsTemplateDiskName\"><a href=\"")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div data-testid=\"vmsTemplateDiskName\"><a class=\"text-decoration-none\" href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -251,13 +251,13 @@ func VMDisksComp(vm VM) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(d.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 40, Col: 122}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 40, Col: 151}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</a> (<a href=\"")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</a> (<a class=\"text-decoration-none\" href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -325,7 +325,7 @@ func VMISOsComp(vm VM) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		for _, i := range vm.ISOs {
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div data-testid=\"vmsTemplateDiskName\"><a href=\"")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div data-testid=\"vmsTemplateDiskName\"><a class=\"text-decoration-none\" href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -341,13 +341,13 @@ func VMISOsComp(vm VM) templ.Component {
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(i.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 60, Col: 121}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 60, Col: 150}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</a> (<a href=\"")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</a> (<a class=\"text-decoration-none\" href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -415,7 +415,7 @@ func VMNICsComp(vm VM) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		for _, n := range vm.NICs {
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div data-testid=\"vmsTemplateDiskName\"><a href=\"")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div data-testid=\"vmsTemplateDiskName\"><a class=\"text-decoration-none\" href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -431,13 +431,13 @@ func VMNICsComp(vm VM) templ.Component {
 			var templ_7745c5c3_Var19 string
 			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(n.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 80, Col: 123}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 80, Col: 152}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</a> (<a href=\"")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</a> (<a class=\"text-decoration-none\" href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -492,14 +492,14 @@ func vmTemplate(vm VM, listenHost string, websockifyPort uint16) templ.Component
 		ctx = templ.ClearChildren(ctx)
 		cpusStr := strconv.FormatUint(uint64(vm.CPUs), 10)
 		memoryStr := strconv.FormatUint(uint64(vm.Memory), 10)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div class=\"h4 mt-3 mt-md-0\">/ <a href=\"/home\">Cirrina</a> / <a href=\"/vm\">VM</a> / ")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div class=\"h4 mt-3 mt-md-0\">/ <a class=\"text-decoration-none\" href=\"/home\">Cirrina</a> / <a class=\"text-decoration-none\" href=\"/vm\">VM</a> / ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var22 string
 		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(vm.NameOrID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 95, Col: 101}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 95, Col: 159}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 		if templ_7745c5c3_Err != nil {
@@ -683,7 +683,7 @@ func vmDiskAddTemplate(vmName string, disks []Disk) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><select name=\"disks\" id=\"disk-select\" size=\"10\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><select class=\"form-select form-select-sm\" name=\"disks\" id=\"disk-select\" size=\"10\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -757,7 +757,7 @@ func vmISOAddTemplate(vmName string, isos []ISO) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><select name=\"isos\" id=\"iso-select\" size=\"10\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><select class=\"form-select form-select-sm\" name=\"isos\" id=\"iso-select\" size=\"10\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -831,7 +831,7 @@ func vmNICAddTemplate(vmName string, nics []NIC) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><select name=\"nics\" id=\"nic-select\" size=\"10\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><select class=\"form-select form-select-sm\" name=\"nics\" id=\"nic-select\" size=\"10\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

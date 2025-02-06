@@ -76,7 +76,7 @@ func newSwitchTemplate(uplinks []string) templ.Component {
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div class=\"h4 mt-3 mt-md-0\">/ <a href=\"/home\">Cirrina</a> / <a href=\"/net/switch\">Switch</a> / New</div><div data-testid=\"newNicTemplate\" class=\"row m-0 mt-3 mt-md-0\"><div data-testid=\"newNicForm\" class=\"col-12 col-md border p-3\"><form action=\"")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div class=\"h4 mt-3 mt-md-0\">/ <a class=\"text-decoration-none\" href=\"/home\">Cirrina</a> / <a class=\"text-decoration-none\" href=\"/net/switch\">Switch</a> / New</div><div data-testid=\"newNicTemplate\" class=\"row m-0 mt-3 mt-md-0\"><div data-testid=\"newNicForm\" class=\"col-12 col-md border p-3\"><form action=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -85,7 +85,7 @@ func newSwitchTemplate(uplinks []string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><label for=\"name\">Name:</label> <input type=\"text\" id=\"name\" name=\"name\"><br><label for=\"name\">Type:</label> <select name=\"type\" id=\"type-select\"><option value=\"bridge\">Bridge</option> <option value=\"netgraph\">NetGraph</option></select><br><label for=\"name\">Uplink:</label> <select name=\"uplink\" id=\"uplink-select\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><label for=\"name\">Name:</label> <input type=\"text\" id=\"name\" name=\"name\"><br><label for=\"name\">Type:</label> <select class=\"form-select form-select-sm\" name=\"type\" id=\"type-select\"><option value=\"bridge\">Bridge</option> <option value=\"netgraph\">NetGraph</option></select><br><label for=\"name\">Uplink:</label> <select class=\"form-select form-select-sm\" name=\"uplink\" id=\"uplink-select\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -197,14 +197,14 @@ func switchTemplate(vmswitch Switch, errString string) templ.Component {
 			templ_7745c5c3_Var9 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div class=\"h4 mt-3 mt-md-0\">/ <a href=\"/home\">Cirrina</a> / <a href=\"/net/switch\">Switch</a> / ")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div class=\"h4 mt-3 mt-md-0\">/ <a class=\"text-decoration-none\" href=\"/home\">Cirrina</a> / <a class=\"text-decoration-none\" href=\"/net/switch\">Switch</a> / ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(vmswitch.NameOrID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/switch.templ`, Line: 47, Col: 119}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/switch.templ`, Line: 47, Col: 177}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {

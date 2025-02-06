@@ -1,28 +1,67 @@
-
 html {
     font-size: 16px;  /* default relative font size */
 }
-html, body, #main_left {
-    overflow: scroll; /* force scroll bars on page */
+
+html, body, select, textarea, #main_left {
+    overflow: scroll; /* always show scroll bars */
+    overscroll-behavior: contain; /* contain scrolling to element */
 }
+
+/* prevent page scrolling on touchable elements */
+input, select, textarea, button {
+    touch-action: none;
+}
+
+.mode {
+    width: 2rem;
+    height: 2rem;
+}
+
 #main_left_col {
     max-width: 50%;
 }
-/* show the dang dropdown menu on hover */
+
+/* show the dropdown menu on hover */
 .dropdown:hover > .dropdown-menu {
     display: block;
 }
-/* fix the dang menu to go away */
+
+/* prevent pointer interaction on dropdown menu */
 .dropdown > .dropdown-toggle:active {
     pointer-events: none;
 }
+
 /* hide the ugly decorations */
-.btn, .btn:focus, .btn:active, input, input:focus, input:active, textarea, textarea:focus, textarea:active, .custom-file-input, .custom-file-input:focus, .custom-file-input:active, .form-control, .form-control:focus, .form-control:active {
+input,
+input:focus,
+input:active,
+textarea,
+textarea:focus,
+textarea:active,
+button,
+button:focus,
+button:active,
+select,
+select:focus,
+select:active,
+.form-control,
+.form-control:focus,
+.form-control:active,
+.form-select,
+.form-select:focus,
+.form-select:active,
+.form-check-input,
+.form-check-input:focus,
+.form-check-input:active,
+.btn,
+.btn:focus,
+.btn:active {
     outline: none !important;
     box-shadow: none !important;
     text-decoration: none !important;
 }
-/* play with responsive behaviour */
+
+/* responsive breakpoint */
 @media (max-width: 767.98px) {
     html {
         font-size: 12px;

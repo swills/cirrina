@@ -170,14 +170,14 @@ func nicTemplate(nic NIC) templ.Component {
 			templ_7745c5c3_Var7 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div class=\"h4 mt-3 mt-md-0\">/ <a href=\"/home\">Cirrina</a> / <a href=\"/net/nic\">NIC</a> / ")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div class=\"h4 mt-3 mt-md-0\">/ <a class=\"text-decoration-none\" href=\"/home\">Cirrina</a> / <a class=\"text-decoration-none\" href=\"/net/nic\">NIC</a> / ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(nic.NameOrID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 22, Col: 108}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 22, Col: 166}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
@@ -285,7 +285,7 @@ func nicTemplate(nic NIC) templ.Component {
 			}
 		}
 		if nic.Uplink.Name != "" {
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div data-testid=\"nicsTemplateNICUplink\">Uplink: <a href=\"")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div data-testid=\"nicsTemplateNICUplink\">Uplink: <a class=\"text-decoration-none\" href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -301,13 +301,13 @@ func nicTemplate(nic NIC) templ.Component {
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(nic.Uplink.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 36, Col: 125}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 36, Col: 154}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</a> (<a href=\"")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</a> (<a class=\"text-decoration-none\" href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -335,7 +335,7 @@ func nicTemplate(nic NIC) templ.Component {
 			}
 		}
 		if nic.VM.Name != "" {
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div data-testid=\"nicsTemplateNICVM\">VM: <a href=\"")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div data-testid=\"nicsTemplateNICVM\">VM: <a class=\"text-decoration-none\" href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -351,13 +351,13 @@ func nicTemplate(nic NIC) templ.Component {
 			var templ_7745c5c3_Var20 string
 			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(nic.VM.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 43, Col: 101}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 43, Col: 130}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</a> (<a href=\"")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</a> (<a class=\"text-decoration-none\" href=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -407,7 +407,7 @@ func newNicTemplate() templ.Component {
 			templ_7745c5c3_Var22 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div class=\"h4 mt-3 mt-md-0\">/ <a href=\"/home\">Cirrina</a> / <a href=\"/net/nic\">NIC</a> / New</div><div data-testid=\"newNicTemplate\" class=\"row m-0 mt-3 mt-md-0\"><div data-testid=\"newNicForm\" class=\"col-12 col-md border p-3\"><form action=\"")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div class=\"h4 mt-3 mt-md-0\">/ <a class=\"text-decoration-none\" href=\"/home\">Cirrina</a> / <a class=\"text-decoration-none\" href=\"/net/nic\">NIC</a> / New</div><div data-testid=\"newNicTemplate\" class=\"row m-0 mt-3 mt-md-0\"><div data-testid=\"newNicForm\" class=\"col-12 col-md border p-3\"><form action=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -416,7 +416,7 @@ func newNicTemplate() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><label for=\"name\">Name:</label> <input type=\"text\" id=\"name\" name=\"name\"><br><label for=\"name\">Type:</label> <select name=\"type\" id=\"type-select\"><option value=\"virtionet\">VirtIO-NET</option> <option value=\"e1000\">E1000</option></select><br><label for=\"mac\">MAC:</label> <input type=\"text\" id=\"mac\" name=\"mac\" value=\"AUTO\"><br><label for=\"name\">Dev Type:</label> <select name=\"devtype\" id=\"dev-type-select\"><option value=\"tap\">TAP</option> <option value=\"vmnet\">VMNet</option> <option value=\"netgraph\">NetGraph</option></select> <input type=\"submit\" value=\"submit\" class=\"btn btn-primary btn-sm\"></form></div></div>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><label for=\"name\">Name:</label> <input type=\"text\" id=\"name\" name=\"name\"><br><label for=\"name\">Type:</label> <select class=\"form-select form-select-sm\" name=\"type\" id=\"type-select\"><option value=\"virtionet\">VirtIO-NET</option> <option value=\"e1000\">E1000</option></select><br><label for=\"mac\">MAC:</label> <input type=\"text\" id=\"mac\" name=\"mac\" value=\"AUTO\"><br><label for=\"name\">Dev Type:</label> <select class=\"form-select form-select-sm\" name=\"devtype\" id=\"dev-type-select\"><option value=\"tap\">TAP</option> <option value=\"vmnet\">VMNet</option> <option value=\"netgraph\">NetGraph</option></select> <input type=\"submit\" value=\"submit\" class=\"btn btn-primary btn-sm\"></form></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -454,7 +454,7 @@ func nicSwitchTemplate(nicName string, switches []Switch) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><select name=\"switches\" id=\"switch-select\" size=\"5\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><select class=\"form-select form-select-sm\" name=\"switches\" id=\"switch-select\" size=\"5\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

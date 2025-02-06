@@ -11,7 +11,7 @@ templ sidebarTemplateNICs(nics []NIC) {
             <div class="border m-0 p-3 text-nowrap" id="main_left">
             <ol class="list-unstyled">
             for _, n := range nics {
-                <li class="p"><a href={ templ.URL("/net/nic/" + n.Name) }>{ n.Name }</a> (<a href={ templ.URL("/net/nic/" + n.ID)}>id</a>)</li>
+                <li class="p"><a class="text-decoration-none" href={ templ.URL("/net/nic/" + n.Name) }>{ n.Name }</a> (<a class="text-decoration-none" href={ templ.URL("/net/nic/" + n.ID)}>id</a>)</li>
             }
             </ol>
         </div>
