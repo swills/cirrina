@@ -85,7 +85,7 @@ func newSwitchTemplate(uplinks []string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><label for=\"name\">Name:</label> <input type=\"text\" id=\"name\" name=\"name\"><br><label for=\"name\">Type:</label> <select class=\"form-select form-select-sm\" name=\"type\" id=\"type-select\"><option value=\"bridge\">Bridge</option> <option value=\"netgraph\">NetGraph</option></select><br><label for=\"name\">Uplink:</label> <select class=\"form-select form-select-sm\" name=\"uplink\" id=\"uplink-select\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><label for=\"name-input\">Name:</label> <input class=\"form-control form-control-sm\" type=\"text\" id=\"name-input\" name=\"name-input\"><br><label for=\"type-select\">Type:</label> <select class=\"form-select form-select-sm\" name=\"type-select\" id=\"type-select\"><option value=\"bridge\">Bridge</option> <option value=\"netgraph\">NetGraph</option></select><br><label for=\"uplink-select\">Uplink:</label> <select class=\"form-select form-select-sm\" name=\"uplink-select\" id=\"uplink-select\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -121,7 +121,7 @@ func newSwitchTemplate(uplinks []string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</select><br><label for=\"mac\">Description:</label> <input type=\"text\" id=\"desc\" name=\"desc\"><br><input type=\"submit\" value=\"submit\" class=\"btn btn-primary btn-sm\"></form></div></div>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</select><br><label for=\"desc-input\">Description:</label> <input class=\"form-control form-control-sm\" type=\"text\" name=\"desc-input\" id=\"desc-input\"><br><input class=\"btn btn-primary btn-sm\" type=\"submit\" value=\"submit\"></form></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -12,26 +12,26 @@ templ newSwitchTemplate(uplinks []string) {
     <div data-testid="newNicTemplate" class="row m-0 mt-3 mt-md-0">
       <div data-testid="newNicForm"  class="col-12 col-md border p-3">
         <form action={ templ.URL("/net/switch")} method="post">
-            <label for="name">Name:</label>
-            <input type="text" id="name" name="name">
+            <label for="name-input">Name:</label>
+            <input class="form-control form-control-sm" type="text" id="name-input" name="name-input">
             <br>
-            <label for="name">Type:</label>
-            <select class="form-select form-select-sm" name="type" id="type-select">
+            <label for="type-select">Type:</label>
+            <select class="form-select form-select-sm" name="type-select" id="type-select">
               <option value="bridge">Bridge</option>
               <option value="netgraph">NetGraph</option>
             </select>
             <br>
-            <label for="name">Uplink:</label>
-            <select class="form-select form-select-sm" name="uplink" id="uplink-select">
+            <label for="uplink-select">Uplink:</label>
+            <select class="form-select form-select-sm" name="uplink-select" id="uplink-select">
                 for _, u := range uplinks {
                   <option value={ u }>{u}</option>
                 }
             </select>
             <br>
-            <label for="mac">Description:</label>
-            <input type="text" id="desc" name="desc">
+            <label for="desc-input">Description:</label>
+            <input class="form-control form-control-sm" type="text" name="desc-input" id="desc-input">
             <br>
-            <input type="submit" value="submit" class="btn btn-primary btn-sm" />
+            <input class="btn btn-primary btn-sm" type="submit" value="submit"/>
         </form>
       </div>
     </div>

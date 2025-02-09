@@ -416,7 +416,7 @@ func newNicTemplate() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><label for=\"name\">Name:</label> <input type=\"text\" id=\"name\" name=\"name\"><br><label for=\"name\">Type:</label> <select class=\"form-select form-select-sm\" name=\"type\" id=\"type-select\"><option value=\"virtionet\">VirtIO-NET</option> <option value=\"e1000\">E1000</option></select><br><label for=\"mac\">MAC:</label> <input type=\"text\" id=\"mac\" name=\"mac\" value=\"AUTO\"><br><label for=\"name\">Dev Type:</label> <select class=\"form-select form-select-sm\" name=\"devtype\" id=\"dev-type-select\"><option value=\"tap\">TAP</option> <option value=\"vmnet\">VMNet</option> <option value=\"netgraph\">NetGraph</option></select> <input type=\"submit\" value=\"submit\" class=\"btn btn-primary btn-sm\"></form></div></div>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><label for=\"name-input\">Name:</label> <input class=\"form-control form-control-sm\" type=\"text\" name=\"name-input\" id=\"name-input\"><br><label for=\"type-select\">Type:</label> <select class=\"form-select form-select-sm\" name=\"type-select\" id=\"type-select\"><option value=\"virtionet\">VirtIO-NET</option> <option value=\"e1000\">E1000</option></select><br><label for=\"mac-input\">MAC:</label> <input class=\"form-control form-control-sm\" type=\"text\" value=\"AUTO\" name=\"mac-select\" id=\"mac-input\"><br><label for=\"dev-type-select\">Dev Type:</label> <select class=\"form-select form-select-sm\" name=\"dev-type-select\" id=\"dev-type-select\"><option value=\"tap\">TAP</option> <option value=\"vmnet\">VMNet</option> <option value=\"netgraph\">NetGraph</option></select> <input class=\"btn btn-primary btn-sm\" type=\"submit\" value=\"submit\"></form></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -454,7 +454,7 @@ func nicSwitchTemplate(nicName string, switches []Switch) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><select class=\"form-select form-select-sm\" name=\"switches\" id=\"switch-select\" size=\"5\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><select class=\"form-select form-select-sm\" size=\"5\" name=\"switch-select\" id=\"switch-select\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -466,7 +466,7 @@ func nicSwitchTemplate(nicName string, switches []Switch) templ.Component {
 			var templ_7745c5c3_Var26 string
 			templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(s.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 90, Col: 36}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 89, Col: 36}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 			if templ_7745c5c3_Err != nil {
@@ -479,7 +479,7 @@ func nicSwitchTemplate(nicName string, switches []Switch) templ.Component {
 			var templ_7745c5c3_Var27 string
 			templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(s.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 90, Col: 46}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 89, Col: 46}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 			if templ_7745c5c3_Err != nil {
@@ -573,7 +573,7 @@ func DeleteNICButton(nic NIC) templ.Component {
 		var templ_7745c5c3_Var31 string
 		templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs("/net/nic/" + nic.NameOrID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 106, Col: 93}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 105, Col: 93}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 		if templ_7745c5c3_Err != nil {
@@ -586,7 +586,7 @@ func DeleteNICButton(nic NIC) templ.Component {
 		var templ_7745c5c3_Var32 string
 		templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs("Are you sure you wish to delete nic " + nic.NameOrID + "?")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 106, Col: 185}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 105, Col: 185}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 		if templ_7745c5c3_Err != nil {
@@ -628,7 +628,7 @@ func DisconnectSwitchButton(aNIC NIC) templ.Component {
 		var templ_7745c5c3_Var34 string
 		templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs("/net/nic/" + aNIC.NameOrID + "/uplink")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 111, Col: 106}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 110, Col: 106}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 		if templ_7745c5c3_Err != nil {
@@ -641,7 +641,7 @@ func DisconnectSwitchButton(aNIC NIC) templ.Component {
 		var templ_7745c5c3_Var35 string
 		templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs("Are you sure you wish to disconnect NIC " + aNIC.NameOrID + "?")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 111, Col: 203}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 110, Col: 203}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 		if templ_7745c5c3_Err != nil {
@@ -683,7 +683,7 @@ func ConnectSwitchButton(aNIC NIC) templ.Component {
 		var templ_7745c5c3_Var37 string
 		templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs("/net/nic/" + aNIC.NameOrID + "/uplink")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 115, Col: 91}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/nic.templ`, Line: 114, Col: 91}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 		if templ_7745c5c3_Err != nil {

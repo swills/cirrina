@@ -56,25 +56,25 @@ templ newNicTemplate() {
     <div data-testid="newNicTemplate" class="row m-0 mt-3 mt-md-0">
       <div data-testid="newNicForm"  class="col-12 col-md border p-3">
         <form action={ templ.URL("/net/nic")} method="post">
-            <label for="name">Name:</label>
-            <input type="text" id="name" name="name">
+            <label for="name-input">Name:</label>
+            <input class="form-control form-control-sm" type="text" name="name-input" id="name-input">
             <br>
-            <label for="name">Type:</label>
-            <select class="form-select form-select-sm" name="type" id="type-select">
+            <label for="type-select">Type:</label>
+            <select class="form-select form-select-sm" name="type-select" id="type-select">
               <option value="virtionet">VirtIO-NET</option>
               <option value="e1000">E1000</option>
             </select>
             <br>
-            <label for="mac">MAC:</label>
-            <input type="text" id="mac" name="mac" value="AUTO">
+            <label for="mac-input">MAC:</label>
+            <input class="form-control form-control-sm" type="text" value="AUTO" name="mac-select" id="mac-input">
             <br>
-            <label for="name">Dev Type:</label>
-            <select class="form-select form-select-sm" name="devtype" id="dev-type-select">
+            <label for="dev-type-select">Dev Type:</label>
+            <select class="form-select form-select-sm" name="dev-type-select" id="dev-type-select">
               <option value="tap">TAP</option>
               <option value="vmnet">VMNet</option>
               <option value="netgraph">NetGraph</option>
             </select>
-            <input type="submit" value="submit" class="btn btn-primary btn-sm" />
+            <input class="btn btn-primary btn-sm" type="submit" value="submit"/>
         </form>
       </div>
     </div>
@@ -84,8 +84,7 @@ templ nicSwitchTemplate(nicName string, switches []Switch) {
     <div data-testid="nicSwitchAddTemplate">
     <label for="switch-select">Choose a switch:</label>
     <form action={ templ.URL("/net/nic/" + nicName + "/uplink") } method="post">
-
-        <select class="form-select form-select-sm" name="switches" id="switch-select" size="5">
+        <select class="form-select form-select-sm" size="5" name="switch-select" id="switch-select">
             for _, s := range switches {
               <option value={ s.Name }>{s.Name}</option>
             }
