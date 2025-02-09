@@ -695,7 +695,7 @@ func vmDiskAddTemplate(vmName string, disks []Disk) templ.Component {
 			var templ_7745c5c3_Var32 string
 			templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(d.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 135, Col: 36}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 134, Col: 36}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 			if templ_7745c5c3_Err != nil {
@@ -708,7 +708,7 @@ func vmDiskAddTemplate(vmName string, disks []Disk) templ.Component {
 			var templ_7745c5c3_Var33 string
 			templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(d.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 135, Col: 46}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 134, Col: 46}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 			if templ_7745c5c3_Err != nil {
@@ -757,7 +757,7 @@ func vmISOAddTemplate(vmName string, isos []ISO) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><select class=\"form-select form-select-sm\" size=\"10\" name=\"iso-select\" id=\"iso-select\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><select class=\"form-select form-select-sm\" size=\"10\" name=\"isos\" id=\"iso-select\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -769,7 +769,7 @@ func vmISOAddTemplate(vmName string, isos []ISO) templ.Component {
 			var templ_7745c5c3_Var36 string
 			templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(i.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 149, Col: 36}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 148, Col: 36}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 			if templ_7745c5c3_Err != nil {
@@ -782,7 +782,7 @@ func vmISOAddTemplate(vmName string, isos []ISO) templ.Component {
 			var templ_7745c5c3_Var37 string
 			templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(i.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 149, Col: 46}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 148, Col: 46}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 			if templ_7745c5c3_Err != nil {
@@ -831,7 +831,7 @@ func vmNICAddTemplate(vmName string, nics []NIC) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><select class=\"form-select form-select-sm\" size=\"10\" name=\"nic-select\" id=\"nic-select\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><select class=\"form-select form-select-sm\" size=\"10\" name=\"nics\" id=\"nic-select\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -843,7 +843,7 @@ func vmNICAddTemplate(vmName string, nics []NIC) templ.Component {
 			var templ_7745c5c3_Var40 string
 			templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(n.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 163, Col: 36}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 162, Col: 36}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 			if templ_7745c5c3_Err != nil {
@@ -856,7 +856,7 @@ func vmNICAddTemplate(vmName string, nics []NIC) templ.Component {
 			var templ_7745c5c3_Var41 string
 			templ_7745c5c3_Var41, templ_7745c5c3_Err = templ.JoinStringErrs(n.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 163, Col: 46}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 162, Col: 46}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
 			if templ_7745c5c3_Err != nil {
@@ -950,7 +950,7 @@ func StartButton(vm VM) templ.Component {
 		var templ_7745c5c3_Var45 string
 		templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinStringErrs("/vm/" + vm.NameOrID + "/start")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 179, Col: 77}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 178, Col: 77}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 		if templ_7745c5c3_Err != nil {
@@ -992,7 +992,7 @@ func StopButton(vm VM) templ.Component {
 		var templ_7745c5c3_Var47 string
 		templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.JoinStringErrs("/vm/" + vm.NameOrID + "/stop")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 183, Col: 76}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 182, Col: 76}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var47))
 		if templ_7745c5c3_Err != nil {
@@ -1063,7 +1063,7 @@ func DeleteVMButton(aVM VM) templ.Component {
 		var templ_7745c5c3_Var50 string
 		templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.JoinStringErrs("/vm/" + aVM.NameOrID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 191, Col: 88}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 190, Col: 88}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var50))
 		if templ_7745c5c3_Err != nil {
@@ -1076,7 +1076,7 @@ func DeleteVMButton(aVM VM) templ.Component {
 		var templ_7745c5c3_Var51 string
 		templ_7745c5c3_Var51, templ_7745c5c3_Err = templ.JoinStringErrs("Are you sure you wish to delete vm " + aVM.NameOrID + "?")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 191, Col: 179}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 190, Col: 179}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var51))
 		if templ_7745c5c3_Err != nil {
@@ -1118,7 +1118,7 @@ func DisconnectDiskButton(aVM VM, aDisk Disk) templ.Component {
 		var templ_7745c5c3_Var53 string
 		templ_7745c5c3_Var53, templ_7745c5c3_Err = templ.JoinStringErrs("/vm/" + aVM.NameOrID + "/disk/" + aDisk.NameOrID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 195, Col: 116}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 194, Col: 116}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var53))
 		if templ_7745c5c3_Err != nil {
@@ -1131,7 +1131,7 @@ func DisconnectDiskButton(aVM VM, aDisk Disk) templ.Component {
 		var templ_7745c5c3_Var54 string
 		templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.JoinStringErrs("Are you sure you wish to disconnect disk " + aDisk.NameOrID + " from VM " + aVM.NameOrID + "?")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 195, Col: 244}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 194, Col: 244}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var54))
 		if templ_7745c5c3_Err != nil {
@@ -1173,7 +1173,7 @@ func DisconnectISOButton(aVM VM, aISO ISO) templ.Component {
 		var templ_7745c5c3_Var56 string
 		templ_7745c5c3_Var56, templ_7745c5c3_Err = templ.JoinStringErrs("/vm/" + aVM.NameOrID + "/iso/" + aISO.NameOrID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 199, Col: 114}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 198, Col: 114}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var56))
 		if templ_7745c5c3_Err != nil {
@@ -1186,7 +1186,7 @@ func DisconnectISOButton(aVM VM, aISO ISO) templ.Component {
 		var templ_7745c5c3_Var57 string
 		templ_7745c5c3_Var57, templ_7745c5c3_Err = templ.JoinStringErrs("Are you sure you wish to disconnect ISO " + aISO.NameOrID + " from VM " + aVM.NameOrID + "?")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 199, Col: 240}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 198, Col: 240}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var57))
 		if templ_7745c5c3_Err != nil {
@@ -1228,7 +1228,7 @@ func DisconnectNICButton(aVM VM, aNIC NIC) templ.Component {
 		var templ_7745c5c3_Var59 string
 		templ_7745c5c3_Var59, templ_7745c5c3_Err = templ.JoinStringErrs("/vm/" + aVM.NameOrID + "/nic/" + aNIC.NameOrID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 203, Col: 114}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 202, Col: 114}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var59))
 		if templ_7745c5c3_Err != nil {
@@ -1241,7 +1241,7 @@ func DisconnectNICButton(aVM VM, aNIC NIC) templ.Component {
 		var templ_7745c5c3_Var60 string
 		templ_7745c5c3_Var60, templ_7745c5c3_Err = templ.JoinStringErrs("Are you sure you wish to disconnect NIC " + aNIC.NameOrID + " from VM " + aVM.NameOrID + "?")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 203, Col: 240}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/vm.templ`, Line: 202, Col: 240}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var60))
 		if templ_7745c5c3_Err != nil {

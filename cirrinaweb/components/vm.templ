@@ -129,7 +129,6 @@ templ vmDiskAddTemplate(vmName string, disks []Disk) {
     <div data-testid="vmDiskAddTemplate">
     <label for="disk-select">Choose a disk:</label>
     <form action={ templ.URL("/vm/" + vmName + "/disk/add") } method="post">
-
         <select class="form-select form-select-sm" name="disks" id="disk-select" size="10">
             for _, d := range disks {
               <option value={ d.Name }>{d.Name}</option>
@@ -144,7 +143,7 @@ templ vmISOAddTemplate(vmName string, isos []ISO) {
     <div data-testid="vmISOAddTemplate">
     <label for="iso-select">Choose a iso:</label>
     <form action={ templ.URL("/vm/" + vmName + "/iso/add") } method="post">
-        <select class="form-select form-select-sm" size="10" name="iso-select" id="iso-select">
+        <select class="form-select form-select-sm" size="10" name="isos" id="iso-select">
             for _, i := range isos {
               <option value={ i.Name }>{i.Name}</option>
             }
@@ -158,7 +157,7 @@ templ vmNICAddTemplate(vmName string, nics []NIC) {
     <div data-testid="vmNICAddTemplate">
     <label for="nic-select">Choose a nic:</label>
     <form action={ templ.URL("/vm/" + vmName + "/nic/add") } method="post">
-        <select class="form-select form-select-sm" size="10" name="nic-select" id="nic-select">
+        <select class="form-select form-select-sm" size="10" name="nics" id="nic-select">
             for _, n := range nics {
               <option value={ n.Name }>{n.Name}</option>
             }

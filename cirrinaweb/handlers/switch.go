@@ -95,7 +95,7 @@ func DeleteSwitch(nameOrID string) error {
 	return nil
 }
 
-//nolint:gocognit,funlen
+//nolint:gocognit,funlen,cyclop
 func (d SwitchHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	var err error
 
@@ -197,6 +197,14 @@ func (d SwitchHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		switchDesc := request.PostForm["desc"]
 		switchType := request.PostForm["type"]
 		switchUplink := request.PostForm["uplink"]
+
+		if switchName == nil || switchDesc == nil || switchType == nil || switchUplink == nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorSwitch(writer, request, err)
+
+			return
+		}
 
 		rpc.ResetConnTimeout()
 
