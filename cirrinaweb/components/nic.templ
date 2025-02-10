@@ -74,7 +74,7 @@ templ newNicTemplate() {
               <option value="vmnet">VMNet</option>
               <option value="netgraph">NetGraph</option>
             </select>
-            <input class="btn btn-primary btn-sm" type="submit" value="submit"/>
+            <button type="submit" class="btn btn-sm btn-primary">Submit</button>
         </form>
       </div>
     </div>
@@ -82,14 +82,14 @@ templ newNicTemplate() {
 
 templ nicSwitchTemplate(nicName string, switches []Switch) {
     <div data-testid="nicSwitchAddTemplate">
-    <label for="switch-select">Choose a switch:</label>
     <form action={ templ.URL("/net/nic/" + nicName + "/uplink") } method="post">
+        <label for="switch-select">Choose a switch:</label>
         <select class="form-select form-select-sm" size="5" name="switches" id="switch-select">
             for _, s := range switches {
               <option value={ s.Name }>{s.Name}</option>
             }
         </select>
-        <input type="submit" value="submit" />
+        <button type="submit" class="btn btn-sm btn-primary">Submit</button>
     </form>
     </div>
 }

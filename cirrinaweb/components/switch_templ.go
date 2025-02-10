@@ -121,7 +121,7 @@ func newSwitchTemplate(uplinks []string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</select><br><label for=\"desc-input\">Description:</label> <input class=\"form-control form-control-sm\" type=\"text\" name=\"desc\" id=\"desc-input\"><br><input class=\"btn btn-primary btn-sm\" type=\"submit\" value=\"submit\"></form></div></div>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</select><br><label for=\"desc-input\">Description:</label> <input class=\"form-control form-control-sm\" type=\"text\" name=\"desc\" id=\"desc-input\"><br><button type=\"submit\" class=\"btn btn-sm btn-primary\">Submit</button></form></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

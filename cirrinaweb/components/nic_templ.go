@@ -416,7 +416,7 @@ func newNicTemplate() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><label for=\"name-input\">Name:</label> <input class=\"form-control form-control-sm\" type=\"text\" name=\"name\" id=\"name-input\"><br><label for=\"type-select\">Type:</label> <select class=\"form-select form-select-sm\" name=\"type\" id=\"type-select\"><option value=\"virtionet\">VirtIO-NET</option> <option value=\"e1000\">E1000</option></select><br><label for=\"mac-input\">MAC:</label> <input class=\"form-control form-control-sm\" type=\"text\" value=\"AUTO\" name=\"mac\" id=\"mac-input\"><br><label for=\"dev-type-select\">Dev Type:</label> <select class=\"form-select form-select-sm\" name=\"devtype\" id=\"dev-type-select\"><option value=\"tap\">TAP</option> <option value=\"vmnet\">VMNet</option> <option value=\"netgraph\">NetGraph</option></select> <input class=\"btn btn-primary btn-sm\" type=\"submit\" value=\"submit\"></form></div></div>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><label for=\"name-input\">Name:</label> <input class=\"form-control form-control-sm\" type=\"text\" name=\"name\" id=\"name-input\"><br><label for=\"type-select\">Type:</label> <select class=\"form-select form-select-sm\" name=\"type\" id=\"type-select\"><option value=\"virtionet\">VirtIO-NET</option> <option value=\"e1000\">E1000</option></select><br><label for=\"mac-input\">MAC:</label> <input class=\"form-control form-control-sm\" type=\"text\" value=\"AUTO\" name=\"mac\" id=\"mac-input\"><br><label for=\"dev-type-select\">Dev Type:</label> <select class=\"form-select form-select-sm\" name=\"devtype\" id=\"dev-type-select\"><option value=\"tap\">TAP</option> <option value=\"vmnet\">VMNet</option> <option value=\"netgraph\">NetGraph</option></select> <button type=\"submit\" class=\"btn btn-sm btn-primary\">Submit</button></form></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -445,7 +445,7 @@ func nicSwitchTemplate(nicName string, switches []Switch) templ.Component {
 			templ_7745c5c3_Var24 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div data-testid=\"nicSwitchAddTemplate\"><label for=\"switch-select\">Choose a switch:</label><form action=\"")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div data-testid=\"nicSwitchAddTemplate\"><form action=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -454,7 +454,7 @@ func nicSwitchTemplate(nicName string, switches []Switch) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><select class=\"form-select form-select-sm\" size=\"5\" name=\"switches\" id=\"switch-select\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" method=\"post\"><label for=\"switch-select\">Choose a switch:</label> <select class=\"form-select form-select-sm\" size=\"5\" name=\"switches\" id=\"switch-select\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -490,7 +490,7 @@ func nicSwitchTemplate(nicName string, switches []Switch) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</select> <input type=\"submit\" value=\"submit\"></form></div>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</select> <button type=\"submit\" class=\"btn btn-sm btn-primary\">Submit</button></form></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
