@@ -90,12 +90,21 @@ func serveErrorDisk(writer http.ResponseWriter, request *http.Request, err error
 				components.DiskNotFoundComponent(diskList),
 				templ.WithStatus(http.StatusNotFound),
 			).ServeHTTP(writer, request)
-		case codes.OK, codes.Canceled, codes.Unknown, codes.InvalidArgument, codes.DeadlineExceeded, codes.AlreadyExists, codes.PermissionDenied, codes.ResourceExhausted, codes.FailedPrecondition, codes.Aborted, codes.OutOfRange, codes.Unimplemented, codes.Internal, codes.Unavailable, codes.DataLoss, codes.Unauthenticated: //nolint:lll
+		case codes.OK, codes.Canceled, codes.Unknown, codes.InvalidArgument, codes.DeadlineExceeded,
+			codes.AlreadyExists, codes.PermissionDenied, codes.ResourceExhausted, codes.FailedPrecondition,
+			codes.Aborted, codes.OutOfRange, codes.Unimplemented, codes.Internal, codes.Unavailable, codes.DataLoss,
+			codes.Unauthenticated:
 			fallthrough
 		default:
-			templ.Handler(components.DiskNotFoundComponent(diskList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll
+			templ.Handler(
+				components.DiskNotFoundComponent(diskList),
+				templ.WithStatus(http.StatusInternalServerError),
+			).ServeHTTP(writer, request)
 		}
 	} else {
-		templ.Handler(components.DiskNotFoundComponent(diskList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll
+		templ.Handler(
+			components.DiskNotFoundComponent(diskList),
+			templ.WithStatus(http.StatusInternalServerError),
+		).ServeHTTP(writer, request)
 	}
 }

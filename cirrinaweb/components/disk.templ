@@ -6,6 +6,12 @@ templ DiskLayout(disks []Disk, disk Disk) {
     }
 }
 
+templ NewDiskLayout(disks []Disk) {
+    @layoutDisks("Disk - create", disks) {
+        @newDiskTemplate()
+    }
+}
+
 templ diskTemplate(disk Disk) {
     <div class="h4 mt-3 mt-md-0">/ <a class="text-decoration-none" href="/home">Cirrina</a> / <a class="text-decoration-none" href="/media/disk">Disk</a> / { disk.NameOrID }</div>
 
@@ -36,6 +42,54 @@ templ diskTemplate(disk Disk) {
                 }
 			}
         </div>
+    </div>
+}
+
+templ newDiskTemplate() {
+    <div class="h4 mt-3 mt-md-0">/ <a class="text-decoration-none" href="/home">Cirrina</a> / <a class="text-decoration-none" href="/media/disk">Disk</a> / New</div>
+
+    <div data-testid="newDiskTemplate" class="row m-0 mt-3 mt-md-0">
+      <div data-testid="newDiskForm"  class="col-12 col-md border p-3">
+        <form action={ templ.URL("/media/disk")} method="post">
+            <label for="name-input">Name:</label>
+            <input class="form-control form-control-sm" type="text" name="name" id="name-input">
+            <br>
+            <label for="type-select">Type:</label>
+            <select class="form-select form-select-sm" name="type" id="type-select">
+              <option value="nvme">NVMe</option>
+              <option value="ahci">AHCI</option>
+              <option value="virtioblk">VirtIO-BLK</option>
+            </select>
+            <label for="dev-type-select">Dev Type:</label>
+            <select class="form-select form-select-sm" name="devtype" id="dev-type-select">
+              <option value="file">File</option>
+              <option value="zvol">ZFS Volume</option>
+            </select>
+            <br>
+            <label for="size-number-input">Size:</label>
+            <input class="form-control form-control-sm" type="number" name="size-number" id="size-number-input" value="2">
+            <br>
+            <label for="size-unit-input">Unit:</label>
+            <select class="form-select form-select-sm" name="size-unit" id="size-unit-input">
+              <option value="b">Bytes</option>
+              <option value="k">Kibibytes</option>
+              <option value="m">Mibibytes</option>
+              <option value="g" selected="selected">Gibibytes</option>
+              <option value="t">Tibibytes</option>
+            </select>
+            <br>
+            <label for="desc-input">Description:</label>
+            <input class="form-control form-control-sm" type="text" name="desc" id="desc-input">
+            <br>
+            <label for="cache-check">Cache:</label>
+            <input class="form-check-input" type="checkbox" id="cache-check" name="cache" checked="checked">
+            <br>
+            <label for="direct-check">Direct:</label>
+            <input class="form-check-input" type="checkbox" id="direct-check" name="direct">
+            <br>
+            <button type="submit" class="btn btn-sm btn-primary">Submit</button>
+        </form>
+      </div>
     </div>
 }
 

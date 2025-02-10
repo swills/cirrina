@@ -126,10 +126,17 @@ func DeleteDisk(nameOrID string) error {
 	return nil
 }
 
+//nolint:cyclop,funlen
 func (d DiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	nameOrID := request.PathValue("nameOrID")
-	if request.Method == http.MethodDelete {
-		err := DeleteDisk(nameOrID)
+	var err error
+
+	switch request.Method {
+	case http.MethodDelete:
+		var nameOrID string
+
+		nameOrID = request.PathValue("nameOrID")
+
+		err = DeleteDisk(nameOrID)
 		if err != nil {
 			writer.Header().Set("HX-Redirect", "/media/disk/"+nameOrID)
 			writer.WriteHeader(http.StatusInternalServerError)
@@ -137,29 +144,97 @@ func (d DiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request
 			return
 		}
 
-		writer.Header().Set("HX-Redirect", "/media/disks")
+		writer.Header().Set("HX-Redirect", "/media/disk")
 		writer.WriteHeader(http.StatusOK)
 
 		return
+	case http.MethodGet:
+		nameOrID := request.PathValue("nameOrID")
+
+		var disks []components.Disk
+
+		disks, err = d.GetDisks()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			http.Error(writer, "failed to retrieve Disks", http.StatusInternalServerError)
+
+			return
+		}
+
+		if nameOrID != "" {
+			var aDisk components.Disk
+
+			aDisk, err = d.GetDisk(nameOrID)
+			if err != nil {
+				util.LogError(err, request.RemoteAddr)
+
+				serveErrorDisk(writer, request, err)
+
+				return
+			}
+
+			templ.Handler(components.DiskLayout(disks, aDisk)).ServeHTTP(writer, request)
+
+			return
+		}
+
+		templ.Handler(components.NewDiskLayout(disks)).ServeHTTP(writer, request)
+	case http.MethodPost:
+		err = request.ParseForm()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		diskName := request.PostForm["name"]
+		diskType := request.PostForm["type"]
+		diskDevType := request.PostForm["devtype"]
+		diskSizeNum := request.PostForm["size-number"]
+		diskSizeUnit := request.PostForm["size-unit"]
+		diskDesc := request.PostForm["desc"]
+		diskCache := request.PostForm["cache"]
+		diskDirect := request.PostForm["direct"]
+
+		if diskName == nil || diskType == nil || diskDevType == nil || diskSizeNum == nil || diskSizeUnit == nil ||
+			diskDesc == nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorDisk(writer, request, err)
+
+			return
+		}
+
+		var diskIsCached bool
+
+		if diskCache == nil {
+			diskIsCached = false
+		} else {
+			diskIsCached = true
+		}
+
+		var diskIsDirect bool
+
+		if diskDirect == nil {
+			diskIsDirect = false
+		} else {
+			diskIsDirect = true
+		}
+
+		rpc.ResetConnTimeout()
+
+		_, err = rpc.AddDisk(diskName[0], diskDesc[0], diskSizeNum[0]+diskSizeUnit[0], diskType[0], diskDevType[0],
+			diskIsCached, diskIsDirect)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorDisk(writer, request, err)
+
+			return
+		}
+
+		http.Redirect(writer, request, "/media/disk/"+diskName[0], http.StatusSeeOther)
 	}
-
-	aDisk, err := d.GetDisk(nameOrID)
-	if err != nil {
-		util.LogError(err, request.RemoteAddr)
-
-		serveErrorDisk(writer, request, err)
-
-		return
-	}
-
-	Disks, err := d.GetDisks()
-	if err != nil {
-		util.LogError(err, request.RemoteAddr)
-
-		http.Error(writer, "failed to retrieve Disks", http.StatusInternalServerError)
-
-		return
-	}
-
-	templ.Handler(components.DiskLayout(Disks, aDisk)).ServeHTTP(writer, request)
 }

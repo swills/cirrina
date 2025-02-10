@@ -183,6 +183,14 @@ func (d NICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 		nicType := request.PostForm["type"]
 		nicDevType := request.PostForm["devtype"]
 
+		if nicName == nil || nicMac == nil || nicType == nil || nicDevType == nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorNIC(writer, request, err)
+
+			return
+		}
+
 		rpc.ResetConnTimeout()
 
 		_, err = rpc.AddNic(
@@ -192,7 +200,7 @@ func (d NICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
-			serveErrorVM(writer, request, err)
+			serveErrorNIC(writer, request, err)
 
 			return
 		}

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -21,7 +22,7 @@ import (
 //go:generate go run github.com/a-h/templ/cmd/templ generate
 
 var metricsEnable bool
-var mdlw middleware.Middleware
+var mdlw *middleware.Middleware
 
 //go:embed assets/*
 var assetFS embed.FS
@@ -30,6 +31,7 @@ func healthCheck(writer http.ResponseWriter, _ *http.Request) {
 	writer.WriteHeader(http.StatusNoContent)
 }
 
+// parseEnv parses many different environment variables, not only metrics related things
 func parseEnv() (string, uint16) {
 	var err error
 
@@ -89,6 +91,25 @@ func setupMetrics(host string, port uint16) {
 	}()
 }
 
+// setupMux sets up the http mux with the middleware for metrics
+func setupMux(mux *http.ServeMux, pattern string, handler http.Handler, mdlw *middleware.Middleware) {
+	if mdlw != nil {
+		h := strings.Split(pattern, " ")
+		if len(h) != 2 {
+			panic("wrong pattern in mux setup")
+		}
+
+		handlerID := strings.ReplaceAll(h[1], "{", ":")
+		handlerID = strings.ReplaceAll(handlerID, "}", "")
+
+		mux.Handle(pattern, HTTPLogger(middlewarestd.Handler(handlerID, *mdlw, handler)))
+
+		return
+	}
+
+	mux.Handle(pattern, HTTPLogger(handler))
+}
+
 //nolint:funlen
 func main() {
 	var err error
@@ -97,182 +118,83 @@ func main() {
 
 	var metricsPort uint16
 
+	// called for side effects too
 	metricsHost, metricsPort = parseEnv()
+
+	vncFileServer := http.FileServerFS(vncFS)
+	assetFileServer := http.FileServerFS(assetFS)
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /healthz", healthCheck)
 	mux.HandleFunc("GET /favicon.ico", handlers.FaviconHandlerFunc)
 
-	vncFileServer := http.FileServerFS(vncFS)
-	assetFileServer := http.FileServerFS(assetFS)
+	// no metrics on these
+	mux.Handle("GET /assets/", HTTPLogger(assetFileServer))
+	mux.Handle("GET /vnc/", HTTPLogger(NoCache(vncFileServer)))
 
 	if metricsEnable {
-		mdlw = middleware.New(middleware.Config{
+		mdlwT := middleware.New(middleware.Config{
 			Recorder: metrics.NewRecorder(metrics.Config{}),
 		})
 
-		mux.Handle("GET /", HTTPLogger(middlewarestd.Handler("/", mdlw, handlers.NewHomeHandler())))
-		mux.Handle("GET /home", HTTPLogger(middlewarestd.Handler("/home", mdlw, handlers.NewHomeHandler())))
-		mux.Handle("GET /vms", HTTPLogger(middlewarestd.Handler("/vms", mdlw, handlers.NewVMsHandler())))
-		mux.Handle("GET /vm/{nameOrID}", HTTPLogger(middlewarestd.Handler("/vm/:nameOrID", mdlw, handlers.NewVMHandler())))
-		mux.Handle(
-			"GET /vm/{nameOrID}/disk/add",
-			HTTPLogger(middlewarestd.Handler("/vm/:nameOrID/disk/add", mdlw, handlers.NewVMDiskAddHandler())),
-		)
-		mux.Handle(
-			"POST /vm/{nameOrID}/disk/add",
-			HTTPLogger(middlewarestd.Handler("/vm/:nameOrID/disk/add", mdlw, handlers.NewVMDiskAddHandler())),
-		)
-		mux.Handle(
-			"GET /vm/{nameOrID}/iso/add",
-			HTTPLogger(middlewarestd.Handler("/vm/:nameOrID/disk/add", mdlw, handlers.NewVMISOAddHandler())),
-		)
-		mux.Handle(
-			"POST /vm/{nameOrID}/iso/add",
-			HTTPLogger(middlewarestd.Handler("/vm/:nameOrID/disk/add", mdlw, handlers.NewVMISOAddHandler())),
-		)
-		mux.Handle(
-			"GET /vm/{nameOrID}/nic/add",
-			HTTPLogger(middlewarestd.Handler("/vm/:nameOrID/disk/add", mdlw, handlers.NewVMNICAddHandler())),
-		)
-		mux.Handle(
-			"POST /vm/{nameOrID}/nic/add",
-			HTTPLogger(middlewarestd.Handler("/vm/:nameOrID/disk/add", mdlw, handlers.NewVMNICAddHandler())),
-		)
-		mux.Handle("DELETE /vm/{nameOrID}", HTTPLogger(middlewarestd.Handler("/vm/:nameOrID", mdlw, handlers.NewVMHandler())))
-		mux.Handle(
-			"POST /vm/{nameOrID}/start",
-			HTTPLogger(middlewarestd.Handler("/vm/{nameOrID}/start", mdlw, handlers.NewVMStartHandler())),
-		)
-		mux.Handle(
-			"POST /vm/{nameOrID}/stop",
-			HTTPLogger(middlewarestd.Handler("/vm/{nameOrID}/stop", mdlw, handlers.NewVMStopHandler())),
-		)
-		mux.Handle(
-			"DELETE /vm/{vmNameOrID}/disk/{diskNameOrID}",
-			HTTPLogger(middlewarestd.Handler("/vm/{vmNameOrID}/disk/{diskNameOrID}", mdlw, handlers.NewVMDiskHandler())),
-		)
-		mux.Handle(
-			"DELETE /vm/{vmNameOrID}/iso/{isoNameOrID}",
-			HTTPLogger(middlewarestd.Handler("/vm/{vmNameOrID}/iso/{isoNameOrID}", mdlw, handlers.NewVMISOHandler())),
-		)
-		mux.Handle(
-			"DELETE /vm/{vmNameOrID}/nic/{nicNameOrID}",
-			HTTPLogger(middlewarestd.Handler("/vm/{vmNameOrID}/nic/{isoNameOrID}", mdlw, handlers.NewVMNICHandler())),
-		)
+		mdlw = &mdlwT
+	}
 
-		mux.Handle(
-			"GET /vmdata/{nameOrID}",
-			HTTPLogger(middlewarestd.Handler("/vm/:nameOrID", mdlw, handlers.NewVMDataHandler())),
-		)
-		mux.Handle("GET /vnc/", HTTPLogger(middlewarestd.Handler("/vnc/", mdlw, NoCache(vncFileServer))))
+	setupMux(mux, "GET /", handlers.NewHomeHandler(), mdlw)
+	setupMux(mux, "GET /home", handlers.NewHomeHandler(), mdlw)
 
-		mux.Handle("GET /media/disks", HTTPLogger(middlewarestd.Handler("/media/disks", mdlw, handlers.NewDisksHandler())))
-		mux.Handle(
-			"GET /media/disk/{nameOrID}",
-			HTTPLogger(middlewarestd.Handler("/media/disks/:nameOrID", mdlw, handlers.NewDiskHandler())),
-		)
-		mux.Handle(
-			"DELETE /media/disk/{nameOrID}",
-			HTTPLogger(middlewarestd.Handler("/media/disk/:nameOrID", mdlw, handlers.NewDiskHandler())),
-		)
+	setupMux(mux, "GET /vms", handlers.NewVMsHandler(), mdlw)
 
-		mux.Handle("GET /media/isos", HTTPLogger(middlewarestd.Handler("/media/isos", mdlw, handlers.NewISOsHandler())))
-		mux.Handle(
-			"GET /media/iso/{nameOrID}",
-			HTTPLogger(middlewarestd.Handler("/media/isos/:nameOrID", mdlw, handlers.NewISOHandler())),
-		)
-		mux.Handle(
-			"DELETE /media/iso/{nameOrID}",
-			HTTPLogger(middlewarestd.Handler("/media/iso/:nameOrID", mdlw, handlers.NewISOHandler())),
-		)
+	setupMux(mux, "GET /vm/{nameOrID}", handlers.NewVMHandler(), mdlw)
+	setupMux(mux, "DELETE /vm/{nameOrID}", handlers.NewVMHandler(), mdlw)
 
-		mux.Handle("GET /net/nics", HTTPLogger(middlewarestd.Handler("/net/nics", mdlw, handlers.NewNICsHandler())))
-		mux.Handle("GET /net/nic", HTTPLogger(middlewarestd.Handler("/net/nic", mdlw, handlers.NewNICHandler())))
-		mux.Handle("POST /net/nic", HTTPLogger(middlewarestd.Handler("/net/nic", mdlw, handlers.NewNICHandler())))
-		mux.Handle(
-			"GET /net/nic/{nameOrID}",
-			HTTPLogger(middlewarestd.Handler("/net/nic/:nameOrID", mdlw, handlers.NewNICHandler())),
-		)
-		mux.Handle("DELETE /net/nic/{nameOrID}",
-			HTTPLogger(middlewarestd.Handler("/net/nic/:nameOrID", mdlw, handlers.NewNICHandler())),
-		)
-		mux.Handle(
-			"DELETE /net/nic/{nameOrID}/uplink",
-			HTTPLogger(middlewarestd.Handler("/net/nic/{nameOrID}/uplink", mdlw, handlers.NewNICUplinkHandler())),
-		)
-		mux.Handle(
-			"GET /net/nic/{nameOrID}/uplink",
-			HTTPLogger(middlewarestd.Handler("/net/nic/{nameOrID}/uplink", mdlw, handlers.NewNICUplinkHandler())),
-		)
-		mux.Handle(
-			"POST /net/nic/{nameOrID}/uplink",
-			HTTPLogger(middlewarestd.Handler("/net/nic/{nameOrID}/uplink", mdlw, handlers.NewNICUplinkHandler())),
-		)
+	setupMux(mux, "POST /vm/{nameOrID}/start", handlers.NewVMStartHandler(), mdlw)
+	setupMux(mux, "POST /vm/{nameOrID}/stop", handlers.NewVMStopHandler(), mdlw)
 
-		mux.Handle(
-			"GET /net/switches",
-			HTTPLogger(middlewarestd.Handler("/net/switches", mdlw, handlers.NewSwitchesHandler())))
-		mux.Handle(
-			"GET /net/switch",
-			HTTPLogger(middlewarestd.Handler("/net/switch", mdlw, handlers.NewSwitchHandler())),
-		)
-		mux.Handle(
-			"POST /net/switch",
-			HTTPLogger(middlewarestd.Handler("/net/switch", mdlw, handlers.NewSwitchHandler())),
-		)
-		mux.Handle(
-			"GET /net/switch/{nameOrID}",
-			HTTPLogger(middlewarestd.Handler("/net/switch/:nameOrID", mdlw, handlers.NewSwitchHandler())),
-		)
-		mux.Handle(
-			"DELETE /net/switch/{nameOrID}",
-			HTTPLogger(middlewarestd.Handler("/net/switch/:nameOrID", mdlw, handlers.NewSwitchHandler())),
-		)
+	setupMux(mux, "GET /vm/{nameOrID}/disk/add", handlers.NewVMDiskAddHandler(), mdlw)
+	setupMux(mux, "POST /vm/{nameOrID}/disk/add", handlers.NewVMDiskAddHandler(), mdlw)
+	setupMux(mux, "GET /vm/{nameOrID}/iso/add", handlers.NewVMISOAddHandler(), mdlw)
+	setupMux(mux, "POST /vm/{nameOrID}/iso/add", handlers.NewVMISOAddHandler(), mdlw)
+	setupMux(mux, "GET /vm/{nameOrID}/nic/add", handlers.NewVMNICAddHandler(), mdlw)
+	setupMux(mux, "POST /vm/{nameOrID}/nic/add", handlers.NewVMNICAddHandler(), mdlw)
 
-		mux.Handle("GET /assets/", HTTPLogger(middlewarestd.Handler("/assets/", mdlw, assetFileServer)))
+	setupMux(mux, "DELETE /vm/{vmNameOrID}/disk/{diskNameOrID}", handlers.NewVMDiskHandler(), mdlw)
+	setupMux(mux, "DELETE /vm/{vmNameOrID}/iso/{isoNameOrID}", handlers.NewVMISOHandler(), mdlw)
+	setupMux(mux, "DELETE /vm/{vmNameOrID}/nic/{nicNameOrID}", handlers.NewVMNICHandler(), mdlw)
 
+	setupMux(mux, "GET /vmdata/{nameOrID}", handlers.NewVMDataHandler(), mdlw)
+
+	setupMux(mux, "GET /media/disks", handlers.NewDisksHandler(), mdlw)
+
+	setupMux(mux, "GET /media/disk", handlers.NewDiskHandler(), mdlw)
+	setupMux(mux, "POST /media/disk", handlers.NewDiskHandler(), mdlw)
+	setupMux(mux, "GET /media/disk/{nameOrID}", handlers.NewDiskHandler(), mdlw)
+	setupMux(mux, "DELETE /media/disk/{nameOrID}", handlers.NewDiskHandler(), mdlw)
+
+	setupMux(mux, "GET /media/isos", handlers.NewISOsHandler(), mdlw)
+	setupMux(mux, "GET /media/iso/{nameOrID}", handlers.NewISOHandler(), mdlw)
+	setupMux(mux, "DELETE /media/iso/{nameOrID}", handlers.NewISOHandler(), mdlw)
+
+	setupMux(mux, "GET /net/nics", handlers.NewNICsHandler(), mdlw)
+
+	setupMux(mux, "GET /net/nic", handlers.NewNICHandler(), mdlw)
+	setupMux(mux, "POST /net/nic", handlers.NewNICHandler(), mdlw)
+	setupMux(mux, "GET /net/nic/{nameOrID}", handlers.NewNICHandler(), mdlw)
+	setupMux(mux, "DELETE /net/nic/{nameOrID}", handlers.NewNICHandler(), mdlw)
+	setupMux(mux, "DELETE /net/nic/{nameOrID}/uplink", handlers.NewNICUplinkHandler(), mdlw)
+	setupMux(mux, "GET /net/nic/{nameOrID}/uplink", handlers.NewNICUplinkHandler(), mdlw)
+	setupMux(mux, "POST /net/nic/{nameOrID}/uplink", handlers.NewNICUplinkHandler(), mdlw)
+
+	setupMux(mux, "GET /net/switches", handlers.NewSwitchesHandler(), mdlw)
+
+	setupMux(mux, "GET /net/switch", handlers.NewSwitchHandler(), mdlw)
+	setupMux(mux, "POST /net/switch", handlers.NewSwitchHandler(), mdlw)
+	setupMux(mux, "GET /net/switch/{nameOrID}", handlers.NewSwitchHandler(), mdlw)
+	setupMux(mux, "DELETE /net/switch/{nameOrID}", handlers.NewSwitchHandler(), mdlw)
+
+	if metricsEnable {
 		setupMetrics(metricsHost, metricsPort)
-	} else {
-		mux.Handle("GET /", HTTPLogger(handlers.NewHomeHandler()))
-		mux.Handle("GET /home", HTTPLogger(handlers.NewHomeHandler()))
-		mux.Handle("GET /vms", HTTPLogger(handlers.NewVMsHandler()))
-		mux.Handle("GET /vm/{nameOrID}", HTTPLogger(handlers.NewVMHandler()))
-		mux.Handle("GET /vm/{nameOrID}/disk/add", HTTPLogger(handlers.NewVMDiskAddHandler()))
-		mux.Handle("POST /vm/{nameOrID}/disk/add", HTTPLogger(handlers.NewVMDiskAddHandler()))
-		mux.Handle("GET /vm/{nameOrID}/iso/add", HTTPLogger(handlers.NewVMISOAddHandler()))
-		mux.Handle("POST /vm/{nameOrID}/iso/add", HTTPLogger(handlers.NewVMISOAddHandler()))
-		mux.Handle("GET /vm/{nameOrID}/nic/add", HTTPLogger(handlers.NewVMNICAddHandler()))
-		mux.Handle("POST /vm/{nameOrID}/nic/add", HTTPLogger(handlers.NewVMNICAddHandler()))
-		mux.Handle("DELETE /vm/{nameOrID}", HTTPLogger(handlers.NewVMHandler()))
-		mux.Handle("POST /vm/{nameOrID}/start", HTTPLogger(handlers.NewVMStartHandler()))
-		mux.Handle("POST /vm/{nameOrID}/stop", HTTPLogger(handlers.NewVMStopHandler()))
-		mux.Handle("DELETE /vm/{vmNameOrID}/disk/{diskNameOrID}", HTTPLogger(handlers.NewVMDiskHandler()))
-		mux.Handle("DELETE /vm/{vmNameOrID}/iso/{isoNameOrID}", HTTPLogger(handlers.NewVMISOHandler()))
-		mux.Handle("DELETE /vm/{vmNameOrID}/nic/{isoNameOrID}", HTTPLogger(handlers.NewVMNICHandler()))
-		mux.Handle("GET /vmdata/{nameOrID}", HTTPLogger(handlers.NewVMDataHandler()))
-		mux.Handle("GET /vnc/", HTTPLogger(NoCache(vncFileServer)))
-		mux.Handle("GET /assets/", HTTPLogger(assetFileServer))
-		mux.Handle("GET /media/disks", HTTPLogger(handlers.NewDisksHandler()))
-		mux.Handle("DELETE /media/disk/{nameOrID}", HTTPLogger(handlers.NewDiskHandler()))
-		mux.Handle("GET /media/disk/{nameOrID}", HTTPLogger(handlers.NewDiskHandler()))
-		mux.Handle("GET /media/isos", HTTPLogger(handlers.NewISOsHandler()))
-		mux.Handle("GET /media/iso/{nameOrID}", HTTPLogger(handlers.NewISOHandler()))
-		mux.Handle("DELETE /media/iso/{nameOrID}", HTTPLogger(handlers.NewISOHandler()))
-		mux.Handle("GET /net/nics", HTTPLogger(handlers.NewNICsHandler()))
-		mux.Handle("GET /net/nic", HTTPLogger(handlers.NewNICHandler()))
-		mux.Handle("POST /net/nic", HTTPLogger(handlers.NewNICHandler()))
-		mux.Handle("GET /net/nic/{nameOrID}", HTTPLogger(handlers.NewNICHandler()))
-		mux.Handle("DELETE /net/nic/{nameOrID}", HTTPLogger(handlers.NewNICHandler()))
-		mux.Handle("DELETE /net/nic/{nameOrID}/uplink", HTTPLogger(handlers.NewNICUplinkHandler()))
-		mux.Handle("GET /net/nic/{nameOrID}/uplink", HTTPLogger(handlers.NewNICUplinkHandler()))
-		mux.Handle("POST /net/nic/{nameOrID}/uplink", HTTPLogger(handlers.NewNICUplinkHandler()))
-		mux.Handle("GET /net/switches", HTTPLogger(handlers.NewSwitchesHandler()))
-		mux.Handle("GET /net/switch", HTTPLogger(handlers.NewSwitchHandler()))
-		mux.Handle("POST /net/switch", HTTPLogger(handlers.NewSwitchHandler()))
-		mux.Handle("GET /net/switch/{nameOrID}", HTTPLogger(handlers.NewSwitchHandler()))
-		mux.Handle("DELETE /net/switch/{nameOrID}", HTTPLogger(handlers.NewSwitchHandler()))
 	}
 
 	go StartGoWebSockifyHTTP()
