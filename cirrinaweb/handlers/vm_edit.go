@@ -156,6 +156,162 @@ func (v VMEditBasicHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 	}
 }
 
+type VMEditDiskHandler struct{}
+
+func NewVMEditDiskHandler() VMEditDiskHandler {
+	return VMEditDiskHandler{}
+}
+
+func (v VMEditDiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	var err error
+
+	switch request.Method {
+	case http.MethodGet:
+		nameOrID := request.PathValue("nameOrID")
+
+		var aVM components.VM
+
+		aVM, err = GetVM(nameOrID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		aVM.Disks, err = GetVMDisks(aVM.ID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		var VMs []components.VM
+
+		VMs, err = GetVMs()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		templ.Handler(components.VMEditDisk(VMs, aVM)).ServeHTTP(writer, request)
+
+		return
+	default:
+		http.Redirect(writer, request, "/vm/", http.StatusSeeOther)
+	}
+}
+
+type VMEditISOHandler struct{}
+
+func NewVMEditISOHandler() VMEditISOHandler {
+	return VMEditISOHandler{}
+}
+
+func (v VMEditISOHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	var err error
+
+	switch request.Method {
+	case http.MethodGet:
+		nameOrID := request.PathValue("nameOrID")
+
+		var aVM components.VM
+
+		aVM, err = GetVM(nameOrID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		aVM.ISOs, err = GetVMISOs(aVM.ID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		var VMs []components.VM
+
+		VMs, err = GetVMs()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		templ.Handler(components.VMEditISO(VMs, aVM)).ServeHTTP(writer, request)
+
+		return
+	default:
+		http.Redirect(writer, request, "/vm/", http.StatusSeeOther)
+	}
+}
+
+type VMEditNICHandler struct{}
+
+func NewVMEditNICHandler() VMEditNICHandler {
+	return VMEditNICHandler{}
+}
+
+func (v VMEditNICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	var err error
+
+	switch request.Method {
+	case http.MethodGet:
+		nameOrID := request.PathValue("nameOrID")
+
+		var aVM components.VM
+
+		aVM, err = GetVM(nameOrID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		aVM.NICs, err = GetVMNICs(aVM.ID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		var VMs []components.VM
+
+		VMs, err = GetVMs()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		templ.Handler(components.VMEditNIC(VMs, aVM)).ServeHTTP(writer, request)
+
+		return
+	default:
+		http.Redirect(writer, request, "/vm/", http.StatusSeeOther)
+	}
+}
+
 type VMEditSerialHandler struct{}
 
 func NewVMEditSerialHandler() VMEditSerialHandler {

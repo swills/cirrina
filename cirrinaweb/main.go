@@ -154,6 +154,9 @@ func main() {
 
 	setupMux(mux, "GET /vm/{nameOrID}/editBasic", handlers.NewVMEditBasicHandler(), mdlw)
 	setupMux(mux, "POST /vm/{nameOrID}/editBasic", handlers.NewVMEditBasicHandler(), mdlw)
+	setupMux(mux, "GET /vm/{nameOrID}/editDisk", handlers.NewVMEditDiskHandler(), mdlw)
+	setupMux(mux, "GET /vm/{nameOrID}/editISOs", handlers.NewVMEditISOHandler(), mdlw)
+	setupMux(mux, "GET /vm/{nameOrID}/editNICs", handlers.NewVMEditNICHandler(), mdlw)
 	setupMux(mux, "GET /vm/{nameOrID}/editSerial", handlers.NewVMEditSerialHandler(), mdlw)
 	setupMux(mux, "POST /vm/{nameOrID}/editSerial", handlers.NewVMEditSerialHandler(), mdlw)
 	setupMux(mux, "GET /vm/{nameOrID}/editDisplay", handlers.NewVMEditDisplayHandler(), mdlw)

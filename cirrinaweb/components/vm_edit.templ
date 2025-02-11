@@ -10,7 +10,6 @@ templ VMEditBasic(vms []VM, vm VM) {
     }
 }
 
-
 templ vmEditBasicTemplate(vm VM) {
     <div class="h4 mt-3 mt-md-0">/ <a class="text-decoration-none" href="/home">Cirrina</a> / <a class="text-decoration-none" href="/vm">VM</a> / <a class="text-decoration-none" href={ templ.URL("/vm/" + vm.Name) }>{ vm.Name }</a> / Basic</div>
 
@@ -32,4 +31,40 @@ templ vmEditBasicTemplate(vm VM) {
             </form>
         </div>
     </div>
+}
+
+templ VMEditDisk(vms []VM, vm VM) {
+    @layoutVMs("VM - " + vm.Name, vms, "") {
+        @vmEditDiskTemplate(vm)
+    }
+}
+
+templ vmEditDiskTemplate(vm VM) {
+    <div class="h4 mt-3 mt-md-0">/ <a class="text-decoration-none" href="/home">Cirrina</a> / <a class="text-decoration-none" href="/vm">VM</a> / <a class="text-decoration-none" href={ templ.URL("/vm/" + vm.Name) }>{ vm.Name }</a> / Disks</div>
+
+    @VMDisksEditComp(vm)
+}
+
+templ VMEditISO(vms []VM, vm VM) {
+    @layoutVMs("VM - " + vm.Name, vms, "") {
+        @vmEditISOTemplate(vm)
+    }
+}
+
+templ vmEditISOTemplate(vm VM) {
+    <div class="h4 mt-3 mt-md-0">/ <a class="text-decoration-none" href="/home">Cirrina</a> / <a class="text-decoration-none" href="/vm">VM</a> / <a class="text-decoration-none" href={ templ.URL("/vm/" + vm.Name) }>{ vm.Name }</a> / ISOs</div>
+
+    @VMISOsEditComp(vm)
+}
+
+templ VMEditNIC(vms []VM, vm VM) {
+    @layoutVMs("VM - " + vm.Name, vms, "") {
+        @vmEditNICTemplate(vm)
+    }
+}
+
+templ vmEditNICTemplate(vm VM) {
+    <div class="h4 mt-3 mt-md-0">/ <a class="text-decoration-none" href="/home">Cirrina</a> / <a class="text-decoration-none" href="/vm">VM</a> / <a class="text-decoration-none" href={ templ.URL("/vm/" + vm.Name) }>{ vm.Name }</a> / NICs</div>
+
+    @VMNICsEditComp(vm)
 }

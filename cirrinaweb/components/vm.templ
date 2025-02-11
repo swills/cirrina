@@ -28,7 +28,22 @@ templ VmNICAdd(vmName string, vms []VM, vm VM, nics []NIC) {
     }
 }
 
-templ VMDisksComp(vm VM) {
+templ VMDisksListComp(vm VM) {
+            <div class="row m-0 mt-3">
+                <div class="col-12 col-md border p-3">
+                    Disks:
+                    <div data-testid="vmsTemplateVMDisk">
+                        for _, d := range vm.Disks {
+                            <div data-testid="vmsTemplateDiskName">
+                              <a class="text-decoration-none" href={ templ.URL("/media/disk/" + d.Name) }>{ d.Name }</a> (<a class="text-decoration-none" href={ templ.URL("/media/disk/" + d.ID)}>id</a>)
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+}
+
+templ VMDisksEditComp(vm VM) {
             <div class="row m-0 mt-3">
                 <div class="col-12 col-md border p-3">
                     Disks:
@@ -48,7 +63,22 @@ templ VMDisksComp(vm VM) {
             </div>
 }
 
-templ VMISOsComp(vm VM) {
+templ VMISOsListComp(vm VM) {
+            <div class="row m-0 mt-3">
+                <div class="col-12 col-md border p-3">
+                    ISOs:
+                    <div data-testid="vmsTemplateVMISO">
+                        for _, i := range vm.ISOs {
+                            <div data-testid="vmsTemplateDiskName">
+                              <a class="text-decoration-none" href={ templ.URL("/media/iso/" + i.Name) }>{ i.Name }</a> (<a class="text-decoration-none" href={ templ.URL("/media/iso/" + i.ID)}>id</a>)
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+}
+
+templ VMISOsEditComp(vm VM) {
             <div class="row m-0 mt-3">
                 <div class="col-12 col-md border p-3">
                     ISOs:
@@ -68,7 +98,22 @@ templ VMISOsComp(vm VM) {
             </div>
 }
 
-templ VMNICsComp(vm VM) {
+templ VMNICsListComp(vm VM) {
+            <div class="row m-0 mt-3">
+                <div class="col-12 col-md border p-3">
+                    NICs:
+                        <div data-testid="vmsTemplateVMNIC">
+                            for _, n := range vm.NICs {
+                                <div data-testid="vmsTemplateDiskName">
+                                  <a class="text-decoration-none" href={ templ.URL("/net/nic/" + n.Name) }>{ n.Name }</a> (<a class="text-decoration-none" href={ templ.URL("/net/nic/" + n.ID)}>id</a>)
+                                </div>
+                            }
+                        </div>
+                </div>
+            </div>
+}
+
+templ VMNICsEditComp(vm VM) {
             <div class="row m-0 mt-3">
                 <div class="col-12 col-md border p-3">
                     NICs:
@@ -101,16 +146,21 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
 			<div data-testid="vmsTemplateVMCPUs">CPU Count: { cpusStr }</div>
 			<div data-testid="vmsTemplateVMMem">Memory: { memoryStr } MiB</div>
 			<div data-testid="vmsTemplateVMDescr">Description: { vm.Description }</div>
+			if !vm.Running {
 			<div data-testid="vmsTemplateVMEditButtons">Edit:
-			  <a class="btn btn-primary btn-sm me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editBasic") }>Basic</a>
+			  <a class="btn btn-outline-primary btn-sm border-0 me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editBasic") }>Basic</a>
+			  <a class="btn btn-outline-primary btn-sm border-0 me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editDisk") }>Disk(s)</a>
+			  <a class="btn btn-outline-primary btn-sm border-0 me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editISOs") }>ISO(s)</a>
+			  <a class="btn btn-outline-primary btn-sm border-0 me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editNICs") }>NIC(s)</a>
 <!--
-			  <a class="btn btn-primary btn-sm me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editSerial") }>Serial</a>
-			  <a class="btn btn-primary btn-sm me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editDisplay") }>Display</a>
-			  <a class="btn btn-primary btn-sm me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editAudio") }>Audio</a>
-			  <a class="btn btn-primary btn-sm me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editStart") }>Start</a>
-			  <a class="btn btn-primary btn-sm me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editAdvanced") }>Advanced</a>
+			  <a class="btn btn-outline-primary btn-sm border-0 me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editSerial") }>Serial</a>
+			  <a class="btn btn-outline-primary btn-sm border-0 me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editDisplay") }>Display</a>
+			  <a class="btn btn-outline-primary btn-sm border-0 me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editAudio") }>Audio</a>
+			  <a class="btn btn-outline-primary btn-sm border-0 me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editStart") }>Start</a>
+			  <a class="btn btn-outline-primary btn-sm border-0 me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editAdvanced") }>Advanced</a>
 -->
 			</div>
+			}
         </div>
     </div>
 
@@ -130,9 +180,9 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
         </div>
     </div>
 
-    @VMDisksComp(vm)
-    @VMISOsComp(vm)
-    @VMNICsComp(vm)
+    @VMDisksListComp(vm)
+    @VMISOsListComp(vm)
+    @VMNICsListComp(vm)
 }
 
 templ vmDiskAddTemplate(vmName string, disks []Disk) {
