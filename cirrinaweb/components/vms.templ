@@ -4,7 +4,7 @@ templ vmsTemplate(vms []VM) {
 	<div data-testid="vmsTemplate">
 		for _, p := range vms {
 			<div data-testid="vmsTemplateVM">
-				<div data-testid="vmsTemplateVMName"><a href={ templ.URL("/vm/" + p.Name) }>{ p.Name }</a> (<a href={ templ.URL("/vm/" + p.ID)}>id</a>)</div>
+				<div data-testid="vmsTemplateVMName"><a class="text-decoration-none" href={ templ.URL("/vm/" + p.Name) }>{ p.Name }</a> (<a class="text-decoration-none" href={ templ.URL("/vm/" + p.ID)}>id</a>)</div>
 			</div>
 		}
 	</div>

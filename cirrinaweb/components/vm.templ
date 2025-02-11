@@ -101,6 +101,16 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
 			<div data-testid="vmsTemplateVMCPUs">CPU Count: { cpusStr }</div>
 			<div data-testid="vmsTemplateVMMem">Memory: { memoryStr } MiB</div>
 			<div data-testid="vmsTemplateVMDescr">Description: { vm.Description }</div>
+			<div data-testid="vmsTemplateVMEditButtons">Edit:
+			  <a class="btn btn-primary btn-sm me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editBasic") }>Basic</a>
+<!--
+			  <a class="btn btn-primary btn-sm me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editSerial") }>Serial</a>
+			  <a class="btn btn-primary btn-sm me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editDisplay") }>Display</a>
+			  <a class="btn btn-primary btn-sm me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editAudio") }>Audio</a>
+			  <a class="btn btn-primary btn-sm me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editStart") }>Start</a>
+			  <a class="btn btn-primary btn-sm me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editAdvanced") }>Advanced</a>
+-->
+			</div>
         </div>
     </div>
 

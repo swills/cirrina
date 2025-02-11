@@ -1,0 +1,35 @@
+package components
+
+import (
+    "strconv"
+)
+
+templ VMEditBasic(vms []VM, vm VM) {
+    @layoutVMs("VM - " + vm.Name, vms, "") {
+        @vmEditBasicTemplate(vm)
+    }
+}
+
+
+templ vmEditBasicTemplate(vm VM) {
+    <div class="h4 mt-3 mt-md-0">/ <a class="text-decoration-none" href="/home">Cirrina</a> / <a class="text-decoration-none" href="/vm">VM</a> / <a class="text-decoration-none" href={ templ.URL("/vm/" + vm.Name) }>{ vm.Name }</a> / Basic</div>
+
+    <div data-testid="vmEditTemplate" class="row m-0 mt-3 mt-md-0">
+        <div data-testid="vmEditTemplateVM" class="col-12 col-md border p-3">
+			<div data-testid="vmEditTemplateVMName">VM Name: { vm.Name }</div>
+			<div data-testid="vmEditTemplateVMID">ID: { vm.ID }</div>
+            <form action={ templ.URL("/vm/" + vm.Name + "/editBasic")} method="post">
+                <label for="cpu-select">CPU Count:</label>
+                <input type="number" id="cpu-select" name="cpus" min="1" value={ strconv.FormatUint(uint64(vm.CPUs), 10) } >
+                <br>
+                <label for="mem-number-input">Memory (MebiBytes):</label>
+                <input type="number" name="mem-number" id="mem-number-input" value={ strconv.FormatUint(uint64(vm.Memory), 10) } >
+                <br>
+                <label for="desc-input">Description:</label>
+                <input class="form-control form-control-sm" type="text" name="desc" id="desc-input" value={ vm.Description }>
+                <br>
+                <button type="submit" class="btn btn-sm btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
+}
