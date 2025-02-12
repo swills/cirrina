@@ -370,6 +370,34 @@ func GetVM(nameOrID string) (components.VM, error) {
 	returnVM.Memory = vmConfig.Mem
 	returnVM.Description = vmConfig.Description
 
+	returnVM.COM1 = components.COM{
+		Enabled: vmConfig.Com1,
+		Dev:     vmConfig.Com1Dev,
+		Log:     vmConfig.Com1Log,
+		Speed:   vmConfig.Com1Speed,
+	}
+
+	returnVM.COM2 = components.COM{
+		Enabled: vmConfig.Com2,
+		Dev:     vmConfig.Com2Dev,
+		Log:     vmConfig.Com2Log,
+		Speed:   vmConfig.Com2Speed,
+	}
+
+	returnVM.COM3 = components.COM{
+		Enabled: vmConfig.Com3,
+		Dev:     vmConfig.Com3Dev,
+		Log:     vmConfig.Com3Log,
+		Speed:   vmConfig.Com3Speed,
+	}
+
+	returnVM.COM4 = components.COM{
+		Enabled: vmConfig.Com4,
+		Dev:     vmConfig.Com4Dev,
+		Log:     vmConfig.Com4Log,
+		Speed:   vmConfig.Com4Speed,
+	}
+
 	var vmState string
 
 	var vncPort string

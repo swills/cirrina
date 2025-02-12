@@ -68,3 +68,405 @@ templ vmEditNICTemplate(vm VM) {
 
     @VMNICsEditComp(vm)
 }
+
+templ VMEditSerial(vms []VM, vm VM) {
+    @layoutVMs("VM - " + vm.Name, vms, "") {
+        @vmEditSerialTemplate(vm)
+    }
+}
+
+templ vmEditSerialTemplate(vm VM) {
+    <div class="h4 mt-3 mt-md-0">/ <a class="text-decoration-none" href="/home">Cirrina</a> / <a class="text-decoration-none" href="/vm">VM</a> / <a class="text-decoration-none" href={ templ.URL("/vm/" + vm.Name) }>{ vm.Name }</a> / Serial</div>
+
+    <div data-testid="vmEditTemplate" class="row m-0 mt-3 mt-md-0">
+        <div data-testid="vmEditTemplateVM" class="col-12 col-md border p-3">
+            <form action={ templ.URL("/vm/" + vm.Name + "/editSerial")} method="post">
+                <div class="row">
+                  <div class="form-group form-group-sm mb-3">
+                    <label for="com1-enable-check">COM1: Enabled: </label>
+                    if vm.COM1.Enabled {
+                    <input class="form-check-input" type="checkbox" id="com1-enable-check" name="com1enabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="com1-enable-check" name="com1enabled">
+                    }
+                    <label for="com1-dev-text">Dev:</label>
+                    <input class="form-control-sm" type="text" name="com1dev" id="com1-dev-text" value={ vm.COM1.Dev }>
+                    <label for="com1-log-check">Log: </label>
+                    if vm.COM1.Log {
+                    <input class="form-check-input" type="checkbox" id="com1-log-check" name="com1log" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="com1-log-check" name="com1log">
+                    }
+                    <label for="com1-speed-select">Speed:</label>
+                    <select name="com1speed" id="com1-speed-select">
+                      if vm.COM1.Speed == 115200 {
+                      <option value="115200" selected="selected">115200</option>
+                      } else {
+                      <option value="115200">115200</option>
+                      }
+                      if vm.COM1.Speed == 57600 {
+                      <option value="57600" selected="selected">57600</option>
+                      } else {
+                      <option value="57600">57600</option>
+                      }
+                      if vm.COM1.Speed == 19200 {
+                      <option value="19200" selected="selected">19200</option>
+                      } else {
+                      <option value="19200">19200</option>
+                      }
+                      if vm.COM1.Speed == 9600 {
+                      <option value="9600" selected="selected">9600</option>
+                      } else {
+                      <option value="9600">9600</option>
+                      }
+                      if vm.COM1.Speed == 4800 {
+                      <option value="4800" selected="selected">4800</option>
+                      } else {
+                      <option value="4800">4800</option>
+                      }
+                      if vm.COM1.Speed == 2400 {
+                      <option value="2400" selected="selected">2400</option>
+                      } else {
+                      <option value="2400">2400</option>
+                      }
+                      if vm.COM1.Speed == 1200 {
+                      <option value="1200" selected="selected">1200</option>
+                      } else {
+                      <option value="1200">1200</option>
+                      }
+                      if vm.COM1.Speed == 600 {
+                      <option value="600" selected="selected">600</option>
+                      } else {
+                      <option value="600">600</option>
+                      }
+                      if vm.COM1.Speed == 300 {
+                      <option value="300" selected="selected">300</option>
+                      } else {
+                      <option value="300">300</option>
+                      }
+                      if vm.COM1.Speed == 200 {
+                      <option value="200" selected="selected">200</option>
+                      } else {
+                      <option value="200">200</option>
+                      }
+                      if vm.COM1.Speed == 150 {
+                      <option value="150" selected="selected">150</option>
+                      } else {
+                      <option value="150">150</option>
+                      }
+                      if vm.COM1.Speed == 134 {
+                      <option value="134" selected="selected">134</option>
+                      } else {
+                      <option value="134">134</option>
+                      }
+                      if vm.COM1.Speed == 110 {
+                      <option value="110" selected="selected">110</option>
+                      } else {
+                      <option value="110">110</option>
+                      }
+                      if vm.COM1.Speed == 75 {
+                      <option value="75" selected="selected">75</option>
+                      } else {
+                      <option value="75">75</option>
+                      }
+                      if vm.COM1.Speed == 50 {
+                      <option value="50" selected="selected">50</option>
+                      } else {
+                      <option value="50">50</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="form-group form-group-sm mb-3">
+                    <label for="com2-enable-check">COM2: Enabled: </label>
+                    if vm.COM2.Enabled {
+                    <input class="form-check-input" type="checkbox" id="com2-enable-check" name="com2enabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="com2-enable-check" name="com2enabled">
+                    }
+                    <label for="com2-dev-text">Dev:</label>
+                    <input class="form-control-sm" type="text" name="com2dev" id="com2-dev-text" value={ vm.COM2.Dev }>
+                    <label for="com2-log-check">Log: </label>
+                    if vm.COM2.Log {
+                    <input class="form-check-input" type="checkbox" id="com2-log-check" name="com2log" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="com2-log-check" name="com2log">
+                    }
+                    <label for="com2-speed-select">Speed:</label>
+                    <select name="com2speed" id="com2-speed-select">
+                      if vm.COM2.Speed == 115200 {
+                      <option value="115200" selected="selected">115200</option>
+                      } else {
+                      <option value="115200">115200</option>
+                      }
+                      if vm.COM2.Speed == 57600 {
+                      <option value="57600" selected="selected">57600</option>
+                      } else {
+                      <option value="57600">57600</option>
+                      }
+                      if vm.COM2.Speed == 19200 {
+                      <option value="19200" selected="selected">19200</option>
+                      } else {
+                      <option value="19200">19200</option>
+                      }
+                      if vm.COM2.Speed == 9600 {
+                      <option value="9600" selected="selected">9600</option>
+                      } else {
+                      <option value="9600">9600</option>
+                      }
+                      if vm.COM2.Speed == 4800 {
+                      <option value="4800" selected="selected">4800</option>
+                      } else {
+                      <option value="4800">4800</option>
+                      }
+                      if vm.COM2.Speed == 2400 {
+                      <option value="2400" selected="selected">2400</option>
+                      } else {
+                      <option value="2400">2400</option>
+                      }
+                      if vm.COM2.Speed == 1200 {
+                      <option value="1200" selected="selected">1200</option>
+                      } else {
+                      <option value="1200">1200</option>
+                      }
+                      if vm.COM2.Speed == 600 {
+                      <option value="600" selected="selected">600</option>
+                      } else {
+                      <option value="600">600</option>
+                      }
+                      if vm.COM2.Speed == 300 {
+                      <option value="300" selected="selected">300</option>
+                      } else {
+                      <option value="300">300</option>
+                      }
+                      if vm.COM2.Speed == 200 {
+                      <option value="200" selected="selected">200</option>
+                      } else {
+                      <option value="200">200</option>
+                      }
+                      if vm.COM2.Speed == 150 {
+                      <option value="150" selected="selected">150</option>
+                      } else {
+                      <option value="150">150</option>
+                      }
+                      if vm.COM2.Speed == 134 {
+                      <option value="134" selected="selected">134</option>
+                      } else {
+                      <option value="134">134</option>
+                      }
+                      if vm.COM2.Speed == 110 {
+                      <option value="110" selected="selected">110</option>
+                      } else {
+                      <option value="110">110</option>
+                      }
+                      if vm.COM2.Speed == 75 {
+                      <option value="75" selected="selected">75</option>
+                      } else {
+                      <option value="75">75</option>
+                      }
+                      if vm.COM2.Speed == 50 {
+                      <option value="50" selected="selected">50</option>
+                      } else {
+                      <option value="50">50</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="form-group form-group-sm mb-3">
+                    <label for="com3-enable-check">COM3: Enabled: </label>
+                    if vm.COM3.Enabled {
+                    <input class="form-check-input" type="checkbox" id="com3-enable-check" name="com3enabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="com3-enable-check" name="com3enabled">
+                    }
+                    <label for="com3-dev-text">Dev:</label>
+                    <input class="form-control-sm" type="text" name="com3dev" id="com3-dev-text" value={ vm.COM3.Dev }>
+                    <label for="com3-log-check">Log: </label>
+                    if vm.COM3.Log {
+                    <input class="form-check-input" type="checkbox" id="com3-log-check" name="com3log" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="com3-log-check" name="com3log">
+                    }
+                    <label for="com3-speed-select">Speed:</label>
+                    <select name="com3speed" id="com3-speed-select">
+                      if vm.COM3.Speed == 115200 {
+                      <option value="115200" selected="selected">115200</option>
+                      } else {
+                      <option value="115200">115200</option>
+                      }
+                      if vm.COM3.Speed == 57600 {
+                      <option value="57600" selected="selected">57600</option>
+                      } else {
+                      <option value="57600">57600</option>
+                      }
+                      if vm.COM3.Speed == 19200 {
+                      <option value="19200" selected="selected">19200</option>
+                      } else {
+                      <option value="19200">19200</option>
+                      }
+                      if vm.COM3.Speed == 9600 {
+                      <option value="9600" selected="selected">9600</option>
+                      } else {
+                      <option value="9600">9600</option>
+                      }
+                      if vm.COM3.Speed == 4800 {
+                      <option value="4800" selected="selected">4800</option>
+                      } else {
+                      <option value="4800">4800</option>
+                      }
+                      if vm.COM3.Speed == 2400 {
+                      <option value="2400" selected="selected">2400</option>
+                      } else {
+                      <option value="2400">2400</option>
+                      }
+                      if vm.COM3.Speed == 1200 {
+                      <option value="1200" selected="selected">1200</option>
+                      } else {
+                      <option value="1200">1200</option>
+                      }
+                      if vm.COM3.Speed == 600 {
+                      <option value="600" selected="selected">600</option>
+                      } else {
+                      <option value="600">600</option>
+                      }
+                      if vm.COM3.Speed == 300 {
+                      <option value="300" selected="selected">300</option>
+                      } else {
+                      <option value="300">300</option>
+                      }
+                      if vm.COM3.Speed == 200 {
+                      <option value="200" selected="selected">200</option>
+                      } else {
+                      <option value="200">200</option>
+                      }
+                      if vm.COM3.Speed == 150 {
+                      <option value="150" selected="selected">150</option>
+                      } else {
+                      <option value="150">150</option>
+                      }
+                      if vm.COM3.Speed == 134 {
+                      <option value="134" selected="selected">134</option>
+                      } else {
+                      <option value="134">134</option>
+                      }
+                      if vm.COM3.Speed == 110 {
+                      <option value="110" selected="selected">110</option>
+                      } else {
+                      <option value="110">110</option>
+                      }
+                      if vm.COM3.Speed == 75 {
+                      <option value="75" selected="selected">75</option>
+                      } else {
+                      <option value="75">75</option>
+                      }
+                      if vm.COM3.Speed == 50 {
+                      <option value="50" selected="selected">50</option>
+                      } else {
+                      <option value="50">50</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="form-group form-group-sm mb-3">
+                    <label for="com4-enable-check">COM4: Enabled: </label>
+                    if vm.COM4.Enabled {
+                    <input class="form-check-input" type="checkbox" id="com4-enable-check" name="com4enabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="com4-enable-check" name="com4enabled">
+                    }
+                    <label for="com4-dev-text">Dev:</label>
+                    <input class="form-control-sm" type="text" name="com4dev" id="com4-dev-text" value={ vm.COM4.Dev }>
+                    <label for="com4-log-check">Log: </label>
+                    if vm.COM4.Log {
+                    <input class="form-check-input" type="checkbox" id="com4-log-check" name="com4log" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="com4-log-check" name="com4log">
+                    }
+                    <label for="com4-speed-select">Speed:</label>
+                    <select name="com4speed" id="com4-speed-select">
+                      if vm.COM4.Speed == 115200 {
+                      <option value="115200" selected="selected">115200</option>
+                      } else {
+                      <option value="115200">115200</option>
+                      }
+                      if vm.COM4.Speed == 57600 {
+                      <option value="57600" selected="selected">57600</option>
+                      } else {
+                      <option value="57600">57600</option>
+                      }
+                      if vm.COM4.Speed == 19200 {
+                      <option value="19200" selected="selected">19200</option>
+                      } else {
+                      <option value="19200">19200</option>
+                      }
+                      if vm.COM4.Speed == 9600 {
+                      <option value="9600" selected="selected">9600</option>
+                      } else {
+                      <option value="9600">9600</option>
+                      }
+                      if vm.COM4.Speed == 4800 {
+                      <option value="4800" selected="selected">4800</option>
+                      } else {
+                      <option value="4800">4800</option>
+                      }
+                      if vm.COM4.Speed == 2400 {
+                      <option value="2400" selected="selected">2400</option>
+                      } else {
+                      <option value="2400">2400</option>
+                      }
+                      if vm.COM4.Speed == 1200 {
+                      <option value="1200" selected="selected">1200</option>
+                      } else {
+                      <option value="1200">1200</option>
+                      }
+                      if vm.COM4.Speed == 600 {
+                      <option value="600" selected="selected">600</option>
+                      } else {
+                      <option value="600">600</option>
+                      }
+                      if vm.COM4.Speed == 300 {
+                      <option value="300" selected="selected">300</option>
+                      } else {
+                      <option value="300">300</option>
+                      }
+                      if vm.COM4.Speed == 200 {
+                      <option value="200" selected="selected">200</option>
+                      } else {
+                      <option value="200">200</option>
+                      }
+                      if vm.COM4.Speed == 150 {
+                      <option value="150" selected="selected">150</option>
+                      } else {
+                      <option value="150">150</option>
+                      }
+                      if vm.COM4.Speed == 134 {
+                      <option value="134" selected="selected">134</option>
+                      } else {
+                      <option value="134">134</option>
+                      }
+                      if vm.COM4.Speed == 110 {
+                      <option value="110" selected="selected">110</option>
+                      } else {
+                      <option value="110">110</option>
+                      }
+                      if vm.COM4.Speed == 75 {
+                      <option value="75" selected="selected">75</option>
+                      } else {
+                      <option value="75">75</option>
+                      }
+                      if vm.COM4.Speed == 50 {
+                      <option value="50" selected="selected">50</option>
+                      } else {
+                      <option value="50">50</option>
+                      }
+                    </select>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
+}

@@ -19,6 +19,10 @@ type VM struct {
 	Disks       []Disk
 	ISOs        []ISO
 	NICs        []NIC
+	COM1        COM
+	COM2        COM
+	COM3        COM
+	COM4        COM
 }
 
 func (v VM) Start() error {
