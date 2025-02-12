@@ -7,6 +7,7 @@ stages:
 variables:
   PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/${CI_PROJECT_NAME}"
   VER: ${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHORT_SHA}
+  GOTOOLCHAIN: local
 
 gen-check:
   stage: build
@@ -21,7 +22,7 @@ gen-check:
     - export GOOS=freebsd
     - export GOARCH=amd64
     - go generate ./...
-    - DIFF_WC=`git diff | wc -l | xargs` ; if [ ${DIFF_WC} -ne 0 ]; then echo 'generated code differs from committed code' ; exit 1 ; fi
+    - DIFF_WC=`git diff | wc -l | xargs` ; if [ ${DIFF_WC} -ne 0 ]; then echo 'generated code differs from committed code' ; git diff --stat ; exit 1 ; fi
 
 cirrinad:
   stage: build
@@ -166,7 +167,7 @@ lint:
     - export GOBIN=${HOME}/bin
     - export PATH=${GOBIN}:${PATH}
     - go mod tidy -v
-    - go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.59.1
+    - go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.2
     - golangci-lint run ./...
     - go install go.uber.org/mock/mockgen@v0.5.0
     - go generate ./...
@@ -183,9 +184,9 @@ go-test:
     - go test -shuffle=on -v ./... -coverpkg=./... -coverprofile=coverage.txt -covermode count -tags test
     - go tool cover -func coverage.txt
     - go tool cover -html coverage.txt -o cover.html
-    - go install gotest.tools/gotestsum@v1.11.0
+    - go install gotest.tools/gotestsum@v1.12.0
     - gotestsum --junitfile report.xml --format testname
-    - go install github.com/boumenot/gocover-cobertura@v1.2.0
+    - go install github.com/boumenot/gocover-cobertura@v1.3.0
     - gocover-cobertura < coverage.txt > coverage.xml
     - go test -race ./cirrinad
   coverage: '/^total:\s+\(statements\)\s+(\d+\.\d+)%$/'
