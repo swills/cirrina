@@ -10,7 +10,7 @@
 package disk
 
 import (
-	fs "io/fs"
+	os "os"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
@@ -168,10 +168,10 @@ func (mr *MockLocalFileSystemMockRecorder) Open(name any) *gomock.Call {
 }
 
 // Stat mocks base method.
-func (m *MockLocalFileSystem) Stat(name string) (fs.FileInfo, error) {
+func (m *MockLocalFileSystem) Stat(name string) (os.FileInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Stat", name)
-	ret0, _ := ret[0].(fs.FileInfo)
+	ret0, _ := ret[0].(os.FileInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
