@@ -1,5 +1,5 @@
 run:
-  go: '1.22'
+  go: '1.23'
 
 linters:
   enable:
@@ -35,7 +35,7 @@ linters:
     - zerologlint
     - dupword
     - misspell
-    - tenv
+    - usetesting
     - asasalint
     - bidichk
     - containedctx

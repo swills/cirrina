@@ -1919,22 +1919,9 @@ func RandomString(n int) string {
 
 func TestPathExists(t *testing.T) {
 	// prevents parallel testing
-	testPathExistsTmpDir, err := os.MkdirTemp("/tmp/", "cirrinaTestPathExists")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func(path string) {
-		err = os.RemoveAll(path)
-		if err != nil {
-			t.Fail()
-		}
-	}(testPathExistsTmpDir) // clean up
+	var err error
 
-	testPathExistsNoPermissions, err := os.MkdirTemp("/tmp/", "cirrinaTestPathNoPerms")
-	if err != nil {
-		t.Fail()
-	}
-
+	testPathExistsNoPermissions := t.TempDir()
 	err = os.Mkdir(filepath.Join(testPathExistsNoPermissions, "testdir"), 0o755)
 
 	defer func(path string) {
@@ -2016,31 +2003,12 @@ func TestPathExists(t *testing.T) {
 }
 
 func TestOSReadDir(t *testing.T) {
+	var err error
+
 	// prevents parallel testing
-	testOSReadDirPath1, err := os.MkdirTemp("/tmp/", "cirrinaTestOSReadDir1")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func(path string) {
-		err2 := os.RemoveAll(path)
-		if err2 != nil {
-			t.Fail()
-		}
-	}(testOSReadDirPath1) // clean up
+	testOSReadDirPath1 := t.TempDir()
 
-	var testOSReadDirPath2 string
-
-	testOSReadDirPath2, err = os.MkdirTemp("/tmp/", "cirrinaTestOSReadDir2")
-	if err != nil {
-		t.Fail()
-	}
-
-	defer func(path string) {
-		err = os.RemoveAll(path)
-		if err != nil {
-			t.Fail()
-		}
-	}(testOSReadDirPath2) // clean up
+	testOSReadDirPath2 := t.TempDir()
 
 	file := filepath.Join(testOSReadDirPath2, "tmpfile")
 	err = os.WriteFile(file, []byte("content"), 0666)

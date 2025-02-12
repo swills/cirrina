@@ -23,7 +23,7 @@ cd ${SCRIPTDIR}
 
 . ./.venv/bin/activate
 
-export GOROOT=/usr/local/go122
+export GOROOT=/usr/local/go123
 if [ ! -d /tmp/cirrinagopath ]; then
   mkdir /tmp/cirrinagopath
 fi
