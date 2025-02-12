@@ -131,7 +131,6 @@ type VMInfoClient interface {
 	UpdateVMNic(ctx context.Context, in *VmNicInfoUpdate, opts ...grpc.CallOption) (*ReqBool, error)
 	RemoveVMNic(ctx context.Context, in *VmNicId, opts ...grpc.CallOption) (*ReqBool, error)
 	SetVMNicSwitch(ctx context.Context, in *SetVmNicSwitchReq, opts ...grpc.CallOption) (*ReqBool, error)
-	// actually unneeded since VmNicInfo returned by GetVMNicInfo includes vmid, but the GUI still uses it
 	GetVMNicVM(ctx context.Context, in *VmNicId, opts ...grpc.CallOption) (*VMID, error)
 	CloneVMNic(ctx context.Context, in *VmNicCloneReq, opts ...grpc.CallOption) (*RequestID, error)
 	SetVMNics(ctx context.Context, in *SetNicReq, opts ...grpc.CallOption) (*ReqBool, error)
@@ -879,7 +878,6 @@ type VMInfoServer interface {
 	UpdateVMNic(context.Context, *VmNicInfoUpdate) (*ReqBool, error)
 	RemoveVMNic(context.Context, *VmNicId) (*ReqBool, error)
 	SetVMNicSwitch(context.Context, *SetVmNicSwitchReq) (*ReqBool, error)
-	// actually unneeded since VmNicInfo returned by GetVMNicInfo includes vmid, but the GUI still uses it
 	GetVMNicVM(context.Context, *VmNicId) (*VMID, error)
 	CloneVMNic(context.Context, *VmNicCloneReq) (*RequestID, error)
 	SetVMNics(context.Context, *SetNicReq) (*ReqBool, error)
