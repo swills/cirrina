@@ -1,11 +1,8 @@
 package cmd
 
 import (
-	"crypto/sha512"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"sort"
 	"strconv"
@@ -118,7 +115,7 @@ var IsoCreateCmd = &cobra.Command{
 }
 
 func trackIsoUpload(isoProgressWriter progress.Writer, isoSize uint64, isoFile *os.File) {
-	isoChecksum, err := checksumWithProgress(isoProgressWriter, isoSize)
+	isoChecksum, err := checksumWithProgress(isoProgressWriter, isoSize, isoFile.Name())
 	if err != nil {
 		return
 	}
@@ -165,12 +162,12 @@ func trackIsoUpload(isoProgressWriter progress.Writer, isoSize uint64, isoFile *
 	}
 }
 
-func uploadIsoWithStatus() error {
+func uploadIsoWithProgress(isoFilePath string) error {
 	var err error
 
 	var isoFileInfo os.FileInfo
 
-	isoFileInfo, err = os.Stat(IsoFilePath)
+	isoFileInfo, err = os.Stat(isoFilePath)
 	if err != nil {
 		return fmt.Errorf("error stating iso: %w", err)
 	}
@@ -179,7 +176,7 @@ func uploadIsoWithStatus() error {
 
 	var isoFile *os.File
 
-	isoFile, err = os.Open(IsoFilePath)
+	isoFile, err = os.Open(isoFilePath)
 	if err != nil {
 		return fmt.Errorf("error opening iso: %w", err)
 	}
@@ -217,53 +214,34 @@ func uploadIsoWithStatus() error {
 	return nil
 }
 
-func uploadIsoWithoutStatus() error {
+func uploadIsoWithoutProgress(isoFilePath string) error {
 	var err error
 
-	var isoFileInfo os.FileInfo
+	var isoSize int64
 
-	isoFileInfo, err = os.Stat(IsoFilePath)
-	if err != nil {
-		return fmt.Errorf("error stating iso: %w", err)
-	}
-
-	isoSize := isoFileInfo.Size()
-
-	var isoHashFile *os.File
-
-	isoHashFile, err = os.Open(IsoFilePath)
-	if err != nil {
-		return fmt.Errorf("error opening iso: %w", err)
-	}
-
-	hasher := sha512.New()
+	var isoChecksum string
 
 	fmt.Printf("Calculating iso checksum\n")
 
-	if _, err = io.Copy(hasher, isoHashFile); err != nil {
-		return fmt.Errorf("error copying iso data: %w", err)
-	}
-
-	isoChecksum := hex.EncodeToString(hasher.Sum(nil))
-
-	err = isoHashFile.Close()
+	isoSize, isoChecksum, err = checksumWithoutProgress(isoFilePath)
 	if err != nil {
-		return fmt.Errorf("error closing iso: %w", err)
+		return err
 	}
 
 	var isoFile *os.File
 
-	isoFile, err = os.Open(IsoFilePath)
+	isoFile, err = os.Open(isoFilePath)
 	if err != nil {
 		return fmt.Errorf("error opening iso: %w", err)
 	}
 
 	fmt.Printf("Uploading iso. file-path=%s, id=%s, size=%d, checksum=%s\n",
-		IsoFilePath,
+		isoFilePath,
 		IsoID,
 		isoSize,
 		isoChecksum,
 	)
+
 	fmt.Printf("Streaming: ")
 
 	var upload <-chan rpc.UploadStat
@@ -272,6 +250,7 @@ func uploadIsoWithoutStatus() error {
 	if err != nil {
 		return fmt.Errorf("error uploading iso: %w", err)
 	}
+
 UploadLoop:
 	for {
 		uploadStatEvent := <-upload
@@ -319,10 +298,10 @@ var IsoUploadCmd = &cobra.Command{
 		}
 
 		if !CheckReqStat {
-			return uploadIsoWithoutStatus()
+			return uploadIsoWithoutProgress(IsoFilePath)
 		}
 
-		return uploadIsoWithStatus()
+		return uploadIsoWithProgress(IsoFilePath)
 	},
 }
 

@@ -356,7 +356,7 @@ var DiskWipeCmd = &cobra.Command{
 func trackDiskUpload(diskProgressWriter progress.Writer, diskSize uint64, diskFile *os.File) {
 	var err error
 
-	diskChecksum, err := checksumWithProgress(diskProgressWriter, diskSize)
+	diskChecksum, err := checksumWithProgress(diskProgressWriter, diskSize, diskFile.Name())
 	if err != nil {
 		return
 	}
@@ -406,20 +406,20 @@ func trackDiskUpload(diskProgressWriter progress.Writer, diskSize uint64, diskFi
 	}
 }
 
-func checksumWithProgress(diskProgressWriter progress.Writer, diskSize uint64) (string, error) {
+func checksumWithProgress(diskProgressWriter progress.Writer, fileSize uint64, fileName string) (string, error) {
 	var err error
 
 	checksumTracker := progress.Tracker{
 		Message: "Calculating checksum",
-		Total:   cast.ToInt64(diskSize),
+		Total:   cast.ToInt64(fileSize),
 		Units:   progress.UnitsBytes,
 	}
 	diskProgressWriter.AppendTracker(&checksumTracker)
 	checksumTracker.Start()
 
-	var diskHasherFile *os.File
+	var hasherFile *os.File
 
-	diskHasherFile, err = os.Open(DiskFilePath)
+	hasherFile, err = os.Open(fileName)
 	if err != nil {
 		return "", fmt.Errorf("error opening file: %w", err)
 	}
@@ -433,7 +433,7 @@ func checksumWithProgress(diskProgressWriter progress.Writer, diskSize uint64) (
 	var checksumTotal int64
 
 	for !complete {
-		nBytes, err = io.CopyN(hasher, diskHasherFile, 1024*1024)
+		nBytes, err = io.CopyN(hasher, hasherFile, 1024*1024)
 		checksumTotal += nBytes
 		checksumTracker.SetValue(checksumTotal)
 
@@ -450,7 +450,7 @@ func checksumWithProgress(diskProgressWriter progress.Writer, diskSize uint64) (
 
 	diskChecksum := hex.EncodeToString(hasher.Sum(nil))
 
-	err = diskHasherFile.Close()
+	err = hasherFile.Close()
 	if err != nil {
 		return "", fmt.Errorf("error closing file: %w", err)
 	}
@@ -460,12 +460,12 @@ func checksumWithProgress(diskProgressWriter progress.Writer, diskSize uint64) (
 	return diskChecksum, nil
 }
 
-func uploadDiskWithStatus() error {
+func uploadDiskWithProgress(diskFilePath string) error {
 	var err error
 
 	var diskFileInfo os.FileInfo
 
-	diskFileInfo, err = os.Stat(DiskFilePath)
+	diskFileInfo, err = os.Stat(diskFilePath)
 	if err != nil {
 		return fmt.Errorf("failed stating disk: %w", err)
 	}
@@ -474,7 +474,7 @@ func uploadDiskWithStatus() error {
 
 	var diskFile *os.File
 
-	diskFile, err = os.Open(DiskFilePath)
+	diskFile, err = os.Open(diskFilePath)
 	if err != nil {
 		return fmt.Errorf("failed opening disk: %w", err)
 	}
@@ -512,12 +512,12 @@ func uploadDiskWithStatus() error {
 	return nil
 }
 
-func checksumWithoutProgress() (int64, string, error) {
+func checksumWithoutProgress(diskFilePath string) (int64, string, error) {
 	var err error
 
 	var diskFileInfo os.FileInfo
 
-	diskFileInfo, err = os.Stat(DiskFilePath)
+	diskFileInfo, err = os.Stat(diskFilePath)
 	if err != nil {
 		return 0, "", fmt.Errorf("failed stating disk: %w", err)
 	}
@@ -526,14 +526,12 @@ func checksumWithoutProgress() (int64, string, error) {
 
 	var diskHasherFile *os.File
 
-	diskHasherFile, err = os.Open(DiskFilePath)
+	diskHasherFile, err = os.Open(diskFilePath)
 	if err != nil {
 		return 0, "", fmt.Errorf("failed opening disk: %w", err)
 	}
 
 	hasher := sha512.New()
-
-	fmt.Printf("Calculating disk checksum\n")
 
 	if _, err = io.Copy(hasher, diskHasherFile); err != nil {
 		return 0, "", fmt.Errorf("failed copying data from disk: %w", err)
@@ -549,23 +547,29 @@ func checksumWithoutProgress() (int64, string, error) {
 	return diskSize, diskChecksum, nil
 }
 
-func uploadDiskWithoutStatus() error {
+func uploadDiskWithoutProgress(diskFilePath string) error {
 	var err error
 
-	diskSize, diskChecksum, err := checksumWithoutProgress()
+	var diskSize int64
+
+	var diskChecksum string
+
+	fmt.Printf("Calculating disk checksum\n")
+
+	diskSize, diskChecksum, err = checksumWithoutProgress(diskFilePath)
 	if err != nil {
 		return err
 	}
 
 	var diskFile *os.File
 
-	diskFile, err = os.Open(DiskFilePath)
+	diskFile, err = os.Open(diskFilePath)
 	if err != nil {
 		return fmt.Errorf("failed opening disk: %w", err)
 	}
 
 	fmt.Printf("Uploading disk. file-path=%s, id=%s, size=%d, checksum=%s\n",
-		DiskFilePath,
+		diskFilePath,
 		DiskID,
 		diskSize,
 		diskChecksum,
@@ -577,8 +581,9 @@ func uploadDiskWithoutStatus() error {
 
 	upload, err = rpc.DiskUpload(DiskID, diskChecksum, cast.ToUint64(diskSize), diskFile)
 	if err != nil {
-		return fmt.Errorf("failed uploading disk: %w", err)
+		return fmt.Errorf("error uploading disk: %w", err)
 	}
+
 UploadLoop:
 	for {
 		uploadStatEvent := <-upload
@@ -592,6 +597,7 @@ UploadLoop:
 			break UploadLoop
 		}
 	}
+
 	fmt.Printf("\n")
 	fmt.Printf("Disk Upload complete\n")
 
@@ -642,10 +648,10 @@ var DiskUploadCmd = &cobra.Command{
 		}
 
 		if !CheckReqStat {
-			return uploadDiskWithoutStatus()
+			return uploadDiskWithoutProgress(DiskFilePath)
 		}
 
-		return uploadDiskWithStatus()
+		return uploadDiskWithProgress(DiskFilePath)
 	},
 }
 
