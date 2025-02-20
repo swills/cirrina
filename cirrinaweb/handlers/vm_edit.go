@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/a-h/templ"
 
@@ -92,7 +93,7 @@ func (v VMEditBasicHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 		}
 
 		newCpus := request.PostForm["cpus"]
-		if newCpus != nil {
+		if len(newCpus) > 0 {
 			var newCpusNum uint64
 
 			newCpusNum, err = strconv.ParseUint(newCpus[0], 10, 32)
@@ -112,7 +113,7 @@ func (v VMEditBasicHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 		}
 
 		newMem := request.PostForm["mem-number"]
-		if newMem != nil {
+		if len(newMem) > 0 {
 			var newMemNum uint64
 
 			newMemNum, err = strconv.ParseUint(newMem[0], 10, 32)
@@ -132,7 +133,7 @@ func (v VMEditBasicHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 		}
 
 		newDesc := request.PostForm["desc"]
-		if newDesc != nil {
+		if len(newDesc) > 0 {
 			if oldVMConfig.Description != newDesc[0] {
 				newConfig.Description = &newDesc[0]
 				haveChanges = true
@@ -409,7 +410,7 @@ func (v VMEditSerialHandler) ServeHTTP(writer http.ResponseWriter, request *http
 		}
 
 		newCom1Dev := request.PostForm["com1dev"]
-		if newCom1Dev != nil {
+		if len(newCom1Dev) > 0 {
 			if oldVMConfig.Com1Dev != newCom1Dev[0] {
 				newConfig.Com1Dev = &newCom1Dev[0]
 				haveChanges = true
@@ -432,7 +433,7 @@ func (v VMEditSerialHandler) ServeHTTP(writer http.ResponseWriter, request *http
 
 		newCom1Speed := request.PostForm["com1speed"]
 
-		if newCom1Speed != nil {
+		if len(newCom1Speed) > 0 {
 			var newCom1SpeedNum uint64
 
 			newCom1SpeedNum, err = strconv.ParseUint(newCom1Speed[0], 10, 32)
@@ -469,7 +470,7 @@ func (v VMEditSerialHandler) ServeHTTP(writer http.ResponseWriter, request *http
 		}
 
 		newCom2Dev := request.PostForm["com2dev"]
-		if newCom2Dev != nil {
+		if len(newCom2Dev) > 0 {
 			if oldVMConfig.Com2Dev != newCom2Dev[0] {
 				newConfig.Com2Dev = &newCom2Dev[0]
 				haveChanges = true
@@ -492,7 +493,7 @@ func (v VMEditSerialHandler) ServeHTTP(writer http.ResponseWriter, request *http
 
 		newCom2Speed := request.PostForm["com2speed"]
 
-		if newCom2Speed != nil {
+		if len(newCom2Speed) > 0 {
 			var newCom2SpeedNum uint64
 
 			newCom2SpeedNum, err = strconv.ParseUint(newCom2Speed[0], 10, 32)
@@ -529,7 +530,7 @@ func (v VMEditSerialHandler) ServeHTTP(writer http.ResponseWriter, request *http
 		}
 
 		newCom3Dev := request.PostForm["com3dev"]
-		if newCom3Dev != nil {
+		if len(newCom3Dev) > 0 {
 			if oldVMConfig.Com3Dev != newCom3Dev[0] {
 				newConfig.Com3Dev = &newCom3Dev[0]
 				haveChanges = true
@@ -552,7 +553,7 @@ func (v VMEditSerialHandler) ServeHTTP(writer http.ResponseWriter, request *http
 
 		newCom3Speed := request.PostForm["com3speed"]
 
-		if newCom3Speed != nil {
+		if len(newCom3Speed) > 0 {
 			var newCom3SpeedNum uint64
 
 			newCom3SpeedNum, err = strconv.ParseUint(newCom3Speed[0], 10, 32)
@@ -589,7 +590,7 @@ func (v VMEditSerialHandler) ServeHTTP(writer http.ResponseWriter, request *http
 		}
 
 		newCom4Dev := request.PostForm["com4dev"]
-		if newCom4Dev != nil {
+		if len(newCom4Dev) > 0 {
 			if oldVMConfig.Com4Dev != newCom4Dev[0] {
 				newConfig.Com4Dev = &newCom4Dev[0]
 				haveChanges = true
@@ -612,7 +613,7 @@ func (v VMEditSerialHandler) ServeHTTP(writer http.ResponseWriter, request *http
 
 		newCom4Speed := request.PostForm["com4speed"]
 
-		if newCom4Speed != nil {
+		if len(newCom4Speed) > 0 {
 			var newCom4SpeedNum uint64
 
 			newCom4SpeedNum, err = strconv.ParseUint(newCom4Speed[0], 10, 32)
@@ -656,7 +657,194 @@ func NewVMEditDisplayHandler() VMEditDisplayHandler {
 	return VMEditDisplayHandler{}
 }
 
-func (v VMEditDisplayHandler) ServeHTTP(_ http.ResponseWriter, _ *http.Request) {
+//nolint:gocognit,cyclop,funlen
+func (v VMEditDisplayHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	var err error
+
+	switch request.Method {
+	case http.MethodGet:
+		nameOrID := request.PathValue("nameOrID")
+
+		var aVM components.VM
+
+		aVM, err = GetVM(nameOrID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		var VMs []components.VM
+
+		VMs, err = GetVMs()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		templ.Handler(components.VMEditDisplay(VMs, aVM)).ServeHTTP(writer, request)
+
+		return
+	case http.MethodPost:
+		err = request.ParseForm()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		nameOrID := request.PathValue("nameOrID")
+
+		haveChanges := false
+
+		var aVM components.VM
+
+		aVM, err = GetVM(nameOrID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		var newConfig cirrina.VMConfig
+		newConfig.Id = aVM.ID
+
+		rpc.ResetConnTimeout()
+
+		var oldVMConfig rpc.VMConfig
+
+		oldVMConfig, err = rpc.GetVMConfig(aVM.ID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		displayEnabled := request.PostForm["displayenabled"]
+
+		var displayEnabledB bool
+
+		if len(displayEnabled) > 0 {
+			displayEnabledB = true
+		} else {
+			displayEnabledB = false
+		}
+
+		if oldVMConfig.Screen != displayEnabledB {
+			newConfig.Screen = &displayEnabledB
+			haveChanges = true
+		}
+
+		vncPortNew := request.PostForm["vncport"]
+
+		if len(vncPortNew) > 0 {
+			vncPortNewStr := strings.ToUpper(vncPortNew[0])
+			if vncPortNewStr == "AUTO" {
+				newConfig.Vncport = &vncPortNewStr
+				haveChanges = true
+			}
+
+			var newPortNum uint64
+
+			newPortNum, err = strconv.ParseUint(vncPortNewStr, 10, 32)
+			if err == nil && newPortNum < 65536 {
+				newConfig.Vncport = &vncPortNewStr
+				haveChanges = true
+			}
+		}
+
+		screenWidthNew := request.PostForm["screenwidth"]
+
+		if len(screenWidthNew) > 0 {
+			var newWidthNum uint64
+
+			newWidthNum, err = strconv.ParseUint(screenWidthNew[0], 10, 32)
+			if err == nil && newWidthNum <= 3840 {
+				n := uint32(newWidthNum)
+				newConfig.ScreenWidth = &n
+				haveChanges = true
+			}
+		}
+
+		screenHeightNew := request.PostForm["screenheight"]
+
+		if len(screenHeightNew) > 0 {
+			var newHeightNum uint64
+
+			newHeightNum, err = strconv.ParseUint(screenHeightNew[0], 10, 32)
+			if err == nil && newHeightNum <= 3840 {
+				n := uint32(newHeightNum)
+				newConfig.ScreenHeight = &n
+				haveChanges = true
+			}
+		}
+
+		vncwaitEnabled := request.PostForm["vncwait"]
+
+		var vncwaitEnabledB bool
+
+		if vncwaitEnabled != nil {
+			vncwaitEnabledB = true
+		} else {
+			vncwaitEnabledB = false
+		}
+
+		if oldVMConfig.Vncwait != vncwaitEnabledB {
+			newConfig.Vncwait = &vncwaitEnabledB
+			haveChanges = true
+		}
+
+		vncTabletEnabled := request.PostForm["vnctablet"]
+
+		var vncTabletEnabledB bool
+
+		if vncTabletEnabled != nil {
+			vncTabletEnabledB = true
+		} else {
+			vncTabletEnabledB = false
+		}
+
+		if oldVMConfig.Tablet != vncTabletEnabledB {
+			newConfig.Tablet = &vncTabletEnabledB
+			haveChanges = true
+		}
+
+		newKeyboardLayout := request.PostForm["keyboardlayout"]
+
+		if len(newKeyboardLayout) > 0 {
+			if oldVMConfig.Keyboard != newKeyboardLayout[0] {
+				newConfig.Keyboard = &newKeyboardLayout[0]
+				haveChanges = true
+			}
+		}
+
+		if haveChanges {
+			rpc.ResetConnTimeout()
+
+			err = rpc.UpdateVMConfig(&newConfig)
+			if err != nil {
+				util.LogError(err, request.RemoteAddr)
+
+				serveErrorVM(writer, request, err)
+
+				return
+			}
+		}
+
+		http.Redirect(writer, request, "/vm/"+aVM.Name, http.StatusSeeOther)
+	default:
+		http.Redirect(writer, request, "/vm/", http.StatusSeeOther)
+	}
 }
 
 type VMEditAudioHandler struct{}

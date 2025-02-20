@@ -470,3 +470,501 @@ templ vmEditSerialTemplate(vm VM) {
         </div>
     </div>
 }
+
+templ VMEditDisplay(vms []VM, vm VM) {
+    @layoutVMs("VM - " + vm.Name, vms, "") {
+        @vmEditDisplayTemplate(vm)
+    }
+}
+
+templ vmEditDisplayTemplate(vm VM) {
+    <div class="h4 mt-3 mt-md-0">/ <a class="text-decoration-none" href="/home">Cirrina</a> / <a class="text-decoration-none" href="/vm">VM</a> / <a class="text-decoration-none" href={ templ.URL("/vm/" + vm.Name) }>{ vm.Name }</a> / Display</div>
+
+    <div data-testid="vmEditTemplate" class="row m-0 mt-3 mt-md-0">
+        <div data-testid="vmEditTemplateVM" class="col-12 col-md border p-3">
+            <form action={ templ.URL("/vm/" + vm.Name + "/editDisplay")} method="post">
+                <div class="row">
+                  <div class="form-group form-group-sm mb-3">
+                    <label for="display-enable-check">Display Enabled: </label>
+                    if vm.Display.Enabled {
+                    <input class="form-check-input" type="checkbox" id="display-enable-check" name="displayenabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="display-enable-check" name="displayenabled">
+                    }
+                    </div>
+                </div>
+                <div class="row">
+                  <div class="form-group form-group-sm mb-3">
+                    <label for="vncport-input">VNC Port: </label>
+                    <input class="form-text" type="text" id="vncport-input" name="vncport" value={ vm.Display.VNCPort }>
+                    <label for="screen-width">Width: </label>
+                    <input class="form-text" type="number" id="screen-width" name="screenwidth" value={ strconv.FormatUint(uint64(vm.Display.Width), 10) } min="640" max="3840">
+                    <label for="screen-height">Height: </label>
+                    <input class="form-text" type="number" id="screen-height" name="screenheight" value={ strconv.FormatUint(uint64(vm.Display.Height), 10) } min="480" max="2160">
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="form-group form-group-sm mb-3">
+                    <label for="vncwait-input">Wait for VNC Connection to boot: </label>
+                    if vm.Display.VNCWait {
+                    <input class="form-check-input" type="checkbox" id="vncwait-input" name="vncwait" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="vncwait-input" name="vncwait">
+                    }
+                    <label for="vnctablet-input">Tablet Mode: </label>
+                    if vm.Display.TabletMode {
+                    <input class="form-check-input" type="checkbox" id="vnctablet-input" name="vnctablet" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="vnctablet-input" name="vnctablet">
+                    }
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="form-group form-group-sm mb-3">
+                  <label for="keyboard-layout-input">Keyboard Layout:</label>
+                  <select id="keyboard-layout-input" name="keyboardlayout">
+                      if vm.Display.KeyboardLayout == "am" {
+                      <option value="am" selected="selected">am</option>
+                      } else {
+                      <option value="am">am</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "be" {
+                      <option value="be" selected="selected">be</option>
+                      } else {
+                      <option value="be">be</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "be_acc" {
+                      <option value="be_acc" selected="selected">be_acc</option>
+                      } else {
+                      <option value="be_acc">be_acc</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "bg_bds" {
+                      <option value="bg_bds" selected="selected">bg_bds</option>
+                      } else {
+                      <option value="bg_bds">bg_bds</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "bg_phonetic" {
+                      <option value="bg_phonetic" selected="selected">bg_phonetic</option>
+                      } else {
+                      <option value="bg_phonetic">bg_phonetic</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "br" {
+                      <option value="br" selected="selected">br</option>
+                      } else {
+                      <option value="br">br</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "br_noacc" {
+                      <option value="br_noacc" selected="selected">br_noacc</option>
+                      } else {
+                      <option value="br_noacc">br_noacc</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "centraleuropean" {
+                      <option value="centraleuropean" selected="selected">centraleuropean</option>
+                      } else {
+                      <option value="centraleuropean">centraleuropean</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "ch" {
+                      <option value="ch" selected="selected">ch</option>
+                      } else {
+                      <option value="ch">ch</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "ch_acc" {
+                      <option value="ch_acc" selected="selected">ch_acc</option>
+                      } else {
+                      <option value="ch_acc">ch_acc</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "ch_macbook_acc" {
+                      <option value="ch_macbook_acc" selected="selected">ch_macbook_acc</option>
+                      } else {
+                      <option value="ch_macbook_acc">ch_macbook_acc</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "ch-fr" {
+                      <option value="ch-fr" selected="selected">ch-fr</option>
+                      } else {
+                      <option value="ch-fr">ch-fr</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "ch-fr_acc" {
+                      <option value="ch-fr_acc" selected="selected">ch-fr_acc</option>
+                      } else {
+                      <option value="ch-fr_acc">ch-fr_acc</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "cz" {
+                      <option value="cz" selected="selected">cz</option>
+                      } else {
+                      <option value="cz">cz</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "de" {
+                      <option value="de" selected="selected">de</option>
+                      } else {
+                      <option value="de">de</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "de_acc" {
+                      <option value="de_acc" selected="selected">de_acc</option>
+                      } else {
+                      <option value="de_acc">de_acc</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "de_noacc" {
+                      <option value="de_noacc" selected="selected">de_noacc</option>
+                      } else {
+                      <option value="de_noacc">de_noacc</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "default" {
+                      <option value="default" selected="selected">default</option>
+                      } else {
+                      <option value="default">default</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "dk" {
+                      <option value="dk" selected="selected">dk</option>
+                      } else {
+                      <option value="dk">dk</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "dk_macbook" {
+                      <option value="dk_macbook" selected="selected">dk_macbook</option>
+                      } else {
+                      <option value="dk_macbook">dk_macbook</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "ee" {
+                      <option value="ee" selected="selected">ee</option>
+                      } else {
+                      <option value="ee">ee</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "es" {
+                      <option value="es" selected="selected">es</option>
+                      } else {
+                      <option value="es">es</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "es_acc" {
+                      <option value="es_acc" selected="selected">es_acc</option>
+                      } else {
+                      <option value="es_acc">es_acc</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "es_dvorak" {
+                      <option value="es_dvorak" selected="selected">es_dvorak</option>
+                      } else {
+                      <option value="es_dvorak">es_dvorak</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "fi" {
+                      <option value="fi" selected="selected">fi</option>
+                      } else {
+                      <option value="fi">fi</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "fr" {
+                      <option value="fr" selected="selected">fr</option>
+                      } else {
+                      <option value="fr">fr</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "fr_acc" {
+                      <option value="fr_acc" selected="selected">fr_acc</option>
+                      } else {
+                      <option value="fr_acc">fr_acc</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "fr_dvorak" {
+                      <option value="fr_dvorak" selected="selected">fr_dvorak</option>
+                      } else {
+                      <option value="fr_dvorak">fr_dvorak</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "fr_dvorak_acc" {
+                      <option value="fr_dvorak_acc" selected="selected">fr_dvorak_acc</option>
+                      } else {
+                      <option value="fr_dvorak_acc">fr_dvorak_acc</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "fr_macbook" {
+                      <option value="fr_macbook" selected="selected">fr_macbook</option>
+                      } else {
+                      <option value="fr_macbook">fr_macbook</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "gr" {
+                      <option value="gr" selected="selected">gr</option>
+                      } else {
+                      <option value="gr">gr</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "gr_101_acc" {
+                      <option value="gr_101_acc" selected="selected">gr_101_acc</option>
+                      } else {
+                      <option value="gr_101_acc">gr_101_acc</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "gr_elot_acc" {
+                      <option value="gr_elot_acc" selected="selected">gr_elot_acc</option>
+                      } else {
+                      <option value="gr_elot_acc">gr_elot_acc</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "hr" {
+                      <option value="hr" selected="selected">hr</option>
+                      } else {
+                      <option value="hr">hr</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "hu_101" {
+                      <option value="hu_101" selected="selected">hu_101</option>
+                      } else {
+                      <option value="hu_101">hu_101</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "hu_102" {
+                      <option value="hu_102" selected="selected">hu_102</option>
+                      } else {
+                      <option value="hu_102">hu_102</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "is" {
+                      <option value="is" selected="selected">is</option>
+                      } else {
+                      <option value="is">is</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "is_acc" {
+                      <option value="is_acc" selected="selected">is_acc</option>
+                      } else {
+                      <option value="is_acc">is_acc</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "it" {
+                      <option value="it" selected="selected">it</option>
+                      } else {
+                      <option value="it">it</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "jp" {
+                      <option value="jp" selected="selected">jp</option>
+                      } else {
+                      <option value="jp">jp</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "jp_capsctrl" {
+                      <option value="jp_capsctrl" selected="selected">jp_capsctrl</option>
+                      } else {
+                      <option value="jp_capsctrl">jp_capsctrl</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "kz_io" {
+                      <option value="kz_io" selected="selected">kz_io</option>
+                      } else {
+                      <option value="kz_io">kz_io</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "kz_kst" {
+                      <option value="kz_kst" selected="selected">kz_kst</option>
+                      } else {
+                      <option value="kz_kst">kz_kst</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "latinamerican" {
+                      <option value="latinamerican" selected="selected">latinamerican</option>
+                      } else {
+                      <option value="latinamerican">latinamerican</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "latinamerican_acc" {
+                      <option value="latinamerican_acc" selected="selected">latinamerican_acc</option>
+                      } else {
+                      <option value="latinamerican_acc">latinamerican_acc</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "lt" {
+                      <option value="lt" selected="selected">lt</option>
+                      } else {
+                      <option value="lt">lt</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "nl" {
+                      <option value="nl" selected="selected">nl</option>
+                      } else {
+                      <option value="nl">nl</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "no" {
+                      <option value="no" selected="selected">no</option>
+                      } else {
+                      <option value="no">no</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "no_dvorak" {
+                      <option value="no_dvorak" selected="selected">no_dvorak</option>
+                      } else {
+                      <option value="no_dvorak">no_dvorak</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "nordic_asus-eee" {
+                      <option value="nordic_asus-eee" selected="selected">nordic_asus-eee</option>
+                      } else {
+                      <option value="nordic_asus-eee">nordic_asus-eee</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "pl_dvorak" {
+                      <option value="pl_dvorak" selected="selected">pl_dvorak</option>
+                      } else {
+                      <option value="pl_dvorak">pl_dvorak</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "pt" {
+                      <option value="pt" selected="selected">pt</option>
+                      } else {
+                      <option value="pt">pt</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "pt_acc" {
+                      <option value="pt_acc" selected="selected">pt_acc</option>
+                      } else {
+                      <option value="pt_acc">pt_acc</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "ru" {
+                      <option value="ru" selected="selected">ru</option>
+                      } else {
+                      <option value="ru">ru</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "ru_shift" {
+                      <option value="ru_shift" selected="selected">ru_shift</option>
+                      } else {
+                      <option value="ru_shift">ru_shift</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "ru_win" {
+                      <option value="ru_win" selected="selected">ru_win</option>
+                      } else {
+                      <option value="ru_win">ru_win</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "se" {
+                      <option value="se" selected="selected">se</option>
+                      } else {
+                      <option value="se">se</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "si" {
+                      <option value="si" selected="selected">si</option>
+                      } else {
+                      <option value="si">si</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "tr" {
+                      <option value="tr" selected="selected">tr</option>
+                      } else {
+                      <option value="tr">tr</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "tr_f" {
+                      <option value="tr_f" selected="selected">tr_f</option>
+                      } else {
+                      <option value="tr_f">tr_f</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "ua" {
+                      <option value="ua" selected="selected">ua</option>
+                      } else {
+                      <option value="ua">ua</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "ua_shift_alt" {
+                      <option value="ua_shift_alt" selected="selected">ua_shift_alt</option>
+                      } else {
+                      <option value="ua_shift_alt">ua_shift_alt</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "uk" {
+                      <option value="uk" selected="selected">uk</option>
+                      } else {
+                      <option value="uk">uk</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "uk_capsctrl" {
+                      <option value="uk_capsctrl" selected="selected">uk_capsctrl</option>
+                      } else {
+                      <option value="uk_capsctrl">uk_capsctrl</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "uk_dvorak" {
+                      <option value="uk_dvorak" selected="selected">uk_dvorak</option>
+                      } else {
+                      <option value="uk_dvorak">uk_dvorak</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "uk_macbook" {
+                      <option value="uk_macbook" selected="selected">uk_macbook</option>
+                      } else {
+                      <option value="uk_macbook">uk_macbook</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "us_dvorak" {
+                      <option value="us_dvorak" selected="selected">us_dvorak</option>
+                      } else {
+                      <option value="us_dvorak">us_dvorak</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "us_dvorakl" {
+                      <option value="us_dvorakl" selected="selected">us_dvorakl</option>
+                      } else {
+                      <option value="us_dvorakl">us_dvorakl</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "us_dvorakp" {
+                      <option value="us_dvorakp" selected="selected">us_dvorakp</option>
+                      } else {
+                      <option value="us_dvorakp">us_dvorakp</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "us_dvorakr" {
+                      <option value="us_dvorakr" selected="selected">us_dvorakr</option>
+                      } else {
+                      <option value="us_dvorakr">us_dvorakr</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "us_dvorakx" {
+                      <option value="us_dvorakx" selected="selected">us_dvorakx</option>
+                      } else {
+                      <option value="us_dvorakx">us_dvorakx</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "us_emacs" {
+                      <option value="us_emacs" selected="selected">us_emacs</option>
+                      } else {
+                      <option value="us_emacs">us_emacs</option>
+                      }
+
+                      if vm.Display.KeyboardLayout == "us_unix" {
+                      <option value="us_unix" selected="selected">us_unix</option>
+                      } else {
+                      <option value="us_unix">us_unix</option>
+                      }
+                  </select>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
+}

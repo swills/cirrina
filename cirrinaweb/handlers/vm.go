@@ -325,6 +325,7 @@ func GetVMNICs(vmID string) ([]components.NIC, error) {
 	return returnNICs, nil
 }
 
+//nolint:funlen
 func GetVM(nameOrID string) (components.VM, error) {
 	var returnVM components.VM
 
@@ -397,6 +398,14 @@ func GetVM(nameOrID string) (components.VM, error) {
 		Log:     vmConfig.Com4Log,
 		Speed:   vmConfig.Com4Speed,
 	}
+
+	returnVM.Display.Enabled = vmConfig.Screen
+	returnVM.Display.Width = vmConfig.ScreenWidth
+	returnVM.Display.Height = vmConfig.ScreenHeight
+	returnVM.Display.TabletMode = vmConfig.Tablet
+	returnVM.Display.VNCPort = vmConfig.Vncport
+	returnVM.Display.VNCWait = vmConfig.Vncwait
+	returnVM.Display.KeyboardLayout = vmConfig.Keyboard
 
 	var vmState string
 
