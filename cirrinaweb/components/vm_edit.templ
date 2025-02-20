@@ -968,3 +968,39 @@ templ vmEditDisplayTemplate(vm VM) {
         </div>
     </div>
 }
+
+templ VMEditAudio(vms []VM, vm VM) {
+    @layoutVMs("VM - " + vm.Name, vms, "") {
+        @vmEditAudioTemplate(vm)
+    }
+}
+
+templ vmEditAudioTemplate(vm VM) {
+    <div class="h4 mt-3 mt-md-0">/ <a class="text-decoration-none" href="/home">Cirrina</a> / <a class="text-decoration-none" href="/vm">VM</a> / <a class="text-decoration-none" href={ templ.URL("/vm/" + vm.Name) }>{ vm.Name }</a> / Audio</div>
+
+    <div data-testid="vmEditTemplate" class="row m-0 mt-3 mt-md-0">
+        <div data-testid="vmEditTemplateVM" class="col-12 col-md border p-3">
+            <form action={ templ.URL("/vm/" + vm.Name + "/editAudio")} method="post">
+                <div class="row">
+                  <div class="form-group form-group-sm mb-3">
+                    <label for="audio-enable-check">Audio Enabled: </label>
+                    if vm.Audio.Enabled {
+                    <input class="form-check-input" type="checkbox" id="audio-enable-check" name="audioenabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="audio-enable-check" name="audioenabled">
+                    }
+                    </div>
+                </div>
+                <div class="row">
+                  <div class="form-group form-group-sm mb-3">
+                    <label for="audio-input">Audio Input: </label>
+                    <input class="form-text" type="text" id="audio-input" name="audioinput" value={ vm.Audio.Input }>
+                    <label for="audio-input">Audio Output: </label>
+                    <input class="form-text" type="text" id="audio-input" name="audiooutput" value={ vm.Audio.Output }>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
+}

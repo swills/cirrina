@@ -24,6 +24,7 @@ type VM struct {
 	COM3        COM
 	COM4        COM
 	Display     Display
+	Audio       Audio
 }
 
 func (v VM) Start() error {

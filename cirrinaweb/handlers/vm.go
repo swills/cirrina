@@ -406,6 +406,9 @@ func GetVM(nameOrID string) (components.VM, error) {
 	returnVM.Display.VNCPort = vmConfig.Vncport
 	returnVM.Display.VNCWait = vmConfig.Vncwait
 	returnVM.Display.KeyboardLayout = vmConfig.Keyboard
+	returnVM.Audio.Enabled = vmConfig.Sound
+	returnVM.Audio.Input = vmConfig.SoundIn
+	returnVM.Audio.Output = vmConfig.SoundOut
 
 	var vmState string
 

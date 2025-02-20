@@ -853,7 +853,125 @@ func NewVMEditAudioHandler() VMEditAudioHandler {
 	return VMEditAudioHandler{}
 }
 
-func (v VMEditAudioHandler) ServeHTTP(_ http.ResponseWriter, _ *http.Request) {
+//nolint:funlen
+func (v VMEditAudioHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	var err error
+
+	switch request.Method {
+	case http.MethodGet:
+		nameOrID := request.PathValue("nameOrID")
+
+		var aVM components.VM
+
+		aVM, err = GetVM(nameOrID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		var VMs []components.VM
+
+		VMs, err = GetVMs()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		templ.Handler(components.VMEditAudio(VMs, aVM)).ServeHTTP(writer, request)
+
+		return
+	case http.MethodPost:
+		err = request.ParseForm()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		nameOrID := request.PathValue("nameOrID")
+
+		haveChanges := false
+
+		var aVM components.VM
+
+		aVM, err = GetVM(nameOrID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		var newConfig cirrina.VMConfig
+		newConfig.Id = aVM.ID
+
+		rpc.ResetConnTimeout()
+
+		var oldVMConfig rpc.VMConfig
+
+		oldVMConfig, err = rpc.GetVMConfig(aVM.ID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		audioEnabled := request.PostForm["audioenabled"]
+
+		var audioEnabledB bool
+
+		if len(audioEnabled) > 0 {
+			audioEnabledB = true
+		} else {
+			audioEnabledB = false
+		}
+
+		if oldVMConfig.Sound != audioEnabledB {
+			newConfig.Sound = &audioEnabledB
+			haveChanges = true
+		}
+
+		audioInputNew := request.PostForm["audioinput"]
+
+		if len(audioInputNew) > 0 {
+			newConfig.SoundIn = &audioInputNew[0]
+			haveChanges = true
+		}
+
+		audioOutputNew := request.PostForm["audiooutput"]
+
+		if len(audioOutputNew) > 0 {
+			newConfig.SoundOut = &audioOutputNew[0]
+			haveChanges = true
+		}
+
+		if haveChanges {
+			rpc.ResetConnTimeout()
+
+			err = rpc.UpdateVMConfig(&newConfig)
+			if err != nil {
+				util.LogError(err, request.RemoteAddr)
+
+				serveErrorVM(writer, request, err)
+
+				return
+			}
+		}
+
+		http.Redirect(writer, request, "/vm/"+aVM.Name, http.StatusSeeOther)
+	default:
+		http.Redirect(writer, request, "/vm/", http.StatusSeeOther)
+	}
 }
 
 type VMEditStartHandler struct{}
