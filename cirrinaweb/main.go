@@ -144,7 +144,8 @@ func main() {
 	setupMux(mux, "GET /", handlers.NewHomeHandler(), mdlw)
 	setupMux(mux, "GET /home", handlers.NewHomeHandler(), mdlw)
 
-	setupMux(mux, "GET /vms", handlers.NewVMsHandler(), mdlw)
+	setupMux(mux, "GET /vm", handlers.NewVMHandler(), mdlw)
+	setupMux(mux, "POST /vm", handlers.NewVMHandler(), mdlw)
 
 	setupMux(mux, "GET /vm/{nameOrID}", handlers.NewVMHandler(), mdlw)
 	setupMux(mux, "DELETE /vm/{nameOrID}", handlers.NewVMHandler(), mdlw)

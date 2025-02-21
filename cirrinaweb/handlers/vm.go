@@ -60,10 +60,15 @@ func DeleteVM(nameOrID string) error {
 	return nil
 }
 
+//nolint:gocognit,nestif,cyclop,funlen
 func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	nameOrID := request.PathValue("nameOrID")
-	if request.Method == http.MethodDelete {
-		err := DeleteVM(nameOrID)
+	var err error
+
+	switch request.Method {
+	case http.MethodDelete:
+		nameOrID := request.PathValue("nameOrID")
+
+		err = DeleteVM(nameOrID)
 		if err != nil {
 			writer.Header().Set("HX-Redirect", "/vm/"+nameOrID)
 			writer.WriteHeader(http.StatusInternalServerError)
@@ -75,57 +80,126 @@ func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 		writer.WriteHeader(http.StatusOK)
 
 		return
-	}
+	case http.MethodPost:
+		err = request.ParseForm()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+			serveErrorVM(writer, request, err)
 
-	aVM, err := v.GetVM(nameOrID)
-	if err != nil {
-		util.LogError(err, request.RemoteAddr)
+			return
+		}
 
-		serveErrorVM(writer, request, err)
+		VMName := request.PostForm["name"]
+
+		if len(VMName) != 1 {
+			http.Redirect(writer, request, "/vm", http.StatusSeeOther)
+		}
+
+		var newCPUs uint32 = 1
+
+		vmCPUs := request.PostForm["cpus"]
+
+		if len(vmCPUs) > 0 {
+			var newCPUsTemp uint64
+
+			newCPUsTemp, err = strconv.ParseUint(vmCPUs[0], 10, 32)
+			if err == nil {
+				newCPUs = uint32(newCPUsTemp)
+			}
+		}
+
+		var newMem uint32 = 256
+
+		vmMem := request.PostForm["mem-number"]
+
+		if len(vmMem) > 0 {
+			var newMemTemp uint64
+
+			newMemTemp, err = strconv.ParseUint(vmMem[0], 10, 32)
+			if err == nil {
+				newMem = uint32(newMemTemp)
+			}
+		}
+
+		vmDesc := request.PostForm["desc"]
+
+		var newDesc string
+
+		if len(vmDesc) > 0 {
+			newDesc = vmDesc[0]
+		}
+
+		_, err = rpc.AddVM(VMName[0], &newDesc, &newCPUs, &newMem)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		http.Redirect(writer, request, "/vm/"+VMName[0], http.StatusSeeOther)
 
 		return
+	default:
+		nameOrID := request.PathValue("nameOrID")
+
+		VMs, err := v.GetVMs()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		if nameOrID == "" {
+			templ.Handler(components.VmNew(VMs)).ServeHTTP(writer, request)
+		} else {
+			aVM, err := v.GetVM(nameOrID)
+			if err != nil {
+				util.LogError(err, request.RemoteAddr)
+
+				serveErrorVM(writer, request, err)
+
+				return
+			}
+
+			aVM.Disks, err = v.GetVMDisks(aVM.ID)
+			if err != nil {
+				util.LogError(err, request.RemoteAddr)
+
+				serveErrorVM(writer, request, err)
+
+				return
+			}
+
+			aVM.ISOs, err = v.GetVMISOs(aVM.ID)
+			if err != nil {
+				util.LogError(err, request.RemoteAddr)
+
+				serveErrorVM(writer, request, err)
+
+				return
+			}
+
+			aVM.NICs, err = v.GetVMNICs(aVM.ID)
+			if err != nil {
+				util.LogError(err, request.RemoteAddr)
+
+				serveErrorVM(writer, request, err)
+
+				return
+			}
+
+			listenHost := util.GetListenHost()
+			websockifyPort := util.GetWebsockifyPort()
+
+			templ.Handler(components.Vm(VMs, aVM, listenHost, websockifyPort)).ServeHTTP(writer, request)
+
+			return
+		}
 	}
-
-	VMs, err := v.GetVMs()
-	if err != nil {
-		util.LogError(err, request.RemoteAddr)
-
-		serveErrorVM(writer, request, err)
-
-		return
-	}
-
-	aVM.Disks, err = v.GetVMDisks(aVM.ID)
-	if err != nil {
-		util.LogError(err, request.RemoteAddr)
-
-		serveErrorVM(writer, request, err)
-
-		return
-	}
-
-	aVM.ISOs, err = v.GetVMISOs(aVM.ID)
-	if err != nil {
-		util.LogError(err, request.RemoteAddr)
-
-		serveErrorVM(writer, request, err)
-
-		return
-	}
-
-	aVM.NICs, err = v.GetVMNICs(aVM.ID)
-	if err != nil {
-		util.LogError(err, request.RemoteAddr)
-
-		serveErrorVM(writer, request, err)
-
-		return
-	}
-
-	listenHost := util.GetListenHost()
-	websockifyPort := util.GetWebsockifyPort()
-
-	templ.Handler(components.Vm(VMs, aVM, listenHost, websockifyPort)).ServeHTTP(writer, request)
 }
 
 type VMStartPostHandler struct {

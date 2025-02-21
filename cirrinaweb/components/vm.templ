@@ -3,6 +3,36 @@ package components
 import "strconv"
 import "fmt"
 
+templ VmNew(vms []VM) {
+    @layoutVMs("VM - New ", vms, "") {
+        @vmNewTemplate()
+    }
+}
+
+templ vmNewTemplate() {
+    <div class="h4 mt-3 mt-md-0">/ <a class="text-decoration-none" href="/home">Cirrina</a> / <a class="text-decoration-none" href="/vm">VM</a> / New</div>
+
+    <div data-testid="vmNewTemplate" class="row m-0 mt-3 mt-md-0">
+        <div data-testid="vmNewTemplateVM" class="col-12 col-md border p-3">
+            <form action={ templ.URL("/vm")} method="post">
+                <label for="name-input">Name:</label>
+                <input type="text" id="name-input" name="name">
+                <br>
+                <label for="cpu-select">CPU Count:</label>
+                <input type="number" id="cpu-select" name="cpus" min="1" value="1">
+                <br>
+                <label for="mem-number-input">Memory (MebiBytes):</label>
+                <input type="number" name="mem-number" id="mem-number-input" value="256">
+                <br>
+                <label for="desc-input">Description:</label>
+                <input class="form-control form-control-sm" type="text" name="desc" id="desc-input">
+                <br>
+                <button type="submit" class="btn btn-sm btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
+}
+
 templ Vm(vms []VM, vm VM, listenHost string, websockifyPort uint16) {
     @layoutVMs("VM - " + vm.Name, vms, "/vmdata/" + vm.Name) {
         @vmTemplate(vm, listenHost, websockifyPort)
