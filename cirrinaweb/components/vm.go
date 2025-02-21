@@ -15,25 +15,42 @@ type RuntimeSettings struct {
 	ShutdownTimeout  uint32
 }
 
+type AdvancedSettings struct {
+	StoreUEFI              bool
+	Wire                   bool
+	ExitOnPause            bool
+	ClockUTC               bool
+	HostBridge             bool
+	IgnoreUnimplementedMSR bool
+	DestroyOnPowerOff      bool
+	GenerateACPITables     bool
+	UseHLT                 bool
+	StartDebugServer       bool
+	WaitDebugConn          bool
+	DebugPort              string
+	ExtraArgs              string
+}
+
 type VM struct {
-	ID              string
-	Name            string
-	NameOrID        string
-	CPUs            uint32
-	Memory          uint32
-	Description     string
-	Running         bool
-	VNCPort         uint64
-	Disks           []Disk
-	ISOs            []ISO
-	NICs            []NIC
-	COM1            COM
-	COM2            COM
-	COM3            COM
-	COM4            COM
-	Display         Display
-	Audio           Audio
-	RuntimeSettings RuntimeSettings
+	ID               string
+	Name             string
+	NameOrID         string
+	CPUs             uint32
+	Memory           uint32
+	Description      string
+	Running          bool
+	VNCPort          uint64
+	Disks            []Disk
+	ISOs             []ISO
+	NICs             []NIC
+	COM1             COM
+	COM2             COM
+	COM3             COM
+	COM4             COM
+	Display          Display
+	Audio            Audio
+	RuntimeSettings  RuntimeSettings
+	AdvancedSettings AdvancedSettings
 }
 
 func (v VM) Start() error {

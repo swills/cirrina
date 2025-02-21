@@ -1052,3 +1052,111 @@ templ vmEditStartTemplate(vm VM) {
         </div>
     </div>
 }
+
+templ VMEditAdvanced(vms []VM, vm VM) {
+    @layoutVMs("VM - " + vm.Name, vms, "") {
+        @vmEditAdvancedTemplate(vm)
+    }
+}
+
+templ vmEditAdvancedTemplate(vm VM) {
+    <div class="h4 mt-3 mt-md-0">/ <a class="text-decoration-none" href="/home">Cirrina</a> / <a class="text-decoration-none" href="/vm">VM</a> / <a class="text-decoration-none" href={ templ.URL("/vm/" + vm.Name) }>{ vm.Name }</a> / Advanced</div>
+
+    <div data-testid="vmEditTemplate" class="row m-0 mt-3 mt-md-0">
+        <div data-testid="vmEditTemplateVM" class="col-12 col-md border p-3">
+            <form action={ templ.URL("/vm/" + vm.Name + "/editAdvanced")} method="post">
+                <div class="row">
+                  <div class="form-group form-group-sm mb-3">
+                    <label for="storeuefivars-check">Store UEFI variables: </label>
+                    if vm.AdvancedSettings.StoreUEFI {
+                    <input class="form-check-input" type="checkbox" id="storeuefivars-check" name="storeuefivarsenabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="storeuefivars-check" name="storeuefivarsenabled">
+                    }
+                    <label for="clockutc-check">RTC keeps UTC time: </label>
+                    if vm.AdvancedSettings.ClockUTC {
+                    <input class="form-check-input" type="checkbox" id="clockutc-check" name="clockutcenabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="clockutc-check" name="clockutcenabled">
+                    }
+                    <label for="dpo-check">Destroy on guest power off: </label>
+                    if vm.AdvancedSettings.DestroyOnPowerOff {
+                    <input class="form-check-input" type="checkbox" id="dpo-check" name="dpoenabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="dpo-check" name="dpoenabled">
+                    }
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="form-group form-group-sm mb-3">
+                    <label for="wire-check">Wire guest memory: </label>
+                    if vm.AdvancedSettings.Wire {
+                    <input class="form-check-input" type="checkbox" id="wire-check" name="wireenabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="wire-check" name="wireenabled">
+                    }
+                    <label for="hostbridge-check">Enable Host Bridge: </label>
+                    if vm.AdvancedSettings.HostBridge {
+                    <input class="form-check-input" type="checkbox" id="hostbridge-check" name="hostbridgeenabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="hostbridge-check" name="hostbridgeenabled">
+                    }
+                    <label for="acpi-check">Generate ACPI Tables: </label>
+                    if vm.AdvancedSettings.GenerateACPITables {
+                    <input class="form-check-input" type="checkbox" id="acpi-check" name="acpienabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="acpi-check" name="acpienabled">
+                    }
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="form-group form-group-sm mb-3">
+                    <label for="eop-check">Exit on Pause: </label>
+                    if vm.AdvancedSettings.ExitOnPause {
+                    <input class="form-check-input" type="checkbox" id="eop-check" name="eopenabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="eop-check" name="eopenabled">
+                    }
+                    <label for="ium-check">Ignore Unimplemented MSRs: </label>
+                    if vm.AdvancedSettings.IgnoreUnimplementedMSR {
+                    <input class="form-check-input" type="checkbox" id="eop-check" name="iumenabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="eop-check" name="iumenabled">
+                    }
+                    <label for="hlt-check">Use HLT: </label>
+                    if vm.AdvancedSettings.UseHLT {
+                    <input class="form-check-input" type="checkbox" id="hlt-check" name="hltenabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="hlt-check" name="hltenabled">
+                    }
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="form-group form-group-sm mb-3">
+                    <label for="debug-check">Start Debug Server: </label>
+                    if vm.AdvancedSettings.StartDebugServer {
+                    <input class="form-check-input" type="checkbox" id="debug-check" name="debugenabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="debug-check" name="debugenabled">
+                    }
+                    <label for="debugwait-check">Wait until debugger connects: </label>
+                    if vm.AdvancedSettings.WaitDebugConn {
+                    <input class="form-check-input" type="checkbox" id="debugwait-check" name="debugwaitenabled" checked="checked">
+                    } else {
+                    <input class="form-check-input" type="checkbox" id="debugwait-check" name="debugwaitenabled">
+                    }
+                    <label for="debugport-input">Debug Port: </label>
+                    <input class="form-text" type="text" id="debugport-input" name="debugport" value={ vm.AdvancedSettings.DebugPort }>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="form-group form-group-sm mb-3">
+                    <label for="extraargs-text">Extra Args:</label>
+                    <input class="form-control-sm" type="text" name="extraargs" id="extraargs-text" value={ vm.AdvancedSettings.ExtraArgs }>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary">Submit</button>
+            </form>
+        </div>
+    </div>
+}

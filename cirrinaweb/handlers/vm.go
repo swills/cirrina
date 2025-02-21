@@ -417,6 +417,20 @@ func GetVM(nameOrID string) (components.VM, error) {
 	returnVM.RuntimeSettings.AutoRestartDelay = vmConfig.RestartDelay
 	returnVM.RuntimeSettings.ShutdownTimeout = vmConfig.MaxWait
 
+	returnVM.AdvancedSettings.StoreUEFI = vmConfig.Storeuefi
+	returnVM.AdvancedSettings.Wire = vmConfig.Wireguestmem
+	returnVM.AdvancedSettings.ExitOnPause = vmConfig.Eop
+	returnVM.AdvancedSettings.ClockUTC = vmConfig.Utc
+	returnVM.AdvancedSettings.HostBridge = vmConfig.Hostbridge
+	returnVM.AdvancedSettings.IgnoreUnimplementedMSR = vmConfig.Ium
+	returnVM.AdvancedSettings.DestroyOnPowerOff = vmConfig.Dpo
+	returnVM.AdvancedSettings.GenerateACPITables = vmConfig.Acpi
+	returnVM.AdvancedSettings.UseHLT = vmConfig.Hlt
+	returnVM.AdvancedSettings.StartDebugServer = vmConfig.Debug
+	returnVM.AdvancedSettings.WaitDebugConn = vmConfig.DebugWait
+	returnVM.AdvancedSettings.DebugPort = vmConfig.DebugPort
+	returnVM.AdvancedSettings.ExtraArgs = vmConfig.ExtraArgs
+
 	var vmState string
 
 	var vncPort string

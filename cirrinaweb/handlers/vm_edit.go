@@ -754,10 +754,10 @@ func (v VMEditDisplayHandler) ServeHTTP(writer http.ResponseWriter, request *htt
 				haveChanges = true
 			}
 
-			var newPortNum uint64
+			var vncPortNewPortNum uint64
 
-			newPortNum, err = strconv.ParseUint(vncPortNewStr, 10, 32)
-			if err == nil && newPortNum < 65536 {
+			vncPortNewPortNum, err = strconv.ParseUint(vncPortNewStr, 10, 32)
+			if err == nil && vncPortNewPortNum < 65536 {
 				newConfig.Vncport = &vncPortNewStr
 				haveChanges = true
 			}
@@ -1151,5 +1151,298 @@ func NewVMEditAdvancedHandler() VMEditAdvancedHandler {
 	return VMEditAdvancedHandler{}
 }
 
-func (v VMEditAdvancedHandler) ServeHTTP(_ http.ResponseWriter, _ *http.Request) {
+//nolint:gocognit,gocyclo,cyclop,funlen,maintidx
+func (v VMEditAdvancedHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	var err error
+
+	switch request.Method {
+	case http.MethodGet:
+		nameOrID := request.PathValue("nameOrID")
+
+		var aVM components.VM
+
+		aVM, err = GetVM(nameOrID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		var VMs []components.VM
+
+		VMs, err = GetVMs()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		templ.Handler(components.VMEditAdvanced(VMs, aVM)).ServeHTTP(writer, request)
+
+		return
+	case http.MethodPost:
+		err = request.ParseForm()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		nameOrID := request.PathValue("nameOrID")
+
+		haveChanges := false
+
+		var aVM components.VM
+
+		aVM, err = GetVM(nameOrID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		var newConfig cirrina.VMConfig
+		newConfig.Id = aVM.ID
+
+		rpc.ResetConnTimeout()
+
+		var oldVMConfig rpc.VMConfig
+
+		oldVMConfig, err = rpc.GetVMConfig(aVM.ID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		// storeuefivars
+		storeuefivarsEnabled := request.PostForm["storeuefivarsenabled"]
+
+		var storeuefivarsEnabledB bool
+
+		if len(storeuefivarsEnabled) > 0 {
+			storeuefivarsEnabledB = true
+		} else {
+			storeuefivarsEnabledB = false
+		}
+
+		if oldVMConfig.Storeuefi != storeuefivarsEnabledB {
+			newConfig.Storeuefi = &storeuefivarsEnabledB
+			haveChanges = true
+		}
+
+		// clockutc
+		clockutcEnabled := request.PostForm["clockutcenabled"]
+
+		var clockutcEnabledB bool
+
+		if len(clockutcEnabled) > 0 {
+			clockutcEnabledB = true
+		} else {
+			clockutcEnabledB = false
+		}
+
+		if oldVMConfig.Utc != clockutcEnabledB {
+			newConfig.Utc = &clockutcEnabledB
+			haveChanges = true
+		}
+
+		// dpo
+		dpoEnabled := request.PostForm["dpoenabled"]
+
+		var dpoEnabledB bool
+
+		if len(dpoEnabled) > 0 {
+			dpoEnabledB = true
+		} else {
+			dpoEnabledB = false
+		}
+
+		if oldVMConfig.Dpo != dpoEnabledB {
+			newConfig.Dpo = &dpoEnabledB
+			haveChanges = true
+		}
+
+		// wire
+		wireEnabled := request.PostForm["wireenabled"]
+
+		var wireEnabledB bool
+
+		if len(wireEnabled) > 0 {
+			wireEnabledB = true
+		} else {
+			wireEnabledB = false
+		}
+
+		if oldVMConfig.Wireguestmem != wireEnabledB {
+			newConfig.Wireguestmem = &wireEnabledB
+			haveChanges = true
+		}
+
+		// hostbridge
+		hostbridgeEnabled := request.PostForm["hostbridgeenabled"]
+
+		var hostbridgeEnabledB bool
+
+		if len(hostbridgeEnabled) > 0 {
+			hostbridgeEnabledB = true
+		} else {
+			hostbridgeEnabledB = false
+		}
+
+		if oldVMConfig.Hostbridge != hostbridgeEnabledB {
+			newConfig.Hostbridge = &hostbridgeEnabledB
+			haveChanges = true
+		}
+
+		// acpi
+		acpiEnabled := request.PostForm["acpienabled"]
+
+		var acpiEnabledB bool
+
+		if len(acpiEnabled) > 0 {
+			acpiEnabledB = true
+		} else {
+			acpiEnabledB = false
+		}
+
+		if oldVMConfig.Acpi != acpiEnabledB {
+			newConfig.Acpi = &acpiEnabledB
+			haveChanges = true
+		}
+
+		// eop
+		eopEnabled := request.PostForm["eopenabled"]
+
+		var eopEnabledB bool
+
+		if len(eopEnabled) > 0 {
+			eopEnabledB = true
+		} else {
+			eopEnabledB = false
+		}
+
+		if oldVMConfig.Eop != eopEnabledB {
+			newConfig.Eop = &eopEnabledB
+			haveChanges = true
+		}
+
+		// ium
+		iumEnabled := request.PostForm["iumenabled"]
+
+		var iumEnabledB bool
+
+		if len(iumEnabled) > 0 {
+			iumEnabledB = true
+		} else {
+			iumEnabledB = false
+		}
+
+		if oldVMConfig.Ium != iumEnabledB {
+			newConfig.Ium = &iumEnabledB
+			haveChanges = true
+		}
+
+		// hlt
+		hltEnabled := request.PostForm["hltenabled"]
+
+		var hltEnabledB bool
+
+		if len(hltEnabled) > 0 {
+			hltEnabledB = true
+		} else {
+			hltEnabledB = false
+		}
+
+		if oldVMConfig.Hlt != hltEnabledB {
+			newConfig.Hlt = &hltEnabledB
+			haveChanges = true
+		}
+
+		// debug
+		debugEnabled := request.PostForm["debugenabled"]
+
+		var debugEnabledB bool
+
+		if len(debugEnabled) > 0 {
+			debugEnabledB = true
+		} else {
+			debugEnabledB = false
+		}
+
+		if oldVMConfig.Debug != debugEnabledB {
+			newConfig.Debug = &debugEnabledB
+			haveChanges = true
+		}
+
+		// debugwait
+		debugwaitEnabled := request.PostForm["debugwaitenabled"]
+
+		var debugwaitEnabledB bool
+
+		if len(debugwaitEnabled) > 0 {
+			debugwaitEnabledB = true
+		} else {
+			debugwaitEnabledB = false
+		}
+
+		if oldVMConfig.DebugWait != debugwaitEnabledB {
+			newConfig.DebugWait = &debugwaitEnabledB
+			haveChanges = true
+		}
+
+		// debugport
+		debugPortNew := request.PostForm["debugport"]
+
+		if len(debugPortNew) > 0 {
+			debugPortNewStr := strings.ToUpper(debugPortNew[0])
+			if debugPortNewStr == "AUTO" {
+				newConfig.DebugPort = &debugPortNewStr
+				haveChanges = true
+			}
+
+			var debugPortNewNum uint64
+
+			debugPortNewNum, err = strconv.ParseUint(debugPortNewStr, 10, 32)
+			if err == nil && debugPortNewNum < 65536 {
+				newConfig.DebugPort = &debugPortNewStr
+				haveChanges = true
+			}
+		}
+
+		// extra args
+		extraArgs := request.PostForm["extraargs"]
+		if len(extraArgs) > 0 {
+			if oldVMConfig.ExtraArgs != extraArgs[0] {
+				newConfig.ExtraArgs = &extraArgs[0]
+				haveChanges = true
+			}
+		}
+
+		if haveChanges {
+			rpc.ResetConnTimeout()
+
+			err = rpc.UpdateVMConfig(&newConfig)
+			if err != nil {
+				util.LogError(err, request.RemoteAddr)
+
+				serveErrorVM(writer, request, err)
+
+				return
+			}
+		}
+
+		http.Redirect(writer, request, "/vm/"+aVM.Name, http.StatusSeeOther)
+	default:
+		http.Redirect(writer, request, "/vm/", http.StatusSeeOther)
+	}
 }
