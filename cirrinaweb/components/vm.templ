@@ -155,8 +155,8 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
 			  <a class="btn btn-outline-primary btn-sm border-0 me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editSerial") }>Serial</a>
 			  <a class="btn btn-outline-primary btn-sm border-0 me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editDisplay") }>Display</a>
 			  <a class="btn btn-outline-primary btn-sm border-0 me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editAudio") }>Audio</a>
+			  <a class="btn btn-outline-primary btn-sm border-0 me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editStart") }>Start/Stop</a>
 <!--
-			  <a class="btn btn-outline-primary btn-sm border-0 me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editStart") }>Start</a>
 			  <a class="btn btn-outline-primary btn-sm border-0 me-1" href={ templ.URL("/vm/" + vm.NameOrID + "/editAdvanced") }>Advanced</a>
 -->
 			</div>

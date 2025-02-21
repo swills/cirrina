@@ -7,24 +7,33 @@ import (
 	"cirrina/cirrinaweb/util"
 )
 
+type RuntimeSettings struct {
+	AutoStart        bool
+	AutoRestart      bool
+	AutoStartDelay   uint32
+	AutoRestartDelay uint32
+	ShutdownTimeout  uint32
+}
+
 type VM struct {
-	ID          string
-	Name        string
-	NameOrID    string
-	CPUs        uint32
-	Memory      uint32
-	Description string
-	Running     bool
-	VNCPort     uint64
-	Disks       []Disk
-	ISOs        []ISO
-	NICs        []NIC
-	COM1        COM
-	COM2        COM
-	COM3        COM
-	COM4        COM
-	Display     Display
-	Audio       Audio
+	ID              string
+	Name            string
+	NameOrID        string
+	CPUs            uint32
+	Memory          uint32
+	Description     string
+	Running         bool
+	VNCPort         uint64
+	Disks           []Disk
+	ISOs            []ISO
+	NICs            []NIC
+	COM1            COM
+	COM2            COM
+	COM3            COM
+	COM4            COM
+	Display         Display
+	Audio           Audio
+	RuntimeSettings RuntimeSettings
 }
 
 func (v VM) Start() error {

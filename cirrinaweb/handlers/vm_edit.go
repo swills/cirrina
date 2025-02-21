@@ -980,7 +980,169 @@ func NewVMEditStartHandler() VMEditStartHandler {
 	return VMEditStartHandler{}
 }
 
-func (v VMEditStartHandler) ServeHTTP(_ http.ResponseWriter, _ *http.Request) {
+//nolint:gocognit,cyclop,funlen
+func (v VMEditStartHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	var err error
+
+	switch request.Method {
+	case http.MethodGet:
+		nameOrID := request.PathValue("nameOrID")
+
+		var aVM components.VM
+
+		aVM, err = GetVM(nameOrID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		var VMs []components.VM
+
+		VMs, err = GetVMs()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		templ.Handler(components.VMEditStart(VMs, aVM)).ServeHTTP(writer, request)
+
+		return
+	case http.MethodPost:
+		err = request.ParseForm()
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		nameOrID := request.PathValue("nameOrID")
+
+		haveChanges := false
+
+		var aVM components.VM
+
+		aVM, err = GetVM(nameOrID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		var newConfig cirrina.VMConfig
+		newConfig.Id = aVM.ID
+
+		rpc.ResetConnTimeout()
+
+		var oldVMConfig rpc.VMConfig
+
+		oldVMConfig, err = rpc.GetVMConfig(aVM.ID)
+		if err != nil {
+			util.LogError(err, request.RemoteAddr)
+
+			serveErrorVM(writer, request, err)
+
+			return
+		}
+
+		// auto start
+		autostartEnabled := request.PostForm["autostartenabled"]
+
+		var autostartEnabledB bool
+
+		if len(autostartEnabled) > 0 {
+			autostartEnabledB = true
+		} else {
+			autostartEnabledB = false
+		}
+
+		if oldVMConfig.Autostart != autostartEnabledB {
+			newConfig.Autostart = &autostartEnabledB
+			haveChanges = true
+		}
+
+		autoStartDelayNew := request.PostForm["autostartdelay"]
+
+		if len(autoStartDelayNew) > 0 {
+			var autoStartDelayNewNum uint64
+
+			autoStartDelayNewNum, err = strconv.ParseUint(autoStartDelayNew[0], 10, 32)
+			if err == nil {
+				n := uint32(autoStartDelayNewNum)
+				newConfig.AutostartDelay = &n
+				haveChanges = true
+			}
+		}
+
+		// auto restart
+		autorestartEnabled := request.PostForm["autorestartenabled"]
+
+		var autorestartEnabledB bool
+
+		if len(autorestartEnabled) > 0 {
+			autorestartEnabledB = true
+		} else {
+			autorestartEnabledB = false
+		}
+
+		if oldVMConfig.Restart != autorestartEnabledB {
+			newConfig.Restart = &autorestartEnabledB
+			haveChanges = true
+		}
+
+		autoRestartDelayNew := request.PostForm["autorestartdelay"]
+
+		if len(autoRestartDelayNew) > 0 {
+			var autoRestartDelayNewNum uint64
+
+			autoRestartDelayNewNum, err = strconv.ParseUint(autoRestartDelayNew[0], 10, 32)
+			if err == nil {
+				n := uint32(autoRestartDelayNewNum)
+				newConfig.RestartDelay = &n
+				haveChanges = true
+			}
+		}
+
+		// shutdown timeout
+
+		shutdownTimeoutNew := request.PostForm["shutdowntimeout"]
+
+		if len(shutdownTimeoutNew) > 0 {
+			var shutdownTimeoutNewNum uint64
+
+			shutdownTimeoutNewNum, err = strconv.ParseUint(shutdownTimeoutNew[0], 10, 32)
+			if err == nil {
+				n := uint32(shutdownTimeoutNewNum)
+				newConfig.MaxWait = &n
+				haveChanges = true
+			}
+		}
+
+		if haveChanges {
+			rpc.ResetConnTimeout()
+
+			err = rpc.UpdateVMConfig(&newConfig)
+			if err != nil {
+				util.LogError(err, request.RemoteAddr)
+
+				serveErrorVM(writer, request, err)
+
+				return
+			}
+		}
+
+		http.Redirect(writer, request, "/vm/"+aVM.Name, http.StatusSeeOther)
+	default:
+		http.Redirect(writer, request, "/vm/", http.StatusSeeOther)
+	}
 }
 
 type VMEditAdvancedHandler struct{}

@@ -406,9 +406,16 @@ func GetVM(nameOrID string) (components.VM, error) {
 	returnVM.Display.VNCPort = vmConfig.Vncport
 	returnVM.Display.VNCWait = vmConfig.Vncwait
 	returnVM.Display.KeyboardLayout = vmConfig.Keyboard
+
 	returnVM.Audio.Enabled = vmConfig.Sound
 	returnVM.Audio.Input = vmConfig.SoundIn
 	returnVM.Audio.Output = vmConfig.SoundOut
+
+	returnVM.RuntimeSettings.AutoStart = vmConfig.Autostart
+	returnVM.RuntimeSettings.AutoRestart = vmConfig.Restart
+	returnVM.RuntimeSettings.AutoStartDelay = vmConfig.AutostartDelay
+	returnVM.RuntimeSettings.AutoRestartDelay = vmConfig.RestartDelay
+	returnVM.RuntimeSettings.ShutdownTimeout = vmConfig.MaxWait
 
 	var vmState string
 
