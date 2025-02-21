@@ -29,7 +29,7 @@ func headerTemplate() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<header><nav class=\"navbar navbar-expand navbar-scroll bg-body fixed-top border-bottom shadow-sm\"><div class=\"container-fluid\"><div class=\"navbar-brand\">Cirrina <span class=\"text-danger\">&Delta;</span></div><button class=\"navbar-toggler\" type=\"button\" data-bs-toggle=\"collapse\" data-bs-target=\"#navbarCollapse\"><span class=\"navbar-toggler-icon\"></span></button><div class=\"collapse navbar-collapse\" id=\"navbarCollapse\"><ul class=\"navbar-nav me-auto mb-2 mb-md-0\"><li class=\"nav-item\"><a class=\"nav-link\" href=\"/home\">Home</a></li><li class=\"nav-item dropdown\"><a class=\"nav-link dropdown-toggle\" href=\"#\" data-bs-toggle=\"dropdown\">VMs</a><ul class=\"dropdown-menu\"><li><a class=\"dropdown-item\" href=\"/vms/new\">New</a></li><li><a class=\"dropdown-item\" href=\"/vms/clearuefi\">Clear UEFI</a></li></ul></li><li class=\"nav-item dropdown\"><a class=\"nav-link dropdown-toggle\" href=\"#\" data-bs-toggle=\"dropdown\">Media</a><ul class=\"dropdown-menu\"><li><a class=\"dropdown-item\" href=\"/media/disk\">Hard Disks</a></li><li><a class=\"dropdown-item\" href=\"/media/isos\">Optical Discs</a></li></ul></li><li class=\"nav-item dropdown\"><a class=\"nav-link dropdown-toggle\" href=\"#\" data-bs-toggle=\"dropdown\">Networks</a><ul class=\"dropdown-menu\"><li><a class=\"dropdown-item\" href=\"/net/nic\">NICs</a></li><li><a class=\"dropdown-item\" href=\"/net/switch\">Switches</a></li></ul></li></ul><div class=\"d-flex\"><div class=\"btn-group btn-group-sm mode-switch\"><button class=\"btn border rounded-circle p-0 mode\" id=\"light\">L</button> <button class=\"btn border rounded-circle p-0 mode\" id=\"system\">A</button> <button class=\"btn border rounded-circle p-0 mode\" id=\"dark\">D</button></div></div></div></div></nav></header>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<header><nav class=\"navbar navbar-expand navbar-scroll bg-body fixed-top border-bottom shadow-sm\"><div class=\"container-fluid\"><div class=\"navbar-brand\">Cirrina <span class=\"text-danger\">&Delta;</span></div><button class=\"navbar-toggler\" type=\"button\" data-bs-toggle=\"collapse\" data-bs-target=\"#navbarCollapse\"><span class=\"navbar-toggler-icon\"></span></button><div class=\"collapse navbar-collapse\" id=\"navbarCollapse\"><ul class=\"navbar-nav me-auto mb-2 mb-md-0\"><li class=\"nav-item\"><a class=\"nav-link\" href=\"/home\">Home</a></li><li class=\"nav-item dropdown\"><a class=\"nav-link dropdown-toggle\" href=\"#\" data-bs-toggle=\"dropdown\">VMs</a><ul class=\"dropdown-menu\"><li><a class=\"dropdown-item\" href=\"/vms/new\">New</a></li></ul></li><li class=\"nav-item dropdown\"><a class=\"nav-link dropdown-toggle\" href=\"#\" data-bs-toggle=\"dropdown\">Media</a><ul class=\"dropdown-menu\"><li><a class=\"dropdown-item\" href=\"/media/disk\">Hard Disks</a></li><li><a class=\"dropdown-item\" href=\"/media/isos\">Optical Discs</a></li></ul></li><li class=\"nav-item dropdown\"><a class=\"nav-link dropdown-toggle\" href=\"#\" data-bs-toggle=\"dropdown\">Networks</a><ul class=\"dropdown-menu\"><li><a class=\"dropdown-item\" href=\"/net/nic\">NICs</a></li><li><a class=\"dropdown-item\" href=\"/net/switch\">Switches</a></li></ul></li></ul><div class=\"d-flex\"><div class=\"btn-group btn-group-sm mode-switch\"><button class=\"btn border rounded-circle p-0 mode\" id=\"light\">L</button> <button class=\"btn border rounded-circle p-0 mode\" id=\"system\">A</button> <button class=\"btn border rounded-circle p-0 mode\" id=\"dark\">D</button></div></div></div></div></nav></header>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -79,7 +79,7 @@ func sidebarTemplateVMs(vms []VM) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(p.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/cirrinaweb.templ`, Line: 57, Col: 106}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/cirrinaweb.templ`, Line: 56, Col: 106}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
@@ -135,7 +135,7 @@ func layoutVMs(name string, vms []VM, refreshPath string) templ.Component {
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/cirrinaweb.templ`, Line: 68, Col: 25}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/cirrinaweb.templ`, Line: 67, Col: 25}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
@@ -169,7 +169,7 @@ func layoutVMs(name string, vms []VM, refreshPath string) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(refreshPath)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/cirrinaweb.templ`, Line: 82, Col: 39}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components/cirrinaweb.templ`, Line: 81, Col: 39}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {

@@ -192,6 +192,34 @@ func (v VMStopPostHandler) ServeHTTP(writer http.ResponseWriter, request *http.R
 	templ.Handler(components.StopButton(aVM)).ServeHTTP(writer, request)
 }
 
+type VMClearUEFIHandler struct{}
+
+func NewVMClearUEFIHandler() VMClearUEFIHandler {
+	return VMClearUEFIHandler{}
+}
+
+func (v VMClearUEFIHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+	aVM, err := GetVM(request.PathValue("nameOrID"))
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	err = aVM.ClearUEFIVars()
+	if err != nil {
+		util.LogError(err, request.RemoteAddr)
+
+		serveErrorVM(writer, request, err)
+
+		return
+	}
+
+	http.Redirect(writer, request, "/vm/"+aVM.Name, http.StatusSeeOther)
+}
+
 func serveErrorVM(writer http.ResponseWriter, request *http.Request, err error) {
 	// get list of VMs for the sidebar
 	vmList, getVMsErr := GetVMs()

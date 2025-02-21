@@ -151,6 +151,7 @@ func main() {
 
 	setupMux(mux, "POST /vm/{nameOrID}/start", handlers.NewVMStartHandler(), mdlw)
 	setupMux(mux, "POST /vm/{nameOrID}/stop", handlers.NewVMStopHandler(), mdlw)
+	setupMux(mux, "POST /vm/{nameOrID}/clearuefi", handlers.NewVMClearUEFIHandler(), mdlw)
 
 	setupMux(mux, "GET /vm/{nameOrID}/editBasic", handlers.NewVMEditBasicHandler(), mdlw)
 	setupMux(mux, "POST /vm/{nameOrID}/editBasic", handlers.NewVMEditBasicHandler(), mdlw)

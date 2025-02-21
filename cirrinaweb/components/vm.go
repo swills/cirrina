@@ -80,3 +80,17 @@ func (v VM) Stop() error {
 
 	return nil
 }
+
+func (v VM) ClearUEFIVars() error {
+	err := util.InitRPCConn()
+	if err != nil {
+		return fmt.Errorf("error clearing UEFI vars, failed to get connection: %w", err)
+	}
+
+	_, err = rpc.VMClearUefiVars(v.ID)
+	if err != nil {
+		return fmt.Errorf("error clearing UEFI vars: %w", err)
+	}
+
+	return nil
+}
