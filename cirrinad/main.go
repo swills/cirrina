@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log/slog"
+	"net"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -331,7 +332,15 @@ var rootCmd = &cobra.Command{
 		}
 		slog.Info("Starting Daemon")
 
-		go serveMetrics()
+		if config.Config.Metrics.Enabled {
+			go serveMetrics(
+				net.JoinHostPort(
+					config.Config.Metrics.Host,
+					strconv.FormatUint(uint64(config.Config.Metrics.Port), 10),
+				),
+			)
+		}
+
 		go vm.AutoStartVMs()
 		go rpcServer()
 		go processRequests()
