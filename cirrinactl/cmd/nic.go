@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sort"
@@ -44,7 +45,10 @@ var NicListCmd = &cobra.Command{
 	Short:        "list virtual NICs",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
-		nicIDs, err := rpc.GetVMNicsAll()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
+		nicIDs, err := rpc.GetVMNicsAll(ctx)
 		if err != nil {
 			return fmt.Errorf("error getting all vm nics: %w", err)
 		}
@@ -60,7 +64,7 @@ var NicListCmd = &cobra.Command{
 		nicInfos := make(map[string]nicListInfo)
 
 		for _, nicID := range nicIDs {
-			nicInfo, err := rpc.GetVMNicInfo(nicID)
+			nicInfo, err := rpc.GetVMNicInfo(ctx, nicID)
 			if err != nil {
 				return fmt.Errorf("error getting nic info: %w", err)
 			}
@@ -155,19 +159,23 @@ var NicCreateCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if NicName == "" {
 			return errNicEmptyName
 		}
 		if NicSwitchID == "" {
 			if NicSwitchName != "" {
-				NicSwitchID, err = rpc.SwitchNameToID(NicSwitchName)
+				NicSwitchID, err = rpc.SwitchNameToID(ctx, NicSwitchName)
 				if err != nil {
 					return fmt.Errorf("error getting switch id: %w", err)
 				}
 			}
 		}
 
-		res, err := rpc.AddNic(
+		res, err := rpc.AddNic(ctx,
 			NicName, NicDescription, NicMac, NicType, NicDevType,
 			NicRateLimited, NicRateIn, NicRateOut, NicSwitchID,
 		)
@@ -186,8 +194,11 @@ var NicDeleteCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if NicID == "" {
-			NicID, err = rpc.NicNameToID(NicName)
+			NicID, err = rpc.NicNameToID(ctx, NicName)
 			if err != nil {
 				return fmt.Errorf("error getting nic id: %w", err)
 			}
@@ -195,7 +206,7 @@ var NicDeleteCmd = &cobra.Command{
 				return errNicNotFound
 			}
 		}
-		err = rpc.RmNic(NicID)
+		err = rpc.RmNic(ctx, NicID)
 		if err != nil {
 			return fmt.Errorf("error removing nic: %w", err)
 		}
@@ -218,8 +229,12 @@ var NicSetSwitchCmd = &cobra.Command{
 	},
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if NicID == "" {
-			NicID, err = rpc.NicNameToID(NicName)
+			NicID, err = rpc.NicNameToID(ctx, NicName)
 			if err != nil {
 				return fmt.Errorf("error getting nic id: %w", err)
 			}
@@ -229,7 +244,7 @@ var NicSetSwitchCmd = &cobra.Command{
 		}
 
 		if NicSwitchID == "" && !NicSwitchIDChanged && NicSwitchName != "" {
-			NicSwitchID, err = rpc.SwitchNameToID(NicSwitchName)
+			NicSwitchID, err = rpc.SwitchNameToID(ctx, NicSwitchName)
 			if err != nil {
 				return fmt.Errorf("error getting switch id: %w", err)
 			}
@@ -238,7 +253,7 @@ var NicSetSwitchCmd = &cobra.Command{
 			}
 		}
 
-		err = rpc.SetVMNicSwitch(NicID, NicSwitchID)
+		err = rpc.SetVMNicSwitch(ctx, NicID, NicSwitchID)
 		if err != nil {
 			return fmt.Errorf("error setting nic uplink: %w", err)
 		}
@@ -254,8 +269,12 @@ var NicCloneCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if NicID == "" {
-			NicID, err = rpc.NicNameToID(NicName)
+			NicID, err = rpc.NicNameToID(ctx, NicName)
 			if err != nil {
 				return fmt.Errorf("error getting nic ID: %w", err)
 			}
@@ -271,7 +290,7 @@ var NicCloneCmd = &cobra.Command{
 		if CheckReqStat {
 			fmt.Print("Cloning NIC (timeout: 10s): ")
 		}
-		reqID, err := rpc.CloneNic(NicID, NicCloneName)
+		reqID, err := rpc.CloneNic(ctx, NicID, NicCloneName)
 		if err != nil {
 			return fmt.Errorf("error cloning nic: %w", err)
 		}
@@ -286,7 +305,7 @@ var NicCloneCmd = &cobra.Command{
 
 		var reqStat rpc.ReqStatus
 		for time.Now().Before(timeout) {
-			reqStat, err = rpc.ReqStat(reqID)
+			reqStat, err = rpc.ReqStat(ctx, reqID)
 			if err != nil {
 				return fmt.Errorf("error checking request status: %w", err)
 			}
@@ -295,7 +314,6 @@ var NicCloneCmd = &cobra.Command{
 			}
 			fmt.Printf(".")
 			time.Sleep(time.Second)
-			rpc.ResetConnTimeout()
 		}
 		if reqStat.Success {
 			fmt.Printf(" done")
@@ -327,8 +345,12 @@ var NicUpdateCmd = &cobra.Command{
 	},
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if NicID == "" {
-			NicID, err = rpc.NicNameToID(NicName)
+			NicID, err = rpc.NicNameToID(ctx, NicName)
 			if err != nil {
 				return fmt.Errorf("error getting nic id: %w", err)
 			}
@@ -369,7 +391,7 @@ var NicUpdateCmd = &cobra.Command{
 		}
 		if NicSwitchNameChanged {
 			var NewNicSwitchID string
-			NewNicSwitchID, err = rpc.SwitchNameToID(NicSwitchName)
+			NewNicSwitchID, err = rpc.SwitchNameToID(ctx, NicSwitchName)
 			if err != nil {
 				return fmt.Errorf("error getting switch id: %w", err)
 			}
@@ -381,7 +403,7 @@ var NicUpdateCmd = &cobra.Command{
 		if NicSwitchIDChanged {
 			newSwitchID = &NicSwitchID
 		}
-		err = rpc.UpdateNic(NicID, newDesc, newMac, newNicType, newNicDevType,
+		err = rpc.UpdateNic(ctx, NicID, newDesc, newMac, newNicType, newNicDevType,
 			newRateLimit, newRateIn, newRateOut, newSwitchID)
 		if err != nil {
 			return fmt.Errorf("error updating nic: %w", err)

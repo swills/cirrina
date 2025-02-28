@@ -1,6 +1,7 @@
 package components
 
 import (
+	"context"
 	"fmt"
 
 	"cirrina/cirrinactl/rpc"
@@ -53,13 +54,13 @@ type VM struct {
 	AdvancedSettings AdvancedSettings
 }
 
-func (v VM) Start() error {
+func (v VM) Start(ctx context.Context) error {
 	err := util.InitRPCConn()
 	if err != nil {
 		return fmt.Errorf("error starting VM, failed to get connection: %w", err)
 	}
 
-	_, err = rpc.StartVM(v.ID)
+	_, err = rpc.StartVM(ctx, v.ID)
 	if err != nil {
 		return fmt.Errorf("error starting VM: %w", err)
 	}
@@ -67,13 +68,13 @@ func (v VM) Start() error {
 	return nil
 }
 
-func (v VM) Stop() error {
+func (v VM) Stop(ctx context.Context) error {
 	err := util.InitRPCConn()
 	if err != nil {
 		return fmt.Errorf("error starting VM, failed to get connection: %w", err)
 	}
 
-	_, err = rpc.StopVM(v.ID)
+	_, err = rpc.StopVM(ctx, v.ID)
 	if err != nil {
 		return fmt.Errorf("error stopping VM: %w", err)
 	}
@@ -81,13 +82,13 @@ func (v VM) Stop() error {
 	return nil
 }
 
-func (v VM) ClearUEFIVars() error {
+func (v VM) ClearUEFIVars(ctx context.Context) error {
 	err := util.InitRPCConn()
 	if err != nil {
 		return fmt.Errorf("error clearing UEFI vars, failed to get connection: %w", err)
 	}
 
-	_, err = rpc.VMClearUefiVars(v.ID)
+	_, err = rpc.VMClearUefiVars(ctx, v.ID)
 	if err != nil {
 		return fmt.Errorf("error clearing UEFI vars: %w", err)
 	}

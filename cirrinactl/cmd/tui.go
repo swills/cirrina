@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strconv"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -50,7 +52,10 @@ func getVMItems() ([]vmItem, error) {
 
 	var err error
 
-	vmIDs, err = rpc.GetVMIds()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+	defer cancel()
+
+	vmIDs, err = rpc.GetVMIds(ctx)
 	if err != nil {
 		return []vmItem{}, fmt.Errorf("error getting vm list: %w", err)
 	}
@@ -60,7 +65,7 @@ func getVMItems() ([]vmItem, error) {
 	for _, vmID := range vmIDs {
 		var res rpc.VMConfig
 
-		res, err = rpc.GetVMConfig(vmID)
+		res, err = rpc.GetVMConfig(ctx, vmID)
 		if err != nil {
 			return []vmItem{}, fmt.Errorf("error getting vm config: %w", err)
 		}
@@ -137,7 +142,10 @@ func vncButtonExit(key tcell.Key) {
 }
 
 func vmStartFunc(name string) {
-	vmID, err := rpc.VMNameToID(name)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+	defer cancel()
+
+	vmID, err := rpc.VMNameToID(ctx, name)
 	if err != nil {
 		return
 	}
@@ -146,16 +154,19 @@ func vmStartFunc(name string) {
 		return
 	}
 
-	_, _ = rpc.StartVM(vmID)
+	_, _ = rpc.StartVM(ctx, vmID)
 }
 
 func vmStopFunc(name string) {
-	vmID, err := rpc.VMNameToID(name)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+	defer cancel()
+
+	vmID, err := rpc.VMNameToID(ctx, name)
 	if err != nil {
 		return
 	}
 
-	_, _ = rpc.StopVM(vmID)
+	_, _ = rpc.StopVM(ctx, vmID)
 }
 
 func vmChangedFunc(index int, name string, _ string, _ rune) {

@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -11,14 +12,14 @@ import (
 	"cirrina/cirrina"
 )
 
-func GetHostNics() ([]string, error) {
+func GetHostNics(ctx context.Context) ([]string, error) {
 	var err error
 
 	var hostNics []string
 
 	var res cirrina.VMInfo_GetNetInterfacesClient
 
-	res, err = serverClient.GetNetInterfaces(defaultServerContext, &cirrina.NetInterfacesReq{})
+	res, err = serverClient.GetNetInterfaces(ctx, &cirrina.NetInterfacesReq{})
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get host nics: %w", err)
 	}
@@ -39,14 +40,14 @@ func GetHostNics() ([]string, error) {
 	return hostNics, nil
 }
 
-func GetHostVersion() (string, error) {
+func GetHostVersion(ctx context.Context) (string, error) {
 	var version string
 
 	var err error
 
 	var res *wrapperspb.StringValue
 
-	res, err = serverClient.GetVersion(defaultServerContext, &emptypb.Empty{})
+	res, err = serverClient.GetVersion(ctx, &emptypb.Empty{})
 	if err != nil {
 		return "", fmt.Errorf("unable to get host version: %w", err)
 	}

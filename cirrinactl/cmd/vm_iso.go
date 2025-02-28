@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -18,8 +20,12 @@ var VMIsoListCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if VMID == "" {
-			VMID, err = rpc.VMNameToID(VMName)
+			VMID, err = rpc.VMNameToID(ctx, VMName)
 			if err != nil {
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
@@ -29,7 +35,7 @@ var VMIsoListCmd = &cobra.Command{
 		}
 
 		var isoIDs []string
-		isoIDs, err = rpc.GetVMIsos(VMID)
+		isoIDs, err = rpc.GetVMIsos(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting VM ISOs: %w", err)
 		}
@@ -43,7 +49,7 @@ var VMIsoListCmd = &cobra.Command{
 		isoInfos := make(map[string]isoListInfo)
 		for _, isoID := range isoIDs {
 			var isoInfo rpc.IsoInfo
-			isoInfo, err = rpc.GetIsoInfo(isoID)
+			isoInfo, err = rpc.GetIsoInfo(ctx, isoID)
 			if err != nil {
 				return fmt.Errorf("failed setting iso info: %w", err)
 			}
@@ -99,8 +105,11 @@ var VMIsosAddCmd = &cobra.Command{
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if VMID == "" {
-			VMID, err = rpc.VMNameToID(VMName)
+			VMID, err = rpc.VMNameToID(ctx, VMName)
 			if err != nil {
 				return nil
 			}
@@ -109,7 +118,7 @@ var VMIsosAddCmd = &cobra.Command{
 			}
 		}
 		if IsoID == "" {
-			IsoID, err = rpc.IsoNameToID(IsoName)
+			IsoID, err = rpc.IsoNameToID(ctx, IsoName)
 			if err != nil {
 				return fmt.Errorf("failed setting ISO ID: %w", err)
 			}
@@ -119,14 +128,14 @@ var VMIsosAddCmd = &cobra.Command{
 		}
 
 		var isoIDs []string
-		isoIDs, err = rpc.GetVMIsos(VMID)
+		isoIDs, err = rpc.GetVMIsos(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed setting VM ISOs: %w", err)
 		}
 
 		isoIDs = append(isoIDs, IsoID)
 		var res bool
-		res, err = rpc.VMSetIsos(VMID, isoIDs)
+		res, err = rpc.VMSetIsos(ctx, VMID, isoIDs)
 		if err != nil {
 			return fmt.Errorf("failed setting VM ISOs: %w", err)
 		}
@@ -146,8 +155,11 @@ var VMIsosRmCmd = &cobra.Command{
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if VMID == "" {
-			VMID, err = rpc.VMNameToID(VMName)
+			VMID, err = rpc.VMNameToID(ctx, VMName)
 			if err != nil {
 				return fmt.Errorf("failed setting VM ID: %w", err)
 			}
@@ -156,7 +168,7 @@ var VMIsosRmCmd = &cobra.Command{
 			}
 		}
 		if IsoID == "" {
-			IsoID, err = rpc.IsoNameToID(IsoName)
+			IsoID, err = rpc.IsoNameToID(ctx, IsoName)
 			if err != nil {
 				return fmt.Errorf("failed getting ISO ID: %w", err)
 			}
@@ -166,7 +178,7 @@ var VMIsosRmCmd = &cobra.Command{
 		}
 
 		var isoIDs []string
-		isoIDs, err = rpc.GetVMIsos(VMID)
+		isoIDs, err = rpc.GetVMIsos(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting VM ISOs: %w", err)
 		}
@@ -187,7 +199,7 @@ var VMIsosRmCmd = &cobra.Command{
 		}
 
 		var res bool
-		res, err = rpc.VMSetIsos(VMID, newIsoIDs)
+		res, err = rpc.VMSetIsos(ctx, VMID, newIsoIDs)
 		if err != nil {
 			return fmt.Errorf("failed setting VM ISOs: %w", err)
 		}

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -15,8 +16,8 @@ import (
 )
 
 type SwitchHandler struct {
-	GetSwitch   func(string) (components.Switch, error)
-	GetSwitches func() ([]components.Switch, error)
+	GetSwitch   func(context.Context, string) (components.Switch, error)
+	GetSwitches func(context.Context) ([]components.Switch, error)
 }
 
 func NewSwitchHandler() SwitchHandler {
@@ -26,7 +27,7 @@ func NewSwitchHandler() SwitchHandler {
 	}
 }
 
-func GetSwitch(nameOrID string) (components.Switch, error) {
+func GetSwitch(ctx context.Context, nameOrID string) (components.Switch, error) {
 	var returnSwitch components.Switch
 
 	var switchInfo rpc.SwitchInfo
@@ -40,9 +41,7 @@ func GetSwitch(nameOrID string) (components.Switch, error) {
 
 	parsedUUID, err := uuid.Parse(nameOrID)
 	if err != nil {
-		rpc.ResetConnTimeout()
-
-		returnSwitch.ID, err = rpc.SwitchNameToID(nameOrID)
+		returnSwitch.ID, err = rpc.SwitchNameToID(ctx, nameOrID)
 		if err != nil {
 			return components.Switch{}, fmt.Errorf("error getting Switch: %w", err)
 		}
@@ -52,9 +51,7 @@ func GetSwitch(nameOrID string) (components.Switch, error) {
 		returnSwitch.ID = parsedUUID.String()
 	}
 
-	rpc.ResetConnTimeout()
-
-	switchInfo, err = rpc.GetSwitch(returnSwitch.ID)
+	switchInfo, err = rpc.GetSwitch(ctx, returnSwitch.ID)
 	if err != nil {
 		return components.Switch{}, fmt.Errorf("error getting Switch: %w", err)
 	}
@@ -68,16 +65,14 @@ func GetSwitch(nameOrID string) (components.Switch, error) {
 	return returnSwitch, nil
 }
 
-func DeleteSwitch(nameOrID string) error {
+func DeleteSwitch(ctx context.Context, nameOrID string) error {
 	var err error
 
 	var switchID string
 
 	parsedUUID, err := uuid.Parse(nameOrID)
 	if err != nil {
-		rpc.ResetConnTimeout()
-
-		switchID, err = rpc.SwitchNameToID(nameOrID)
+		switchID, err = rpc.SwitchNameToID(ctx, nameOrID)
 		if err != nil {
 			return fmt.Errorf("error getting switch: %w", err)
 		}
@@ -85,9 +80,7 @@ func DeleteSwitch(nameOrID string) error {
 		switchID = parsedUUID.String()
 	}
 
-	rpc.ResetConnTimeout()
-
-	err = rpc.DeleteSwitch(switchID)
+	err = rpc.DeleteSwitch(ctx, switchID)
 	if err != nil {
 		return fmt.Errorf("%w", err)
 	}
@@ -103,7 +96,7 @@ func (d SwitchHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	case http.MethodDelete:
 		nameOrID := request.PathValue("nameOrID")
 
-		err = DeleteSwitch(nameOrID)
+		err = DeleteSwitch(request.Context(), nameOrID)
 		if err != nil {
 			var errMessage string
 
@@ -140,7 +133,7 @@ func (d SwitchHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 
 		var Switches []components.Switch
 
-		Switches, err = d.GetSwitches()
+		Switches, err = d.GetSwitches(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -152,7 +145,7 @@ func (d SwitchHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		if nameOrID != "" {
 			var aSwitch components.Switch
 
-			aSwitch, err = d.GetSwitch(nameOrID)
+			aSwitch, err = d.GetSwitch(request.Context(), nameOrID)
 			if err != nil {
 				util.LogError(err, request.RemoteAddr)
 
@@ -165,16 +158,14 @@ func (d SwitchHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 
 			errString := q.Get("err")
 
-			templ.Handler(components.SwitchLayout(Switches, aSwitch, errString)).ServeHTTP(writer, request)
+			templ.Handler(components.SwitchLayout(Switches, aSwitch, errString)).ServeHTTP(writer, request) //nolint:contextcheck
 
 			return
 		}
 
-		rpc.ResetConnTimeout()
-
 		var uplinks []string
 
-		uplinks, err = rpc.GetHostNics()
+		uplinks, err = rpc.GetHostNics(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -183,7 +174,7 @@ func (d SwitchHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 			return
 		}
 
-		templ.Handler(components.NewSwitchLayout(Switches, uplinks)).ServeHTTP(writer, request)
+		templ.Handler(components.NewSwitchLayout(Switches, uplinks)).ServeHTTP(writer, request) //nolint:contextcheck
 	case http.MethodPost:
 		err = request.ParseForm()
 		if err != nil {
@@ -206,9 +197,7 @@ func (d SwitchHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 			return
 		}
 
-		rpc.ResetConnTimeout()
-
-		_, err = rpc.AddSwitch(switchName[0], &switchDesc[0], &switchType[0], &switchUplink[0])
+		_, err = rpc.AddSwitch(request.Context(), switchName[0], &switchDesc[0], &switchType[0], &switchUplink[0])
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 

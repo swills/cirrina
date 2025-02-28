@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/a-h/templ"
@@ -10,7 +11,7 @@ import (
 )
 
 type HomeHandler struct {
-	GetVMs func() ([]components.VM, error)
+	GetVMs func(context.Context) ([]components.VM, error)
 }
 
 func NewHomeHandler() HomeHandler {
@@ -20,7 +21,7 @@ func NewHomeHandler() HomeHandler {
 }
 
 func (h HomeHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	VMs, err := h.GetVMs()
+	VMs, err := h.GetVMs(request.Context())
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -29,5 +30,5 @@ func (h HomeHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request
 		return
 	}
 
-	templ.Handler(components.Home(VMs)).ServeHTTP(writer, request)
+	templ.Handler(components.Home(VMs)).ServeHTTP(writer, request) //nolint:contextcheck
 }

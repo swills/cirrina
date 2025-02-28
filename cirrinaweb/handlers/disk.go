@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -14,8 +15,8 @@ import (
 )
 
 type DiskHandler struct {
-	GetDisk  func(string) (components.Disk, error)
-	GetDisks func() ([]components.Disk, error)
+	GetDisk  func(context.Context, string) (components.Disk, error)
+	GetDisks func(context.Context) ([]components.Disk, error)
 }
 
 func NewDiskHandler() DiskHandler {
@@ -25,7 +26,7 @@ func NewDiskHandler() DiskHandler {
 	}
 }
 
-func GetDisk(nameOrID string) (components.Disk, error) {
+func GetDisk(ctx context.Context, nameOrID string) (components.Disk, error) {
 	var returnDisk components.Disk
 
 	var diskInfo rpc.DiskInfo
@@ -39,9 +40,7 @@ func GetDisk(nameOrID string) (components.Disk, error) {
 
 	parsedUUID, err := uuid.Parse(nameOrID)
 	if err != nil {
-		rpc.ResetConnTimeout()
-
-		returnDisk.ID, err = rpc.DiskNameToID(nameOrID)
+		returnDisk.ID, err = rpc.DiskNameToID(ctx, nameOrID)
 		if err != nil {
 			return components.Disk{}, fmt.Errorf("error getting Disk: %w", err)
 		}
@@ -51,9 +50,7 @@ func GetDisk(nameOrID string) (components.Disk, error) {
 		returnDisk.ID = parsedUUID.String()
 	}
 
-	rpc.ResetConnTimeout()
-
-	diskInfo, err = rpc.GetDiskInfo(returnDisk.ID)
+	diskInfo, err = rpc.GetDiskInfo(ctx, returnDisk.ID)
 	if err != nil {
 		return components.Disk{}, fmt.Errorf("error getting Disk: %w", err)
 	}
@@ -68,9 +65,7 @@ func GetDisk(nameOrID string) (components.Disk, error) {
 
 	var diskSizeUsage rpc.DiskSizeUsage
 
-	rpc.ResetConnTimeout()
-
-	diskSizeUsage, err = rpc.GetDiskSizeUsage(returnDisk.ID)
+	diskSizeUsage, err = rpc.GetDiskSizeUsage(ctx, returnDisk.ID)
 	if err != nil {
 		return components.Disk{}, fmt.Errorf("error getting Disk: %w", err)
 	}
@@ -80,17 +75,13 @@ func GetDisk(nameOrID string) (components.Disk, error) {
 
 	var vmID string
 
-	rpc.ResetConnTimeout()
-
-	vmID, err = rpc.DiskGetVMID(returnDisk.ID)
+	vmID, err = rpc.DiskGetVMID(ctx, returnDisk.ID)
 	if err != nil {
 		return components.Disk{}, fmt.Errorf("error getting Disk: %w", err)
 	}
 
 	if vmID != "" {
-		rpc.ResetConnTimeout()
-
-		returnDisk.VM, err = GetVM(vmID)
+		returnDisk.VM, err = GetVM(ctx, vmID)
 		if err != nil {
 			return components.Disk{}, fmt.Errorf("error getting Disk: %w", err)
 		}
@@ -99,16 +90,14 @@ func GetDisk(nameOrID string) (components.Disk, error) {
 	return returnDisk, nil
 }
 
-func DeleteDisk(nameOrID string) error {
+func DeleteDisk(ctx context.Context, nameOrID string) error {
 	var err error
 
 	var diskID string
 
 	parsedUUID, err := uuid.Parse(nameOrID)
 	if err != nil {
-		rpc.ResetConnTimeout()
-
-		diskID, err = rpc.DiskNameToID(nameOrID)
+		diskID, err = rpc.DiskNameToID(ctx, nameOrID)
 		if err != nil {
 			return fmt.Errorf("error getting disk: %w", err)
 		}
@@ -116,9 +105,7 @@ func DeleteDisk(nameOrID string) error {
 		diskID = parsedUUID.String()
 	}
 
-	rpc.ResetConnTimeout()
-
-	err = rpc.RmDisk(diskID)
+	err = rpc.RmDisk(ctx, diskID)
 	if err != nil {
 		return fmt.Errorf("failed removing disk: %w", err)
 	}
@@ -136,7 +123,7 @@ func (d DiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request
 
 		nameOrID = request.PathValue("nameOrID")
 
-		err = DeleteDisk(nameOrID)
+		err = DeleteDisk(request.Context(), nameOrID)
 		if err != nil {
 			writer.Header().Set("HX-Redirect", "/media/disk/"+nameOrID)
 			writer.WriteHeader(http.StatusInternalServerError)
@@ -153,7 +140,7 @@ func (d DiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request
 
 		var disks []components.Disk
 
-		disks, err = d.GetDisks()
+		disks, err = d.GetDisks(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -165,7 +152,7 @@ func (d DiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request
 		if nameOrID != "" {
 			var aDisk components.Disk
 
-			aDisk, err = d.GetDisk(nameOrID)
+			aDisk, err = d.GetDisk(request.Context(), nameOrID)
 			if err != nil {
 				util.LogError(err, request.RemoteAddr)
 
@@ -174,12 +161,12 @@ func (d DiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request
 				return
 			}
 
-			templ.Handler(components.DiskLayout(disks, aDisk)).ServeHTTP(writer, request)
+			templ.Handler(components.DiskLayout(disks, aDisk)).ServeHTTP(writer, request) //nolint:contextcheck
 
 			return
 		}
 
-		templ.Handler(components.NewDiskLayout(disks)).ServeHTTP(writer, request)
+		templ.Handler(components.NewDiskLayout(disks)).ServeHTTP(writer, request) //nolint:contextcheck
 	case http.MethodPost:
 		err = request.ParseForm()
 		if err != nil {
@@ -223,10 +210,8 @@ func (d DiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request
 			diskIsDirect = true
 		}
 
-		rpc.ResetConnTimeout()
-
-		_, err = rpc.AddDisk(diskName[0], diskDesc[0], diskSizeNum[0]+diskSizeUnit[0], diskType[0], diskDevType[0],
-			diskIsCached, diskIsDirect)
+		_, err = rpc.AddDisk(request.Context(), diskName[0], diskDesc[0], diskSizeNum[0]+diskSizeUnit[0],
+			diskType[0], diskDevType[0], diskIsCached, diskIsDirect)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 

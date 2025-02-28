@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -8,14 +9,14 @@ import (
 	"cirrina/cirrina"
 )
 
-func GetVMIsos(vmID string) ([]string, error) {
+func GetVMIsos(ctx context.Context, vmID string) ([]string, error) {
 	var err error
 
 	var isoIDs []string
 
 	var getVMISOsClient cirrina.VMInfo_GetVMISOsClient
 
-	getVMISOsClient, err = serverClient.GetVMISOs(defaultServerContext, &cirrina.VMID{Value: vmID})
+	getVMISOsClient, err = serverClient.GetVMISOs(ctx, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get VM isos: %w", err)
 	}
@@ -38,7 +39,7 @@ func GetVMIsos(vmID string) ([]string, error) {
 	return isoIDs, nil
 }
 
-func VMSetIsos(id string, isoIDs []string) (bool, error) {
+func VMSetIsos(ctx context.Context, id string, isoIDs []string) (bool, error) {
 	var err error
 
 	setISOReq := cirrina.SetISOReq{
@@ -48,7 +49,7 @@ func VMSetIsos(id string, isoIDs []string) (bool, error) {
 
 	var res *cirrina.ReqBool
 
-	res, err = serverClient.SetVMISOs(defaultServerContext, &setISOReq)
+	res, err = serverClient.SetVMISOs(ctx, &setISOReq)
 	if err != nil {
 		return false, fmt.Errorf("unable to set VM isos: %w", err)
 	}

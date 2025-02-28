@@ -1,12 +1,9 @@
 package rpc
 
 import (
-	"context"
 	"fmt"
 	"strconv"
-	"time"
 
-	"github.com/spf13/cast"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -127,21 +124,18 @@ type ReqStatus struct {
 var (
 	ServerName    string
 	ServerPort    uint16
-	ServerTimeout uint64
+	ServerTimeout int64
 )
 
 var (
-	serverConn           *grpc.ClientConn
-	serverClient         cirrina.VMInfoClient
-	defaultServerContext context.Context
-	defaultCancelFunc    context.CancelFunc
+	serverConn   *grpc.ClientConn
+	serverClient cirrina.VMInfoClient
 )
 
 func GetConn() error {
 	var err error
 
 	serverAddr := ServerName + ":" + strconv.FormatInt(int64(ServerPort), 10)
-	serverTimeoutDur := time.Second * time.Duration(cast.ToInt64(ServerTimeout))
 
 	if serverConn != nil {
 		// already set, assume it's set to the right thing!
@@ -155,21 +149,6 @@ func GetConn() error {
 	}
 
 	serverClient = cirrina.NewVMInfoClient(serverConn)
-	defaultServerContext, defaultCancelFunc = context.WithTimeout(context.Background(), serverTimeoutDur)
 
 	return nil
-}
-
-func ResetConnTimeout() {
-	defaultServerContext, defaultCancelFunc = context.WithTimeout(
-		context.Background(), time.Second*time.Duration(cast.ToInt64(ServerTimeout)),
-	)
-}
-
-func Finish() {
-	if serverConn != nil {
-		_ = serverConn.Close()
-	}
-
-	defaultCancelFunc()
 }

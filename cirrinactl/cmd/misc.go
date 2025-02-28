@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -16,7 +18,10 @@ var ReqStatCmd = &cobra.Command{
 	Long:         "Check if a server request has completed and if it was successful",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
-		res, err := rpc.ReqStat(ReqID)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
+		res, err := rpc.ReqStat(ctx, ReqID)
 		if err != nil {
 			return fmt.Errorf("error checking request status: %w", err)
 		}

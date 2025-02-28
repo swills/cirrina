@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -15,8 +16,8 @@ import (
 )
 
 type NICHandler struct {
-	GetNIC  func(string) (components.NIC, error)
-	GetNICs func() ([]components.NIC, error)
+	GetNIC  func(context.Context, string) (components.NIC, error)
+	GetNICs func(context.Context) ([]components.NIC, error)
 }
 
 func NewNICHandler() NICHandler {
@@ -26,7 +27,7 @@ func NewNICHandler() NICHandler {
 	}
 }
 
-func GetNIC(nameOrID string) (components.NIC, error) {
+func GetNIC(ctx context.Context, nameOrID string) (components.NIC, error) {
 	var returnNIC components.NIC
 
 	var nicInfo rpc.NicInfo
@@ -40,9 +41,7 @@ func GetNIC(nameOrID string) (components.NIC, error) {
 
 	parsedUUID, err := uuid.Parse(nameOrID)
 	if err != nil {
-		rpc.ResetConnTimeout()
-
-		returnNIC.ID, err = rpc.NicNameToID(nameOrID)
+		returnNIC.ID, err = rpc.NicNameToID(ctx, nameOrID)
 		if err != nil {
 			return components.NIC{}, fmt.Errorf("error getting NIC: %w", err)
 		}
@@ -52,9 +51,7 @@ func GetNIC(nameOrID string) (components.NIC, error) {
 		returnNIC.ID = parsedUUID.String()
 	}
 
-	rpc.ResetConnTimeout()
-
-	nicInfo, err = rpc.GetVMNicInfo(returnNIC.ID)
+	nicInfo, err = rpc.GetVMNicInfo(ctx, returnNIC.ID)
 	if err != nil {
 		return components.NIC{}, fmt.Errorf("error getting NIC: %w", err)
 	}
@@ -71,18 +68,14 @@ func GetNIC(nameOrID string) (components.NIC, error) {
 	returnNIC.RateOut = strings.Replace(returnNIC.RateOut, "B", "b", 1) + "ps"
 
 	if nicInfo.Uplink != "" {
-		rpc.ResetConnTimeout()
-
-		returnNIC.Uplink, err = GetSwitch(nicInfo.Uplink)
+		returnNIC.Uplink, err = GetSwitch(ctx, nicInfo.Uplink)
 		if err != nil {
 			return components.NIC{}, fmt.Errorf("error getting NIC: %w", err)
 		}
 	}
 
 	if nicInfo.VMName != "" {
-		rpc.ResetConnTimeout()
-
-		returnNIC.VM, err = GetVM(nicInfo.VMName)
+		returnNIC.VM, err = GetVM(ctx, nicInfo.VMName)
 		if err != nil {
 			return components.NIC{}, fmt.Errorf("error getting Disk: %w", err)
 		}
@@ -91,16 +84,14 @@ func GetNIC(nameOrID string) (components.NIC, error) {
 	return returnNIC, nil
 }
 
-func DeleteNic(nameOrID string) error {
+func DeleteNic(ctx context.Context, nameOrID string) error {
 	var err error
 
 	var nicID string
 
 	parsedUUID, err := uuid.Parse(nameOrID)
 	if err != nil {
-		rpc.ResetConnTimeout()
-
-		nicID, err = rpc.NicNameToID(nameOrID)
+		nicID, err = rpc.NicNameToID(ctx, nameOrID)
 		if err != nil {
 			return fmt.Errorf("error getting NIC: %w", err)
 		}
@@ -108,9 +99,7 @@ func DeleteNic(nameOrID string) error {
 		nicID = parsedUUID.String()
 	}
 
-	rpc.ResetConnTimeout()
-
-	err = rpc.RmNic(nicID)
+	err = rpc.RmNic(ctx, nicID)
 	if err != nil {
 		return fmt.Errorf("failed removing NIC: %w", err)
 	}
@@ -125,7 +114,7 @@ func (d NICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 	case http.MethodDelete:
 		nameOrID := request.PathValue("nameOrID")
 
-		err = DeleteNic(nameOrID)
+		err = DeleteNic(request.Context(), nameOrID)
 		if err != nil {
 			writer.Header().Set("HX-Redirect", "/net/nic/"+nameOrID)
 			writer.WriteHeader(http.StatusInternalServerError)
@@ -142,7 +131,7 @@ func (d NICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 
 		var NICs []components.NIC
 
-		NICs, err = d.GetNICs()
+		NICs, err = d.GetNICs(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -154,7 +143,7 @@ func (d NICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 		if nameOrID != "" {
 			var aNIC components.NIC
 
-			aNIC, err = d.GetNIC(nameOrID)
+			aNIC, err = d.GetNIC(request.Context(), nameOrID)
 			if err != nil {
 				util.LogError(err, request.RemoteAddr)
 
@@ -163,12 +152,12 @@ func (d NICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 				return
 			}
 
-			templ.Handler(components.NICLayout(NICs, aNIC)).ServeHTTP(writer, request)
+			templ.Handler(components.NICLayout(NICs, aNIC)).ServeHTTP(writer, request) //nolint:contextcheck
 
 			return
 		}
 
-		templ.Handler(components.NewNICLayout(NICs)).ServeHTTP(writer, request)
+		templ.Handler(components.NewNICLayout(NICs)).ServeHTTP(writer, request) //nolint:contextcheck
 	case http.MethodPost:
 		err = request.ParseForm()
 		if err != nil {
@@ -191,9 +180,7 @@ func (d NICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 			return
 		}
 
-		rpc.ResetConnTimeout()
-
-		_, err = rpc.AddNic(
+		_, err = rpc.AddNic(request.Context(),
 			nicName[0], "", nicMac[0], nicType[0], nicDevType[0],
 			false, 0, 0, "",
 		)
@@ -209,12 +196,8 @@ func (d NICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 	}
 }
 
-func DisconnectNICUplink(aNIC components.NIC) error {
-	var err error
-
-	rpc.ResetConnTimeout()
-
-	err = rpc.SetVMNicSwitch(aNIC.ID, "")
+func DisconnectNICUplink(ctx context.Context, aNIC components.NIC) error {
+	err := rpc.SetVMNicSwitch(ctx, aNIC.ID, "")
 	if err != nil {
 		return fmt.Errorf("error setting nic uplink: %w", err)
 	}
@@ -228,10 +211,10 @@ func NewNICUplinkHandler() NICUplinkHandler {
 	return NICUplinkHandler{}
 }
 
-func NICAddUplink(nic components.NIC, switchName string) error {
+func NICAddUplink(ctx context.Context, nic components.NIC, switchName string) error {
 	var err error
 
-	switchID, err := rpc.SwitchNameToID(switchName)
+	switchID, err := rpc.SwitchNameToID(ctx, switchName)
 	if err != nil {
 		return fmt.Errorf("error getting switch id: %w", err)
 	}
@@ -240,7 +223,7 @@ func NICAddUplink(nic components.NIC, switchName string) error {
 		return ErrEmptySwitch
 	}
 
-	err = rpc.SetVMNicSwitch(nic.ID, switchID)
+	err = rpc.SetVMNicSwitch(ctx, nic.ID, switchID)
 	if err != nil {
 		return fmt.Errorf("error setting nic uplink: %w", err)
 	}
@@ -251,7 +234,7 @@ func NICAddUplink(nic components.NIC, switchName string) error {
 func (n NICUplinkHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	nameOrID := request.PathValue("nameOrID")
 
-	aNIC, err := GetNIC(nameOrID)
+	aNIC, err := GetNIC(request.Context(), nameOrID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -262,7 +245,7 @@ func (n NICUplinkHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 
 	switch request.Method {
 	case http.MethodDelete:
-		err = DisconnectNICUplink(aNIC)
+		err = DisconnectNICUplink(request.Context(), aNIC)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 		}
@@ -274,7 +257,7 @@ func (n NICUplinkHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 	case http.MethodGet:
 		var NICs []components.NIC
 
-		NICs, err = GetNICs()
+		NICs, err = GetNICs(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -283,11 +266,9 @@ func (n NICUplinkHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 			return
 		}
 
-		rpc.ResetConnTimeout()
-
 		var switches []components.Switch
 
-		switches, err = GetSwitches()
+		switches, err = GetSwitches(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 			serveErrorVM(writer, request, err)
@@ -295,7 +276,7 @@ func (n NICUplinkHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 			return
 		}
 
-		templ.Handler(components.NICSwitchAdd(nameOrID, NICs, switches)).ServeHTTP(writer, request)
+		templ.Handler(components.NICSwitchAdd(nameOrID, NICs, switches)).ServeHTTP(writer, request) //nolint:contextcheck
 	case http.MethodPost:
 		err = request.ParseForm()
 		if err != nil {
@@ -319,7 +300,7 @@ func (n NICUplinkHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 
 		switchName = switchAdded[0]
 
-		err = NICAddUplink(aNIC, switchName)
+		err = NICAddUplink(request.Context(), aNIC, switchName)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 

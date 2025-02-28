@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -11,7 +12,7 @@ import (
 	"cirrina/cirrina"
 )
 
-func AddVM(name string, descrPtr *string, cpuPtr *uint32, memPtr *uint32) (string, error) {
+func AddVM(ctx context.Context, name string, descrPtr *string, cpuPtr *uint32, memPtr *uint32) (string, error) {
 	var err error
 
 	if name == "" {
@@ -36,7 +37,7 @@ func AddVM(name string, descrPtr *string, cpuPtr *uint32, memPtr *uint32) (strin
 
 	var res *cirrina.VMID
 
-	res, err = serverClient.AddVM(defaultServerContext, VMConfig)
+	res, err = serverClient.AddVM(ctx, VMConfig)
 	if err != nil {
 		return "", fmt.Errorf("unable to add VM: %w", err)
 	}
@@ -44,7 +45,7 @@ func AddVM(name string, descrPtr *string, cpuPtr *uint32, memPtr *uint32) (strin
 	return res.GetValue(), nil
 }
 
-func DeleteVM(vmID string) (string, error) {
+func DeleteVM(ctx context.Context, vmID string) (string, error) {
 	var err error
 
 	if vmID == "" {
@@ -53,7 +54,7 @@ func DeleteVM(vmID string) (string, error) {
 
 	var reqID *cirrina.RequestID
 
-	reqID, err = serverClient.DeleteVM(defaultServerContext, &cirrina.VMID{Value: vmID})
+	reqID, err = serverClient.DeleteVM(ctx, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return "", fmt.Errorf("unable to delete VM: %w", err)
 	}
@@ -61,7 +62,7 @@ func DeleteVM(vmID string) (string, error) {
 	return reqID.GetValue(), nil
 }
 
-func StopVM(vmID string) (string, error) {
+func StopVM(ctx context.Context, vmID string) (string, error) {
 	var err error
 
 	if vmID == "" {
@@ -70,7 +71,7 @@ func StopVM(vmID string) (string, error) {
 
 	var reqID *cirrina.RequestID
 
-	reqID, err = serverClient.StopVM(defaultServerContext, &cirrina.VMID{Value: vmID})
+	reqID, err = serverClient.StopVM(ctx, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return "", fmt.Errorf("unable to stop VM: %w", err)
 	}
@@ -78,7 +79,7 @@ func StopVM(vmID string) (string, error) {
 	return reqID.GetValue(), nil
 }
 
-func StartVM(vmID string) (string, error) {
+func StartVM(ctx context.Context, vmID string) (string, error) {
 	var err error
 
 	if vmID == "" {
@@ -87,7 +88,7 @@ func StartVM(vmID string) (string, error) {
 
 	var reqID *cirrina.RequestID
 
-	reqID, err = serverClient.StartVM(defaultServerContext, &cirrina.VMID{Value: vmID})
+	reqID, err = serverClient.StartVM(ctx, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return "", fmt.Errorf("unable to start VM: %w", err)
 	}
@@ -95,7 +96,7 @@ func StartVM(vmID string) (string, error) {
 	return reqID.GetValue(), nil
 }
 
-func GetVMName(vmID string) (string, error) {
+func GetVMName(ctx context.Context, vmID string) (string, error) {
 	var err error
 
 	if vmID == "" {
@@ -104,7 +105,7 @@ func GetVMName(vmID string) (string, error) {
 
 	var res *wrapperspb.StringValue
 
-	res, err = serverClient.GetVMName(defaultServerContext, &cirrina.VMID{Value: vmID})
+	res, err = serverClient.GetVMName(ctx, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return "", fmt.Errorf("unable to get VM name: %w", err)
 	}
@@ -112,7 +113,7 @@ func GetVMName(vmID string) (string, error) {
 	return res.GetValue(), nil
 }
 
-func GetVMId(name string) (string, error) {
+func GetVMId(ctx context.Context, name string) (string, error) {
 	var err error
 
 	if name == "" {
@@ -121,7 +122,7 @@ func GetVMId(name string) (string, error) {
 
 	var res *cirrina.VMID
 
-	res, err = serverClient.GetVMID(defaultServerContext, wrapperspb.String(name))
+	res, err = serverClient.GetVMID(ctx, wrapperspb.String(name))
 	if err != nil {
 		return "", fmt.Errorf("unable to get VM ID: %w", err)
 	}
@@ -129,7 +130,7 @@ func GetVMId(name string) (string, error) {
 	return res.GetValue(), nil
 }
 
-func GetVMConfig(vmID string) (VMConfig, error) {
+func GetVMConfig(ctx context.Context, vmID string) (VMConfig, error) {
 	var err error
 
 	if vmID == "" {
@@ -138,7 +139,7 @@ func GetVMConfig(vmID string) (VMConfig, error) {
 
 	var res *cirrina.VMConfig
 
-	res, err = serverClient.GetVMConfig(defaultServerContext, &cirrina.VMID{Value: vmID})
+	res, err = serverClient.GetVMConfig(ctx, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return VMConfig{}, fmt.Errorf("unable to get VM config: %w", err)
 	}
@@ -160,14 +161,14 @@ func GetVMConfig(vmID string) (VMConfig, error) {
 	return retVMConfig, nil
 }
 
-func GetVMIds() ([]string, error) {
+func GetVMIds(ctx context.Context) ([]string, error) {
 	var err error
 
 	var ids []string
 
 	var res cirrina.VMInfo_GetVMsClient
 
-	res, err = serverClient.GetVMs(defaultServerContext, &cirrina.VMsQuery{})
+	res, err = serverClient.GetVMs(ctx, &cirrina.VMsQuery{})
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get VM IDs: %w", err)
 	}
@@ -190,7 +191,7 @@ func GetVMIds() ([]string, error) {
 	return ids, nil
 }
 
-func GetVMState(vmID string) (string, string, string, error) {
+func GetVMState(ctx context.Context, vmID string) (string, string, string, error) {
 	var err error
 
 	if vmID == "" {
@@ -199,7 +200,7 @@ func GetVMState(vmID string) (string, string, string, error) {
 
 	var res *cirrina.VMState
 
-	res, err = serverClient.GetVMState(defaultServerContext, &cirrina.VMID{Value: vmID})
+	res, err = serverClient.GetVMState(ctx, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return "", "", "", fmt.Errorf("unable to get VM state: %w", err)
 	}
@@ -220,8 +221,8 @@ func GetVMState(vmID string) (string, string, string, error) {
 	return vmstate, strconv.FormatInt(int64(res.GetVncPort()), 10), strconv.FormatInt(int64(res.GetDebugPort()), 10), nil
 }
 
-func VMRunning(vmID string) (bool, error) {
-	r, _, _, err := GetVMState(vmID)
+func VMRunning(ctx context.Context, vmID string) (bool, error) {
+	r, _, _, err := GetVMState(ctx, vmID)
 	if err != nil {
 		return false, err
 	}
@@ -233,8 +234,8 @@ func VMRunning(vmID string) (bool, error) {
 	return false, nil
 }
 
-func VMStopped(vmID string) (bool, error) {
-	r, _, _, err := GetVMState(vmID)
+func VMStopped(ctx context.Context, vmID string) (bool, error) {
+	r, _, _, err := GetVMState(ctx, vmID)
 	if err != nil {
 		return false, err
 	}
@@ -246,12 +247,12 @@ func VMStopped(vmID string) (bool, error) {
 	return false, nil
 }
 
-func VMNameToID(name string) (string, error) {
+func VMNameToID(ctx context.Context, name string) (string, error) {
 	if name == "" {
 		return "", errVMEmptyName
 	}
 
-	res, err := GetVMId(name)
+	res, err := GetVMId(ctx, name)
 	if err != nil {
 		return "", err
 	}
@@ -263,12 +264,12 @@ func VMNameToID(name string) (string, error) {
 	return res, nil
 }
 
-func VMIdToName(vmID string) (string, error) {
+func VMIdToName(ctx context.Context, vmID string) (string, error) {
 	if vmID == "" {
 		return "", errVMEmptyID
 	}
 
-	res, err := GetVMName(vmID)
+	res, err := GetVMName(ctx, vmID)
 	if err != nil {
 		return "", err
 	}
@@ -280,10 +281,10 @@ func VMIdToName(vmID string) (string, error) {
 	return res, nil
 }
 
-func UpdateVMConfig(myNewConfig *cirrina.VMConfig) error {
+func UpdateVMConfig(ctx context.Context, myNewConfig *cirrina.VMConfig) error {
 	var err error
 
-	_, err = serverClient.UpdateVM(defaultServerContext, myNewConfig)
+	_, err = serverClient.UpdateVM(ctx, myNewConfig)
 	if err != nil {
 		return fmt.Errorf("unable to update VM: %w", err)
 	}
@@ -291,12 +292,12 @@ func UpdateVMConfig(myNewConfig *cirrina.VMConfig) error {
 	return nil
 }
 
-func VMClearUefiVars(vmID string) (bool, error) {
+func VMClearUefiVars(ctx context.Context, vmID string) (bool, error) {
 	var err error
 
 	var res *cirrina.ReqBool
 
-	res, err = serverClient.ClearUEFIState(defaultServerContext, &cirrina.VMID{Value: vmID})
+	res, err = serverClient.ClearUEFIState(ctx, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return false, fmt.Errorf("unable to clear UEFI state vars: %w", err)
 	}

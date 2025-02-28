@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"crypto/sha512"
 	"encoding/hex"
 	"errors"
@@ -42,7 +43,10 @@ var DiskListCmd = &cobra.Command{
 	Short:        "list disks",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
-		res, err := rpc.GetDisks()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
+		res, err := rpc.GetDisks(ctx)
 		if err != nil {
 			return fmt.Errorf("failed getting disk list: %w", err)
 		}
@@ -58,19 +62,20 @@ var DiskListCmd = &cobra.Command{
 
 		diskInfos := make(map[string]diskListInfo)
 		for _, diskID := range res {
-			diskInfo, err := rpc.GetDiskInfo(diskID)
+
+			diskInfo, err := rpc.GetDiskInfo(ctx, diskID)
 			if err != nil {
 				return fmt.Errorf("failed getting disk info for disk %s: %w", diskID, err)
 			}
 
 			var vmID string
-			vmID, err = rpc.DiskGetVMID(diskID)
+			vmID, err = rpc.DiskGetVMID(ctx, diskID)
 			if err != nil {
 				return fmt.Errorf("failed getting vm info for disk %s: %w", diskID, err)
 			}
 			var vmName string
 			if vmID != "" {
-				vmName, err = rpc.VMIdToName(vmID)
+				vmName, err = rpc.VMIdToName(ctx, vmID)
 				if err != nil {
 					vmName = ""
 				}
@@ -87,7 +92,7 @@ var DiskListCmd = &cobra.Command{
 
 				var diskUsage string
 
-				diskSizeUsage, err := rpc.GetDiskSizeUsage(diskID)
+				diskSizeUsage, err := rpc.GetDiskSizeUsage(ctx, diskID)
 				if err != nil {
 					return fmt.Errorf("failed getting disk info: %w", err)
 				}
@@ -209,7 +214,10 @@ var DiskCreateCmd = &cobra.Command{
 		if DiskName == "" {
 			return errDiskEmptyName
 		}
-		res, err := rpc.AddDisk(DiskName, DiskDescription, DiskSize, DiskType, DiskDevType, DiskCache, DiskDirect)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+		res, err := rpc.AddDisk(ctx, DiskName, DiskDescription, DiskSize, DiskType, DiskDevType,
+			DiskCache, DiskDirect)
 		if err != nil {
 			return fmt.Errorf("failed adding disk %s: %w", DiskName, err)
 		}
@@ -225,8 +233,11 @@ var DiskDeleteCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if DiskID == "" {
-			DiskID, err = rpc.DiskNameToID(DiskName)
+			DiskID, err = rpc.DiskNameToID(ctx, DiskName)
 			if err != nil {
 				return fmt.Errorf("failed getting disk ID: %w", err)
 			}
@@ -234,7 +245,7 @@ var DiskDeleteCmd = &cobra.Command{
 				return errDiskNotFound
 			}
 		}
-		err = rpc.RmDisk(DiskID)
+		err = rpc.RmDisk(ctx, DiskID)
 		if err != nil {
 			return fmt.Errorf("failed removing disk: %w", err)
 		}
@@ -263,8 +274,11 @@ var DiskUpdateCmd = &cobra.Command{
 		var newDirect *bool
 		var newCache *bool
 
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if DiskID == "" {
-			DiskID, err = rpc.DiskNameToID(DiskName)
+			DiskID, err = rpc.DiskNameToID(ctx, DiskName)
 			if err != nil {
 				return fmt.Errorf("failed getting disk ID: %w", err)
 			}
@@ -291,7 +305,7 @@ var DiskUpdateCmd = &cobra.Command{
 
 		// TODO size
 
-		err = rpc.UpdateDisk(DiskID, newDescr, newType, newDirect, newCache)
+		err = rpc.UpdateDisk(ctx, DiskID, newDescr, newType, newDirect, newCache)
 		if err != nil {
 			return fmt.Errorf("failed updating disk: %w", err)
 		}
@@ -307,8 +321,12 @@ var DiskWipeCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if DiskID == "" {
-			DiskID, err = rpc.DiskNameToID(DiskName)
+			DiskID, err = rpc.DiskNameToID(ctx, DiskName)
 			if err != nil {
 				return fmt.Errorf("failed getting disk ID: %w", err)
 			}
@@ -320,7 +338,7 @@ var DiskWipeCmd = &cobra.Command{
 		var reqID string
 		var reqStat rpc.ReqStatus
 
-		reqID, err = rpc.WipeDisk(DiskID)
+		reqID, err = rpc.WipeDisk(ctx, DiskID)
 		if err != nil {
 			return fmt.Errorf("failed wiping disk: %w", err)
 		}
@@ -333,7 +351,7 @@ var DiskWipeCmd = &cobra.Command{
 
 		fmt.Printf("Wiping Disk: ")
 		for {
-			reqStat, err = rpc.ReqStat(reqID)
+			reqStat, err = rpc.ReqStat(ctx, reqID)
 			if err != nil {
 				return fmt.Errorf("failed checking request status: %w", err)
 			}
@@ -345,7 +363,6 @@ var DiskWipeCmd = &cobra.Command{
 			}
 			fmt.Printf(".")
 			time.Sleep(time.Second)
-			rpc.ResetConnTimeout()
 		}
 		fmt.Printf("\n")
 
@@ -614,16 +631,20 @@ var DiskUploadCmd = &cobra.Command{
 		var diskVMID string
 		var diskVMStatus string
 
-		err = hostPing()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
+		err = hostPing(ctx)
 		if err != nil {
 			return fmt.Errorf("failed uploading disk: %w", err)
 		}
 
 		if DiskID == "" {
-			DiskID, err = rpc.DiskNameToID(DiskName)
+			DiskID, err = rpc.DiskNameToID(ctx, DiskName)
 			if err != nil {
 				if errors.Is(err, rpc.ErrNotFound) {
-					DiskID, err = rpc.AddDisk(DiskName, DiskDescription, DiskSize, DiskType, DiskDevType, DiskCache, DiskDirect)
+					DiskID, err = rpc.AddDisk(context.Background(), DiskName, DiskDescription, DiskSize, DiskType,
+						DiskDevType, DiskCache, DiskDirect)
 					if err != nil {
 						return fmt.Errorf("failed creating disk: %w", err)
 					}
@@ -633,12 +654,12 @@ var DiskUploadCmd = &cobra.Command{
 			}
 		}
 
-		diskVMID, err = rpc.DiskGetVMID(DiskID)
+		diskVMID, err = rpc.DiskGetVMID(ctx, DiskID)
 		if err != nil {
 			return fmt.Errorf("failed checking disk status: %w", err)
 		}
 		if diskVMID != "" {
-			diskVMStatus, _, _, err = rpc.GetVMState(diskVMID)
+			diskVMStatus, _, _, err = rpc.GetVMState(ctx, diskVMID)
 			if err != nil {
 				return fmt.Errorf("failed checking status of VM which uses disk: %w", err)
 			}

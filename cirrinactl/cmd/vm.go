@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -183,8 +184,11 @@ var VMCreateCmd = &cobra.Command{
 			lMem = &Mem
 		}
 
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		// FIXME -- check request status
-		_, err := rpc.AddVM(VMName, lDesc, lCpus, lMem)
+		_, err := rpc.AddVM(ctx, VMName, lDesc, lCpus, lMem)
 		if err != nil {
 			return fmt.Errorf("error adding VM: %w", err)
 		}
@@ -200,7 +204,10 @@ var VMListCmd = &cobra.Command{
 	Long:         `List all VMs on specified server and their state`,
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
-		VMIDs, err := rpc.GetVMIds()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
+		VMIDs, err := rpc.GetVMIds(ctx)
 		if err != nil {
 			return fmt.Errorf("error getting VM IDs: %w", err)
 		}
@@ -216,13 +223,13 @@ var VMListCmd = &cobra.Command{
 
 		vmInfos := make(map[string]vmListInfo)
 		for _, VMID := range VMIDs {
-			vmConfig, err := rpc.GetVMConfig(VMID)
+			vmConfig, err := rpc.GetVMConfig(ctx, VMID)
 			if err != nil {
 				return fmt.Errorf("error getting VM config: %w", err)
 			}
 
 			var status string
-			status, _, _, err = rpc.GetVMState(VMID)
+			status, _, _, err = rpc.GetVMState(ctx, VMID)
 			if err != nil {
 				return fmt.Errorf("error getting VM state: %w", err)
 			}
@@ -305,8 +312,12 @@ var VMDeleteCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if VMID == "" {
-			VMID, err = rpc.VMNameToID(VMName)
+			VMID, err = rpc.VMNameToID(ctx, VMName)
 			if err != nil {
 				return fmt.Errorf("error getting VM ID: %w", err)
 			}
@@ -316,7 +327,7 @@ var VMDeleteCmd = &cobra.Command{
 		}
 
 		var stopped bool
-		stopped, err = rpc.VMStopped(VMID)
+		stopped, err = rpc.VMStopped(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed checking VM state: %w", err)
 		}
@@ -325,7 +336,7 @@ var VMDeleteCmd = &cobra.Command{
 		}
 
 		// FIXME check request ID completion and status
-		_, err = rpc.DeleteVM(VMID)
+		_, err = rpc.DeleteVM(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed deleting VM: %w", err)
 		}
@@ -341,8 +352,12 @@ var VMStopCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if VMID == "" {
-			VMID, err = rpc.VMNameToID(VMName)
+			VMID, err = rpc.VMNameToID(ctx, VMName)
 			if err != nil {
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
@@ -351,7 +366,7 @@ var VMStopCmd = &cobra.Command{
 			}
 		}
 		var running bool
-		running, err = rpc.VMRunning(VMID)
+		running, err = rpc.VMRunning(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed checking VM state: %w", err)
 		}
@@ -360,7 +375,7 @@ var VMStopCmd = &cobra.Command{
 		}
 
 		var vmConfig rpc.VMConfig
-		vmConfig, err = rpc.GetVMConfig(VMID)
+		vmConfig, err = rpc.GetVMConfig(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting VM config: %w", err)
 		}
@@ -370,7 +385,7 @@ var VMStopCmd = &cobra.Command{
 
 		var reqID string
 		var reqStat rpc.ReqStatus
-		reqID, err = rpc.StopVM(VMID)
+		reqID, err = rpc.StopVM(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed stopping VM: %w", err)
 		}
@@ -383,7 +398,7 @@ var VMStopCmd = &cobra.Command{
 
 		fmt.Printf("VM Stopping (timeout: %ds): ", vmConfig.MaxWait)
 		for time.Now().Before(timeout) {
-			reqStat, err = rpc.ReqStat(reqID)
+			reqStat, err = rpc.ReqStat(ctx, reqID)
 			if err != nil {
 				return fmt.Errorf("failed checking request status: %w", err)
 			}
@@ -395,7 +410,6 @@ var VMStopCmd = &cobra.Command{
 			}
 			fmt.Printf(".")
 			time.Sleep(time.Second)
-			rpc.ResetConnTimeout()
 		}
 		fmt.Printf("\n")
 
@@ -410,8 +424,11 @@ var VMStartCmd = &cobra.Command{
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if VMID == "" {
-			VMID, err = rpc.VMNameToID(VMName)
+			VMID, err = rpc.VMNameToID(ctx, VMName)
 			if err != nil {
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
@@ -421,7 +438,7 @@ var VMStartCmd = &cobra.Command{
 		}
 
 		var stopped bool
-		stopped, err = rpc.VMStopped(VMID)
+		stopped, err = rpc.VMStopped(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed checking VM status: %w", err)
 		}
@@ -431,7 +448,7 @@ var VMStartCmd = &cobra.Command{
 
 		// borrow the max stop time as a timeout for waiting on startup
 		var vmConfig rpc.VMConfig
-		vmConfig, err = rpc.GetVMConfig(VMID)
+		vmConfig, err = rpc.GetVMConfig(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting VM config: %w", err)
 		}
@@ -442,7 +459,7 @@ var VMStartCmd = &cobra.Command{
 		var reqID string
 		var reqStat rpc.ReqStatus
 
-		reqID, err = rpc.StartVM(VMID)
+		reqID, err = rpc.StartVM(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed starting VM: %w", err)
 		}
@@ -455,7 +472,7 @@ var VMStartCmd = &cobra.Command{
 
 		fmt.Printf("VM Starting (timeout: %ds): ", vmConfig.MaxWait)
 		for time.Now().Before(timeout) {
-			reqStat, err = rpc.ReqStat(reqID)
+			reqStat, err = rpc.ReqStat(ctx, reqID)
 			if err != nil {
 				return fmt.Errorf("failed checking request status: %w", err)
 			}
@@ -467,7 +484,6 @@ var VMStartCmd = &cobra.Command{
 			}
 			fmt.Printf(".")
 			time.Sleep(time.Second)
-			rpc.ResetConnTimeout()
 		}
 		fmt.Printf("\n")
 
@@ -541,8 +557,11 @@ var VMConfigCmd = &cobra.Command{
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if VMID == "" {
-			VMID, err = rpc.VMNameToID(VMName)
+			VMID, err = rpc.VMNameToID(ctx, VMName)
 			if err != nil {
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
@@ -791,7 +810,7 @@ var VMConfigCmd = &cobra.Command{
 			newConfig.ExtraArgs = &ExtraArgs
 		}
 
-		err = rpc.UpdateVMConfig(&newConfig)
+		err = rpc.UpdateVMConfig(ctx, &newConfig)
 		if err != nil {
 			return fmt.Errorf("failed updating vm config: %w", err)
 		}
@@ -877,8 +896,11 @@ var VMGetCmd = &cobra.Command{
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if VMID == "" {
-			VMID, err = rpc.VMNameToID(VMName)
+			VMID, err = rpc.VMNameToID(ctx, VMName)
 			if err != nil {
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
@@ -886,8 +908,9 @@ var VMGetCmd = &cobra.Command{
 				return errVMNotFound
 			}
 		}
+
 		var vmConfig rpc.VMConfig
-		vmConfig, err = rpc.GetVMConfig(VMID)
+		vmConfig, err = rpc.GetVMConfig(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting VM config: %w", err)
 		}
@@ -895,7 +918,7 @@ var VMGetCmd = &cobra.Command{
 		var vmState string
 		var vncPort string
 		var debugPort string
-		vmState, vncPort, debugPort, err = rpc.GetVMState(VMID)
+		vmState, vncPort, debugPort, err = rpc.GetVMState(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting VM state: %w", err)
 		}
@@ -1007,8 +1030,11 @@ var VMClearUefiVarsCmd = &cobra.Command{
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if VMID == "" {
-			VMID, err = rpc.VMNameToID(VMName)
+			VMID, err = rpc.VMNameToID(ctx, VMName)
 			if err != nil {
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
@@ -1017,7 +1043,7 @@ var VMClearUefiVarsCmd = &cobra.Command{
 			}
 		}
 		var res bool
-		res, err = rpc.VMClearUefiVars(VMID)
+		res, err = rpc.VMClearUefiVars(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed clearning UEFI vars: %w", err)
 		}

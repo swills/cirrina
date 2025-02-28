@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -10,12 +11,12 @@ import (
 	"cirrina/cirrina"
 )
 
-func GetVMNics(id string) ([]string, error) {
+func GetVMNics(ctx context.Context, id string) ([]string, error) {
 	var err error
 
 	var res cirrina.VMInfo_GetVMNicsClient
 
-	res, err = serverClient.GetVMNics(defaultServerContext, &cirrina.VMID{Value: id})
+	res, err = serverClient.GetVMNics(ctx, &cirrina.VMID{Value: id})
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get VM nics: %w", err)
 	}
@@ -40,7 +41,7 @@ func GetVMNics(id string) ([]string, error) {
 	return vmNics, nil
 }
 
-func VMSetNics(id string, nicIDs []string) (bool, error) {
+func VMSetNics(ctx context.Context, id string, nicIDs []string) (bool, error) {
 	var err error
 
 	setNicReq := cirrina.SetNicReq{
@@ -50,7 +51,7 @@ func VMSetNics(id string, nicIDs []string) (bool, error) {
 
 	var res *cirrina.ReqBool
 
-	res, err = serverClient.SetVMNics(defaultServerContext, &setNicReq)
+	res, err = serverClient.SetVMNics(ctx, &setNicReq)
 	if err != nil {
 		return false, fmt.Errorf("unable to set VM nics: %w", err)
 	}
@@ -58,7 +59,7 @@ func VMSetNics(id string, nicIDs []string) (bool, error) {
 	return res.GetSuccess(), nil
 }
 
-func GetVMNicName(nicID string) (string, error) {
+func GetVMNicName(ctx context.Context, nicID string) (string, error) {
 	var err error
 
 	if nicID == "" {
@@ -67,7 +68,7 @@ func GetVMNicName(nicID string) (string, error) {
 
 	var res *wrapperspb.StringValue
 
-	res, err = serverClient.GetVMNicName(defaultServerContext, &cirrina.VmNicId{Value: nicID})
+	res, err = serverClient.GetVMNicName(ctx, &cirrina.VmNicId{Value: nicID})
 	if err != nil {
 		return "", fmt.Errorf("unable to get VM name: %w", err)
 	}
@@ -75,7 +76,7 @@ func GetVMNicName(nicID string) (string, error) {
 	return res.GetValue(), nil
 }
 
-func GetVMNicID(name string) (string, error) {
+func GetVMNicID(ctx context.Context, name string) (string, error) {
 	var err error
 
 	if name == "" {
@@ -84,7 +85,7 @@ func GetVMNicID(name string) (string, error) {
 
 	var res *cirrina.VmNicId
 
-	res, err = serverClient.GetVMNicID(defaultServerContext, wrapperspb.String(name))
+	res, err = serverClient.GetVMNicID(ctx, wrapperspb.String(name))
 	if err != nil {
 		return "", fmt.Errorf("unable to get NIC ID: %w", err)
 	}

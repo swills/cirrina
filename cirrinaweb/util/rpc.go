@@ -10,7 +10,7 @@ import (
 var (
 	serverName           = "localhost"
 	serverPort    uint16 = 50051
-	serverTimeout uint64 = 5
+	serverTimeout int64  = 5
 )
 
 func InitRPCConn() error {
@@ -19,7 +19,6 @@ func InitRPCConn() error {
 	rpc.ServerName = serverName
 	rpc.ServerPort = serverPort
 	rpc.ServerTimeout = serverTimeout
-	rpc.ResetConnTimeout()
 
 	err = rpc.GetConn()
 	if err != nil {
@@ -46,9 +45,9 @@ func InitRPC(serverNameI string, serverPortI string, serverTimeoutI string) {
 	}
 
 	if serverTimeoutI != "" {
-		var serverTimeoutTemp uint64
+		var serverTimeoutTemp int64
 
-		serverTimeoutTemp, err = strconv.ParseUint(serverTimeoutI, 10, 64)
+		serverTimeoutTemp, err = strconv.ParseInt(serverTimeoutI, 10, 64)
 		if err == nil {
 			serverTimeout = serverTimeoutTemp
 		}

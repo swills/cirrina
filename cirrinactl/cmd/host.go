@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -13,7 +15,10 @@ var HostNicsCmd = &cobra.Command{
 	Short:        "Get list of host nics",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
-		res, err := rpc.GetHostNics()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
+		res, err := rpc.GetHostNics(ctx)
 		if err != nil {
 			return fmt.Errorf("failed getting host nics: %w", err)
 		}
@@ -32,12 +37,16 @@ var HostVersionCmd = &cobra.Command{
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 		var res string
-		err = hostPing()
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
+		err = hostPing(ctx)
 		if err != nil {
 			return fmt.Errorf("failed getting host version: %w", err)
 		}
 
-		res, err = rpc.GetHostVersion()
+		res, err = rpc.GetHostVersion(ctx)
 		if err != nil {
 			return fmt.Errorf("failed getting host version: %w", err)
 		}
@@ -52,8 +61,8 @@ var HostCmd = &cobra.Command{
 	Short: "Commands related to VM server host",
 }
 
-func hostPing() error {
-	_, err := rpc.GetHostVersion()
+func hostPing(ctx context.Context) error {
+	_, err := rpc.GetHostVersion(ctx)
 	if err != nil {
 		return fmt.Errorf("host not available: %w", err)
 	}

@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sort"
+	"time"
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
@@ -33,7 +35,10 @@ var SwitchListCmd = &cobra.Command{
 	Short:        "list virtual switches",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
-		switchIDs, err := rpc.GetSwitches()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
+		switchIDs, err := rpc.GetSwitches(ctx)
 		if err != nil {
 			return fmt.Errorf("error getting switches: %w", err)
 		}
@@ -46,7 +51,7 @@ var SwitchListCmd = &cobra.Command{
 
 		switchInfos := make(map[string]switchListInfo)
 		for _, switchID := range switchIDs {
-			res, err := rpc.GetSwitch(switchID)
+			res, err := rpc.GetSwitch(ctx, switchID)
 			if err != nil {
 				return fmt.Errorf("error getting switch: %w", err)
 			}
@@ -103,7 +108,11 @@ var SwitchCreateCmd = &cobra.Command{
 		if SwitchName == "" {
 			return errSwitchEmptyName
 		}
-		res, err := rpc.AddSwitch(SwitchName, &SwitchDescription, &SwitchType, &SwitchUplinkName)
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
+		res, err := rpc.AddSwitch(ctx, SwitchName, &SwitchDescription, &SwitchType, &SwitchUplinkName)
 		if err != nil {
 			return fmt.Errorf("error adding switch: %w", err)
 		}
@@ -119,8 +128,12 @@ var SwitchDeleteCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if SwitchID == "" {
-			SwitchID, err = rpc.SwitchNameToID(SwitchName)
+			SwitchID, err = rpc.SwitchNameToID(ctx, SwitchName)
 			if err != nil {
 				return fmt.Errorf("error getting switch ID: %w", err)
 			}
@@ -129,7 +142,7 @@ var SwitchDeleteCmd = &cobra.Command{
 			}
 		}
 
-		err = rpc.DeleteSwitch(SwitchID)
+		err = rpc.DeleteSwitch(ctx, SwitchID)
 		if err != nil {
 			s := status.Convert(err)
 			for _, d := range s.Details() {
@@ -165,8 +178,12 @@ var SwitchUplinkCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if SwitchID == "" {
-			SwitchID, err = rpc.SwitchNameToID(SwitchName)
+			SwitchID, err = rpc.SwitchNameToID(ctx, SwitchName)
 			if err != nil {
 				return fmt.Errorf("error getting switch id: %w", err)
 			}
@@ -174,7 +191,7 @@ var SwitchUplinkCmd = &cobra.Command{
 				return errSwitchNotFound
 			}
 		}
-		err = rpc.SetSwitchUplink(SwitchID, &SwitchUplinkName)
+		err = rpc.SetSwitchUplink(ctx, SwitchID, &SwitchUplinkName)
 		if err != nil {
 			return fmt.Errorf("error setting switch uplink: %w", err)
 		}
@@ -195,8 +212,12 @@ var SwitchUpdateCmd = &cobra.Command{
 	},
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if SwitchID == "" {
-			SwitchID, err = rpc.SwitchNameToID(SwitchName)
+			SwitchID, err = rpc.SwitchNameToID(ctx, SwitchName)
 			if err != nil {
 				return fmt.Errorf("error getting switch id: %w", err)
 			}
@@ -210,7 +231,7 @@ var SwitchUpdateCmd = &cobra.Command{
 		if SwitchDescriptionChanged {
 			newDesc = &SwitchDescription
 		}
-		err = rpc.UpdateSwitch(SwitchID, newDesc)
+		err = rpc.UpdateSwitch(ctx, SwitchID, newDesc)
 		if err != nil {
 			return fmt.Errorf("error updating switch: %w", err)
 		}

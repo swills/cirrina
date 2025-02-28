@@ -63,9 +63,6 @@ var rootCmd = &cobra.Command{
 	PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
 		return rpc.GetConn()
 	},
-	PersistentPostRun: func(_ *cobra.Command, _ []string) {
-		rpc.Finish()
-	},
 }
 
 func Execute() {
@@ -93,7 +90,7 @@ func initConfig() {
 
 	rpc.ServerName = viper.GetString("server")
 	rpc.ServerPort = viper.GetUint16("port")
-	rpc.ServerTimeout = viper.GetUint64("timeout")
+	rpc.ServerTimeout = viper.GetInt64("timeout")
 }
 
 var mainVersion = "unknown"

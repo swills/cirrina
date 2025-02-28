@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sort"
@@ -15,7 +16,7 @@ import (
 )
 
 type NICsHandler struct {
-	GetNICs func() ([]components.NIC, error)
+	GetNICs func(context.Context) ([]components.NIC, error)
 }
 
 func NewNICsHandler() NICsHandler {
@@ -24,7 +25,7 @@ func NewNICsHandler() NICsHandler {
 	}
 }
 
-func GetNICs() ([]components.NIC, error) {
+func GetNICs(ctx context.Context) ([]components.NIC, error) {
 	var err error
 
 	err = util.InitRPCConn()
@@ -32,7 +33,7 @@ func GetNICs() ([]components.NIC, error) {
 		return []components.NIC{}, fmt.Errorf("error getting NICs: %w", err)
 	}
 
-	NICIDs, err := rpc.GetVMNicsAll()
+	NICIDs, err := rpc.GetVMNicsAll(ctx)
 	if err != nil {
 		return []components.NIC{}, fmt.Errorf("error getting NICs: %w", err)
 	}
@@ -42,9 +43,7 @@ func GetNICs() ([]components.NIC, error) {
 	for _, NICID := range NICIDs {
 		var nicName string
 
-		rpc.ResetConnTimeout()
-
-		nicName, err = rpc.GetVMNicName(NICID)
+		nicName, err = rpc.GetVMNicName(ctx, NICID)
 		if err != nil {
 			return []components.NIC{}, fmt.Errorf("error getting NICs: %w", err)
 		}
@@ -60,7 +59,7 @@ func GetNICs() ([]components.NIC, error) {
 }
 
 func (v NICsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	NICs, err := v.GetNICs()
+	NICs, err := v.GetNICs(request.Context())
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -69,12 +68,12 @@ func (v NICsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request
 		return
 	}
 
-	templ.Handler(components.NICs(NICs)).ServeHTTP(writer, request)
+	templ.Handler(components.NICs(NICs)).ServeHTTP(writer, request) //nolint:contextcheck
 }
 
 func serveErrorNIC(writer http.ResponseWriter, request *http.Request, err error) {
 	// get list of NICs for the sidebar
-	nicList, getNICsErr := GetNICs()
+	nicList, getNICsErr := GetNICs(request.Context())
 	if getNICsErr != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -87,15 +86,15 @@ func serveErrorNIC(writer http.ResponseWriter, request *http.Request, err error)
 		switch e.Code() {
 		case codes.NotFound:
 			templ.Handler(
-				components.NICNotFoundComponent(nicList),
+				components.NICNotFoundComponent(nicList), //nolint:contextcheck
 				templ.WithStatus(http.StatusNotFound),
 			).ServeHTTP(writer, request)
 		case codes.OK, codes.Canceled, codes.Unknown, codes.InvalidArgument, codes.DeadlineExceeded, codes.AlreadyExists, codes.PermissionDenied, codes.ResourceExhausted, codes.FailedPrecondition, codes.Aborted, codes.OutOfRange, codes.Unimplemented, codes.Internal, codes.Unavailable, codes.DataLoss, codes.Unauthenticated: //nolint:lll
 			fallthrough
 		default:
-			templ.Handler(components.NICNotFoundComponent(nicList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll
+			templ.Handler(components.NICNotFoundComponent(nicList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll,contextcheck
 		}
 	} else {
-		templ.Handler(components.NICNotFoundComponent(nicList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll
+		templ.Handler(components.NICNotFoundComponent(nicList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll,contextcheck
 	}
 }

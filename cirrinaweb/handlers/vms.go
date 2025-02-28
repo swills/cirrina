@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sort"
@@ -13,17 +14,11 @@ import (
 )
 
 type VMsHandler struct {
-	GetVMs func() ([]components.VM, error)
-}
-
-func NewVMsHandler() VMsHandler {
-	return VMsHandler{
-		GetVMs: GetVMs,
-	}
+	GetVMs func(ctx context.Context) ([]components.VM, error)
 }
 
 func (v VMsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	VMs, err := v.GetVMs()
+	VMs, err := v.GetVMs(request.Context())
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -32,10 +27,10 @@ func (v VMsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	templ.Handler(components.Vms(VMs)).ServeHTTP(writer, request)
+	templ.Handler(components.Vms(VMs)).ServeHTTP(writer, request) //nolint:contextcheck
 }
 
-func GetVMs() ([]components.VM, error) {
+func GetVMs(ctx context.Context) ([]components.VM, error) {
 	var err error
 
 	err = util.InitRPCConn()
@@ -43,7 +38,7 @@ func GetVMs() ([]components.VM, error) {
 		return []components.VM{}, fmt.Errorf("error getting VMs: %w", err)
 	}
 
-	VMIDs, err := rpc.GetVMIds()
+	VMIDs, err := rpc.GetVMIds(ctx)
 	if err != nil {
 		return []components.VM{}, fmt.Errorf("error getting VMs: %w", err)
 	}
@@ -53,9 +48,7 @@ func GetVMs() ([]components.VM, error) {
 	for _, VMID := range VMIDs {
 		var vmName string
 
-		rpc.ResetConnTimeout()
-
-		vmName, err = rpc.GetVMName(VMID)
+		vmName, err = rpc.GetVMName(ctx, VMID)
 		if err != nil {
 			return []components.VM{}, fmt.Errorf("error getting VMs: %w", err)
 		}

@@ -13,7 +13,7 @@ import (
 	"cirrina/cirrina"
 )
 
-func AddDisk(diskName string, diskDescription string, diskSize string,
+func AddDisk(ctx context.Context, diskName string, diskDescription string, diskSize string,
 	diskType string, diskDevType string, diskCache bool, diskDirect bool,
 ) (string, error) {
 	var err error
@@ -44,7 +44,7 @@ func AddDisk(diskName string, diskDescription string, diskSize string,
 
 	var diskID *cirrina.DiskId
 
-	diskID, err = serverClient.AddDisk(defaultServerContext, newDiskInfo)
+	diskID, err = serverClient.AddDisk(ctx, newDiskInfo)
 	if err != nil {
 		return "", fmt.Errorf("unable to add disk: %w", err)
 	}
@@ -52,14 +52,14 @@ func AddDisk(diskName string, diskDescription string, diskSize string,
 	return diskID.GetValue(), nil
 }
 
-func GetDiskInfo(diskID string) (DiskInfo, error) {
+func GetDiskInfo(ctx context.Context, diskID string) (DiskInfo, error) {
 	var err error
 
 	var info DiskInfo
 
 	var diskInfo *cirrina.DiskInfo
 
-	diskInfo, err = serverClient.GetDiskInfo(defaultServerContext, &cirrina.DiskId{Value: diskID})
+	diskInfo, err = serverClient.GetDiskInfo(ctx, &cirrina.DiskId{Value: diskID})
 	if err != nil {
 		return DiskInfo{}, fmt.Errorf("unable to get disk info: %w", err)
 	}
@@ -78,8 +78,8 @@ func GetDiskInfo(diskID string) (DiskInfo, error) {
 	return info, nil
 }
 
-func GetDiskSizeUsage(diskID string) (DiskSizeUsage, error) {
-	diskSizeUsage, err := serverClient.GetDiskSizeUsage(defaultServerContext, &cirrina.DiskId{Value: diskID})
+func GetDiskSizeUsage(ctx context.Context, diskID string) (DiskSizeUsage, error) {
+	diskSizeUsage, err := serverClient.GetDiskSizeUsage(ctx, &cirrina.DiskId{Value: diskID})
 	if err != nil {
 		return DiskSizeUsage{}, fmt.Errorf("unable to get disk info: %w", err)
 	}
@@ -87,14 +87,14 @@ func GetDiskSizeUsage(diskID string) (DiskSizeUsage, error) {
 	return DiskSizeUsage{Size: diskSizeUsage.GetSizeNum(), Usage: diskSizeUsage.GetUsageNum()}, nil
 }
 
-func GetDisks() ([]string, error) {
+func GetDisks(ctx context.Context) ([]string, error) {
 	var err error
 
 	var disks []string
 
 	var res cirrina.VMInfo_GetDisksClient
 
-	res, err = serverClient.GetDisks(defaultServerContext, &cirrina.DisksQuery{})
+	res, err = serverClient.GetDisks(ctx, &cirrina.DisksQuery{})
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get disks: %w", err)
 	}
@@ -115,12 +115,12 @@ func GetDisks() ([]string, error) {
 	return disks, nil
 }
 
-func RmDisk(idPtr string) error {
+func RmDisk(ctx context.Context, idPtr string) error {
 	var err error
 
 	var res *cirrina.ReqBool
 
-	res, err = serverClient.RemoveDisk(defaultServerContext, &cirrina.DiskId{Value: idPtr})
+	res, err = serverClient.RemoveDisk(ctx, &cirrina.DiskId{Value: idPtr})
 	if err != nil {
 		return fmt.Errorf("unable to remove disk: %w", err)
 	}
@@ -132,7 +132,7 @@ func RmDisk(idPtr string) error {
 	return nil
 }
 
-func DiskNameToID(name string) (string, error) {
+func DiskNameToID(ctx context.Context, name string) (string, error) {
 	var diskID string
 
 	var err error
@@ -143,7 +143,7 @@ func DiskNameToID(name string) (string, error) {
 
 	var diskIDs []string
 
-	diskIDs, err = GetDisks()
+	diskIDs, err = GetDisks(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -152,7 +152,7 @@ func DiskNameToID(name string) (string, error) {
 
 	var res DiskInfo
 	for _, aDiskID := range diskIDs {
-		res, err = GetDiskInfo(aDiskID)
+		res, err = GetDiskInfo(ctx, aDiskID)
 		if err != nil {
 			return "", err
 		}
@@ -185,7 +185,7 @@ func DiskNameToID(name string) (string, error) {
 // 	return *res.Name, nil
 // }
 
-func DiskGetVMID(diskID string) (string, error) {
+func DiskGetVMID(ctx context.Context, diskID string) (string, error) {
 	var err error
 
 	if diskID == "" {
@@ -194,7 +194,7 @@ func DiskGetVMID(diskID string) (string, error) {
 
 	var vmID *cirrina.VMID
 
-	vmID, err = serverClient.GetDiskVM(defaultServerContext, &cirrina.DiskId{Value: diskID})
+	vmID, err = serverClient.GetDiskVM(ctx, &cirrina.DiskId{Value: diskID})
 	if err != nil {
 		return "", fmt.Errorf("unable to get disk VM: %w", err)
 	}
@@ -202,7 +202,7 @@ func DiskGetVMID(diskID string) (string, error) {
 	return vmID.GetValue(), nil
 }
 
-func UpdateDisk(diskID string, newDesc *string, newType *string, direct *bool, cache *bool) error {
+func UpdateDisk(ctx context.Context, diskID string, newDesc *string, newType *string, direct *bool, cache *bool) error {
 	var err error
 
 	if diskID == "" {
@@ -234,7 +234,7 @@ func UpdateDisk(diskID string, newDesc *string, newType *string, direct *bool, c
 
 	var res *cirrina.ReqBool
 
-	res, err = serverClient.SetDiskInfo(defaultServerContext, &diu)
+	res, err = serverClient.SetDiskInfo(ctx, &diu)
 	if err != nil {
 		return fmt.Errorf("unable to set disk info: %w", err)
 	}
@@ -246,7 +246,7 @@ func UpdateDisk(diskID string, newDesc *string, newType *string, direct *bool, c
 	return nil
 }
 
-func WipeDisk(diskID string) (string, error) {
+func WipeDisk(ctx context.Context, diskID string) (string, error) {
 	if diskID == "" {
 		return "", errDiskEmptyID
 	}
@@ -255,7 +255,7 @@ func WipeDisk(diskID string) (string, error) {
 
 	var reqID *cirrina.RequestID
 
-	reqID, err = serverClient.WipeDisk(defaultServerContext, &cirrina.DiskId{Value: diskID})
+	reqID, err = serverClient.WipeDisk(ctx, &cirrina.DiskId{Value: diskID})
 	if err != nil {
 		return "", fmt.Errorf("error wiping disk: %w", err)
 	}
@@ -274,10 +274,10 @@ func diskUploadFile(diskID string, diskSize uint64, diskChecksum string,
 	}(diskFile)
 
 	// prevent timeouts
-	defaultServerContext = context.Background()
+	backgroundCtx := context.Background()
 
 	// setup stream
-	stream, err = serverClient.UploadDisk(defaultServerContext)
+	stream, err = serverClient.UploadDisk(backgroundCtx)
 	if err != nil {
 		uploadStatChan <- UploadStat{
 			UploadedChunk: false,

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -67,8 +68,12 @@ var VMCom4Cmd = &cobra.Command{
 
 func startCom(comNum int) error {
 	var err error
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+	defer cancel()
+
 	if VMID == "" {
-		VMID, err = rpc.VMNameToID(VMName)
+		VMID, err = rpc.VMNameToID(ctx, VMName)
 		if err != nil {
 			return fmt.Errorf("failed getting VM ID: %w", err)
 		}
@@ -80,7 +85,7 @@ func startCom(comNum int) error {
 
 	var running bool
 
-	running, err = rpc.VMRunning(VMID)
+	running, err = rpc.VMRunning(ctx, VMID)
 	if err != nil {
 		return fmt.Errorf("failed checking VM status: %w", err)
 	}
@@ -90,7 +95,7 @@ func startCom(comNum int) error {
 	}
 
 	fmt.Print("starting terminal session, press ctrl-\\ to quit\n")
-	time.Sleep(1 * time.Second)
+	time.Sleep(25 * time.Millisecond)
 
 	err = rpc.UseCom(VMID, comNum)
 	if err != nil {

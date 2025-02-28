@@ -1,12 +1,13 @@
 package rpc
 
 import (
+	"context"
 	"fmt"
 
 	"cirrina/cirrina"
 )
 
-func ReqStat(reqID string) (ReqStatus, error) {
+func ReqStat(ctx context.Context, reqID string) (ReqStatus, error) {
 	var err error
 
 	if reqID == "" {
@@ -15,7 +16,7 @@ func ReqStat(reqID string) (ReqStatus, error) {
 
 	var res *cirrina.ReqStatus
 
-	res, err = serverClient.RequestStatus(defaultServerContext, &cirrina.RequestID{Value: reqID})
+	res, err = serverClient.RequestStatus(ctx, &cirrina.RequestID{Value: reqID})
 	if err != nil {
 		return ReqStatus{}, fmt.Errorf("request error: %w", err)
 	}

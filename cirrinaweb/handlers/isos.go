@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sort"
@@ -15,7 +16,7 @@ import (
 )
 
 type ISOsHandler struct {
-	GetISOs func() ([]components.ISO, error)
+	GetISOs func(context.Context) ([]components.ISO, error)
 }
 
 func NewISOsHandler() ISOsHandler {
@@ -24,7 +25,7 @@ func NewISOsHandler() ISOsHandler {
 	}
 }
 
-func GetISOs() ([]components.ISO, error) {
+func GetISOs(ctx context.Context) ([]components.ISO, error) {
 	var err error
 
 	err = util.InitRPCConn()
@@ -32,7 +33,7 @@ func GetISOs() ([]components.ISO, error) {
 		return []components.ISO{}, fmt.Errorf("error getting ISOs: %w", err)
 	}
 
-	ISOIDs, err := rpc.GetIsoIDs()
+	ISOIDs, err := rpc.GetIsoIDs(ctx)
 	if err != nil {
 		return []components.ISO{}, fmt.Errorf("error getting ISOs: %w", err)
 	}
@@ -42,9 +43,7 @@ func GetISOs() ([]components.ISO, error) {
 	for _, ISOID := range ISOIDs {
 		var isoInfo rpc.IsoInfo
 
-		rpc.ResetConnTimeout()
-
-		isoInfo, err = rpc.GetIsoInfo(ISOID)
+		isoInfo, err = rpc.GetIsoInfo(ctx, ISOID)
 		if err != nil {
 			return []components.ISO{}, fmt.Errorf("error getting ISOs: %w", err)
 		}
@@ -60,7 +59,7 @@ func GetISOs() ([]components.ISO, error) {
 }
 
 func (v ISOsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	ISOs, err := v.GetISOs()
+	ISOs, err := v.GetISOs(request.Context())
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -69,12 +68,12 @@ func (v ISOsHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request
 		return
 	}
 
-	templ.Handler(components.ISOs(ISOs)).ServeHTTP(writer, request)
+	templ.Handler(components.ISOs(ISOs)).ServeHTTP(writer, request) //nolint:contextcheck
 }
 
 func serveErrorISO(writer http.ResponseWriter, request *http.Request, err error) {
 	// get list of ISOs for the sidebar
-	isoList, getISOsErr := GetISOs()
+	isoList, getISOsErr := GetISOs(request.Context())
 	if getISOsErr != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -87,15 +86,15 @@ func serveErrorISO(writer http.ResponseWriter, request *http.Request, err error)
 		switch e.Code() {
 		case codes.NotFound:
 			templ.Handler(
-				components.ISONotFoundComponent(isoList),
+				components.ISONotFoundComponent(isoList), //nolint:contextcheck
 				templ.WithStatus(http.StatusNotFound),
 			).ServeHTTP(writer, request)
 		case codes.OK, codes.Canceled, codes.Unknown, codes.InvalidArgument, codes.DeadlineExceeded, codes.AlreadyExists, codes.PermissionDenied, codes.ResourceExhausted, codes.FailedPrecondition, codes.Aborted, codes.OutOfRange, codes.Unimplemented, codes.Internal, codes.Unavailable, codes.DataLoss, codes.Unauthenticated: //nolint:lll
 			fallthrough
 		default:
-			templ.Handler(components.ISONotFoundComponent(isoList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll
+			templ.Handler(components.ISONotFoundComponent(isoList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll,contextcheck
 		}
 	} else {
-		templ.Handler(components.ISONotFoundComponent(isoList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll
+		templ.Handler(components.ISONotFoundComponent(isoList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll,contextcheck
 	}
 }

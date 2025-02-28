@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -8,14 +9,14 @@ import (
 	"cirrina/cirrina"
 )
 
-func GetVMDisks(vmID string) ([]string, error) {
+func GetVMDisks(ctx context.Context, vmID string) ([]string, error) {
 	var err error
 
 	var diskIDs []string
 
 	var getVMDisksClient cirrina.VMInfo_GetVMDisksClient
 
-	getVMDisksClient, err = serverClient.GetVMDisks(defaultServerContext, &cirrina.VMID{Value: vmID})
+	getVMDisksClient, err = serverClient.GetVMDisks(ctx, &cirrina.VMID{Value: vmID})
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get VM disks: %w", err)
 	}
@@ -38,7 +39,7 @@ func GetVMDisks(vmID string) ([]string, error) {
 	return diskIDs, nil
 }
 
-func VMSetDisks(id string, diskIDs []string) (bool, error) {
+func VMSetDisks(ctx context.Context, id string, diskIDs []string) (bool, error) {
 	var err error
 
 	setDiskReq := cirrina.SetDiskReq{
@@ -48,7 +49,7 @@ func VMSetDisks(id string, diskIDs []string) (bool, error) {
 
 	var res *cirrina.ReqBool
 
-	res, err = serverClient.SetVMDisks(defaultServerContext, &setDiskReq)
+	res, err = serverClient.SetVMDisks(ctx, &setDiskReq)
 	if err != nil {
 		return false, fmt.Errorf("unable to set VM disks: %w", err)
 	}

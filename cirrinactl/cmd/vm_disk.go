@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -19,8 +21,12 @@ var VMDisksListCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if VMID == "" {
-			VMID, err = rpc.VMNameToID(VMName)
+			VMID, err = rpc.VMNameToID(ctx, VMName)
 			if err != nil {
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
@@ -39,12 +45,12 @@ var VMDisksListCmd = &cobra.Command{
 
 		diskInfos := make(map[string]diskListInfo)
 		var diskIDs []string
-		diskIDs, err = rpc.GetVMDisks(VMID)
+		diskIDs, err = rpc.GetVMDisks(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting disks: %w", err)
 		}
 		for _, diskID := range diskIDs {
-			diskInfo, err := rpc.GetDiskInfo(diskID)
+			diskInfo, err := rpc.GetDiskInfo(ctx, diskID)
 			if err != nil {
 				return fmt.Errorf("failed getting disk info: %w", err)
 			}
@@ -59,7 +65,7 @@ var VMDisksListCmd = &cobra.Command{
 
 				var diskUsage string
 
-				diskSizeUsage, err := rpc.GetDiskSizeUsage(diskID)
+				diskSizeUsage, err := rpc.GetDiskSizeUsage(ctx, diskID)
 				if err != nil {
 					return fmt.Errorf("failed getting disk info: %w", err)
 				}
@@ -178,8 +184,11 @@ var VMDiskAddCmd = &cobra.Command{
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if VMID == "" {
-			VMID, err = rpc.VMNameToID(VMName)
+			VMID, err = rpc.VMNameToID(ctx, VMName)
 			if err != nil {
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
@@ -188,7 +197,7 @@ var VMDiskAddCmd = &cobra.Command{
 			}
 		}
 		if DiskID == "" {
-			DiskID, err = rpc.DiskNameToID(DiskName)
+			DiskID, err = rpc.DiskNameToID(ctx, DiskName)
 			if err != nil {
 				return fmt.Errorf("failed getting disk ID: %w", err)
 			}
@@ -198,7 +207,7 @@ var VMDiskAddCmd = &cobra.Command{
 		}
 
 		var diskIDs []string
-		diskIDs, err = rpc.GetVMDisks(VMID)
+		diskIDs, err = rpc.GetVMDisks(ctx, VMID)
 		if err != nil {
 			if err != nil {
 				return fmt.Errorf("failed getting disks: %w", err)
@@ -207,7 +216,7 @@ var VMDiskAddCmd = &cobra.Command{
 		diskIDs = append(diskIDs, DiskID)
 
 		var res bool
-		res, err = rpc.VMSetDisks(VMID, diskIDs)
+		res, err = rpc.VMSetDisks(ctx, VMID, diskIDs)
 		if err != nil {
 			return fmt.Errorf("failed setting disks: %w", err)
 		}
@@ -227,8 +236,11 @@ var VMDiskDisconnectCmd = &cobra.Command{
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if VMID == "" {
-			VMID, err = rpc.VMNameToID(VMName)
+			VMID, err = rpc.VMNameToID(ctx, VMName)
 			if err != nil {
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
@@ -237,7 +249,7 @@ var VMDiskDisconnectCmd = &cobra.Command{
 			}
 		}
 		if DiskID == "" {
-			DiskID, err = rpc.DiskNameToID(DiskName)
+			DiskID, err = rpc.DiskNameToID(ctx, DiskName)
 			if err != nil {
 				return fmt.Errorf("failed getting disk ID: %w", err)
 			}
@@ -246,7 +258,7 @@ var VMDiskDisconnectCmd = &cobra.Command{
 			}
 		}
 		var diskIDs []string
-		diskIDs, err = rpc.GetVMDisks(VMID)
+		diskIDs, err = rpc.GetVMDisks(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting VM disks: %w", err)
 		}
@@ -259,7 +271,7 @@ var VMDiskDisconnectCmd = &cobra.Command{
 		}
 
 		var res bool
-		res, err = rpc.VMSetDisks(VMID, newDiskIDs)
+		res, err = rpc.VMSetDisks(ctx, VMID, newDiskIDs)
 		if err != nil {
 			return fmt.Errorf("failed setting VM disks: %w", err)
 		}

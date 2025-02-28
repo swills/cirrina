@@ -111,7 +111,7 @@ func webSocketHandler(writer http.ResponseWriter, request *http.Request) {
 
 	vmNameOrID := strings.TrimLeft(request.URL.Path, "/")
 
-	aVM, err := handlers.GetVM(vmNameOrID)
+	aVM, err := handlers.GetVM(request.Context(), vmNameOrID)
 	if err != nil {
 		return
 	}

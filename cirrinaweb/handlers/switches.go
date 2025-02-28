@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sort"
@@ -15,7 +16,7 @@ import (
 )
 
 type SwitchesHandler struct {
-	GetSwitches func() ([]components.Switch, error)
+	GetSwitches func(context.Context) ([]components.Switch, error)
 }
 
 func NewSwitchesHandler() SwitchesHandler {
@@ -24,7 +25,7 @@ func NewSwitchesHandler() SwitchesHandler {
 	}
 }
 
-func GetSwitches() ([]components.Switch, error) {
+func GetSwitches(ctx context.Context) ([]components.Switch, error) {
 	var err error
 
 	err = util.InitRPCConn()
@@ -32,7 +33,7 @@ func GetSwitches() ([]components.Switch, error) {
 		return []components.Switch{}, fmt.Errorf("error getting Switches: %w", err)
 	}
 
-	SwitchIDs, err := rpc.GetSwitches()
+	SwitchIDs, err := rpc.GetSwitches(ctx)
 	if err != nil {
 		return []components.Switch{}, fmt.Errorf("error getting Switches: %w", err)
 	}
@@ -42,9 +43,7 @@ func GetSwitches() ([]components.Switch, error) {
 	for _, SwitchID := range SwitchIDs {
 		var switchInfo rpc.SwitchInfo
 
-		rpc.ResetConnTimeout()
-
-		switchInfo, err = rpc.GetSwitch(SwitchID)
+		switchInfo, err = rpc.GetSwitch(ctx, SwitchID)
 		if err != nil {
 			return []components.Switch{}, fmt.Errorf("error getting Switches: %w", err)
 		}
@@ -60,7 +59,7 @@ func GetSwitches() ([]components.Switch, error) {
 }
 
 func (v SwitchesHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	Switches, err := v.GetSwitches()
+	Switches, err := v.GetSwitches(request.Context())
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -69,12 +68,12 @@ func (v SwitchesHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
-	templ.Handler(components.Switches(Switches)).ServeHTTP(writer, request)
+	templ.Handler(components.Switches(Switches)).ServeHTTP(writer, request) //nolint:contextcheck
 }
 
 func serveErrorSwitch(writer http.ResponseWriter, request *http.Request, err error) {
 	// get list of Switches for the sidebar
-	switchList, getSwitchesErr := GetSwitches()
+	switchList, getSwitchesErr := GetSwitches(request.Context())
 	if getSwitchesErr != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -87,15 +86,15 @@ func serveErrorSwitch(writer http.ResponseWriter, request *http.Request, err err
 		switch e.Code() {
 		case codes.NotFound:
 			templ.Handler(
-				components.SwitchNotFoundComponent(switchList),
+				components.SwitchNotFoundComponent(switchList), //nolint:contextcheck
 				templ.WithStatus(http.StatusNotFound),
 			).ServeHTTP(writer, request)
 		case codes.OK, codes.Canceled, codes.Unknown, codes.InvalidArgument, codes.DeadlineExceeded, codes.AlreadyExists, codes.PermissionDenied, codes.ResourceExhausted, codes.FailedPrecondition, codes.Aborted, codes.OutOfRange, codes.Unimplemented, codes.Internal, codes.Unavailable, codes.DataLoss, codes.Unauthenticated: //nolint:lll
 			fallthrough
 		default:
-			templ.Handler(components.SwitchNotFoundComponent(switchList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll
+			templ.Handler(components.SwitchNotFoundComponent(switchList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll,contextcheck
 		}
 	} else {
-		templ.Handler(components.SwitchNotFoundComponent(switchList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll
+		templ.Handler(components.SwitchNotFoundComponent(switchList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll,contextcheck
 	}
 }

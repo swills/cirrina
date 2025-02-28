@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -8,14 +9,14 @@ import (
 	"cirrina/cirrina"
 )
 
-func getSwitchIDs() ([]string, error) {
+func getSwitchIDs(ctx context.Context) ([]string, error) {
 	var err error
 
 	var switchIDs []string
 
 	var res cirrina.VMInfo_GetSwitchesClient
 
-	res, err = serverClient.GetSwitches(defaultServerContext, &cirrina.SwitchesQuery{})
+	res, err = serverClient.GetSwitches(ctx, &cirrina.SwitchesQuery{})
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get switch IDs: %w", err)
 	}
@@ -38,14 +39,14 @@ func getSwitchIDs() ([]string, error) {
 	return switchIDs, nil
 }
 
-func SwitchNameToID(thisSwitchID string) (string, error) {
+func SwitchNameToID(ctx context.Context, thisSwitchID string) (string, error) {
 	var err error
 
 	switchName := ""
 
 	var switchIDs []string
 
-	switchIDs, err = getSwitchIDs()
+	switchIDs, err = getSwitchIDs(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -55,7 +56,7 @@ func SwitchNameToID(thisSwitchID string) (string, error) {
 	for _, switchID := range switchIDs {
 		var switchInfo *cirrina.SwitchInfo
 
-		switchInfo, err = serverClient.GetSwitchInfo(defaultServerContext, &cirrina.SwitchId{Value: switchID})
+		switchInfo, err = serverClient.GetSwitchInfo(ctx, &cirrina.SwitchId{Value: switchID})
 		if err != nil {
 			return "", fmt.Errorf("unable to get switch id: %w", err)
 		}
@@ -73,12 +74,12 @@ func SwitchNameToID(thisSwitchID string) (string, error) {
 	return switchName, nil
 }
 
-func SwitchIDToName(switchID string) (string, error) {
+func SwitchIDToName(ctx context.Context, switchID string) (string, error) {
 	var err error
 
 	var res *cirrina.SwitchInfo
 
-	res, err = serverClient.GetSwitchInfo(defaultServerContext, &cirrina.SwitchId{Value: switchID})
+	res, err = serverClient.GetSwitchInfo(ctx, &cirrina.SwitchId{Value: switchID})
 	if err != nil {
 		return "", fmt.Errorf("unable to get switch name: %w", err)
 	}
@@ -86,12 +87,12 @@ func SwitchIDToName(switchID string) (string, error) {
 	return res.GetName(), nil
 }
 
-func GetSwitches() ([]string, error) {
+func GetSwitches(ctx context.Context) ([]string, error) {
 	var err error
 
 	var res cirrina.VMInfo_GetSwitchesClient
 
-	res, err = serverClient.GetSwitches(defaultServerContext, &cirrina.SwitchesQuery{})
+	res, err = serverClient.GetSwitches(ctx, &cirrina.SwitchesQuery{})
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get switches: %w", err)
 	}
@@ -116,7 +117,7 @@ func GetSwitches() ([]string, error) {
 	return switchIDs, nil
 }
 
-func AddSwitch(name string, descrPtr *string, switchTypePtr *string, switchUplinkName *string) (string, error) {
+func AddSwitch(ctx context.Context, name string, descrPtr *string, switchTypePtr *string, switchUplinkName *string) (string, error) { //nolint:lll
 	var err error
 
 	var thisSwitchType cirrina.SwitchType
@@ -146,7 +147,7 @@ func AddSwitch(name string, descrPtr *string, switchTypePtr *string, switchUplin
 
 	var res *cirrina.SwitchId
 
-	res, err = serverClient.AddSwitch(defaultServerContext, &thisSwitchInfo)
+	res, err = serverClient.AddSwitch(ctx, &thisSwitchInfo)
 	if err != nil {
 		return "", fmt.Errorf("unable to add switch: %w", err)
 	}
@@ -154,7 +155,7 @@ func AddSwitch(name string, descrPtr *string, switchTypePtr *string, switchUplin
 	return res.GetValue(), nil
 }
 
-func SetSwitchUplink(switchID string, uplinkNamePtr *string) error {
+func SetSwitchUplink(ctx context.Context, switchID string, uplinkNamePtr *string) error {
 	var err error
 
 	if switchID == "" {
@@ -167,7 +168,7 @@ func SetSwitchUplink(switchID string, uplinkNamePtr *string) error {
 	req.Switchid = si
 	req.Uplink = uplinkNamePtr
 
-	_, err = serverClient.SetSwitchUplink(defaultServerContext, req)
+	_, err = serverClient.SetSwitchUplink(ctx, req)
 	if err != nil {
 		return fmt.Errorf("unable to set switch uplink: %w", err)
 	}
@@ -175,7 +176,7 @@ func SetSwitchUplink(switchID string, uplinkNamePtr *string) error {
 	return nil
 }
 
-func DeleteSwitch(switchID string) error {
+func DeleteSwitch(ctx context.Context, switchID string) error {
 	var err error
 
 	if switchID == "" {
@@ -184,7 +185,7 @@ func DeleteSwitch(switchID string) error {
 
 	var reqID *cirrina.ReqBool
 
-	reqID, err = serverClient.RemoveSwitch(defaultServerContext, &cirrina.SwitchId{Value: switchID})
+	reqID, err = serverClient.RemoveSwitch(ctx, &cirrina.SwitchId{Value: switchID})
 	if err != nil {
 		return fmt.Errorf("unable to remove switch: %w", err)
 	}
@@ -196,7 +197,7 @@ func DeleteSwitch(switchID string) error {
 	return nil
 }
 
-func UpdateSwitch(switchID string, description *string) error {
+func UpdateSwitch(ctx context.Context, switchID string, description *string) error {
 	if switchID == "" {
 		return errSwitchEmptyID
 	}
@@ -213,7 +214,7 @@ func UpdateSwitch(switchID string, description *string) error {
 
 	var reqStat *cirrina.ReqBool
 
-	reqStat, err = serverClient.SetSwitchInfo(defaultServerContext, &siu)
+	reqStat, err = serverClient.SetSwitchInfo(ctx, &siu)
 	if err != nil {
 		return fmt.Errorf("unable to update switch: %w", err)
 	}
@@ -225,7 +226,7 @@ func UpdateSwitch(switchID string, description *string) error {
 	return nil
 }
 
-func GetSwitch(switchID string) (SwitchInfo, error) {
+func GetSwitch(ctx context.Context, switchID string) (SwitchInfo, error) {
 	var err error
 
 	if switchID == "" {
@@ -234,7 +235,7 @@ func GetSwitch(switchID string) (SwitchInfo, error) {
 
 	var res *cirrina.SwitchInfo
 
-	res, err = serverClient.GetSwitchInfo(defaultServerContext, &cirrina.SwitchId{Value: switchID})
+	res, err = serverClient.GetSwitchInfo(ctx, &cirrina.SwitchId{Value: switchID})
 	if err != nil {
 		return SwitchInfo{}, fmt.Errorf("unable to get switch info: %w", err)
 	}
@@ -254,7 +255,7 @@ func GetSwitch(switchID string) (SwitchInfo, error) {
 	}, nil
 }
 
-func SetVMNicSwitch(vmNicIDStr string, switchID string) error {
+func SetVMNicSwitch(ctx context.Context, vmNicIDStr string, switchID string) error {
 	if vmNicIDStr == "" {
 		return errNicEmptyID
 	}
@@ -274,7 +275,7 @@ func SetVMNicSwitch(vmNicIDStr string, switchID string) error {
 
 	var reqBool *cirrina.ReqBool
 
-	reqBool, err = serverClient.SetVMNicSwitch(defaultServerContext, &nicSwitchSettings)
+	reqBool, err = serverClient.SetVMNicSwitch(ctx, &nicSwitchSettings)
 	if err != nil {
 		return fmt.Errorf("unable to set nic switch: %w", err)
 	}

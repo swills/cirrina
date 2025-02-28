@@ -13,7 +13,7 @@ import (
 	"cirrina/cirrina"
 )
 
-func AddIso(name string, descr string) (string, error) {
+func AddIso(ctx context.Context, name string, descr string) (string, error) {
 	var err error
 
 	isoInfo := &cirrina.ISOInfo{
@@ -23,7 +23,7 @@ func AddIso(name string, descr string) (string, error) {
 
 	var res *cirrina.ISOID
 
-	res, err = serverClient.AddISO(defaultServerContext, isoInfo)
+	res, err = serverClient.AddISO(ctx, isoInfo)
 	if err != nil {
 		return "", fmt.Errorf("unable to add iso: %w", err)
 	}
@@ -31,14 +31,14 @@ func AddIso(name string, descr string) (string, error) {
 	return res.GetValue(), nil
 }
 
-func GetIsoIDs() ([]string, error) {
+func GetIsoIDs(ctx context.Context) ([]string, error) {
 	var err error
 
 	var IsoIDs []string
 
 	var res cirrina.VMInfo_GetISOsClient
 
-	res, err = serverClient.GetISOs(defaultServerContext, &cirrina.ISOsQuery{})
+	res, err = serverClient.GetISOs(ctx, &cirrina.ISOsQuery{})
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get isos: %w", err)
 	}
@@ -61,12 +61,12 @@ func GetIsoIDs() ([]string, error) {
 	return IsoIDs, nil
 }
 
-func RmIso(id string) error {
+func RmIso(ctx context.Context, id string) error {
 	var err error
 
 	var res *cirrina.ReqBool
 
-	res, err = serverClient.RemoveISO(defaultServerContext, &cirrina.ISOID{Value: id})
+	res, err = serverClient.RemoveISO(ctx, &cirrina.ISOID{Value: id})
 	if err != nil {
 		return fmt.Errorf("unable to remove iso: %w", err)
 	}
@@ -78,7 +78,7 @@ func RmIso(id string) error {
 	return nil
 }
 
-func GetIsoInfo(isoID string) (IsoInfo, error) {
+func GetIsoInfo(ctx context.Context, isoID string) (IsoInfo, error) {
 	if isoID == "" {
 		return IsoInfo{}, errIsoEmptyID
 	}
@@ -87,7 +87,7 @@ func GetIsoInfo(isoID string) (IsoInfo, error) {
 
 	var isoInfo *cirrina.ISOInfo
 
-	isoInfo, err = serverClient.GetISOInfo(defaultServerContext, &cirrina.ISOID{Value: isoID})
+	isoInfo, err = serverClient.GetISOInfo(ctx, &cirrina.ISOID{Value: isoID})
 	if err != nil {
 		return IsoInfo{}, fmt.Errorf("unable to get iso info: %w", err)
 	}
@@ -99,12 +99,12 @@ func GetIsoInfo(isoID string) (IsoInfo, error) {
 	}, nil
 }
 
-func IsoNameToID(name string) (string, error) {
+func IsoNameToID(ctx context.Context, name string) (string, error) {
 	if name == "" {
 		return "", errIsoEmptyName
 	}
 
-	isoIDs, err := GetIsoIDs()
+	isoIDs, err := GetIsoIDs(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -116,7 +116,7 @@ func IsoNameToID(name string) (string, error) {
 	for _, aIsoID := range isoIDs {
 		var isoInfo IsoInfo
 
-		isoInfo, err = GetIsoInfo(aIsoID)
+		isoInfo, err = GetIsoInfo(ctx, aIsoID)
 		if err != nil {
 			return "", err
 		}
@@ -159,9 +159,9 @@ func isoUploadFile(isoID string, isoSize uint64, isoChecksum string, isoFile *os
 	}(isoFile)
 
 	// prevent timeouts
-	defaultServerContext = context.Background()
+	backgroundContext := context.Background()
 
-	stream, err = serverClient.UploadIso(defaultServerContext)
+	stream, err = serverClient.UploadIso(backgroundContext)
 	if err != nil {
 		uploadStatChan <- UploadStat{
 			UploadedChunk: false,
@@ -309,7 +309,7 @@ func IsoUpload(isoID string, isoChecksum string,
 	return uploadStatChan, nil
 }
 
-func ISOGetVMIDs(isoID string) ([]string, error) {
+func ISOGetVMIDs(ctx context.Context, isoID string) ([]string, error) {
 	var err error
 
 	if isoID == "" {
@@ -320,7 +320,7 @@ func ISOGetVMIDs(isoID string) ([]string, error) {
 
 	var res cirrina.VMInfo_GetISOVMsClient
 
-	res, err = serverClient.GetISOVMs(defaultServerContext, &cirrina.ISOID{Value: isoID})
+	res, err = serverClient.GetISOVMs(ctx, &cirrina.ISOID{Value: isoID})
 	if err != nil {
 		return []string{}, fmt.Errorf("unable to get ISOs: %w", err)
 	}

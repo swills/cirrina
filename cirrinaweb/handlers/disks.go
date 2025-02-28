@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"sort"
@@ -15,7 +16,7 @@ import (
 )
 
 type DisksHandler struct {
-	GetDisks func() ([]components.Disk, error)
+	GetDisks func(context.Context) ([]components.Disk, error)
 }
 
 func NewDisksHandler() DisksHandler {
@@ -24,7 +25,7 @@ func NewDisksHandler() DisksHandler {
 	}
 }
 
-func GetDisks() ([]components.Disk, error) {
+func GetDisks(ctx context.Context) ([]components.Disk, error) {
 	var err error
 
 	err = util.InitRPCConn()
@@ -32,7 +33,7 @@ func GetDisks() ([]components.Disk, error) {
 		return []components.Disk{}, fmt.Errorf("error getting Disks: %w", err)
 	}
 
-	DiskIDs, err := rpc.GetDisks()
+	DiskIDs, err := rpc.GetDisks(ctx)
 	if err != nil {
 		return []components.Disk{}, fmt.Errorf("error getting Disks: %w", err)
 	}
@@ -42,9 +43,7 @@ func GetDisks() ([]components.Disk, error) {
 	for _, DiskID := range DiskIDs {
 		var diskInfo rpc.DiskInfo
 
-		rpc.ResetConnTimeout()
-
-		diskInfo, err = rpc.GetDiskInfo(DiskID)
+		diskInfo, err = rpc.GetDiskInfo(ctx, DiskID)
 		if err != nil {
 			return []components.Disk{}, fmt.Errorf("error getting Disks: %w", err)
 		}
@@ -60,7 +59,7 @@ func GetDisks() ([]components.Disk, error) {
 }
 
 func (v DisksHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	Disks, err := v.GetDisks()
+	Disks, err := v.GetDisks(request.Context())
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -69,12 +68,12 @@ func (v DisksHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 		return
 	}
 
-	templ.Handler(components.Disks(Disks)).ServeHTTP(writer, request)
+	templ.Handler(components.Disks(Disks)).ServeHTTP(writer, request) //nolint:contextcheck
 }
 
 func serveErrorDisk(writer http.ResponseWriter, request *http.Request, err error) {
 	// get list of Disks for the sidebar
-	diskList, getDisksErr := GetDisks()
+	diskList, getDisksErr := GetDisks(request.Context())
 	if getDisksErr != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -87,7 +86,7 @@ func serveErrorDisk(writer http.ResponseWriter, request *http.Request, err error
 		switch e.Code() {
 		case codes.NotFound:
 			templ.Handler(
-				components.DiskNotFoundComponent(diskList),
+				components.DiskNotFoundComponent(diskList), //nolint:contextcheck
 				templ.WithStatus(http.StatusNotFound),
 			).ServeHTTP(writer, request)
 		case codes.OK, codes.Canceled, codes.Unknown, codes.InvalidArgument, codes.DeadlineExceeded,
@@ -97,13 +96,13 @@ func serveErrorDisk(writer http.ResponseWriter, request *http.Request, err error
 			fallthrough
 		default:
 			templ.Handler(
-				components.DiskNotFoundComponent(diskList),
+				components.DiskNotFoundComponent(diskList), //nolint:contextcheck
 				templ.WithStatus(http.StatusInternalServerError),
 			).ServeHTTP(writer, request)
 		}
 	} else {
 		templ.Handler(
-			components.DiskNotFoundComponent(diskList),
+			components.DiskNotFoundComponent(diskList), //nolint:contextcheck
 			templ.WithStatus(http.StatusInternalServerError),
 		).ServeHTTP(writer, request)
 	}

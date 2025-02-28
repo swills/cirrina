@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -14,8 +15,8 @@ import (
 )
 
 type ISOHandler struct {
-	GetISO  func(string) (components.ISO, error)
-	GetISOs func() ([]components.ISO, error)
+	GetISO  func(context.Context, string) (components.ISO, error)
+	GetISOs func(context.Context) ([]components.ISO, error)
 }
 
 func NewISOHandler() ISOHandler {
@@ -25,7 +26,7 @@ func NewISOHandler() ISOHandler {
 	}
 }
 
-func GetISO(nameOrID string) (components.ISO, error) {
+func GetISO(ctx context.Context, nameOrID string) (components.ISO, error) {
 	var returnISO components.ISO
 
 	var isoInfo rpc.IsoInfo
@@ -39,9 +40,7 @@ func GetISO(nameOrID string) (components.ISO, error) {
 
 	parsedUUID, err := uuid.Parse(nameOrID)
 	if err != nil {
-		rpc.ResetConnTimeout()
-
-		returnISO.ID, err = rpc.IsoNameToID(nameOrID)
+		returnISO.ID, err = rpc.IsoNameToID(ctx, nameOrID)
 		if err != nil {
 			return components.ISO{}, fmt.Errorf("error getting ISO: %w", err)
 		}
@@ -51,9 +50,7 @@ func GetISO(nameOrID string) (components.ISO, error) {
 		returnISO.ID = parsedUUID.String()
 	}
 
-	rpc.ResetConnTimeout()
-
-	isoInfo, err = rpc.GetIsoInfo(returnISO.ID)
+	isoInfo, err = rpc.GetIsoInfo(ctx, returnISO.ID)
 	if err != nil {
 		return components.ISO{}, fmt.Errorf("error getting ISO: %w", err)
 	}
@@ -65,14 +62,12 @@ func GetISO(nameOrID string) (components.ISO, error) {
 
 	var VMIDs []string
 
-	rpc.ResetConnTimeout()
-
-	VMIDs, err = rpc.ISOGetVMIDs(returnISO.ID)
+	VMIDs, err = rpc.ISOGetVMIDs(ctx, returnISO.ID)
 	if err == nil {
 		for _, VMID := range VMIDs {
 			var aVM components.VM
 
-			aVM, err = GetVM(VMID)
+			aVM, err = GetVM(ctx, VMID)
 			if err != nil {
 				continue
 			}
@@ -84,16 +79,14 @@ func GetISO(nameOrID string) (components.ISO, error) {
 	return returnISO, nil
 }
 
-func DeleteISO(nameOrID string) error {
+func DeleteISO(ctx context.Context, nameOrID string) error {
 	var err error
 
 	var isoID string
 
 	parsedUUID, err := uuid.Parse(nameOrID)
 	if err != nil {
-		rpc.ResetConnTimeout()
-
-		isoID, err = rpc.IsoNameToID(nameOrID)
+		isoID, err = rpc.IsoNameToID(ctx, nameOrID)
 		if err != nil {
 			return fmt.Errorf("error getting ISO: %w", err)
 		}
@@ -101,9 +94,7 @@ func DeleteISO(nameOrID string) error {
 		isoID = parsedUUID.String()
 	}
 
-	rpc.ResetConnTimeout()
-
-	err = rpc.RmIso(isoID)
+	err = rpc.RmIso(ctx, isoID)
 	if err != nil {
 		return fmt.Errorf("failed removing ISO: %w", err)
 	}
@@ -114,7 +105,7 @@ func DeleteISO(nameOrID string) error {
 func (d ISOHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	nameOrID := request.PathValue("nameOrID")
 	if request.Method == http.MethodDelete {
-		err := DeleteISO(nameOrID)
+		err := DeleteISO(request.Context(), nameOrID)
 		if err != nil {
 			writer.Header().Set("HX-Redirect", "/media/iso/"+nameOrID)
 			writer.WriteHeader(http.StatusInternalServerError)
@@ -128,7 +119,7 @@ func (d ISOHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	aISO, err := d.GetISO(nameOrID)
+	aISO, err := d.GetISO(request.Context(), nameOrID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -137,7 +128,7 @@ func (d ISOHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	ISOs, err := d.GetISOs()
+	ISOs, err := d.GetISOs(request.Context())
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -146,5 +137,5 @@ func (d ISOHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	templ.Handler(components.ISOLayout(ISOs, aISO)).ServeHTTP(writer, request)
+	templ.Handler(components.ISOLayout(ISOs, aISO)).ServeHTTP(writer, request) //nolint:contextcheck
 }

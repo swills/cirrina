@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -29,7 +30,10 @@ var IsoListCmd = &cobra.Command{
 	Short:        "List ISOs",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
-		isoIDs, err := rpc.GetIsoIDs()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
+		isoIDs, err := rpc.GetIsoIDs(ctx)
 		if err != nil {
 			return fmt.Errorf("error getting ISO IDs: %w", err)
 		}
@@ -44,7 +48,7 @@ var IsoListCmd = &cobra.Command{
 		isoInfos := make(map[string]isoListInfo)
 
 		for _, isoID := range isoIDs {
-			isoInfo, err := rpc.GetIsoInfo(isoID)
+			isoInfo, err := rpc.GetIsoInfo(ctx, isoID)
 			if err != nil {
 				return fmt.Errorf("error getting iso info: %w", err)
 			}
@@ -101,10 +105,13 @@ var IsoCreateCmd = &cobra.Command{
 	Long:         "Create a name entry for an ISO with no content -- see upload to add content",
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if IsoName == "" {
 			return errIsoEmptyName
 		}
-		res, err := rpc.AddIso(IsoName, IsoDescription)
+		res, err := rpc.AddIso(ctx, IsoName, IsoDescription)
 		if err != nil {
 			return fmt.Errorf("error adding iso: %w", err)
 		}
@@ -278,16 +285,19 @@ var IsoUploadCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
-		err = hostPing()
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
+		err = hostPing(ctx)
 		if err != nil {
 			return errHostNotAvailable
 		}
 
 		if IsoID == "" {
-			IsoID, err = rpc.IsoNameToID(IsoName)
+			IsoID, err = rpc.IsoNameToID(ctx, IsoName)
 			if err != nil {
 				if errors.Is(err, rpc.ErrNotFound) {
-					IsoID, err = rpc.AddIso(IsoName, IsoDescription)
+					IsoID, err = rpc.AddIso(ctx, IsoName, IsoDescription)
 					if err != nil {
 						return fmt.Errorf("error adding iso: %w", err)
 					}
@@ -311,8 +321,11 @@ var IsoDeleteCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if IsoID == "" {
-			IsoID, err = rpc.IsoNameToID(IsoName)
+			IsoID, err = rpc.IsoNameToID(ctx, IsoName)
 			if err != nil {
 				return fmt.Errorf("error getting iso id: %w", err)
 			}
@@ -320,7 +333,7 @@ var IsoDeleteCmd = &cobra.Command{
 				return errIsoNotFound
 			}
 		}
-		err = rpc.RmIso(IsoID)
+		err = rpc.RmIso(ctx, IsoID)
 		if err != nil {
 			return fmt.Errorf("error removing iso: %w", err)
 		}

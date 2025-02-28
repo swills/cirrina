@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -20,8 +22,12 @@ var VMNicsListCmd = &cobra.Command{
 	SilenceUsage: true,
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if VMID == "" {
-			VMID, err = rpc.VMNameToID(VMName)
+			VMID, err = rpc.VMNameToID(ctx, VMName)
 			if err != nil {
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
@@ -41,12 +47,12 @@ var VMNicsListCmd = &cobra.Command{
 		nicInfos := make(map[string]nicListInfo)
 
 		var nicIDs []string
-		nicIDs, err = rpc.GetVMNics(VMID)
+		nicIDs, err = rpc.GetVMNics(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting VM NICs: %w", err)
 		}
 		for _, nicID := range nicIDs {
-			nicInfo, err := rpc.GetVMNicInfo(nicID)
+			nicInfo, err := rpc.GetVMNicInfo(ctx, nicID)
 			if err != nil {
 				return fmt.Errorf("failed getting NIC info: %w", err)
 			}
@@ -139,8 +145,11 @@ var VMNicsAddCmd = &cobra.Command{
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if VMID == "" {
-			VMID, err = rpc.VMNameToID(VMName)
+			VMID, err = rpc.VMNameToID(ctx, VMName)
 			if err != nil {
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
@@ -149,7 +158,7 @@ var VMNicsAddCmd = &cobra.Command{
 			}
 		}
 		if NicID == "" {
-			NicID, err = rpc.NicNameToID(NicName)
+			NicID, err = rpc.NicNameToID(ctx, NicName)
 			if err != nil {
 				return fmt.Errorf("failed getting NIC ID: %w", err)
 			}
@@ -158,14 +167,14 @@ var VMNicsAddCmd = &cobra.Command{
 			}
 		}
 		var nicIDs []string
-		nicIDs, err = rpc.GetVMNics(VMID)
+		nicIDs, err = rpc.GetVMNics(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting VM NICs: %w", err)
 		}
 
 		nicIDs = append(nicIDs, NicID)
 		var res bool
-		res, err = rpc.VMSetNics(VMID, nicIDs)
+		res, err = rpc.VMSetNics(ctx, VMID, nicIDs)
 		if err != nil {
 			return fmt.Errorf("failed setting VM NICs: %w", err)
 		}
@@ -185,8 +194,11 @@ var VMNicsDisconnectCmd = &cobra.Command{
 	RunE: func(_ *cobra.Command, _ []string) error {
 		var err error
 
+		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(rpc.ServerTimeout)*time.Second)
+		defer cancel()
+
 		if VMID == "" {
-			VMID, err = rpc.VMNameToID(VMName)
+			VMID, err = rpc.VMNameToID(ctx, VMName)
 			if err != nil {
 				return fmt.Errorf("failed getting VM ID: %w", err)
 			}
@@ -195,7 +207,7 @@ var VMNicsDisconnectCmd = &cobra.Command{
 			}
 		}
 		if NicID == "" {
-			NicID, err = rpc.NicNameToID(NicName)
+			NicID, err = rpc.NicNameToID(ctx, NicName)
 			if err != nil {
 				return fmt.Errorf("failed getting NIC ID: %w", err)
 			}
@@ -205,7 +217,7 @@ var VMNicsDisconnectCmd = &cobra.Command{
 		}
 
 		var nicIDs []string
-		nicIDs, err = rpc.GetVMNics(VMID)
+		nicIDs, err = rpc.GetVMNics(ctx, VMID)
 		if err != nil {
 			return fmt.Errorf("failed getting VM NICs: %w", err)
 		}
@@ -218,7 +230,7 @@ var VMNicsDisconnectCmd = &cobra.Command{
 		}
 
 		var res bool
-		res, err = rpc.VMSetNics(VMID, newNicIDs)
+		res, err = rpc.VMSetNics(ctx, VMID, newNicIDs)
 		if err != nil {
 			return fmt.Errorf("failed setting VM NICs: %w", err)
 		}

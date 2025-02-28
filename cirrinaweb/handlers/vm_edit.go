@@ -29,7 +29,7 @@ func (v VMEditBasicHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 
 		var aVM components.VM
 
-		aVM, err = GetVM(nameOrID)
+		aVM, err = GetVM(request.Context(), nameOrID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -40,7 +40,7 @@ func (v VMEditBasicHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 
 		var VMs []components.VM
 
-		VMs, err = GetVMs()
+		VMs, err = GetVMs(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -49,7 +49,7 @@ func (v VMEditBasicHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 			return
 		}
 
-		templ.Handler(components.VMEditBasic(VMs, aVM)).ServeHTTP(writer, request)
+		templ.Handler(components.VMEditBasic(VMs, aVM)).ServeHTTP(writer, request) //nolint:contextcheck
 
 		return
 	case http.MethodPost:
@@ -67,7 +67,7 @@ func (v VMEditBasicHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 
 		var aVM components.VM
 
-		aVM, err = GetVM(nameOrID)
+		aVM, err = GetVM(request.Context(), nameOrID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -79,11 +79,9 @@ func (v VMEditBasicHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 		var newConfig cirrina.VMConfig
 		newConfig.Id = aVM.ID
 
-		rpc.ResetConnTimeout()
-
 		var oldVMConfig rpc.VMConfig
 
-		oldVMConfig, err = rpc.GetVMConfig(aVM.ID)
+		oldVMConfig, err = rpc.GetVMConfig(request.Context(), aVM.ID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -141,9 +139,7 @@ func (v VMEditBasicHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 		}
 
 		if haveChanges {
-			rpc.ResetConnTimeout()
-
-			err = rpc.UpdateVMConfig(&newConfig)
+			err = rpc.UpdateVMConfig(request.Context(), &newConfig)
 			if err != nil {
 				util.LogError(err, request.RemoteAddr)
 
@@ -172,7 +168,7 @@ func (v VMEditDiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.R
 
 		var aVM components.VM
 
-		aVM, err = GetVM(nameOrID)
+		aVM, err = GetVM(request.Context(), nameOrID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -181,7 +177,7 @@ func (v VMEditDiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.R
 			return
 		}
 
-		aVM.Disks, err = GetVMDisks(aVM.ID)
+		aVM.Disks, err = GetVMDisks(request.Context(), aVM.ID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -192,7 +188,7 @@ func (v VMEditDiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.R
 
 		var VMs []components.VM
 
-		VMs, err = GetVMs()
+		VMs, err = GetVMs(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -201,7 +197,7 @@ func (v VMEditDiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.R
 			return
 		}
 
-		templ.Handler(components.VMEditDisk(VMs, aVM)).ServeHTTP(writer, request)
+		templ.Handler(components.VMEditDisk(VMs, aVM)).ServeHTTP(writer, request) //nolint:contextcheck
 
 		return
 	default:
@@ -224,7 +220,7 @@ func (v VMEditISOHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 
 		var aVM components.VM
 
-		aVM, err = GetVM(nameOrID)
+		aVM, err = GetVM(request.Context(), nameOrID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -233,7 +229,7 @@ func (v VMEditISOHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 			return
 		}
 
-		aVM.ISOs, err = GetVMISOs(aVM.ID)
+		aVM.ISOs, err = GetVMISOs(request.Context(), aVM.ID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -244,7 +240,7 @@ func (v VMEditISOHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 
 		var VMs []components.VM
 
-		VMs, err = GetVMs()
+		VMs, err = GetVMs(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -253,7 +249,7 @@ func (v VMEditISOHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 			return
 		}
 
-		templ.Handler(components.VMEditISO(VMs, aVM)).ServeHTTP(writer, request)
+		templ.Handler(components.VMEditISO(VMs, aVM)).ServeHTTP(writer, request) //nolint:contextcheck
 
 		return
 	default:
@@ -276,7 +272,7 @@ func (v VMEditNICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 
 		var aVM components.VM
 
-		aVM, err = GetVM(nameOrID)
+		aVM, err = GetVM(request.Context(), nameOrID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -285,7 +281,7 @@ func (v VMEditNICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 			return
 		}
 
-		aVM.NICs, err = GetVMNICs(aVM.ID)
+		aVM.NICs, err = GetVMNICs(request.Context(), aVM.ID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -296,7 +292,7 @@ func (v VMEditNICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 
 		var VMs []components.VM
 
-		VMs, err = GetVMs()
+		VMs, err = GetVMs(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -305,7 +301,7 @@ func (v VMEditNICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 			return
 		}
 
-		templ.Handler(components.VMEditNIC(VMs, aVM)).ServeHTTP(writer, request)
+		templ.Handler(components.VMEditNIC(VMs, aVM)).ServeHTTP(writer, request) //nolint:contextcheck
 
 		return
 	default:
@@ -329,7 +325,7 @@ func (v VMEditSerialHandler) ServeHTTP(writer http.ResponseWriter, request *http
 
 		var aVM components.VM
 
-		aVM, err = GetVM(nameOrID)
+		aVM, err = GetVM(request.Context(), nameOrID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -340,7 +336,7 @@ func (v VMEditSerialHandler) ServeHTTP(writer http.ResponseWriter, request *http
 
 		var VMs []components.VM
 
-		VMs, err = GetVMs()
+		VMs, err = GetVMs(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -349,7 +345,7 @@ func (v VMEditSerialHandler) ServeHTTP(writer http.ResponseWriter, request *http
 			return
 		}
 
-		templ.Handler(components.VMEditSerial(VMs, aVM)).ServeHTTP(writer, request)
+		templ.Handler(components.VMEditSerial(VMs, aVM)).ServeHTTP(writer, request) //nolint:contextcheck
 
 		return
 	case http.MethodPost:
@@ -367,7 +363,7 @@ func (v VMEditSerialHandler) ServeHTTP(writer http.ResponseWriter, request *http
 
 		var aVM components.VM
 
-		aVM, err = GetVM(nameOrID)
+		aVM, err = GetVM(request.Context(), nameOrID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -379,11 +375,9 @@ func (v VMEditSerialHandler) ServeHTTP(writer http.ResponseWriter, request *http
 		var newConfig cirrina.VMConfig
 		newConfig.Id = aVM.ID
 
-		rpc.ResetConnTimeout()
-
 		var oldVMConfig rpc.VMConfig
 
-		oldVMConfig, err = rpc.GetVMConfig(aVM.ID)
+		oldVMConfig, err = rpc.GetVMConfig(request.Context(), aVM.ID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -633,9 +627,7 @@ func (v VMEditSerialHandler) ServeHTTP(writer http.ResponseWriter, request *http
 		}
 
 		if haveChanges {
-			rpc.ResetConnTimeout()
-
-			err = rpc.UpdateVMConfig(&newConfig)
+			err = rpc.UpdateVMConfig(request.Context(), &newConfig)
 			if err != nil {
 				util.LogError(err, request.RemoteAddr)
 
@@ -667,7 +659,7 @@ func (v VMEditDisplayHandler) ServeHTTP(writer http.ResponseWriter, request *htt
 
 		var aVM components.VM
 
-		aVM, err = GetVM(nameOrID)
+		aVM, err = GetVM(request.Context(), nameOrID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -678,7 +670,7 @@ func (v VMEditDisplayHandler) ServeHTTP(writer http.ResponseWriter, request *htt
 
 		var VMs []components.VM
 
-		VMs, err = GetVMs()
+		VMs, err = GetVMs(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -687,7 +679,7 @@ func (v VMEditDisplayHandler) ServeHTTP(writer http.ResponseWriter, request *htt
 			return
 		}
 
-		templ.Handler(components.VMEditDisplay(VMs, aVM)).ServeHTTP(writer, request)
+		templ.Handler(components.VMEditDisplay(VMs, aVM)).ServeHTTP(writer, request) //nolint:contextcheck
 
 		return
 	case http.MethodPost:
@@ -705,7 +697,7 @@ func (v VMEditDisplayHandler) ServeHTTP(writer http.ResponseWriter, request *htt
 
 		var aVM components.VM
 
-		aVM, err = GetVM(nameOrID)
+		aVM, err = GetVM(request.Context(), nameOrID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -717,11 +709,9 @@ func (v VMEditDisplayHandler) ServeHTTP(writer http.ResponseWriter, request *htt
 		var newConfig cirrina.VMConfig
 		newConfig.Id = aVM.ID
 
-		rpc.ResetConnTimeout()
-
 		var oldVMConfig rpc.VMConfig
 
-		oldVMConfig, err = rpc.GetVMConfig(aVM.ID)
+		oldVMConfig, err = rpc.GetVMConfig(request.Context(), aVM.ID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -829,9 +819,7 @@ func (v VMEditDisplayHandler) ServeHTTP(writer http.ResponseWriter, request *htt
 		}
 
 		if haveChanges {
-			rpc.ResetConnTimeout()
-
-			err = rpc.UpdateVMConfig(&newConfig)
+			err = rpc.UpdateVMConfig(request.Context(), &newConfig)
 			if err != nil {
 				util.LogError(err, request.RemoteAddr)
 
@@ -863,7 +851,7 @@ func (v VMEditAudioHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 
 		var aVM components.VM
 
-		aVM, err = GetVM(nameOrID)
+		aVM, err = GetVM(request.Context(), nameOrID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -874,7 +862,7 @@ func (v VMEditAudioHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 
 		var VMs []components.VM
 
-		VMs, err = GetVMs()
+		VMs, err = GetVMs(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -883,7 +871,7 @@ func (v VMEditAudioHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 			return
 		}
 
-		templ.Handler(components.VMEditAudio(VMs, aVM)).ServeHTTP(writer, request)
+		templ.Handler(components.VMEditAudio(VMs, aVM)).ServeHTTP(writer, request) //nolint:contextcheck
 
 		return
 	case http.MethodPost:
@@ -901,7 +889,7 @@ func (v VMEditAudioHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 
 		var aVM components.VM
 
-		aVM, err = GetVM(nameOrID)
+		aVM, err = GetVM(request.Context(), nameOrID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -913,11 +901,9 @@ func (v VMEditAudioHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 		var newConfig cirrina.VMConfig
 		newConfig.Id = aVM.ID
 
-		rpc.ResetConnTimeout()
-
 		var oldVMConfig rpc.VMConfig
 
-		oldVMConfig, err = rpc.GetVMConfig(aVM.ID)
+		oldVMConfig, err = rpc.GetVMConfig(request.Context(), aVM.ID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -956,9 +942,7 @@ func (v VMEditAudioHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 		}
 
 		if haveChanges {
-			rpc.ResetConnTimeout()
-
-			err = rpc.UpdateVMConfig(&newConfig)
+			err = rpc.UpdateVMConfig(request.Context(), &newConfig)
 			if err != nil {
 				util.LogError(err, request.RemoteAddr)
 
@@ -990,7 +974,7 @@ func (v VMEditStartHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 
 		var aVM components.VM
 
-		aVM, err = GetVM(nameOrID)
+		aVM, err = GetVM(request.Context(), nameOrID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -1001,7 +985,7 @@ func (v VMEditStartHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 
 		var VMs []components.VM
 
-		VMs, err = GetVMs()
+		VMs, err = GetVMs(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -1010,7 +994,7 @@ func (v VMEditStartHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 			return
 		}
 
-		templ.Handler(components.VMEditStart(VMs, aVM)).ServeHTTP(writer, request)
+		templ.Handler(components.VMEditStart(VMs, aVM)).ServeHTTP(writer, request) //nolint:contextcheck
 
 		return
 	case http.MethodPost:
@@ -1028,7 +1012,7 @@ func (v VMEditStartHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 
 		var aVM components.VM
 
-		aVM, err = GetVM(nameOrID)
+		aVM, err = GetVM(request.Context(), nameOrID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -1040,11 +1024,9 @@ func (v VMEditStartHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 		var newConfig cirrina.VMConfig
 		newConfig.Id = aVM.ID
 
-		rpc.ResetConnTimeout()
-
 		var oldVMConfig rpc.VMConfig
 
-		oldVMConfig, err = rpc.GetVMConfig(aVM.ID)
+		oldVMConfig, err = rpc.GetVMConfig(request.Context(), aVM.ID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -1127,9 +1109,7 @@ func (v VMEditStartHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 		}
 
 		if haveChanges {
-			rpc.ResetConnTimeout()
-
-			err = rpc.UpdateVMConfig(&newConfig)
+			err = rpc.UpdateVMConfig(request.Context(), &newConfig)
 			if err != nil {
 				util.LogError(err, request.RemoteAddr)
 
@@ -1161,7 +1141,7 @@ func (v VMEditAdvancedHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 
 		var aVM components.VM
 
-		aVM, err = GetVM(nameOrID)
+		aVM, err = GetVM(request.Context(), nameOrID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -1172,7 +1152,7 @@ func (v VMEditAdvancedHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 
 		var VMs []components.VM
 
-		VMs, err = GetVMs()
+		VMs, err = GetVMs(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -1181,7 +1161,7 @@ func (v VMEditAdvancedHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 			return
 		}
 
-		templ.Handler(components.VMEditAdvanced(VMs, aVM)).ServeHTTP(writer, request)
+		templ.Handler(components.VMEditAdvanced(VMs, aVM)).ServeHTTP(writer, request) //nolint:contextcheck
 
 		return
 	case http.MethodPost:
@@ -1199,7 +1179,7 @@ func (v VMEditAdvancedHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 
 		var aVM components.VM
 
-		aVM, err = GetVM(nameOrID)
+		aVM, err = GetVM(request.Context(), nameOrID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -1211,11 +1191,9 @@ func (v VMEditAdvancedHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 		var newConfig cirrina.VMConfig
 		newConfig.Id = aVM.ID
 
-		rpc.ResetConnTimeout()
-
 		var oldVMConfig rpc.VMConfig
 
-		oldVMConfig, err = rpc.GetVMConfig(aVM.ID)
+		oldVMConfig, err = rpc.GetVMConfig(request.Context(), aVM.ID)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -1429,9 +1407,7 @@ func (v VMEditAdvancedHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 		}
 
 		if haveChanges {
-			rpc.ResetConnTimeout()
-
-			err = rpc.UpdateVMConfig(&newConfig)
+			err = rpc.UpdateVMConfig(request.Context(), &newConfig)
 			if err != nil {
 				util.LogError(err, request.RemoteAddr)
 

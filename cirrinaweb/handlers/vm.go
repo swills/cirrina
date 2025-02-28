@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -16,11 +17,11 @@ import (
 )
 
 type VMHandler struct {
-	GetVM      func(string) (components.VM, error)
-	GetVMs     func() ([]components.VM, error)
-	GetVMDisks func(string) ([]components.Disk, error)
-	GetVMISOs  func(string) ([]components.ISO, error)
-	GetVMNICs  func(string) ([]components.NIC, error)
+	GetVM      func(context.Context, string) (components.VM, error)
+	GetVMs     func(context.Context) ([]components.VM, error)
+	GetVMDisks func(context.Context, string) ([]components.Disk, error)
+	GetVMISOs  func(context.Context, string) ([]components.ISO, error)
+	GetVMNICs  func(context.Context, string) ([]components.NIC, error)
 }
 
 func NewVMHandler() VMHandler {
@@ -33,16 +34,14 @@ func NewVMHandler() VMHandler {
 	}
 }
 
-func DeleteVM(nameOrID string) error {
+func DeleteVM(ctx context.Context, nameOrID string) error {
 	var err error
 
 	var VMID string
 
 	parsedUUID, err := uuid.Parse(nameOrID)
 	if err != nil {
-		rpc.ResetConnTimeout()
-
-		VMID, err = rpc.VMNameToID(nameOrID)
+		VMID, err = rpc.VMNameToID(ctx, nameOrID)
 		if err != nil {
 			return fmt.Errorf("error getting VM: %w", err)
 		}
@@ -50,9 +49,7 @@ func DeleteVM(nameOrID string) error {
 		VMID = parsedUUID.String()
 	}
 
-	rpc.ResetConnTimeout()
-
-	_, err = rpc.DeleteVM(VMID)
+	_, err = rpc.DeleteVM(ctx, VMID)
 	if err != nil {
 		return fmt.Errorf("failed removing VM: %w", err)
 	}
@@ -68,7 +65,7 @@ func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 	case http.MethodDelete:
 		nameOrID := request.PathValue("nameOrID")
 
-		err = DeleteVM(nameOrID)
+		err = DeleteVM(request.Context(), nameOrID)
 		if err != nil {
 			writer.Header().Set("HX-Redirect", "/vm/"+nameOrID)
 			writer.WriteHeader(http.StatusInternalServerError)
@@ -129,7 +126,7 @@ func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 			newDesc = vmDesc[0]
 		}
 
-		_, err = rpc.AddVM(VMName[0], &newDesc, &newCPUs, &newMem)
+		_, err = rpc.AddVM(request.Context(), VMName[0], &newDesc, &newCPUs, &newMem)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -144,7 +141,7 @@ func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 	default:
 		nameOrID := request.PathValue("nameOrID")
 
-		VMs, err := v.GetVMs()
+		VMs, err := v.GetVMs(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -154,9 +151,9 @@ func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 		}
 
 		if nameOrID == "" {
-			templ.Handler(components.VmNew(VMs)).ServeHTTP(writer, request)
+			templ.Handler(components.VmNew(VMs)).ServeHTTP(writer, request) //nolint:contextcheck
 		} else {
-			aVM, err := v.GetVM(nameOrID)
+			aVM, err := v.GetVM(request.Context(), nameOrID)
 			if err != nil {
 				util.LogError(err, request.RemoteAddr)
 
@@ -165,7 +162,7 @@ func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 				return
 			}
 
-			aVM.Disks, err = v.GetVMDisks(aVM.ID)
+			aVM.Disks, err = v.GetVMDisks(request.Context(), aVM.ID)
 			if err != nil {
 				util.LogError(err, request.RemoteAddr)
 
@@ -174,7 +171,7 @@ func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 				return
 			}
 
-			aVM.ISOs, err = v.GetVMISOs(aVM.ID)
+			aVM.ISOs, err = v.GetVMISOs(request.Context(), aVM.ID)
 			if err != nil {
 				util.LogError(err, request.RemoteAddr)
 
@@ -183,7 +180,7 @@ func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 				return
 			}
 
-			aVM.NICs, err = v.GetVMNICs(aVM.ID)
+			aVM.NICs, err = v.GetVMNICs(request.Context(), aVM.ID)
 			if err != nil {
 				util.LogError(err, request.RemoteAddr)
 
@@ -195,7 +192,7 @@ func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 			listenHost := util.GetListenHost()
 			websockifyPort := util.GetWebsockifyPort()
 
-			templ.Handler(components.Vm(VMs, aVM, listenHost, websockifyPort)).ServeHTTP(writer, request)
+			templ.Handler(components.Vm(VMs, aVM, listenHost, websockifyPort)).ServeHTTP(writer, request) //nolint:contextcheck
 
 			return
 		}
@@ -203,7 +200,7 @@ func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 }
 
 type VMStartPostHandler struct {
-	GetVM func(string) (components.VM, error)
+	GetVM func(context.Context, string) (components.VM, error)
 }
 
 func NewVMStartHandler() VMStartPostHandler {
@@ -213,7 +210,7 @@ func NewVMStartHandler() VMStartPostHandler {
 }
 
 func (v VMStartPostHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	aVM, err := v.GetVM(request.PathValue("nameOrID"))
+	aVM, err := v.GetVM(request.Context(), request.PathValue("nameOrID"))
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -222,7 +219,7 @@ func (v VMStartPostHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 		return
 	}
 
-	err = aVM.Start()
+	err = aVM.Start(request.Context())
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -231,11 +228,11 @@ func (v VMStartPostHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 		return
 	}
 
-	templ.Handler(components.StartButton(aVM)).ServeHTTP(writer, request)
+	templ.Handler(components.StartButton(aVM)).ServeHTTP(writer, request) //nolint:contextcheck
 }
 
 type VMStopPostHandler struct {
-	GetVM func(string) (components.VM, error)
+	GetVM func(context.Context, string) (components.VM, error)
 }
 
 func NewVMStopHandler() VMStopPostHandler {
@@ -245,7 +242,7 @@ func NewVMStopHandler() VMStopPostHandler {
 }
 
 func (v VMStopPostHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	aVM, err := v.GetVM(request.PathValue("nameOrID"))
+	aVM, err := v.GetVM(request.Context(), request.PathValue("nameOrID"))
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -254,7 +251,7 @@ func (v VMStopPostHandler) ServeHTTP(writer http.ResponseWriter, request *http.R
 		return
 	}
 
-	err = aVM.Stop()
+	err = aVM.Stop(request.Context())
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -263,7 +260,7 @@ func (v VMStopPostHandler) ServeHTTP(writer http.ResponseWriter, request *http.R
 		return
 	}
 
-	templ.Handler(components.StopButton(aVM)).ServeHTTP(writer, request)
+	templ.Handler(components.StopButton(aVM)).ServeHTTP(writer, request) //nolint:contextcheck
 }
 
 type VMClearUEFIHandler struct{}
@@ -273,7 +270,7 @@ func NewVMClearUEFIHandler() VMClearUEFIHandler {
 }
 
 func (v VMClearUEFIHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	aVM, err := GetVM(request.PathValue("nameOrID"))
+	aVM, err := GetVM(request.Context(), request.PathValue("nameOrID"))
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -282,7 +279,7 @@ func (v VMClearUEFIHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 		return
 	}
 
-	err = aVM.ClearUEFIVars()
+	err = aVM.ClearUEFIVars(request.Context())
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -296,7 +293,7 @@ func (v VMClearUEFIHandler) ServeHTTP(writer http.ResponseWriter, request *http.
 
 func serveErrorVM(writer http.ResponseWriter, request *http.Request, err error) {
 	// get list of VMs for the sidebar
-	vmList, getVMsErr := GetVMs()
+	vmList, getVMsErr := GetVMs(request.Context())
 	if getVMsErr != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -309,20 +306,20 @@ func serveErrorVM(writer http.ResponseWriter, request *http.Request, err error) 
 		switch e.Code() {
 		case codes.NotFound:
 			templ.Handler(
-				components.VmNotFoundComponent(vmList),
+				components.VmNotFoundComponent(vmList), //nolint:contextcheck
 				templ.WithStatus(http.StatusNotFound),
 			).ServeHTTP(writer, request)
 		case codes.OK, codes.Canceled, codes.Unknown, codes.InvalidArgument, codes.DeadlineExceeded, codes.AlreadyExists, codes.PermissionDenied, codes.ResourceExhausted, codes.FailedPrecondition, codes.Aborted, codes.OutOfRange, codes.Unimplemented, codes.Internal, codes.Unavailable, codes.DataLoss, codes.Unauthenticated: //nolint:lll
 			fallthrough
 		default:
-			templ.Handler(components.VmNotFoundComponent(vmList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll
+			templ.Handler(components.VmNotFoundComponent(vmList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll,contextcheck
 		}
 	} else {
-		templ.Handler(components.VmNotFoundComponent(vmList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll
+		templ.Handler(components.VmNotFoundComponent(vmList), templ.WithStatus(http.StatusInternalServerError)).ServeHTTP(writer, request) //nolint:lll,contextcheck
 	}
 }
 
-func GetVMDisks(vmID string) ([]components.Disk, error) {
+func GetVMDisks(ctx context.Context, vmID string) ([]components.Disk, error) {
 	var vmDisks []string
 
 	var err error
@@ -332,9 +329,7 @@ func GetVMDisks(vmID string) ([]components.Disk, error) {
 		return []components.Disk{}, fmt.Errorf("error getting VM Disks: %w", err)
 	}
 
-	rpc.ResetConnTimeout()
-
-	vmDisks, err = rpc.GetVMDisks(vmID)
+	vmDisks, err = rpc.GetVMDisks(ctx, vmID)
 	if err != nil {
 		return []components.Disk{}, fmt.Errorf("error getting VM Disks: %w", err)
 	}
@@ -344,9 +339,7 @@ func GetVMDisks(vmID string) ([]components.Disk, error) {
 	for _, diskID := range vmDisks {
 		var aDisk rpc.DiskInfo
 
-		rpc.ResetConnTimeout()
-
-		aDisk, err = rpc.GetDiskInfo(diskID)
+		aDisk, err = rpc.GetDiskInfo(ctx, diskID)
 		if err != nil {
 			return []components.Disk{}, fmt.Errorf("error getting VM Disks: %w", err)
 		}
@@ -357,7 +350,7 @@ func GetVMDisks(vmID string) ([]components.Disk, error) {
 	return returnDisks, nil
 }
 
-func GetVMISOs(vmID string) ([]components.ISO, error) {
+func GetVMISOs(ctx context.Context, vmID string) ([]components.ISO, error) {
 	var vmISOs []string
 
 	var err error
@@ -367,9 +360,7 @@ func GetVMISOs(vmID string) ([]components.ISO, error) {
 		return []components.ISO{}, fmt.Errorf("error getting VM ISOs: %w", err)
 	}
 
-	rpc.ResetConnTimeout()
-
-	vmISOs, err = rpc.GetVMIsos(vmID)
+	vmISOs, err = rpc.GetVMIsos(ctx, vmID)
 	if err != nil {
 		return []components.ISO{}, fmt.Errorf("error getting VM ISOs: %w", err)
 	}
@@ -379,9 +370,7 @@ func GetVMISOs(vmID string) ([]components.ISO, error) {
 	for _, isoID := range vmISOs {
 		var aISO rpc.IsoInfo
 
-		rpc.ResetConnTimeout()
-
-		aISO, err = rpc.GetIsoInfo(isoID)
+		aISO, err = rpc.GetIsoInfo(ctx, isoID)
 		if err != nil {
 			return []components.ISO{}, fmt.Errorf("error getting VM ISOs: %w", err)
 		}
@@ -392,7 +381,7 @@ func GetVMISOs(vmID string) ([]components.ISO, error) {
 	return returnISOs, nil
 }
 
-func GetVMNICs(vmID string) ([]components.NIC, error) {
+func GetVMNICs(ctx context.Context, vmID string) ([]components.NIC, error) {
 	var vmNICs []string
 
 	var err error
@@ -402,9 +391,7 @@ func GetVMNICs(vmID string) ([]components.NIC, error) {
 		return []components.NIC{}, fmt.Errorf("error getting VM NICs: %w", err)
 	}
 
-	rpc.ResetConnTimeout()
-
-	vmNICs, err = rpc.GetVMNics(vmID)
+	vmNICs, err = rpc.GetVMNics(ctx, vmID)
 	if err != nil {
 		return []components.NIC{}, fmt.Errorf("error getting VM NICs: %w", err)
 	}
@@ -414,9 +401,7 @@ func GetVMNICs(vmID string) ([]components.NIC, error) {
 	for _, NICID := range vmNICs {
 		var aNIC rpc.NicInfo
 
-		rpc.ResetConnTimeout()
-
-		aNIC, err = rpc.GetVMNicInfo(NICID)
+		aNIC, err = rpc.GetVMNicInfo(ctx, NICID)
 		if err != nil {
 			return []components.NIC{}, fmt.Errorf("error getting VM NICs: %w", err)
 		}
@@ -428,7 +413,7 @@ func GetVMNICs(vmID string) ([]components.NIC, error) {
 }
 
 //nolint:funlen
-func GetVM(nameOrID string) (components.VM, error) {
+func GetVM(ctx context.Context, nameOrID string) (components.VM, error) {
 	var returnVM components.VM
 
 	var vmConfig rpc.VMConfig
@@ -442,9 +427,7 @@ func GetVM(nameOrID string) (components.VM, error) {
 
 	parsedUUID, err := uuid.Parse(nameOrID)
 	if err != nil {
-		rpc.ResetConnTimeout()
-
-		returnVM.ID, err = rpc.GetVMId(nameOrID)
+		returnVM.ID, err = rpc.GetVMId(ctx, nameOrID)
 		if err != nil {
 			return components.VM{}, fmt.Errorf("error getting VM: %w", err)
 		}
@@ -453,17 +436,13 @@ func GetVM(nameOrID string) (components.VM, error) {
 	} else {
 		returnVM.ID = parsedUUID.String()
 
-		rpc.ResetConnTimeout()
-
-		returnVM.Name, err = rpc.GetVMName(parsedUUID.String())
+		returnVM.Name, err = rpc.GetVMName(ctx, parsedUUID.String())
 		if err != nil {
 			return components.VM{}, fmt.Errorf("error getting VM: %w", err)
 		}
 	}
 
-	rpc.ResetConnTimeout()
-
-	vmConfig, err = rpc.GetVMConfig(returnVM.ID)
+	vmConfig, err = rpc.GetVMConfig(ctx, returnVM.ID)
 	if err != nil {
 		return components.VM{}, fmt.Errorf("error getting VM: %w", err)
 	}
@@ -537,9 +516,7 @@ func GetVM(nameOrID string) (components.VM, error) {
 
 	var vncPort string
 
-	rpc.ResetConnTimeout()
-
-	vmState, vncPort, _, err = rpc.GetVMState(returnVM.ID)
+	vmState, vncPort, _, err = rpc.GetVMState(ctx, returnVM.ID)
 	if err != nil {
 		return components.VM{}, fmt.Errorf("error getting VM: %w", err)
 	}
@@ -561,11 +538,11 @@ func GetVM(nameOrID string) (components.VM, error) {
 }
 
 type VMDataHandler struct {
-	GetVM      func(string) (components.VM, error)
-	GetVMs     func() ([]components.VM, error)
-	GetVMDisks func(string) ([]components.Disk, error)
-	GetVMISOs  func(string) ([]components.ISO, error)
-	GetVMNICs  func(string) ([]components.NIC, error)
+	GetVM      func(context.Context, string) (components.VM, error)
+	GetVMs     func(context.Context) ([]components.VM, error)
+	GetVMDisks func(context.Context, string) ([]components.Disk, error)
+	GetVMISOs  func(context.Context, string) ([]components.ISO, error)
+	GetVMNICs  func(context.Context, string) ([]components.NIC, error)
 }
 
 func NewVMDataHandler() VMDataHandler {
@@ -579,7 +556,7 @@ func NewVMDataHandler() VMDataHandler {
 }
 
 func (v VMDataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	aVM, err := v.GetVM(request.PathValue("nameOrID"))
+	aVM, err := v.GetVM(request.Context(), request.PathValue("nameOrID"))
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -588,7 +565,7 @@ func (v VMDataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	VMs, err := v.GetVMs()
+	VMs, err := v.GetVMs(request.Context())
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -597,7 +574,7 @@ func (v VMDataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	aVM.Disks, err = v.GetVMDisks(aVM.ID)
+	aVM.Disks, err = v.GetVMDisks(request.Context(), aVM.ID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -606,7 +583,7 @@ func (v VMDataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	aVM.ISOs, err = v.GetVMISOs(aVM.ID)
+	aVM.ISOs, err = v.GetVMISOs(request.Context(), aVM.ID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -615,7 +592,7 @@ func (v VMDataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	aVM.NICs, err = v.GetVMNICs(aVM.ID)
+	aVM.NICs, err = v.GetVMNICs(request.Context(), aVM.ID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -627,7 +604,7 @@ func (v VMDataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 	listenHost := util.GetListenHost()
 	websockifyPort := util.GetWebsockifyPort()
 
-	templ.Handler(components.VmDataOnly(VMs, aVM, listenHost, websockifyPort)).ServeHTTP(writer, request)
+	templ.Handler(components.VmDataOnly(VMs, aVM, listenHost, websockifyPort)).ServeHTTP(writer, request) //nolint:lll,contextcheck
 }
 
 type VMDiskHandler struct {
@@ -637,14 +614,12 @@ func NewVMDiskHandler() VMDiskHandler {
 	return VMDiskHandler{}
 }
 
-func RemoveVMDisk(aVM components.VM, aDisk components.Disk) error {
+func RemoveVMDisk(ctx context.Context, aVM components.VM, aDisk components.Disk) error {
 	var diskIDs []string
 
 	var err error
 
-	rpc.ResetConnTimeout()
-
-	diskIDs, err = rpc.GetVMDisks(aVM.ID)
+	diskIDs, err = rpc.GetVMDisks(ctx, aVM.ID)
 	if err != nil {
 		return fmt.Errorf("error getting disks: %w", err)
 	}
@@ -659,9 +634,7 @@ func RemoveVMDisk(aVM components.VM, aDisk components.Disk) error {
 
 	var res bool
 
-	rpc.ResetConnTimeout()
-
-	res, err = rpc.VMSetDisks(aVM.ID, newDiskIDs)
+	res, err = rpc.VMSetDisks(ctx, aVM.ID, newDiskIDs)
 	if err != nil {
 		return ErrRemoveDisk
 	}
@@ -683,7 +656,7 @@ func (v VMDiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 
 	var aDisk components.Disk
 
-	aVM, err = GetVM(vmNameOrID)
+	aVM, err = GetVM(request.Context(), vmNameOrID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -692,7 +665,7 @@ func (v VMDiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	aDisk, err = GetDisk(diskNameOrID)
+	aDisk, err = GetDisk(request.Context(), diskNameOrID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -703,7 +676,7 @@ func (v VMDiskHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 
 	switch request.Method {
 	case http.MethodDelete:
-		err = RemoveVMDisk(aVM, aDisk)
+		err = RemoveVMDisk(request.Context(), aVM, aDisk)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 		}
@@ -727,14 +700,12 @@ func NewVMISOHandler() VMISOHandler {
 	return VMISOHandler{}
 }
 
-func RemoveVMISO(aVM components.VM, aISO components.ISO) error {
+func RemoveVMISO(ctx context.Context, aVM components.VM, aISO components.ISO) error {
 	var isoIDs []string
 
 	var err error
 
-	rpc.ResetConnTimeout()
-
-	isoIDs, err = rpc.GetVMIsos(aVM.ID)
+	isoIDs, err = rpc.GetVMIsos(ctx, aVM.ID)
 	if err != nil {
 		return fmt.Errorf("error getting isos: %w", err)
 	}
@@ -757,9 +728,7 @@ func RemoveVMISO(aVM components.VM, aISO components.ISO) error {
 
 	var res bool
 
-	rpc.ResetConnTimeout()
-
-	res, err = rpc.VMSetIsos(aVM.ID, newIsoIDs)
+	res, err = rpc.VMSetIsos(ctx, aVM.ID, newIsoIDs)
 	if err != nil {
 		return fmt.Errorf("failed setting VM ISOs: %w", err)
 	}
@@ -781,7 +750,7 @@ func (v VMISOHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 
 	var aISO components.ISO
 
-	aVM, err = GetVM(vmNameOrID)
+	aVM, err = GetVM(request.Context(), vmNameOrID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -790,7 +759,7 @@ func (v VMISOHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 		return
 	}
 
-	aISO, err = GetISO(isoNameOrID)
+	aISO, err = GetISO(request.Context(), isoNameOrID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -801,7 +770,7 @@ func (v VMISOHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 
 	switch request.Method {
 	case http.MethodDelete:
-		err = RemoveVMISO(aVM, aISO)
+		err = RemoveVMISO(request.Context(), aVM, aISO)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 		}
@@ -825,14 +794,12 @@ func NewVMNICHandler() VMNICHandler {
 	return VMNICHandler{}
 }
 
-func RemoveVMNIC(aVM components.VM, aNIC components.NIC) error {
+func RemoveVMNIC(ctx context.Context, aVM components.VM, aNIC components.NIC) error {
 	var nicIDs []string
 
 	var err error
 
-	rpc.ResetConnTimeout()
-
-	nicIDs, err = rpc.GetVMNics(aVM.ID)
+	nicIDs, err = rpc.GetVMNics(ctx, aVM.ID)
 	if err != nil {
 		return fmt.Errorf("error getting NICs: %w", err)
 	}
@@ -847,9 +814,7 @@ func RemoveVMNIC(aVM components.VM, aNIC components.NIC) error {
 
 	var res bool
 
-	rpc.ResetConnTimeout()
-
-	res, err = rpc.VMSetNics(aVM.ID, newNICIDs)
+	res, err = rpc.VMSetNics(ctx, aVM.ID, newNICIDs)
 	if err != nil {
 		return fmt.Errorf("failed setting VM NICs: %w", err)
 	}
@@ -871,7 +836,7 @@ func (v VMNICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 
 	var aNIC components.NIC
 
-	aVM, err = GetVM(vmNameOrID)
+	aVM, err = GetVM(request.Context(), vmNameOrID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -880,7 +845,7 @@ func (v VMNICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 		return
 	}
 
-	aNIC, err = GetNIC(nicNameOrID)
+	aNIC, err = GetNIC(request.Context(), nicNameOrID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -891,7 +856,7 @@ func (v VMNICHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 
 	switch request.Method {
 	case http.MethodDelete:
-		err = RemoveVMNIC(aVM, aNIC)
+		err = RemoveVMNIC(request.Context(), aVM, aNIC)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 		}
@@ -915,19 +880,19 @@ func NewVMDiskAddHandler() VMDiskAddHandler {
 	return VMDiskAddHandler{}
 }
 
-func VMAddDisk(aVM components.VM, diskName string) error {
+func VMAddDisk(ctx context.Context, aVM components.VM, diskName string) error {
 	var err error
 
 	var newDisk components.Disk
 
 	var newDisks []components.Disk
 
-	newDisk, err = GetDisk(diskName)
+	newDisk, err = GetDisk(ctx, diskName)
 	if err != nil {
 		return err
 	}
 
-	newDisks, err = GetVMDisks(aVM.ID)
+	newDisks, err = GetVMDisks(ctx, aVM.ID)
 	if err != nil {
 		return err
 	}
@@ -940,9 +905,7 @@ func VMAddDisk(aVM components.VM, diskName string) error {
 		newDiskIDs = append(newDiskIDs, n.ID)
 	}
 
-	rpc.ResetConnTimeout()
-
-	_, err = rpc.VMSetDisks(aVM.ID, newDiskIDs)
+	_, err = rpc.VMSetDisks(ctx, aVM.ID, newDiskIDs)
 	if err != nil {
 		return fmt.Errorf("error adding disk to VM: %w", err)
 	}
@@ -950,14 +913,14 @@ func VMAddDisk(aVM components.VM, diskName string) error {
 	return nil
 }
 
-func GetDisksUnattached() ([]components.Disk, error) {
+func GetDisksUnattached(ctx context.Context) ([]components.Disk, error) {
 	var err error
 
 	var disks []components.Disk
 
 	var allDisks []components.Disk
 
-	allDisks, err = GetDisks()
+	allDisks, err = GetDisks(ctx)
 	if err != nil {
 		return []components.Disk{}, fmt.Errorf("error getting disks: %w", err)
 	}
@@ -966,9 +929,7 @@ func GetDisksUnattached() ([]components.Disk, error) {
 	for _, aDisk := range allDisks {
 		var vmid string
 
-		rpc.ResetConnTimeout()
-
-		vmid, err = rpc.DiskGetVMID(aDisk.ID)
+		vmid, err = rpc.DiskGetVMID(ctx, aDisk.ID)
 		if err != nil {
 			return []components.Disk{}, fmt.Errorf("error getting disks: %w", err)
 		}
@@ -988,7 +949,7 @@ func (v VMDiskAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 
 	var aVM components.VM
 
-	aVM, err = GetVM(nameOrID)
+	aVM, err = GetVM(request.Context(), nameOrID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -1003,7 +964,7 @@ func (v VMDiskAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 
 		var VMs []components.VM
 
-		VMs, err = GetVMs()
+		VMs, err = GetVMs(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -1012,7 +973,7 @@ func (v VMDiskAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 			return
 		}
 
-		disks, err = GetDisksUnattached()
+		disks, err = GetDisksUnattached(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 			serveErrorVM(writer, request, err)
@@ -1020,7 +981,7 @@ func (v VMDiskAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 			return
 		}
 
-		templ.Handler(components.VmDiskAdd(nameOrID, VMs, aVM, disks)).ServeHTTP(writer, request)
+		templ.Handler(components.VmDiskAdd(nameOrID, VMs, aVM, disks)).ServeHTTP(writer, request) //nolint:contextcheck
 	case http.MethodPost:
 		err = request.ParseForm()
 		if err != nil {
@@ -1044,7 +1005,7 @@ func (v VMDiskAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Re
 
 		diskName = disksAdded[0]
 
-		err = VMAddDisk(aVM, diskName)
+		err = VMAddDisk(request.Context(), aVM, diskName)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -1069,19 +1030,19 @@ func NewVMISOAddHandler() VMISOAddHandler {
 	return VMISOAddHandler{}
 }
 
-func VMAddISO(aVM components.VM, isoName string) error {
+func VMAddISO(ctx context.Context, aVM components.VM, isoName string) error {
 	var err error
 
 	var newISO components.ISO
 
 	var newISOs []components.ISO
 
-	newISO, err = GetISO(isoName)
+	newISO, err = GetISO(ctx, isoName)
 	if err != nil {
 		return err
 	}
 
-	newISOs, err = GetVMISOs(aVM.ID)
+	newISOs, err = GetVMISOs(ctx, aVM.ID)
 	if err != nil {
 		return err
 	}
@@ -1094,9 +1055,7 @@ func VMAddISO(aVM components.VM, isoName string) error {
 		newISOIDs = append(newISOIDs, n.ID)
 	}
 
-	rpc.ResetConnTimeout()
-
-	_, err = rpc.VMSetIsos(aVM.ID, newISOIDs)
+	_, err = rpc.VMSetIsos(ctx, aVM.ID, newISOIDs)
 	if err != nil {
 		return fmt.Errorf("error adding disk to VM: %w", err)
 	}
@@ -1111,7 +1070,7 @@ func (v VMISOAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 
 	var aVM components.VM
 
-	aVM, err = GetVM(nameOrID)
+	aVM, err = GetVM(request.Context(), nameOrID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -1126,7 +1085,7 @@ func (v VMISOAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 
 		var VMs []components.VM
 
-		VMs, err = GetVMs()
+		VMs, err = GetVMs(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -1135,7 +1094,7 @@ func (v VMISOAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 			return
 		}
 
-		ISOs, err = GetISOs()
+		ISOs, err = GetISOs(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 			serveErrorVM(writer, request, err)
@@ -1143,7 +1102,7 @@ func (v VMISOAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 			return
 		}
 
-		templ.Handler(components.VmISOAdd(nameOrID, VMs, aVM, ISOs)).ServeHTTP(writer, request)
+		templ.Handler(components.VmISOAdd(nameOrID, VMs, aVM, ISOs)).ServeHTTP(writer, request) //nolint:contextcheck
 	case http.MethodPost:
 		err = request.ParseForm()
 		if err != nil {
@@ -1167,7 +1126,7 @@ func (v VMISOAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 
 		isoName = isosAdded[0]
 
-		err = VMAddISO(aVM, isoName)
+		err = VMAddISO(request.Context(), aVM, isoName)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -1192,19 +1151,19 @@ func NewVMNICAddHandler() VMNICAddHandler {
 	return VMNICAddHandler{}
 }
 
-func VMAddNIC(aVM components.VM, nicName string) error {
+func VMAddNIC(ctx context.Context, aVM components.VM, nicName string) error {
 	var err error
 
 	var newNIC components.NIC
 
 	var newNICs []components.NIC
 
-	newNIC, err = GetNIC(nicName)
+	newNIC, err = GetNIC(ctx, nicName)
 	if err != nil {
 		return err
 	}
 
-	newNICs, err = GetVMNICs(aVM.ID)
+	newNICs, err = GetVMNICs(ctx, aVM.ID)
 	if err != nil {
 		return err
 	}
@@ -1217,9 +1176,7 @@ func VMAddNIC(aVM components.VM, nicName string) error {
 		newNICIDs = append(newNICIDs, n.ID)
 	}
 
-	rpc.ResetConnTimeout()
-
-	_, err = rpc.VMSetNics(aVM.ID, newNICIDs)
+	_, err = rpc.VMSetNics(ctx, aVM.ID, newNICIDs)
 	if err != nil {
 		return fmt.Errorf("error adding nic to VM: %w", err)
 	}
@@ -1227,14 +1184,14 @@ func VMAddNIC(aVM components.VM, nicName string) error {
 	return nil
 }
 
-func GetNICsUnattached() ([]components.NIC, error) {
+func GetNICsUnattached(ctx context.Context) ([]components.NIC, error) {
 	var err error
 
 	var nics []components.NIC
 
 	var allNICs []components.NIC
 
-	allNICs, err = GetNICs()
+	allNICs, err = GetNICs(ctx)
 	if err != nil {
 		return []components.NIC{}, fmt.Errorf("error getting nics: %w", err)
 	}
@@ -1243,9 +1200,7 @@ func GetNICsUnattached() ([]components.NIC, error) {
 	for _, aNIC := range allNICs {
 		var vmID string
 
-		rpc.ResetConnTimeout()
-
-		vmID, err := rpc.GetVMNicVM(aNIC.ID)
+		vmID, err := rpc.GetVMNicVM(ctx, aNIC.ID)
 		if err != nil {
 			return []components.NIC{}, fmt.Errorf("error getting nics: %w", err)
 		}
@@ -1265,7 +1220,7 @@ func (v VMNICAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 
 	var aVM components.VM
 
-	aVM, err = GetVM(nameOrID)
+	aVM, err = GetVM(request.Context(), nameOrID)
 	if err != nil {
 		util.LogError(err, request.RemoteAddr)
 
@@ -1280,7 +1235,7 @@ func (v VMNICAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 
 		var VMs []components.VM
 
-		VMs, err = GetVMs()
+		VMs, err = GetVMs(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
@@ -1289,7 +1244,7 @@ func (v VMNICAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 			return
 		}
 
-		nics, err = GetNICsUnattached()
+		nics, err = GetNICsUnattached(request.Context())
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 			serveErrorVM(writer, request, err)
@@ -1297,7 +1252,7 @@ func (v VMNICAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 			return
 		}
 
-		templ.Handler(components.VmNICAdd(nameOrID, VMs, aVM, nics)).ServeHTTP(writer, request)
+		templ.Handler(components.VmNICAdd(nameOrID, VMs, aVM, nics)).ServeHTTP(writer, request) //nolint:contextcheck
 	case http.MethodPost:
 		err = request.ParseForm()
 		if err != nil {
@@ -1321,7 +1276,7 @@ func (v VMNICAddHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 
 		nicName = nicsAdded[0]
 
-		err = VMAddNIC(aVM, nicName)
+		err = VMAddNIC(request.Context(), aVM, nicName)
 		if err != nil {
 			util.LogError(err, request.RemoteAddr)
 
