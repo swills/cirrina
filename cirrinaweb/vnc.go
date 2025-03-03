@@ -83,7 +83,7 @@ func StartGoWebSockifyHTTP() {
 		ReadTimeout:       5 * time.Second,
 		WriteTimeout:      5 * time.Second,
 		IdleTimeout:       60 * time.Second,
-		Addr:              net.JoinHostPort(util.GetListenHost(), strconv.Itoa(cast.ToInt(util.GetWebsockifyPort()))),
+		Addr:              net.JoinHostPort(util.GetWebsockifyHost(), strconv.Itoa(cast.ToInt(util.GetWebsockifyPort()))),
 		Handler:           router,
 	}
 
@@ -109,9 +109,13 @@ func webSocketHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	vmNameOrID := strings.TrimLeft(request.URL.Path, "/")
+	vmNameOrID := strings.SplitAfter(request.URL.Path, "/ws/")
 
-	aVM, err := handlers.GetVM(request.Context(), vmNameOrID)
+	if len(vmNameOrID) != 2 {
+		return
+	}
+
+	aVM, err := handlers.GetVM(request.Context(), vmNameOrID[1])
 	if err != nil {
 		return
 	}

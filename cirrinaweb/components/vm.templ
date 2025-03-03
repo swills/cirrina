@@ -33,9 +33,9 @@ templ vmNewTemplate() {
     </div>
 }
 
-templ Vm(vms []VM, vm VM, listenHost string, websockifyPort uint16) {
+templ Vm(vms []VM, vm VM, websockifyHost string, websockifyPort uint16) {
     @layoutVMs("VM - " + vm.Name, vms, "/vmdata/" + vm.Name) {
-        @vmTemplate(vm, listenHost, websockifyPort)
+        @vmTemplate(vm, websockifyHost, websockifyPort)
     }
 }
 
@@ -163,7 +163,7 @@ templ VMNICsEditComp(vm VM) {
             </div>
 }
 
-templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
+templ vmTemplate(vm VM, websockifyHost string, websockifyPort uint16) {
     {{ cpusStr := strconv.FormatUint(uint64(vm.CPUs), 10) }}
     {{ memoryStr := strconv.FormatUint(uint64(vm.Memory), 10) }}
 
@@ -198,7 +198,7 @@ templ vmTemplate(vm VM, listenHost string, websockifyPort uint16) {
                 <div>VM is running</div>
                 @StopButton(vm)
                 if vm.VNCPort > 0 {
-                    <div>VNC port is { fmt.Sprintf("%d", vm.VNCPort) }. <a target="_blank" href={ templ.URL("/vnc/vnc.html?autoconnect=true&reconnect=true&host=" + listenHost + "&port=" + strconv.FormatUint(uint64(websockifyPort), 10) + "&path=" + vm.NameOrID + "&resize=scale&reconnect=true") }>Open VNC</a> </div>
+                    <div>VNC port is { fmt.Sprintf("%d", vm.VNCPort) }. <a target="_blank" href={ templ.URL("/vnc/vnc.html?autoconnect=true&reconnect=true&host=" + websockifyHost + "&port=" + strconv.FormatUint(uint64(websockifyPort), 10) + "&path=ws/" + vm.NameOrID + "&resize=scale&reconnect=true") }>Open VNC</a> </div>
                 }
             } else {
                 <div>VM is not running</div>
@@ -273,8 +273,8 @@ templ StopButton(vm VM) {
     <button class="btn btn-primary" hx-post={ "/vm/" + vm.NameOrID + "/stop" } hx-swap="outerHTML">Stop</button>
 }
 
-templ VmDataOnly(vms []VM, vm VM, listenHost string, websockifyPort uint16) {
-    @vmTemplate(vm, listenHost, websockifyPort)
+templ VmDataOnly(vms []VM, vm VM, websockifyHost string, websockifyPort uint16) {
+    @vmTemplate(vm, websockifyHost, websockifyPort)
 }
 
 templ DeleteVMButton(aVM VM) {

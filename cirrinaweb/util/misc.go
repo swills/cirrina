@@ -7,9 +7,12 @@ import (
 )
 
 var (
-	listenHost            = "localhost"
-	listenPort     uint16 = 8888
-	websockifyPort uint16 = 7900
+	listenHost                  = "localhost"
+	listenPort           uint16 = 8888
+	websockifyHost              = "localhost"
+	websockifyPort       uint16 = 7900
+	websockifyPublicHost        = "localhost"
+	websockifyPublicPort uint16 = 7900
 )
 
 func SetListenHost(lh string) {
@@ -31,6 +34,12 @@ func SetListenPort(listenPortString string) {
 	}
 }
 
+func SetWebsockifyHost(wh string) {
+	if wh != "" {
+		websockifyHost = wh
+	}
+}
+
 func SetWebsockifyPort(websockifyPortString string) {
 	var err error
 
@@ -44,6 +53,25 @@ func SetWebsockifyPort(websockifyPortString string) {
 	}
 }
 
+func SetWebsockifyPublicHost(wph string) {
+	if wph != "" {
+		websockifyPublicHost = wph
+	}
+}
+
+func SetWebsockifyPublicPort(websockifyPublicPortString string) {
+	var err error
+
+	if websockifyPublicPortString != "" {
+		var cirrinaWebsockifyPortTemp uint64
+
+		cirrinaWebsockifyPortTemp, err = strconv.ParseUint(websockifyPublicPortString, 10, 16)
+		if err == nil {
+			websockifyPublicPort = cast.ToUint16(cirrinaWebsockifyPortTemp)
+		}
+	}
+}
+
 func GetListenHost() string {
 	return listenHost
 }
@@ -52,6 +80,18 @@ func GetListenPort() uint16 {
 	return listenPort
 }
 
+func GetWebsockifyHost() string {
+	return websockifyHost
+}
+
 func GetWebsockifyPort() uint16 {
 	return websockifyPort
+}
+
+func GetWebsockifyPublicHost() string {
+	return websockifyPublicHost
+}
+
+func GetWebsockifyPublicPort() uint16 {
+	return websockifyPublicPort
 }

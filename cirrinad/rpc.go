@@ -35,6 +35,18 @@ func rpcServer() {
 
 	var opts []grpc.ServerOption
 
+	// opts = append(opts, grpc.KeepaliveParams(keepalive.ServerParameters{
+	//	Time:                  time.Duration(config.Config.Network.Grpc.Timeout) * time.Second,
+	//	Timeout:               time.Duration(config.Config.Network.Grpc.Timeout) * time.Second,
+	//	MaxConnectionAgeGrace: time.Duration(config.Config.Network.Grpc.Timeout) * time.Second,
+	//	MaxConnectionIdle:     time.Duration(config.Config.Network.Grpc.Timeout) * time.Second,
+	//	MaxConnectionAge:      time.Duration(config.Config.Network.Grpc.Timeout) * time.Second,
+	// }))
+	//
+	// connTimeout := grpc.ConnectionTimeout(time.Duration(config.Config.Network.Grpc.Timeout) * time.Second)
+	//
+	// opts = append(opts, connTimeout)
+
 	opts = append(opts, grpc.KeepaliveParams(keepalive.ServerParameters{
 		Time: time.Duration(config.Config.Network.Grpc.Timeout) * time.Second,
 	}))

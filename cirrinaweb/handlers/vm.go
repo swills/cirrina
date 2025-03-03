@@ -189,10 +189,17 @@ func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 				return
 			}
 
-			listenHost := util.GetListenHost()
-			websockifyPort := util.GetWebsockifyPort()
+			websockifyHost := util.GetWebsockifyPublicHost()
+			websockifyPort := util.GetWebsockifyPublicPort()
 
-			templ.Handler(components.Vm(VMs, aVM, listenHost, websockifyPort)).ServeHTTP(writer, request) //nolint:contextcheck
+			templ.Handler(
+				components.Vm( //nolint:contextcheck
+					VMs,
+					aVM,
+					websockifyHost,
+					websockifyPort),
+			).
+				ServeHTTP(writer, request)
 
 			return
 		}
@@ -601,10 +608,14 @@ func (v VMDataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	listenHost := util.GetListenHost()
-	websockifyPort := util.GetWebsockifyPort()
-
-	templ.Handler(components.VmDataOnly(VMs, aVM, listenHost, websockifyPort)).ServeHTTP(writer, request) //nolint:lll,contextcheck
+	templ.Handler(
+		components.VmDataOnly( //nolint:contextcheck
+			VMs,
+			aVM,
+			util.GetWebsockifyPublicHost(),
+			util.GetWebsockifyPublicPort(),
+		),
+	).ServeHTTP(writer, request)
 }
 
 type VMDiskHandler struct {

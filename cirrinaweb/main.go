@@ -67,7 +67,11 @@ func parseEnv() (string, uint16) {
 		}
 	}
 
+	util.SetWebsockifyHost(os.Getenv("CIRRINAWEB_WEBSOCKIFYHOST"))
 	util.SetWebsockifyPort(os.Getenv("CIRRINAWEB_WEBSOCKIFYPORT"))
+
+	util.SetWebsockifyPublicHost(os.Getenv("CIRRINAWEB_WEBSOCKIFYPUBLICHOST"))
+	util.SetWebsockifyPublicPort(os.Getenv("CIRRINAWEB_WEBSOCKIFYPUBLICPORT"))
 
 	util.SetAccessLog(os.Getenv("CIRRINAWEB_ACCESSLOG"))
 	util.SetErrorLog(os.Getenv("CIRRINAWEB_ERRORLOG"))
