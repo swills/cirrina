@@ -12,7 +12,6 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/cast"
 
 	"cirrina/cirrinaweb/handlers"
 	"cirrina/cirrinaweb/util"
@@ -62,43 +61,12 @@ func init() {
 
 var (
 	upgrader = websocket.Upgrader{
-		ReadBufferSize:  65536, // FIXME - config
-		WriteBufferSize: 65536, // FIXME - config
-		CheckOrigin:     authenticateOrigin,
-		Subprotocols:    []string{"binary"},
-	}
-	server = &http.Server{
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+		ReadBufferSize:    65536, // FIXME - config
+		WriteBufferSize:   65536, // FIXME - config
+		Subprotocols:      []string{"binary"},
+		EnableCompression: true,
 	}
 )
-
-// StartGoWebSockifyHTTP starts the Go WebSockify web server.
-func StartGoWebSockifyHTTP() {
-	router := http.NewServeMux()
-	router.HandleFunc("/", webSocketHandler)
-
-	server = &http.Server{
-		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       5 * time.Second,
-		WriteTimeout:      5 * time.Second,
-		IdleTimeout:       60 * time.Second,
-		Addr:              net.JoinHostPort(util.GetWebsockifyHost(), strconv.Itoa(cast.ToInt(util.GetWebsockifyPort()))),
-		Handler:           router,
-	}
-
-	err := server.ListenAndServe()
-	if err != nil {
-		panic(err)
-	}
-}
-
-// authenticateOrigin parses an HTTP request and checks
-// if it's a valid request according to rules
-func authenticateOrigin(_ *http.Request) bool {
-	// TODO
-	return true
-}
 
 // webSocketHandler handles an incoming HTTP upgrade request
 // and starts a bidirectional proxy to the remote connection.
@@ -149,6 +117,8 @@ func webSocketHandler(writer http.ResponseWriter, request *http.Request) {
 
 	go proxy.Start()
 }
+
+// borrowed from: https://github.com/msquee/go-websockify/blob/master/proxy.go
 
 // Proxy interface
 type Proxy interface {

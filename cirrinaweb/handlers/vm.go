@@ -189,8 +189,8 @@ func (v VMHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) 
 				return
 			}
 
-			websockifyHost := util.GetWebsockifyPublicHost()
-			websockifyPort := util.GetWebsockifyPublicPort()
+			websockifyHost := util.GetWebsockifyHost()
+			websockifyPort := util.GetWebsockifyPort()
 
 			templ.Handler(
 				components.Vm( //nolint:contextcheck
@@ -612,8 +612,8 @@ func (v VMDataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Reque
 		components.VmDataOnly( //nolint:contextcheck
 			VMs,
 			aVM,
-			util.GetWebsockifyPublicHost(),
-			util.GetWebsockifyPublicPort(),
+			util.GetWebsockifyHost(),
+			util.GetWebsockifyPort(),
 		),
 	).ServeHTTP(writer, request)
 }
