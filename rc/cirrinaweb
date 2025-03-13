@@ -1,0 +1,59 @@
+#!/bin/sh
+
+# PROVIDE: cirrinaweb
+# REQUIRE: NETWORKING SERVERS DAEMON FILESYSTEMS netif kld mountlate sysctl cirrinad
+# KEYWORD: shutdown nojail
+#
+# Add the following lines to /etc/rc.conf.local or /etc/rc.conf
+# to enable this service:
+#
+# cirrinaweb_enable (bool):       Set to NO by default.
+#                               Set it to YES to enable cirrinaweb.
+# cirrinaweb_config (str):        Configuration file.
+#                               Default is "${LOCALBASE}/etc/cirrinaweb/config.yml"
+# cirrinaweb_user (string):       Set user to run cirrinaweb.
+#                               Default is "cirrinaweb".
+# cirrinaweb_group (string):      Set group to run cirrinaweb.
+#                               Default is "cirrinaweb".
+
+
+. /etc/rc.subr
+
+name=cirrinaweb
+rcvar=cirrinaweb_enable
+
+load_rc_config $name
+
+: ${cirrinaweb_enable:="NO"}
+: ${cirrinaweb_user:="nobody"}
+: ${cirrinaweb_group:="nobody"}
+: ${cirrinaweb_protect:="YES"}
+: ${cirrinaweb_command:="/usr/local/bin/cirrinaweb"}
+
+pidfile=/var/run/cirrinaweb/cirrinaweb.pid
+procname="${cirrinaweb_command}"
+start_postcmd="${name}_poststart"
+command="/usr/sbin/daemon"
+command_args="-S -T cirrinaweb -s info -m 3 -p ${pidfile} -f /usr/bin/env ${cirrinaweb_env} ${procname} ${cirrinaweb_args}"
+
+cirrinaweb_poststart()
+{
+    local timeout=15
+    while [ ! -f "${pidfile}" -a ${timeout} -gt 0 ]; do
+        timeout=$(( timeout - 1 ))
+        sleep 1
+    done
+    if [ -f "${pidfile}" ]; then
+        [ -z "${rc_pid}" ] && eval $_pidcmd
+        [ -z "${rc_pid}" ] && return 0
+	chmod o+r ${pidfile}
+        case ${cirrinaweb_protect} in
+        [Yy][Ee][Ss])
+            ${PROTECT} -p ${rc_pid}
+            ;;
+        esac
+    fi
+    return 0
+}
+
+run_rc_command "$1"
