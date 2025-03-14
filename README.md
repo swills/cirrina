@@ -4,7 +4,7 @@ Daemon for managing and configuring [Bhyve](https://wiki.freebsd.org/bhyve) writ
 Only UEFI boot is supported, no `bhyveload`.
 
 Note: The official repo for this project is [GitLab](https://gitlab.com/swills/cirrina).
-The GitHub repo exists purely as a mirror for visibility.
+The GitHub repo exists purely as a mirror for visibility. [Releases](https://gitlab.com/swills/cirrina/-/releases) may be found on GitLab.
 
 # Installation
 
