@@ -14,7 +14,7 @@ go mod download -x
 go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.5
 go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
 go install github.com/daixiang0/gci@v0.13.5
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.5
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.7
 go install go.uber.org/mock/mockgen@v0.5.0
 
 python3 -m venv .venv

@@ -167,7 +167,7 @@ lint:
     - export GOBIN=${HOME}/bin
     - export PATH=${GOBIN}:${PATH}
     - go mod tidy -v
-    - go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.2
+    - go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.7
     - golangci-lint run ./...
     - go install go.uber.org/mock/mockgen@v0.5.0
     - go generate ./...
