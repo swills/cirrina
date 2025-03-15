@@ -18,7 +18,7 @@ gen-check:
     - export GOFLAGS="-trimpath"
     - git clone -b swillsv2 https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/swills/go-supervisor.git go-supervisor
     - cd cirrinad
-    - export GOPROXY=http://10.0.1.152:3000
+    - export GOPROXY=https://athens.mouf.io
     - export GOOS=freebsd
     - export GOARCH=amd64
     - go generate ./...
@@ -33,7 +33,7 @@ cirrinad:
     - export GOFLAGS="-trimpath"
     - git clone -b swillsv2 https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/swills/go-supervisor.git go-supervisor
     - cd cirrinad
-    - export GOPROXY=http://10.0.1.152:3000
+    - export GOPROXY=https://athens.mouf.io
     - export GO_LDFLAGS="-X main.mainVersion=${VER} -s -w -extldflags -static -buildid=${CI_COMMIT_SHA}"
     - export GOOS=freebsd
     - export GOARCH=amd64
@@ -51,7 +51,7 @@ cirrinactl:
     - FreeBSD
   script:
     - cd cirrinactl
-    - export GOPROXY=http://10.0.1.152:3000
+    - export GOPROXY=https://athens.mouf.io
     - export CGO_ENABLED=0
     - export GO_LDFLAGS="-X cirrina/cirrinactl/cmd.mainVersion=${VER} -s -w -extldflags -static -buildid=${CI_COMMIT_SHA}"
     - export GOFLAGS="-trimpath"
@@ -107,7 +107,7 @@ cirrinaweb:
     - FreeBSD
   script:
     - cd cirrinaweb
-    - export GOPROXY=http://10.0.1.152:3000
+    - export GOPROXY=https://athens.mouf.io
     - export CGO_ENABLED=0
     - export GO_LDFLAGS="-X cirrina/cirrinaweb/cmd.mainVersion=${VER} -s -w -extldflags -static -buildid=${CI_COMMIT_SHA}"
     - export GOFLAGS="-trimpath"
