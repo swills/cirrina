@@ -659,7 +659,7 @@ func addPriorityArgs(vm *VM, args []string) []string {
 
 func addProtectArgs(vm *VM, args []string) []string {
 	if vm.Config.Protect.Valid && vm.Config.Protect.Bool {
-		args = append(args, "/usr/bin/protect")
+		args = append(args, "/usr/bin/protect", "-i")
 	}
 
 	return args

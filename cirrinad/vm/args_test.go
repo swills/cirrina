@@ -1171,7 +1171,7 @@ func Test_addProtectArgs(t *testing.T) {
 				},
 				args: []string{},
 			},
-			want: []string{"/usr/bin/protect"},
+			want: []string{"/usr/bin/protect", "-i"},
 		},
 	}
 
