@@ -8,7 +8,6 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/kontera-technologies/go-supervisor/v2"
@@ -147,71 +146,79 @@ var (
 	memVMGauge      prometheus.Gauge
 )
 
-func vmDaemon(events chan supervisor.Event, thisVM *VM) {
+func (v *VM) monitor(events chan supervisor.Event) {
 	for {
 		select {
-		case msg := <-thisVM.proc.Stdout():
-			thisVM.log.Info("output", "stdout", *msg)
-		case msg := <-thisVM.proc.Stderr():
-			thisVM.log.Info("output", "stderr", *msg)
+		case msg := <-v.proc.Stdout():
+			v.log.Info("output", "stdout", *msg)
+		case msg := <-v.proc.Stderr():
+			v.log.Info("output", "stderr", *msg)
 		case event := <-events:
 			switch event.Code {
 			case "ProcessStart":
-				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
+				v.log.Info("event", "code", event.Code, "message", event.Message)
 
-				vmPid := findChildProcName(cast.ToUint32(thisVM.proc.Pid()), "bhyve")
+				vmPid := findChildProcName(cast.ToUint32(v.proc.Pid()), "bhyve")
 				if vmPid == 0 {
-					slog.Error("failed to find vm PID, shutting down")
-					// better than panicking or ignoring, I guess, but probably will fail in some weird way
-					go func() {
-						_ = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
-					}()
+					slog.Error("failed to find VM PID, stopping VM", "event.Message", event.Message)
+
+					err := v.Stop()
+					if err != nil {
+						slog.Error("failed to stop VM", "err", err)
+					}
+
+					v.Done()
 
 					return
 				}
 
-				thisVM.SetRunning(vmPid)
+				v.SetRunning(vmPid)
 				slog.Debug("vmDaemon ProcessStart",
-					"bhyvePid", thisVM.BhyvePid,
-					"sudoPid", thisVM.proc.Pid(),
+					"bhyvePid", v.BhyvePid,
+					"sudoPid", v.proc.Pid(),
 				)
-				thisVM.setupComLoggers()
-				thisVM.applyResourceLimits()
+				v.setupComLoggers()
+				v.applyResourceLimits()
 			case "ProcessDone":
-				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
+				v.log.Info("event", "code", event.Code, "message", event.Message)
 			case "ProcessCrashed":
-				thisVM.log.Info("exited, destroying")
-				thisVM.BhyvectlDestroy()
+				v.log.Info("exited, destroying") // will be respawned, leave disks/nics alone
+				v.killComLoggers()
+				v.BhyvectlDestroy()
 			default:
-				thisVM.log.Info("event", "code", event.Code, "message", event.Message)
+				v.log.Info("event", "code", event.Code, "message", event.Message)
 			}
-		case <-thisVM.proc.DoneNotifier():
-			slog.Debug("VM Stop initVM", "vm_name", thisVM.Name)
-			thisVM.log.Debug("VM Stop initVM")
-
-			thisVM.killComLoggers()
-			thisVM.BhyvectlDestroy()
-
-			err := thisVM.SetStopped()
-			if err != nil {
-				// log error but continue
-				slog.Error("error stopping VM", "err", err)
-			}
-
-			thisVM.unlockDisks()
-			thisVM.NetStop()
-
-			slog.Debug("VM Stop finalized", "vm_name", thisVM.Name)
-			thisVM.log.Debug("VM Stop finalized")
-
-			if config.Config.Metrics.Enabled {
-				runningVMsGauge.Dec()
-				cpuVMGauge.Sub(float64(thisVM.Config.CPU))
-				memVMGauge.Sub(float64(thisVM.Config.Mem))
-			}
+		case <-v.proc.DoneNotifier():
+			v.Done()
 
 			return
 		}
+	}
+}
+
+func (v *VM) Done() {
+	slog.Debug("VM Stop initVM", "vm_name", v.Name)
+	v.log.Debug("VM Stop initVM")
+
+	v.killComLoggers()
+	v.BhyvectlDestroy()
+
+	err := v.SetStopped()
+	if err != nil {
+		// log error but continue
+		slog.Error("error stopping VM", "err", err)
+	}
+
+	v.unlockDisks()
+	v.NetStop()
+
+	slog.Debug("VM Stop finalized", "vm_name", v.Name)
+	v.log.Debug("VM Stop finalized")
+
+	if config.Config.Metrics.Enabled {
+		runningVMsGauge.Dec()
+		cpuVMGauge.Sub(float64(v.Config.CPU))
+		memVMGauge.Sub(float64(v.Config.Mem))
 	}
 }
 
@@ -258,72 +265,72 @@ func Create(vmInst *VM) error {
 }
 
 //nolint:funlen,cyclop
-func (vm *VM) Save() error {
+func (v *VM) Save() error {
 	vmDB := GetVMDB()
 
-	if vm == nil || vm.ID == "" || vm.Config.ID == 0 {
+	if v == nil || v.ID == "" || v.Config.ID == 0 {
 		return errVMInternalDB
 	}
 
-	if slices.Contains(vm.ISOs, nil) || slices.Contains(vm.Disks, nil) {
+	if slices.Contains(v.ISOs, nil) || slices.Contains(v.Disks, nil) {
 		return errVMInternalDB
 	}
 
-	res := vmDB.Model(&vm.Config).
+	res := vmDB.Model(&v.Config).
 		Updates(map[string]interface{}{
-			"cpu":                &vm.Config.CPU,
-			"mem":                &vm.Config.Mem,
-			"max_wait":           &vm.Config.MaxWait,
-			"restart":            &vm.Config.Restart,
-			"restart_delay":      &vm.Config.RestartDelay,
-			"screen":             &vm.Config.Screen,
-			"screen_width":       &vm.Config.ScreenWidth,
-			"screen_height":      &vm.Config.ScreenHeight,
-			"vnc_wait":           &vm.Config.VNCWait,
-			"vnc_port":           &vm.Config.VNCPort,
-			"tablet":             &vm.Config.Tablet,
-			"store_uefi_vars":    &vm.Config.StoreUEFIVars,
-			"utc_time":           &vm.Config.UTCTime,
-			"host_bridge":        &vm.Config.HostBridge,
-			"acpi":               &vm.Config.ACPI,
-			"use_hlt":            &vm.Config.UseHLT,
-			"exit_on_pause":      &vm.Config.ExitOnPause,
-			"wire_guest_mem":     &vm.Config.WireGuestMem,
-			"destroy_power_off":  &vm.Config.DestroyPowerOff,
-			"ignore_unknown_msr": &vm.Config.IgnoreUnknownMSR,
-			"kbd_layout":         &vm.Config.KbdLayout,
-			"auto_start":         &vm.Config.AutoStart,
-			"sound":              &vm.Config.Sound,
-			"sound_in":           &vm.Config.SoundIn,
-			"sound_out":          &vm.Config.SoundOut,
-			"Com1":               &vm.Config.Com1,
-			"com1_dev":           &vm.Config.Com1Dev,
-			"Com2":               &vm.Config.Com2,
-			"com2_dev":           &vm.Config.Com2Dev,
-			"Com3":               &vm.Config.Com3,
-			"com3_dev":           &vm.Config.Com3Dev,
-			"com4":               &vm.Config.Com4,
-			"com4_dev":           &vm.Config.Com4Dev,
-			"extra_args":         &vm.Config.ExtraArgs,
-			"com1_log":           &vm.Config.Com1Log,
-			"com2_log":           &vm.Config.Com2Log,
-			"com3_log":           &vm.Config.Com3Log,
-			"com4_log":           &vm.Config.Com4Log,
-			"com1_speed":         &vm.Config.Com1Speed,
-			"com2_speed":         &vm.Config.Com2Speed,
-			"com3_speed":         &vm.Config.Com3Speed,
-			"com4_speed":         &vm.Config.Com4Speed,
-			"auto_start_delay":   &vm.Config.AutoStartDelay,
-			"debug":              &vm.Config.Debug,
-			"debug_wait":         &vm.Config.DebugWait,
-			"debug_port":         &vm.Config.DebugPort,
-			"priority":           &vm.Config.Priority,
-			"protect":            &vm.Config.Protect,
-			"pcpu":               &vm.Config.Pcpu,
-			"rbps":               &vm.Config.Rbps,
-			"wbps":               &vm.Config.Wbps,
-			"riops":              &vm.Config.Riops,
-			"wiops":              &vm.Config.Wiops,
+			"cpu":                &v.Config.CPU,
+			"mem":                &v.Config.Mem,
+			"max_wait":           &v.Config.MaxWait,
+			"restart":            &v.Config.Restart,
+			"restart_delay":      &v.Config.RestartDelay,
+			"screen":             &v.Config.Screen,
+			"screen_width":       &v.Config.ScreenWidth,
+			"screen_height":      &v.Config.ScreenHeight,
+			"vnc_wait":           &v.Config.VNCWait,
+			"vnc_port":           &v.Config.VNCPort,
+			"tablet":             &v.Config.Tablet,
+			"store_uefi_vars":    &v.Config.StoreUEFIVars,
+			"utc_time":           &v.Config.UTCTime,
+			"host_bridge":        &v.Config.HostBridge,
+			"acpi":               &v.Config.ACPI,
+			"use_hlt":            &v.Config.UseHLT,
+			"exit_on_pause":      &v.Config.ExitOnPause,
+			"wire_guest_mem":     &v.Config.WireGuestMem,
+			"destroy_power_off":  &v.Config.DestroyPowerOff,
+			"ignore_unknown_msr": &v.Config.IgnoreUnknownMSR,
+			"kbd_layout":         &v.Config.KbdLayout,
+			"auto_start":         &v.Config.AutoStart,
+			"sound":              &v.Config.Sound,
+			"sound_in":           &v.Config.SoundIn,
+			"sound_out":          &v.Config.SoundOut,
+			"Com1":               &v.Config.Com1,
+			"com1_dev":           &v.Config.Com1Dev,
+			"Com2":               &v.Config.Com2,
+			"com2_dev":           &v.Config.Com2Dev,
+			"Com3":               &v.Config.Com3,
+			"com3_dev":           &v.Config.Com3Dev,
+			"com4":               &v.Config.Com4,
+			"com4_dev":           &v.Config.Com4Dev,
+			"extra_args":         &v.Config.ExtraArgs,
+			"com1_log":           &v.Config.Com1Log,
+			"com2_log":           &v.Config.Com2Log,
+			"com3_log":           &v.Config.Com3Log,
+			"com4_log":           &v.Config.Com4Log,
+			"com1_speed":         &v.Config.Com1Speed,
+			"com2_speed":         &v.Config.Com2Speed,
+			"com3_speed":         &v.Config.Com3Speed,
+			"com4_speed":         &v.Config.Com4Speed,
+			"auto_start_delay":   &v.Config.AutoStartDelay,
+			"debug":              &v.Config.Debug,
+			"debug_wait":         &v.Config.DebugWait,
+			"debug_port":         &v.Config.DebugPort,
+			"priority":           &v.Config.Priority,
+			"protect":            &v.Config.Protect,
+			"pcpu":               &v.Config.Pcpu,
+			"rbps":               &v.Config.Rbps,
+			"wbps":               &v.Config.Wbps,
+			"riops":              &v.Config.Riops,
+			"wiops":              &v.Config.Wiops,
 		},
 		)
 
@@ -343,16 +350,16 @@ func (vm *VM) Save() error {
 		"com2_dev",
 		"com3_dev",
 		"com4_dev",
-	}).Model(&vm).
+	}).Model(&v).
 		Updates(map[string]interface{}{
-			"name":        &vm.Name,
-			"description": &vm.Description,
-			"vnc_port":    &vm.VNCPort,
-			"debug_port":  &vm.DebugPort,
-			"com1_dev":    &vm.Com1Dev,
-			"com2_dev":    &vm.Com2Dev,
-			"com3_dev":    &vm.Com3Dev,
-			"com4_dev":    &vm.Com4Dev,
+			"name":        &v.Name,
+			"description": &v.Description,
+			"vnc_port":    &v.VNCPort,
+			"debug_port":  &v.DebugPort,
+			"com1_dev":    &v.Com1Dev,
+			"com2_dev":    &v.Com2Dev,
+			"com3_dev":    &v.Com3Dev,
+			"com4_dev":    &v.Com4Dev,
 		})
 
 	if res.Error != nil {
@@ -362,7 +369,7 @@ func (vm *VM) Save() error {
 	}
 
 	// delete all isos from VM
-	res = vmDB.Exec("DELETE FROM `vm_isos` WHERE `vm_id` = ?", vm.ID)
+	res = vmDB.Exec("DELETE FROM `vm_isos` WHERE `vm_id` = ?", v.ID)
 	if res.Error != nil {
 		slog.Error("error updating VM", "res.Error", res.Error)
 
@@ -373,13 +380,13 @@ func (vm *VM) Save() error {
 	err := vmDB.Transaction(func(txDB *gorm.DB) error {
 		position := 0
 
-		for _, vmISO := range vm.ISOs {
+		for _, vmISO := range v.ISOs {
 			// this can only happen if another go-routine modified the VM after we checked above
 			if vmISO == nil {
 				continue
 			}
 			// N.B.: must use txDB here, not VMDB
-			res = txDB.Exec("INSERT INTO `vm_isos` (`vm_id`,`iso_id`, `position`) VALUES (?,?,?)", vm.ID, vmISO.ID, position)
+			res = txDB.Exec("INSERT INTO `vm_isos` (`vm_id`,`iso_id`, `position`) VALUES (?,?,?)", v.ID, vmISO.ID, position)
 			if res.Error != nil || res.RowsAffected != 1 {
 				slog.Error("error adding to vm_isos", "res.Error", res.Error)
 
@@ -398,7 +405,7 @@ func (vm *VM) Save() error {
 	}
 
 	// delete all disks from VM
-	res = vmDB.Exec("DELETE FROM `vm_disks` WHERE `vm_id` = ?", vm.ID)
+	res = vmDB.Exec("DELETE FROM `vm_disks` WHERE `vm_id` = ?", v.ID)
 	if res.Error != nil {
 		slog.Error("error updating VM", "res.Error", res.Error)
 
@@ -409,13 +416,13 @@ func (vm *VM) Save() error {
 	err = vmDB.Transaction(func(txDB *gorm.DB) error {
 		position := 0
 
-		for _, vmDisk := range vm.Disks {
+		for _, vmDisk := range v.Disks {
 			// this can only happen if another go-routine modified the VM after we checked above
 			if vmDisk == nil {
 				continue
 			}
 			// N.B.: must use txDB here, not VMDB
-			res = txDB.Exec("INSERT INTO `vm_disks` (`vm_id`,`disk_id`, `position`) VALUES (?,?,?)", vm.ID, vmDisk.ID, position)
+			res = txDB.Exec("INSERT INTO `vm_disks` (`vm_id`,`disk_id`, `position`) VALUES (?,?,?)", v.ID, vmDisk.ID, position)
 			if res.Error != nil || res.RowsAffected != 1 {
 				slog.Error("error adding to vm_disks", "res.Error", res.Error)
 
@@ -436,34 +443,34 @@ func (vm *VM) Save() error {
 	return nil
 }
 
-func (vm *VM) Delete() error {
+func (v *VM) Delete() error {
 	vmDB := GetVMDB()
 
 	// detach disks
-	err := vm.AttachDisks([]string{})
+	err := v.AttachDisks([]string{})
 	if err != nil {
 		slog.Error("failed detaching disks from VM", "err", err)
 	}
 
 	// detach isos
-	err = vm.AttachIsos([]*iso.ISO{})
+	err = v.AttachIsos([]*iso.ISO{})
 	if err != nil {
 		slog.Error("failed detaching isos from VM", "err", err)
 	}
 
 	// detach nics
-	err = vm.SetNics([]string{})
+	err = v.SetNics([]string{})
 	if err != nil {
 		slog.Error("failed detaching nics from VM", "err", err)
 	}
 
-	res := vmDB.Limit(1).Delete(&vm.Config)
+	res := vmDB.Limit(1).Delete(&v.Config)
 	if res.RowsAffected != 1 {
 		// don't fail deleting the VM, may have a bad or missing config, still want to be able to delete VM
-		slog.Error("failed to delete config for VM", "vmid", vm.ID)
+		slog.Error("failed to delete config for VM", "vmid", v.ID)
 	}
 
-	res = vmDB.Limit(1).Delete(&vm)
+	res = vmDB.Limit(1).Delete(&v)
 	if res.RowsAffected != 1 {
 		slog.Error("error deleting VM", "res", res)
 
@@ -477,49 +484,49 @@ func (vm *VM) Delete() error {
 	return nil
 }
 
-func (vm *VM) Running() bool {
-	if vm.Status == RUNNING || vm.Status == STOPPING {
+func (v *VM) Running() bool {
+	if v.Status == RUNNING || v.Status == STOPPING {
 		return true
 	}
 
 	return false
 }
 
-func (vm *VM) Start() error {
+func (v *VM) Start() error {
 	var err error
 	defer vmStartLock.Unlock()
 	vmStartLock.Lock()
 
-	if vm.Status != STOPPED {
+	if v.Status != STOPPED {
 		return errVMNotStopped
 	}
 
-	vm.SetStarting()
+	v.SetStarting()
 
 	events := make(chan supervisor.Event)
 
-	vm.lockDisks()
+	v.lockDisks()
 
-	cmdName, cmdArgs := vm.generateCommandLine()
-	vm.log.Info("start", "cmd", cmdName, "args", cmdArgs)
-	vm.createUefiVarsFile()
+	cmdName, cmdArgs := v.generateCommandLine()
+	v.log.Info("start", "cmd", cmdName, "args", cmdArgs)
+	v.createUefiVarsFile()
 
-	err = vm.netStart()
+	err = v.netStart()
 	if err != nil {
 		slog.Error("Failed VM net startup, cleaning up", "err", err)
-		vm.NetStop()
+		v.NetStop()
 
 		return err
 	}
 
-	err = vm.Save()
+	err = v.Save()
 	if err != nil {
 		slog.Error("Failed saving VM", "err", err)
 
 		return err
 	}
 
-	respawnWait := time.Duration(vm.Config.RestartDelay) * time.Second
+	respawnWait := time.Duration(v.Config.RestartDelay) * time.Second
 	// avoid go-supervisor setting this to default (2m) -- 1ns is hard to differentiate from 0ns and I prefer not to
 	// change go-supervisor unless I have to
 	if respawnWait == 0 {
@@ -529,7 +536,7 @@ func (vm *VM) Start() error {
 	var processDebug bool
 
 	if config.Config.Log.Level == "debug" {
-		slog.Debug("vm.Start enabling process debugging", "vm", vm.Name)
+		slog.Debug("vm.Start enabling process debugging", "vm", v.Name)
 
 		processDebug = true
 	}
@@ -538,7 +545,7 @@ func (vm *VM) Start() error {
 		Name:                    cmdName,
 		Args:                    cmdArgs,
 		Dir:                     "/",
-		Id:                      vm.Name,
+		Id:                      v.Name,
 		EventNotifier:           events,
 		OutputParser:            supervisor.MakeBytesParser,
 		ErrorParser:             supervisor.MakeBytesParser,
@@ -549,12 +556,12 @@ func (vm *VM) Start() error {
 		MaxInterruptAttempts:    1,
 		MaxTerminateAttempts:    1,
 		IdleTimeout:             -1,
-		TerminationGraceTimeout: time.Duration(vm.Config.MaxWait) * time.Second,
+		TerminationGraceTimeout: time.Duration(v.Config.MaxWait) * time.Second,
 		Debug:                   processDebug,
 	})
 
-	vm.proc = vmProc
-	go vmDaemon(events, vm)
+	v.proc = vmProc
+	go v.monitor(events)
 
 	err = vmProc.Start()
 	if err != nil {
@@ -564,24 +571,24 @@ func (vm *VM) Start() error {
 
 	if config.Config.Metrics.Enabled {
 		runningVMsGauge.Inc()
-		cpuVMGauge.Add(float64(vm.Config.CPU))
-		memVMGauge.Add(float64(vm.Config.Mem))
+		cpuVMGauge.Add(float64(v.Config.CPU))
+		memVMGauge.Add(float64(v.Config.Mem))
 	}
 
 	return nil
 }
 
-func (vm *VM) Stop() error {
+func (v *VM) Stop() error {
 	var err error
 
-	if vm.Status == STOPPED {
+	if v.Status == STOPPED {
 		return nil
 	}
 
-	vm.SetStopping()
+	v.SetStopping()
 
-	if vm.proc == nil {
-		err = vm.SetStopped()
+	if v.proc == nil {
+		err = v.SetStopped()
 		if err != nil {
 			slog.Error("error stopping VM", "err", err)
 
@@ -591,9 +598,9 @@ func (vm *VM) Stop() error {
 		return nil
 	}
 
-	err = vm.proc.Stop()
+	err = v.proc.Stop()
 	if err != nil {
-		slog.Error("Failed to stop VM", "vm", vm.Name, "pid", vm.proc.Pid(), "err", err)
+		slog.Error("Failed to stop VM", "vm", v.Name, "pid", v.proc.Pid(), "err", err)
 
 		return errVMStopFail
 	}
@@ -601,8 +608,8 @@ func (vm *VM) Stop() error {
 	return nil
 }
 
-func (vm *VM) BhyvectlDestroy() {
-	ex, err := PathExistsFunc("/dev/vmm/" + vm.Name)
+func (v *VM) BhyvectlDestroy() {
+	ex, err := PathExistsFunc("/dev/vmm/" + v.Name)
 	if err != nil {
 		return
 	}
@@ -612,7 +619,7 @@ func (vm *VM) BhyvectlDestroy() {
 	}
 
 	args := []string{"/usr/sbin/bhyvectl", "--destroy"}
-	args = append(args, "--vm="+vm.Name)
+	args = append(args, "--vm="+v.Name)
 
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		config.Config.Sys.Sudo,
@@ -628,8 +635,8 @@ func (vm *VM) BhyvectlDestroy() {
 	}
 }
 
-func (vm *VM) validate() error {
-	if !util.ValidVMName(vm.Name) {
+func (v *VM) validate() error {
+	if !util.ValidVMName(v.Name) {
 		return errVMInvalidName
 	}
 
@@ -638,8 +645,8 @@ func (vm *VM) validate() error {
 
 // initVM initializes and adds a VM to the in memory cache of VMs
 // note, callers must lock the in memory cache via List.Mu.Lock()
-func (vm *VM) initVM() {
-	vmLogPath := config.Config.Disk.VM.Path.State + "/" + vm.Name
+func (v *VM) initVM() {
+	vmLogPath := config.Config.Disk.VM.Path.State + "/" + v.Name
 
 	err := GetVMLogPath(vmLogPath)
 	if err != nil {
@@ -657,7 +664,7 @@ func (vm *VM) initVM() {
 	programLevel := new(slog.LevelVar) // Info by default
 	vmLogger := slog.New(slog.NewTextHandler(vmLogFile, &slog.HandlerOptions{Level: programLevel}))
 
-	vm.log = *vmLogger
+	v.log = *vmLogger
 
 	switch strings.ToLower(config.Config.Log.Level) {
 	case "debug":
@@ -672,24 +679,24 @@ func (vm *VM) initVM() {
 		programLevel.Set(slog.LevelInfo)
 	}
 
-	List.VMList[vm.ID] = vm
+	List.VMList[v.ID] = v
 
 	if config.Config.Metrics.Enabled {
 		totalVMsGauge.Inc()
 	}
 }
 
-func (vm *VM) doAutostart() {
+func (v *VM) doAutostart() {
 	slog.Debug(
 		"AutoStartVMs sleeping for auto start delay",
-		"vm", vm.Name,
-		"auto_start_delay", vm.Config.AutoStartDelay,
+		"vm", v.Name,
+		"auto_start_delay", v.Config.AutoStartDelay,
 	)
-	time.Sleep(time.Duration(vm.Config.AutoStartDelay) * time.Second)
+	time.Sleep(time.Duration(v.Config.AutoStartDelay) * time.Second)
 
-	err := vm.Start()
+	err := v.Start()
 	if err != nil {
-		slog.Error("auto start failed", "vm", vm.ID, "name", vm.Name, "err", err)
+		slog.Error("auto start failed", "vm", v.ID, "name", v.Name, "err", err)
 	}
 }
 

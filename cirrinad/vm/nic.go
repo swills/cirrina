@@ -10,12 +10,12 @@ import (
 	"cirrina/cirrinad/vmnic"
 )
 
-func (vm *VM) netStart() error {
-	vmNicsList, err := vmnic.GetNics(vm.Config.ID)
+func (v *VM) netStart() error {
+	vmNicsList, err := vmnic.GetNics(v.Config.ID)
 	if err != nil {
 		slog.Error("netStart failed to get nics", "err", err)
 
-		return fmt.Errorf("error getting vm nics: %w", err)
+		return fmt.Errorf("error getting v nics: %w", err)
 	}
 
 	for _, vmNic := range vmNicsList {
@@ -62,7 +62,7 @@ func (vm *VM) netStart() error {
 }
 
 // validateNics check if nics can be attached to a VM
-func (vm *VM) validateNics(nicIDs []string) error {
+func (v *VM) validateNics(nicIDs []string) error {
 	occurred := map[string]bool{}
 
 	for _, aNic := range nicIDs {
@@ -91,7 +91,7 @@ func (vm *VM) validateNics(nicIDs []string) error {
 			return errVMNicDupe
 		}
 
-		err = vm.nicAttached(aNic)
+		err = v.nicAttached(aNic)
 		if err != nil {
 			return err
 		}
@@ -101,19 +101,19 @@ func (vm *VM) validateNics(nicIDs []string) error {
 }
 
 // nicAttached check if nic is attached to another VM besides this one
-func (vm *VM) nicAttached(aNic string) error {
+func (v *VM) nicAttached(aNic string) error {
 	allVms := GetAll()
 	for _, aVM := range allVms {
 		vmNics, err := vmnic.GetNics(aVM.Config.ID)
 		if err != nil {
 			slog.Error("error looking up nics", "err", err)
 
-			return fmt.Errorf("error getting vm nics: %w", err)
+			return fmt.Errorf("error getting v nics: %w", err)
 		}
 
 		for _, aVMNic := range vmNics {
-			if aNic == aVMNic.ID && aVM.ID != vm.ID {
-				slog.Error("nic is already attached to VM", "disk", aNic, "vm", aVM.ID)
+			if aNic == aVMNic.ID && aVM.ID != v.ID {
+				slog.Error("nic is already attached to VM", "disk", aNic, "v", aVM.ID)
 
 				return errVMNicAttached
 			}
@@ -124,12 +124,12 @@ func (vm *VM) nicAttached(aNic string) error {
 }
 
 // removeAllNicsFromVM removes all nics from a VM
-func (vm *VM) removeAllNicsFromVM() error {
-	thisVMNics, err := vmnic.GetNics(vm.Config.ID)
+func (v *VM) removeAllNicsFromVM() error {
+	thisVMNics, err := vmnic.GetNics(v.Config.ID)
 	if err != nil {
 		slog.Error("error looking up nics", "err", err)
 
-		return fmt.Errorf("error getting vm nics: %w", err)
+		return fmt.Errorf("error getting v nics: %w", err)
 	}
 
 	for _, aNic := range thisVMNics {
@@ -147,8 +147,8 @@ func (vm *VM) removeAllNicsFromVM() error {
 }
 
 // NetStop clean up all of a VMs nics
-func (vm *VM) NetStop() {
-	vmNicsList, err := vmnic.GetNics(vm.Config.ID)
+func (v *VM) NetStop() {
+	vmNicsList, err := vmnic.GetNics(v.Config.ID)
 	if err != nil {
 		slog.Error("failed to get nics", "err", err)
 
@@ -184,21 +184,21 @@ func (vm *VM) NetStop() {
 }
 
 // SetNics sets the list of nics attached to a VM to the list passed in
-func (vm *VM) SetNics(nicIDs []string) error {
-	defer vm.mu.Unlock()
-	vm.mu.Lock()
-	if vm.Status != STOPPED {
+func (v *VM) SetNics(nicIDs []string) error {
+	defer v.mu.Unlock()
+	v.mu.Lock()
+	if v.Status != STOPPED {
 		return errVMNotStopped
 	}
 
 	// remove all nics from VM
-	err := vm.removeAllNicsFromVM()
+	err := v.removeAllNicsFromVM()
 	if err != nil {
 		return err
 	}
 
 	// check that these nics can be attached to this VM
-	err = vm.validateNics(nicIDs)
+	err = v.validateNics(nicIDs)
 	if err != nil {
 		return err
 	}
@@ -212,7 +212,7 @@ func (vm *VM) SetNics(nicIDs []string) error {
 			return fmt.Errorf("error getting NIC: %w", err)
 		}
 
-		vmNic.ConfigID = vm.Config.ID
+		vmNic.ConfigID = v.Config.ID
 
 		err = vmNic.Save()
 		if err != nil {

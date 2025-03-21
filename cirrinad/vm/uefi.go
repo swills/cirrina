@@ -9,8 +9,8 @@ import (
 	"cirrina/cirrinad/util"
 )
 
-func (vm *VM) createUefiVarsFile() {
-	uefiVarsFilePath := config.Config.Disk.VM.Path.State + "/" + vm.Name
+func (v *VM) createUefiVarsFile() {
+	uefiVarsFilePath := config.Config.Disk.VM.Path.State + "/" + v.Name
 	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
 
 	uvPathExists, err := PathExistsFunc(uefiVarsFilePath)
@@ -40,8 +40,8 @@ func (vm *VM) createUefiVarsFile() {
 	}
 }
 
-func (vm *VM) DeleteUEFIState() error {
-	uefiVarsFilePath := config.Config.Disk.VM.Path.State + "/" + vm.Name
+func (v *VM) DeleteUEFIState() error {
+	uefiVarsFilePath := config.Config.Disk.VM.Path.State + "/" + v.Name
 	uefiVarsFile := uefiVarsFilePath + "/BHYVE_UEFI_VARS.fd"
 
 	uvFileExists, err := PathExistsFunc(uefiVarsFile)

@@ -6,17 +6,17 @@ import (
 	"cirrina/cirrinad/iso"
 )
 
-func (vm *VM) AttachIsos(isos []*iso.ISO) error {
-	defer vm.mu.Unlock()
-	vm.mu.Lock()
+func (v *VM) AttachIsos(isos []*iso.ISO) error {
+	defer v.mu.Unlock()
+	v.mu.Lock()
 
-	if vm.Status != STOPPED {
+	if v.Status != STOPPED {
 		return errVMNotStopped
 	}
 
-	vm.ISOs = isos
+	v.ISOs = isos
 
-	err := vm.Save()
+	err := v.Save()
 	if err != nil {
 		slog.Error("error saving VM", "err", err)
 

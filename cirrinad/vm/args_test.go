@@ -1122,7 +1122,7 @@ func Test_addPriorityArgs(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := addPriorityArgs(testCase.args.vm, testCase.args.args)
+			got := testCase.args.vm.addPriorityArgs(testCase.args.args)
 
 			diff := deep.Equal(got, testCase.want)
 			if diff != nil {
@@ -1181,7 +1181,7 @@ func Test_addProtectArgs(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := addProtectArgs(testCase.args.vm, testCase.args.args)
+			got := testCase.args.vm.addProtectArgs(testCase.args.args)
 
 			diff := deep.Equal(got, testCase.want)
 			if diff != nil {
@@ -1504,7 +1504,7 @@ func Test_getComArgs(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			List.VMList[testCase.args.aVM.ID] = testCase.args.aVM
 
-			gotCom1Arg, gotCom2Arg, gotCom3Arg, gotCom4Arg := getComArgs(testCase.args.aVM)
+			gotCom1Arg, gotCom2Arg, gotCom3Arg, gotCom4Arg := testCase.args.aVM.getComArgs()
 
 			diff := deep.Equal(gotCom1Arg, testCase.wantCom1Arg)
 			if diff != nil {

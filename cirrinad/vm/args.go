@@ -23,30 +23,30 @@ var getHostMaxVMCpusFunc = util.GetHostMaxVMCpus
 var NetInterfacesFunc = net.Interfaces
 var GetFreeTCPPortFunc = util.GetFreeTCPPort
 
-func (vm *VM) getKeyboardArg() []string {
-	if vm.Config.Screen && vm.Config.KbdLayout != "default" {
-		return []string{"-K", vm.Config.KbdLayout}
+func (v *VM) getKeyboardArg() []string {
+	if v.Config.Screen && v.Config.KbdLayout != "default" {
+		return []string{"-K", v.Config.KbdLayout}
 	}
 
 	return []string{}
 }
 
-func (vm *VM) getACPIArg() []string {
-	if vm.Config.ACPI {
+func (v *VM) getACPIArg() []string {
+	if v.Config.ACPI {
 		return []string{"-A"}
 	}
 
 	return []string{}
 }
 
-func (vm *VM) getCDArg(slot int) ([]string, int) {
+func (v *VM) getCDArg(slot int) ([]string, int) {
 	var cdString []string
 
 	// max slot is 31, be sure to leave room for the lpc, which is currently always added
 	maxSataDevs := 31 - slot - 1
 	devCount := 0
 
-	for _, isoItem := range vm.ISOs {
+	for _, isoItem := range v.ISOs {
 		if isoItem == nil {
 			continue
 		}
@@ -71,7 +71,7 @@ func (vm *VM) getCDArg(slot int) ([]string, int) {
 	return cdString, slot
 }
 
-func (vm *VM) getCPUArg() []string {
+func (v *VM) getCPUArg() []string {
 	var vmCpus uint16
 
 	hostCpus, err := getHostMaxVMCpusFunc()
@@ -79,16 +79,16 @@ func (vm *VM) getCPUArg() []string {
 		return []string{}
 	}
 
-	if vm.Config.CPU > math.MaxUint16 || !util.NumCpusValid(cast.ToUint16(vm.Config.CPU)) {
+	if v.Config.CPU > math.MaxUint16 || !util.NumCpusValid(cast.ToUint16(v.Config.CPU)) {
 		vmCpus = hostCpus
 	} else {
-		vmCpus = cast.ToUint16(vm.Config.CPU)
+		vmCpus = cast.ToUint16(v.Config.CPU)
 	}
 
 	return []string{"-c", strconv.FormatInt(int64(vmCpus), 10)}
 }
 
-func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (string, error) {
+func (v *VM) getOneDiskArg(thisDisk *disk.Disk) (string, error) {
 	var err error
 
 	var diskController string
@@ -139,7 +139,7 @@ func (vm *VM) getOneDiskArg(thisDisk *disk.Disk) (string, error) {
 	return diskController + "," + diskPath + nocache + direct, nil
 }
 
-func (vm *VM) getDiskArg(slot int) ([]string, int) {
+func (v *VM) getDiskArg(slot int) ([]string, int) {
 	// TODO don't use one PCI slot per ahci (SATA) disk device, attach multiple disks to each controller
 	// FIXME -- this is awful but needed until we attach multiple sata disks to each controller
 	maxSataDevs := 31 - slot - 1
@@ -148,7 +148,7 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 	var diskString []string
 	// TODO remove all these de-normalizations in favor of gorm native "Has Many" relationships
 
-	for _, diskItem := range vm.Disks {
+	for _, diskItem := range v.Disks {
 		if diskItem == nil {
 			continue
 		}
@@ -174,7 +174,7 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 			continue
 		}
 
-		oneHdString, err := vm.getOneDiskArg(thisDisk)
+		oneHdString, err := v.getOneDiskArg(thisDisk)
 		if err != nil || oneHdString == "" {
 			slog.Error("error adding disk, skipping", "diskID", diskItem.ID, "err", err)
 
@@ -189,36 +189,36 @@ func (vm *VM) getDiskArg(slot int) ([]string, int) {
 	return diskString, slot
 }
 
-func (vm *VM) getDPOArg() []string {
-	if vm.Config.DestroyPowerOff {
+func (v *VM) getDPOArg() []string {
+	if v.Config.DestroyPowerOff {
 		return []string{"-D"}
 	}
 
 	return []string{}
 }
 
-func (vm *VM) getEOPArg() []string {
-	if vm.Config.ExitOnPause {
+func (v *VM) getEOPArg() []string {
+	if v.Config.ExitOnPause {
 		return []string{"-P"}
 	}
 
 	return []string{}
 }
 
-func (vm *VM) getExtraArg() []string {
-	return strings.Fields(vm.Config.ExtraArgs)
+func (v *VM) getExtraArg() []string {
+	return strings.Fields(v.Config.ExtraArgs)
 }
 
-func (vm *VM) getHLTArg() []string {
-	if vm.Config.UseHLT {
+func (v *VM) getHLTArg() []string {
+	if v.Config.UseHLT {
 		return []string{"-H"}
 	}
 
 	return []string{}
 }
 
-func (vm *VM) getHostBridgeArg(slot int) ([]string, int) {
-	if !vm.Config.HostBridge {
+func (v *VM) getHostBridgeArg(slot int) ([]string, int) {
+	if !v.Config.HostBridge {
 		return []string{}, slot
 	}
 
@@ -228,23 +228,23 @@ func (vm *VM) getHostBridgeArg(slot int) ([]string, int) {
 	return hostBridgeArg, slot
 }
 
-func (vm *VM) getMemArg() []string {
-	return []string{"-m", strconv.FormatInt(int64(vm.Config.Mem), 10) + "m"}
+func (v *VM) getMemArg() []string {
+	return []string{"-m", strconv.FormatInt(int64(v.Config.Mem), 10) + "m"}
 }
 
-func (vm *VM) getMSRArg() []string {
-	if vm.Config.IgnoreUnknownMSR {
+func (v *VM) getMSRArg() []string {
+	if v.Config.IgnoreUnknownMSR {
 		return []string{"-w"}
 	}
 
 	return []string{}
 }
 
-func (vm *VM) getROMArg() []string {
+func (v *VM) getROMArg() []string {
 	var romArg []string
 
-	if vm.Config.StoreUEFIVars {
-		uefiVarsPath := filepath.Join(config.Config.Disk.VM.Path.State, filepath.Join(vm.Name, "BHYVE_UEFI_VARS.fd"))
+	if v.Config.StoreUEFIVars {
+		uefiVarsPath := filepath.Join(config.Config.Disk.VM.Path.State, filepath.Join(v.Name, "BHYVE_UEFI_VARS.fd"))
 		romArg = []string{
 			"-l",
 			"bootrom," + config.Config.Rom.Path + "," + uefiVarsPath,
@@ -259,7 +259,7 @@ func (vm *VM) getROMArg() []string {
 	return romArg
 }
 
-func (vm *VM) getDebugArg() []string {
+func (v *VM) getDebugArg() []string {
 	var debugArg []string
 
 	firstDebugPort := config.Config.Debug.Port
@@ -273,11 +273,11 @@ func (vm *VM) getDebugArg() []string {
 
 	var err error
 
-	if !vm.Config.Debug {
+	if !v.Config.Debug {
 		return []string{}
 	}
 
-	if vm.Config.DebugPort == "AUTO" {
+	if v.Config.DebugPort == "AUTO" {
 		usedDebugPorts := getUsedDebugPorts()
 
 		debugListenPortUint16, err = GetFreeTCPPortFunc(firstDebugPort, usedDebugPorts)
@@ -291,7 +291,7 @@ func (vm *VM) getDebugArg() []string {
 	} else {
 		var debugListenPortUint64 uint64
 
-		debugListenPort = vm.Config.DebugPort
+		debugListenPort = v.Config.DebugPort
 
 		debugListenPortUint64, err = strconv.ParseUint(debugListenPort, 10, 16)
 		if err != nil {
@@ -303,9 +303,9 @@ func (vm *VM) getDebugArg() []string {
 		debugListenPortUint16 = cast.ToUint16(debugListenPortUint64)
 	}
 
-	vm.SetDebugPort(debugListenPortUint16)
+	v.SetDebugPort(debugListenPortUint16)
 
-	if vm.Config.DebugWait {
+	if v.Config.DebugWait {
 		debugWaitStr = "w"
 	}
 
@@ -317,8 +317,8 @@ func (vm *VM) getDebugArg() []string {
 	return debugArg
 }
 
-func (vm *VM) getSoundArg(slot int) ([]string, int) {
-	if !vm.Config.Sound {
+func (v *VM) getSoundArg(slot int) ([]string, int) {
+	if !v.Config.Sound {
 		return []string{}, slot
 	}
 
@@ -326,12 +326,12 @@ func (vm *VM) getSoundArg(slot int) ([]string, int) {
 
 	var soundString string
 
-	inPathExists, inErr := PathExistsFunc(vm.Config.SoundIn)
+	inPathExists, inErr := PathExistsFunc(v.Config.SoundIn)
 	if inErr != nil {
 		slog.Error("sound input check error", "err", inErr)
 	}
 
-	outPathExists, outErr := PathExistsFunc(vm.Config.SoundOut)
+	outPathExists, outErr := PathExistsFunc(v.Config.SoundOut)
 	if outErr != nil {
 		slog.Error("sound output check error", "err", outErr)
 	}
@@ -347,42 +347,42 @@ func (vm *VM) getSoundArg(slot int) ([]string, int) {
 	soundString = ",hda"
 
 	if outPathExists && outErr == nil {
-		soundString = soundString + ",play=" + vm.Config.SoundOut
+		soundString = soundString + ",play=" + v.Config.SoundOut
 	} else {
-		slog.Debug("sound output path does not exist", "path", vm.Config.SoundOut)
+		slog.Debug("sound output path does not exist", "path", v.Config.SoundOut)
 	}
 
 	if inPathExists && inErr == nil {
-		soundString = soundString + ",rec=" + vm.Config.SoundIn
+		soundString = soundString + ",rec=" + v.Config.SoundIn
 	} else {
-		slog.Debug("sound input path does not exist", "path", vm.Config.SoundIn)
+		slog.Debug("sound input path does not exist", "path", v.Config.SoundIn)
 	}
 
 	return []string{"-s", strconv.FormatInt(int64(slot), 10) + soundString}, slot + 1
 }
 
-func (vm *VM) getUTCArg() []string {
-	if vm.Config.UTCTime {
+func (v *VM) getUTCArg() []string {
+	if v.Config.UTCTime {
 		return []string{"-u"}
 	}
 
 	return []string{}
 }
 
-func (vm *VM) getWireArg() []string {
-	if vm.Config.WireGuestMem {
+func (v *VM) getWireArg() []string {
+	if v.Config.WireGuestMem {
 		return []string{"-S"}
 	}
 
 	return []string{}
 }
 
-func (vm *VM) getLPCArg(slot int) ([]string, int) {
+func (v *VM) getLPCArg(slot int) ([]string, int) {
 	return []string{"-s", "31,lpc"}, slot
 }
 
-func (vm *VM) getTabletArg(slot int) ([]string, int) {
-	if !vm.Config.Screen || !vm.Config.Tablet {
+func (v *VM) getTabletArg(slot int) ([]string, int) {
+	if !v.Config.Screen || !v.Config.Tablet {
 		return []string{}, slot
 	}
 
@@ -392,8 +392,8 @@ func (vm *VM) getTabletArg(slot int) ([]string, int) {
 	return tabletArg, slot
 }
 
-func (vm *VM) getVideoArg(slot int) ([]string, int) {
-	if !vm.Config.Screen {
+func (v *VM) getVideoArg(slot int) ([]string, int) {
+	if !v.Config.Screen {
 		return []string{}, slot
 	}
 
@@ -406,7 +406,7 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 
 	var err error
 
-	if vm.Config.VNCPort == "AUTO" {
+	if v.Config.VNCPort == "AUTO" {
 		usedVncPorts := getUsedVncPorts()
 
 		vncListenPortUint16, err = GetFreeTCPPortFunc(firstVncPort, usedVncPorts)
@@ -418,7 +418,7 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 	} else {
 		var vncListenPortInt64 int64
 
-		vncListenPort = vm.Config.VNCPort
+		vncListenPort = v.Config.VNCPort
 
 		vncListenPortInt64, err = strconv.ParseInt(vncListenPort, 10, 16)
 		if err != nil {
@@ -428,17 +428,17 @@ func (vm *VM) getVideoArg(slot int) ([]string, int) {
 		vncListenPortUint16 = cast.ToUint16(vncListenPortInt64)
 	}
 
-	vm.SetVNCPort(vncListenPortUint16)
+	v.SetVNCPort(vncListenPortUint16)
 
 	fbufArg := []string{
 		"-s",
 		strconv.FormatInt(int64(slot), 10) +
 			",fbuf" +
-			",w=" + strconv.FormatInt(int64(vm.Config.ScreenWidth), 10) +
-			",h=" + strconv.FormatInt(int64(vm.Config.ScreenHeight), 10) +
+			",w=" + strconv.FormatInt(int64(v.Config.ScreenWidth), 10) +
+			",h=" + strconv.FormatInt(int64(v.Config.ScreenHeight), 10) +
 			",tcp=" + vncListenIP + ":" + vncListenPort,
 	}
-	if vm.Config.VNCWait {
+	if v.Config.VNCWait {
 		fbufArg[1] += ",wait"
 	}
 
@@ -492,16 +492,16 @@ func getNetDevTypeArg(netDevType string, switchID string, vmName string) (string
 	}
 }
 
-func (vm *VM) getNetArgs(slot int) ([]string, int) {
+func (v *VM) getNetArgs(slot int) ([]string, int) {
 	var err error
 
 	var netArgs []string
 
 	originalSlot := slot
 
-	nicList, err := vmnic.GetNics(vm.Config.ID)
+	nicList, err := vmnic.GetNics(v.Config.ID)
 	if err != nil {
-		slog.Error("error getting vm nics", "err", err)
+		slog.Error("error getting v nics", "err", err)
 
 		return []string{}, originalSlot
 	}
@@ -520,7 +520,7 @@ func (vm *VM) getNetArgs(slot int) ([]string, int) {
 
 		var netDevArg string
 
-		nicItem.NetDev, netDevArg, err = getNetDevTypeArg(nicItem.NetDevType, nicItem.SwitchID, vm.Name)
+		nicItem.NetDev, netDevArg, err = getNetDevTypeArg(nicItem.NetDevType, nicItem.SwitchID, v.Name)
 		if err != nil {
 			slog.Error("getNetDevTypeArg error", "err", err)
 
@@ -534,7 +534,7 @@ func (vm *VM) getNetArgs(slot int) ([]string, int) {
 			return []string{}, slot
 		}
 
-		macAddress := nicItem.GetMAC(vm.ID, vm.Name)
+		macAddress := nicItem.GetMAC(v.ID, v.Name)
 
 		var macString string
 
@@ -622,7 +622,7 @@ func getCom(comDev string, vmName string, num int) ([]string, string) {
 	return comArg, nmdm
 }
 
-func (vm *VM) generateCommandLine() (string, []string) {
+func (v *VM) generateCommandLine() (string, []string) {
 	var args []string
 
 	// we always start with sudo, at least until bhyve can run as non-root
@@ -630,35 +630,35 @@ func (vm *VM) generateCommandLine() (string, []string) {
 	name := config.Config.Sys.Sudo
 
 	slot := 0
-	hostBridgeArg, fbufArg, tabletArg, netArg, diskArg, cdArg, soundArg, lpcArg := getSlotArgs(slot, vm)
+	hostBridgeArg, fbufArg, tabletArg, netArg, diskArg, cdArg, soundArg, lpcArg := v.getSlotArgs(slot)
 
-	com1Arg, com2Arg, com3Arg, com4Arg := getComArgs(vm)
+	com1Arg, com2Arg, com3Arg, com4Arg := v.getComArgs()
 
-	args = addProtectArgs(vm, args)
-	args = addPriorityArgs(vm, args)
+	args = v.addProtectArgs(args)
+	args = v.addPriorityArgs(args)
 	args = append(args, "/usr/sbin/bhyve")
-	args = append(args, "-U", vm.ID)
-	args = addSomeArgs(args, vm)
+	args = append(args, "-U", v.ID)
+	args = v.addSomeArgs(args)
 	args = addSlotArgs(args, hostBridgeArg, cdArg, fbufArg, tabletArg, netArg, diskArg, soundArg, lpcArg)
 	args = addComArgs(args, com1Arg, com2Arg, com3Arg, com4Arg)
-	args = append(args, vm.getExtraArg()...)
-	args = append(args, vm.Name)
+	args = append(args, v.getExtraArg()...)
+	args = append(args, v.Name)
 
-	_ = vm.Save()
+	_ = v.Save()
 
 	return name, args
 }
 
-func addPriorityArgs(vm *VM, args []string) []string {
-	if vm.Config.Priority != 0 {
-		args = append(args, "/usr/bin/nice", "-n", strconv.FormatInt(int64(vm.Config.Priority), 10))
+func (v *VM) addPriorityArgs(args []string) []string {
+	if v.Config.Priority != 0 {
+		args = append(args, "/usr/bin/nice", "-n", strconv.FormatInt(int64(v.Config.Priority), 10))
 	}
 
 	return args
 }
 
-func addProtectArgs(vm *VM, args []string) []string {
-	if vm.Config.Protect.Valid && vm.Config.Protect.Bool {
+func (v *VM) addProtectArgs(args []string) []string {
+	if v.Config.Protect.Valid && v.Config.Protect.Bool {
 		args = append(args, "/usr/bin/protect", "-i")
 	}
 
@@ -699,38 +699,38 @@ func addSlotArgs(args []string, hostBridgeArg []string, cdArg []string, fbufArg 
 	return args
 }
 
-func addSomeArgs(args []string, aVM *VM) []string {
-	args = append(args, aVM.getKeyboardArg()...)
-	args = append(args, aVM.getACPIArg()...)
-	args = append(args, aVM.getHLTArg()...)
-	args = append(args, aVM.getEOPArg()...)
-	args = append(args, aVM.getWireArg()...)
-	args = append(args, aVM.getDPOArg()...)
-	args = append(args, aVM.getMSRArg()...)
-	args = append(args, aVM.getUTCArg()...)
-	args = append(args, aVM.getROMArg()...)
-	args = append(args, aVM.getDebugArg()...)
-	args = append(args, aVM.getCPUArg()...)
-	args = append(args, aVM.getMemArg()...)
+func (v *VM) addSomeArgs(args []string) []string {
+	args = append(args, v.getKeyboardArg()...)
+	args = append(args, v.getACPIArg()...)
+	args = append(args, v.getHLTArg()...)
+	args = append(args, v.getEOPArg()...)
+	args = append(args, v.getWireArg()...)
+	args = append(args, v.getDPOArg()...)
+	args = append(args, v.getMSRArg()...)
+	args = append(args, v.getUTCArg()...)
+	args = append(args, v.getROMArg()...)
+	args = append(args, v.getDebugArg()...)
+	args = append(args, v.getCPUArg()...)
+	args = append(args, v.getMemArg()...)
 
 	return args
 }
 
-func getSlotArgs(slot int, aVM *VM) ([]string, []string, []string, []string, []string, []string, []string, []string) {
-	hostBridgeArg, slot := aVM.getHostBridgeArg(slot)
-	fbufArg, slot := aVM.getVideoArg(slot)
-	tabletArg, slot := aVM.getTabletArg(slot)
-	netArg, slot := aVM.getNetArgs(slot)
-	diskArg, slot := aVM.getDiskArg(slot)
-	cdArg, slot := aVM.getCDArg(slot)
-	soundArg, slot := aVM.getSoundArg(slot)
-	lpcArg, slot := aVM.getLPCArg(slot)
+func (v *VM) getSlotArgs(slot int) ([]string, []string, []string, []string, []string, []string, []string, []string) {
+	hostBridgeArg, slot := v.getHostBridgeArg(slot)
+	fbufArg, slot := v.getVideoArg(slot)
+	tabletArg, slot := v.getTabletArg(slot)
+	netArg, slot := v.getNetArgs(slot)
+	diskArg, slot := v.getDiskArg(slot)
+	cdArg, slot := v.getCDArg(slot)
+	soundArg, slot := v.getSoundArg(slot)
+	lpcArg, slot := v.getLPCArg(slot)
 	slog.Debug("last slot", "slot", slot)
 
 	return hostBridgeArg, fbufArg, tabletArg, netArg, diskArg, cdArg, soundArg, lpcArg
 }
 
-func getComArgs(aVM *VM) ([]string, []string, []string, []string) {
+func (v *VM) getComArgs() ([]string, []string, []string, []string) {
 	var com1Arg []string
 
 	var com2Arg []string
@@ -739,20 +739,20 @@ func getComArgs(aVM *VM) ([]string, []string, []string, []string) {
 
 	var com4Arg []string
 
-	if aVM.Config.Com1 {
-		com1Arg, aVM.Com1Dev = getCom(aVM.Config.Com1Dev, aVM.Name, 1)
+	if v.Config.Com1 {
+		com1Arg, v.Com1Dev = getCom(v.Config.Com1Dev, v.Name, 1)
 	}
 
-	if aVM.Config.Com2 {
-		com2Arg, aVM.Com2Dev = getCom(aVM.Config.Com2Dev, aVM.Name, 2)
+	if v.Config.Com2 {
+		com2Arg, v.Com2Dev = getCom(v.Config.Com2Dev, v.Name, 2)
 	}
 
-	if aVM.Config.Com3 {
-		com3Arg, aVM.Com3Dev = getCom(aVM.Config.Com3Dev, aVM.Name, 3)
+	if v.Config.Com3 {
+		com3Arg, v.Com3Dev = getCom(v.Config.Com3Dev, v.Name, 3)
 	}
 
-	if aVM.Config.Com4 {
-		com4Arg, aVM.Com4Dev = getCom(aVM.Config.Com4Dev, aVM.Name, 4)
+	if v.Config.Com4 {
+		com4Arg, v.Com4Dev = getCom(v.Config.Com4Dev, v.Name, 4)
 	}
 
 	return com1Arg, com2Arg, com3Arg, com4Arg

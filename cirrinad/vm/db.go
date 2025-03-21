@@ -77,42 +77,42 @@ func GetVMDB() *gorm.DB {
 	return Instance.VMDB
 }
 
-func (vm *VM) SetRunning(pid uint32) {
+func (v *VM) SetRunning(pid uint32) {
 	vmdb := GetVMDB()
-	defer vm.mu.Unlock()
-	vm.mu.Lock()
-	vm.Status = RUNNING
-	vm.BhyvePid = pid
+	defer v.mu.Unlock()
+	v.mu.Lock()
+	v.Status = RUNNING
+	v.BhyvePid = pid
 
 	res := vmdb.Select([]string{
 		"status",
 		"bhyve_pid",
 		"com_devs",
-	}).Model(&vm).
+	}).Model(&v).
 		Updates(map[string]interface{}{
-			"status":    &vm.Status,
-			"bhyve_pid": &vm.BhyvePid,
-			"com1_dev":  &vm.Com1Dev,
-			"com2_dev":  &vm.Com2Dev,
-			"com3_dev":  &vm.Com3Dev,
-			"com4_dev":  &vm.Com4Dev,
+			"status":    &v.Status,
+			"bhyve_pid": &v.BhyvePid,
+			"com1_dev":  &v.Com1Dev,
+			"com2_dev":  &v.Com2Dev,
+			"com3_dev":  &v.Com3Dev,
+			"com4_dev":  &v.Com4Dev,
 		})
 	if res.Error != nil {
 		slog.Error("error saving VM running", "err", res.Error)
 	}
 }
 
-func (vm *VM) SetStarting() {
+func (v *VM) SetStarting() {
 	db := GetVMDB()
-	defer vm.mu.Unlock()
-	vm.mu.Lock()
-	vm.Status = STARTING
+	defer v.mu.Unlock()
+	v.mu.Lock()
+	v.Status = STARTING
 
 	res := db.Select([]string{
 		"status",
-	}).Model(&vm).
+	}).Model(&v).
 		Updates(map[string]interface{}{
-			"status": &vm.Status,
+			"status": &v.Status,
 		})
 	if res.Error != nil {
 		slog.Error("error saving VM start", "err", res.Error)
@@ -120,18 +120,18 @@ func (vm *VM) SetStarting() {
 }
 
 // SetStopped this can in some cases get called on already stopped/deleted VMs and that's OK
-func (vm *VM) SetStopped() error {
+func (v *VM) SetStopped() error {
 	vmDB := GetVMDB()
-	defer vm.mu.Unlock()
-	vm.mu.Lock()
-	vm.Status = STOPPED
-	vm.VNCPort = 0
-	vm.DebugPort = 0
-	vm.BhyvePid = 0
-	vm.Com1Dev = ""
-	vm.Com2Dev = ""
-	vm.Com3Dev = ""
-	vm.Com4Dev = ""
+	defer v.mu.Unlock()
+	v.mu.Lock()
+	v.Status = STOPPED
+	v.VNCPort = 0
+	v.DebugPort = 0
+	v.BhyvePid = 0
+	v.Com1Dev = ""
+	v.Com2Dev = ""
+	v.Com3Dev = ""
+	v.Com4Dev = ""
 
 	res := vmDB.Select([]string{
 		"status",
@@ -143,16 +143,16 @@ func (vm *VM) SetStopped() error {
 		"com2_dev",
 		"com3_dev",
 		"com4_dev",
-	}).Model(&vm).
+	}).Model(&v).
 		Updates(map[string]interface{}{
-			"status":     &vm.Status,
-			"vnc_port":   &vm.VNCPort,
-			"debug_port": &vm.DebugPort,
-			"bhyve_pid":  &vm.BhyvePid,
-			"com1_dev":   &vm.Com1Dev,
-			"com2_dev":   &vm.Com2Dev,
-			"com3_dev":   &vm.Com3Dev,
-			"com4_dev":   &vm.Com4Dev,
+			"status":     &v.Status,
+			"vnc_port":   &v.VNCPort,
+			"debug_port": &v.DebugPort,
+			"bhyve_pid":  &v.BhyvePid,
+			"com1_dev":   &v.Com1Dev,
+			"com2_dev":   &v.Com2Dev,
+			"com3_dev":   &v.Com3Dev,
+			"com4_dev":   &v.Com4Dev,
 		})
 	if res.Error != nil {
 		slog.Error("error saving VM stopped", "err", res.Error)
@@ -163,47 +163,47 @@ func (vm *VM) SetStopped() error {
 	return nil
 }
 
-func (vm *VM) SetStopping() {
+func (v *VM) SetStopping() {
 	db := GetVMDB()
-	defer vm.mu.Unlock()
-	vm.mu.Lock()
-	vm.Status = STOPPING
+	defer v.mu.Unlock()
+	v.mu.Lock()
+	v.Status = STOPPING
 
 	res := db.Select([]string{
 		"status",
-	}).Model(&vm).
+	}).Model(&v).
 		Updates(map[string]interface{}{
-			"status": &vm.Status,
+			"status": &v.Status,
 		})
 	if res.Error != nil {
 		slog.Error("error saving VM stopping", "err", res.Error)
 	}
 }
 
-func (vm *VM) SetVNCPort(port uint16) {
+func (v *VM) SetVNCPort(port uint16) {
 	slog.Debug("SetVNCPort", "port", port)
-	defer vm.mu.Unlock()
-	vm.mu.Lock()
-	vm.VNCPort = cast.ToInt32(port)
-	_ = vm.Save()
+	defer v.mu.Unlock()
+	v.mu.Lock()
+	v.VNCPort = cast.ToInt32(port)
+	_ = v.Save()
 }
 
-func (vm *VM) SetDebugPort(port uint16) {
+func (v *VM) SetDebugPort(port uint16) {
 	slog.Debug("SetDebugPort", "port", port)
-	defer vm.mu.Unlock()
-	vm.mu.Lock()
-	vm.DebugPort = cast.ToInt32(port)
-	_ = vm.Save()
+	defer v.mu.Unlock()
+	v.mu.Lock()
+	v.DebugPort = cast.ToInt32(port)
+	_ = v.Save()
 }
 
-func (vm *VM) BeforeCreate(_ *gorm.DB) error {
-	if vm == nil || vm.Name == "" {
+func (v *VM) BeforeCreate(_ *gorm.DB) error {
+	if v == nil || v.Name == "" {
 		return errVMInvalidName
 	}
 
-	err := uuid.Validate(vm.ID)
-	if err != nil || len(vm.ID) != 36 {
-		vm.ID = uuid.NewString()
+	err := uuid.Validate(v.ID)
+	if err != nil || len(v.ID) != 36 {
+		v.ID = uuid.NewString()
 	}
 
 	return nil

@@ -506,7 +506,7 @@ func StopAll() {
 	}
 }
 
-func (vm *VM) Kill() {
+func (v *VM) Kill() {
 	var err error
 
 	var pidExists bool
@@ -515,7 +515,7 @@ func (vm *VM) Kill() {
 
 	stdOutBytes, stdErrBytes, returnCode, err := util.RunCmd(
 		config.Config.Sys.Sudo,
-		[]string{"/bin/kill", strconv.FormatUint(uint64(vm.BhyvePid), 10)},
+		[]string{"/bin/kill", strconv.FormatUint(uint64(v.BhyvePid), 10)},
 	)
 	if err != nil {
 		slog.Error("ifconfig error",
@@ -529,7 +529,7 @@ func (vm *VM) Kill() {
 	}
 
 	for {
-		pidExists, err = util.PidExists(int(vm.BhyvePid))
+		pidExists, err = util.PidExists(int(v.BhyvePid))
 		if err != nil {
 			slog.Error("error checking VM", "err", err)
 
@@ -543,12 +543,12 @@ func (vm *VM) Kill() {
 		time.Sleep(10 * time.Millisecond)
 
 		sleptTime += 10 * time.Millisecond
-		if sleptTime > (time.Duration(vm.Config.MaxWait) * time.Second) {
+		if sleptTime > (time.Duration(v.Config.MaxWait) * time.Second) {
 			break
 		}
 	}
 
-	pidExists, err = util.PidExists(int(vm.BhyvePid))
+	pidExists, err = util.PidExists(int(v.BhyvePid))
 	if err != nil {
 		slog.Error("error checking VM", "err", err)
 	}
@@ -559,7 +559,7 @@ func (vm *VM) Kill() {
 
 	stdOutBytes, stdErrBytes, returnCode, err = util.RunCmd(
 		config.Config.Sys.Sudo,
-		[]string{"/bin/kill", "-9", strconv.FormatUint(uint64(vm.BhyvePid), 10)},
+		[]string{"/bin/kill", "-9", strconv.FormatUint(uint64(v.BhyvePid), 10)},
 	)
 	if err != nil {
 		slog.Error("ifconfig error",
@@ -575,7 +575,7 @@ func (vm *VM) Kill() {
 	sleptTime = time.Duration(0)
 
 	for {
-		pidExists, err = util.PidExists(int(vm.BhyvePid))
+		pidExists, err = util.PidExists(int(v.BhyvePid))
 		if err != nil {
 			slog.Error("error checking VM", "err", err)
 
@@ -589,12 +589,12 @@ func (vm *VM) Kill() {
 		time.Sleep(10 * time.Millisecond)
 
 		sleptTime += 10 * time.Millisecond
-		if sleptTime > (time.Duration(vm.Config.MaxWait) * time.Second) {
+		if sleptTime > (time.Duration(v.Config.MaxWait) * time.Second) {
 			break
 		}
 	}
 
-	pidExists, err = util.PidExists(int(vm.BhyvePid))
+	pidExists, err = util.PidExists(int(v.BhyvePid))
 	if err != nil {
 		slog.Error("error checking VM", "err", err)
 	}
@@ -602,6 +602,6 @@ func (vm *VM) Kill() {
 	// it's possible kill -9 doesn't kill the VM for various reasons, at least log it, nothing else we can do
 	// hopefully the user sees the log and takes care of it, we won't be able to start the VM until it's cleared up
 	if pidExists {
-		slog.Error("VM refused to die", "vm", vm.Name, "pid", vm.BhyvePid)
+		slog.Error("VM refused to die", "v", v.Name, "pid", v.BhyvePid)
 	}
 }

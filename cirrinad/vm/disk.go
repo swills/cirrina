@@ -9,8 +9,8 @@ import (
 	"cirrina/cirrinad/disk"
 )
 
-func (vm *VM) lockDisks() {
-	for _, vmDisk := range vm.Disks {
+func (v *VM) lockDisks() {
+	for _, vmDisk := range v.Disks {
 		if vmDisk == nil {
 			continue
 		}
@@ -19,8 +19,8 @@ func (vm *VM) lockDisks() {
 	}
 }
 
-func (vm *VM) unlockDisks() {
-	for _, vmDisk := range vm.Disks {
+func (v *VM) unlockDisks() {
+	for _, vmDisk := range v.Disks {
 		if vmDisk == nil {
 			continue
 		}
@@ -87,19 +87,19 @@ func diskAttached(aDisk string, thisVM *VM) bool {
 	return false
 }
 
-func (vm *VM) AttachDisks(diskids []string) error {
-	defer vm.mu.Unlock()
-	vm.mu.Lock()
-	if vm.Status != STOPPED {
+func (v *VM) AttachDisks(diskids []string) error {
+	defer v.mu.Unlock()
+	v.mu.Lock()
+	if v.Status != STOPPED {
 		return errVMNotStopped
 	}
 
-	err := validateDisks(diskids, vm)
+	err := validateDisks(diskids, v)
 	if err != nil {
 		return err
 	}
 
-	vm.Disks = []*disk.Disk{}
+	v.Disks = []*disk.Disk{}
 
 	for _, diskID := range diskids {
 		var aDisk *disk.Disk
@@ -109,10 +109,10 @@ func (vm *VM) AttachDisks(diskids []string) error {
 			return fmt.Errorf("error attaching disk: %w", err)
 		}
 
-		vm.Disks = append(vm.Disks, aDisk)
+		v.Disks = append(v.Disks, aDisk)
 	}
 
-	err = vm.Save()
+	err = v.Save()
 	if err != nil {
 		slog.Error("error saving VM", "err", err)
 
